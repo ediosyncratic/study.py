@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.8 2003-04-21 20:09:46 eddy Exp $
+$Id: particle.py,v 1.9 2003-06-15 14:50:36 eddy Exp $
 """
 
 from const import *
@@ -534,62 +534,21 @@ Nucleon(1, 2, 'neutron',
         Quantity(sample(1674.82, .08), harpo * gram),
         "uncharged ingredient in nuclei",
         magneticmoment = 0.96623640e-26 * Joule / Tesla)
-
-class Nucleus (Particle): _namespace = 'Nucleus.item'
-class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
-class fNucleus (Fermion, Nucleus): 'Fermionic nucleus'
-def nucleus(Q, N, name, doc, **what):
-    what.update({'name': name, 'doc': doc,
-                 'constituents': {Nucleon.item.proton: Q, Nucleon.item.neutron: N}})
 
-    try: klaz = {0: bNucleus, 1: fNucleus}[(Q + N) % 2]
-    except KeyError: klaz = Nucleus
-    return apply(klaz, (), what)
-
-class Atom (Particle): _namespace = 'Atom.item'
-class bAtom (Boson, Atom): 'Bosonic atom'
-class fAtom (Fermion, Atom): 'Fermionic atom'
-def atom(Q, N, name, symbol, doc, **what):
-    ndoc = "%s's nucleus" % name
-    try: n = what['nucleus']
-    except KeyError:
-        n = what['nucleus'] = nucleus(Q, N,
-                                      '%s<sup>+%d</sup>' % (symbol, Q),
-                                      ndoc)
-    else:
-        try:
-            if not n.__dict__['__doc__']: raise KeyError
-        except KeyError:
-            n.__doc__ = ndoc
-
-    what.update({'name': name, 'symbol': symbol, 'doc': doc,
-                 'constituents': {n: 1, Lepton.item.electron: Q}})
-    try: klaz = {0: bAtom, 1: fAtom}[N % 2]
-    except KeyError: klaz = Atom
-    return apply(klaz, (), what)
-
-atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
-     mass=Quantity(sample(1673.43, .08), harpo * gram),
-     nucleus=Nucleon.item.proton)
-atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
-     nucleus=nucleus(1, 1, 'deuteron', "Deuterium's nucleus",
-                     # roughly the sum of proton and neutron:
-                     mass = 2.01355321271 * AMU,
-                     # roughly the *difference* between proton and neutron:
-                     magneticmoment = 0.433073457e-26 * Joule / Tesla))
-atom(1, 2, 'Tritium', 'T', 'Radioactive Heavy Hydrogen')
-atom(2, 2, 'Helium', 'He', 'Second most abundant form of matter',
-     nucleus=nucleus(2, 2, 'alpha', "Helium's nucleus"))
+# Make proton, neutron and electron primary exports:
+proton, neutron, electron = Nucleon.item.proton, Nucleon.item.neutron, Lepton.item.electron
 
 # Some atom-scale constants:
-radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / Lepton.item.electron.mass
+radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron.mass
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
-Rydberg = (light.speed / (1/Lepton.item.electron.mass
-                          +1/Nucleon.item.proton.mass) / 2 / Quantum.h) * Vacuum.alpha**2
+Rydberg = (light.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.8  2003-04-21 20:09:46  eddy
+ Revision 1.9  2003-06-15 14:50:36  eddy
+ Removed nucleus and atom (to new elements.py), made p,n,e into primary exports.
+
+ Revision 1.8  2003/04/21 20:09:46  eddy
  _charge just ceased being borrowable anyway, so no need to say not to borrow it.
 
  Revision 1.7  2003/04/12 13:38:17  eddy
