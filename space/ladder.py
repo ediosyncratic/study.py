@@ -2,16 +2,17 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.2 2004-04-18 11:50:35 eddy Exp $
+$Id: ladder.py,v 1.3 2004-04-18 13:52:58 eddy Exp $
 """
-from basEddy.units import *
-from math import exp, log
+from math import exp
 from planets import Earth
 
-def V(S, D):
-    v = (Quantity(Sample(S), mega * Pascal) / Quantity(Sample(D), kg/m/m/m)) ** .5
+from basEddy.units import kg, m, mega, Pascal, Quantity, Sample, Object
+def V(S, D, MPa=mega * Pascal, rho=kg/m**3, Q=Quantity, W=Sample):
+    v = (Q(W(S), MPa) / Q(W(D), rho)) ** .5
     return v.low, v.high
-
+del kg, m, mega, Pascal, Sample
+
 class Ladder (Object):
     """A ladder out of a gravitational well.
 
@@ -59,7 +60,7 @@ class Ladder (Object):
 
     __obinit = Object.__init__
 
-    def __init__(self, S, D, top=1, planet=Earth, bot=None, **what):
+    def __init__(self, S, D, top=1, planet=Earth, bot=None, Q=Quantity, **what):
 	"""Initialises a ladder object.
 
 	First two arguments describe mechanical properties of the material of
@@ -77,7 +78,7 @@ class Ladder (Object):
 	self.stress, self.density = S, D
 	sync, surf, densile = planet.synchronous, planet.surface, S / D
 	self.spin, self.R = surf.spin, sync.radius
-	self.__kk = Quantity(sync.speed**2 / densile)
+	self.__kk = Q(sync.speed**2 / densile)
 	# __kk *must* be a Quantity for thin's use of evaluate ...
 
 	if bot is None: bot = surf.radius / self.R
@@ -91,9 +92,9 @@ class Ladder (Object):
 
 	self.__ends = (bot, top)
 
-    def thin(self, u):
+    def thin(self, u, e=exp):
 	"""Area of ladder at radial coordinate u, in units of that at orbit. """
-	return (self.__kk * (1-u) * (.5 +u/2 -1/u)).evaluate(exp)
+	return (self.__kk * (1-u) * (.5 +u/2 -1/u)).evaluate(e)
 
     def _lazy_get_v_(self, ignored): return self.__kk ** .5
     def _lazy_get_length_(self, ignored):
@@ -191,10 +192,14 @@ class Ladder (Object):
     def _lazy_get_lift_(self, ignored): return self._load * self.density * self.R # bot
     def _lazy_get_bauble_(self, ignored): return self._counter * self.density * self.R # top
 
+del exp, Earth, Object, Quantity
 
 _rcs_log = """
  $Log: ladder.py,v $
- Revision 1.2  2004-04-18 11:50:35  eddy
+ Revision 1.3  2004-04-18 13:52:58  eddy
+ Being more frugal about namespace-clutter.
+
+ Revision 1.2  2004/04/18 11:50:35  eddy
  Do integration via integrate.Integrator.  Added moment.
  Cope with length as top.  Assorted doc tweaks.
 
