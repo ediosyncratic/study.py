@@ -1,11 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.1 2005-03-12 15:05:44 eddy Exp $
+$Id: home.py,v 1.2 2005-03-12 15:12:49 eddy Exp $
 """
 
 from basEddy.units import *
 from space.body import Body, discreteBody, Planet
+from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent
 
 # some rough data from my Nuffield data book:
 MilkyWay = Body('Milky Way', mass=1e41 * kg,
@@ -356,10 +357,13 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
+
+del Orbit, Spin, Discovery, SurfacePart, Ocean, Island, Continent, IAcontinent, IAisland, IAocean
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.1  2005-03-12 15:05:44  eddy
-Initial revision
+Revision 1.2  2005-03-12 15:12:49  eddy
+Clean-up of import/export.
 
+Initial Revision 1.1  2005/03/12 15:05:44  eddy
 """
