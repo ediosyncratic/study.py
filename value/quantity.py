@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.26 2004-02-15 15:39:10 eddy Exp $
+$Id: quantity.py,v 1.27 2004-02-15 15:47:34 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -248,7 +248,8 @@ class Quantity (Object):
 
         # massage the arguments: first mix scale and units
         if isinstance(units, Quantity):
-            scale, units = scale * units.__scale, units.__units
+            if units.__scale is 1: units = units.__units
+            else: scale, units = scale * units.__scale, units.__units
         if isinstance(scale, Quantity):
             units, scale = adddict(units, scale.__units), scale.__scale
 
@@ -612,7 +613,11 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.26  2004-02-15 15:39:10  eddy
+ Revision 1.27  2004-02-15 15:47:34  eddy
+ Provide for preserving attributes on scale when unit is simple.
+ [e.g. a sample with low and high set lost them when multiplied by 1]
+
+ Revision 1.26  2004/02/15 15:39:10  eddy
  sample.tophat moved to sample.Sample.tophat
 
  Revision 1.25  2003/09/24 21:29:05  eddy
