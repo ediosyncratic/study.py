@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.24 2004-02-15 15:41:48 eddy Exp $
+$Id: sample.py,v 1.25 2004-02-15 16:16:00 eddy Exp $
 """
 
 class _baseWeighted:
@@ -118,10 +118,10 @@ class curveWeighted (Lazy, _baseWeighted):
             bok = {}
             if low is not None and low < cut[0]:
                 # arrange for low to be new cut[0]
-                bok[(low * 2 + self.sortedkeys[0]) / 3.] = sum
+                bok[.5 * (low + self.sortedkeys[0])] = sum
 
             if high is not None and high > cut[-1]:
-                bok[(self.sortedkeys[-1] + 2 * high) / 3.] = sum
+                bok[.5 * (self.sortedkeys[-1] + high)] = sum
 
             if len(bok) > 1:
                 for k in bok.keys(): bok[k] = bok[k] / 2
@@ -1724,7 +1724,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.24  2004-02-15 15:41:48  eddy
+  Revision 1.25  2004-02-15 16:16:00  eddy
+  Got reach() wrong for case with prior data; fixed.
+
+  Revision 1.24  2004/02/15 15:41:48  eddy
   Allow weights to be empty if reach()ing is going to give us a value.
 
   Revision 1.23  2004/02/14 20:41:50  eddy
