@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.2 2005-03-12 16:50:06 eddy Exp $
+$Id: body.py,v 1.3 2005-03-12 17:10:19 eddy Exp $
 """
 
 from basEddy.units import Object, Quantity, second, metre, turn, pi
@@ -14,6 +14,8 @@ class Body (Object):
 	try: what['orbit'].centre.satellites.insert(None, self)
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
+
+    _lazy_preserve_ = Object._lazy_preserve_ + ('satellites',)
 
     def __str__(self): return self.name
     __repr__ = __str__
@@ -36,8 +38,9 @@ class Body (Object):
             All it actually remembers of the centre it serves is a call-back
             method to purge any lazily-computed attributes whose computation
             depends on the satellites.  In practice, the central body's lazy
-            reset method is sensible for this, though ideally a more selective
-            purge could be used."""
+            reset method is sensible for this (provided we configure this to
+            preserve its lazy satellites attribute, of course !), though ideally
+            a more selective purge could be used.\n"""
 
             self.__cb, self.__carry = centre._lazy_reset_, []
 
@@ -348,7 +351,10 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.2  2005-03-12 16:50:06  eddy
+Revision 1.3  2005-03-12 17:10:19  eddy
+Of course, having lazy reset preserve satellites becomes pretty crucial now that it's lazy ...
+
+Revision 1.2  2005/03/12 16:50:06  eddy
 Threw out the bits of satellites list that I don't want ...
 
 Initial Revision 1.1  2005/03/12 14:52:15  eddy
