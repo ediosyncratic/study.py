@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.6 2003-08-13 22:41:38 eddy Exp $
+$Id: polynomial.py,v 1.7 2003-08-17 16:20:50 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -129,8 +129,8 @@ class Polynomial (Lazy):
     def coefficient(self, key):
         val = self.__coefs.get(key, self._zero)
         try:
-            if val == int(val): return val
-        except OverflowError: pass
+            if val == int(val): return int(val)
+        except (OverflowError, TypeError): pass
         return val
 
     def _lazy_get_rank_(self, ignored):
@@ -166,10 +166,7 @@ class Polynomial (Lazy):
             if num.imag == 0:
                 num = num.real
                 raise AttributeError
-        except AttributeError:
-            try:
-                if num == int(num): num = int(num)
-            except OverflowError: pass
+        except AttributeError: pass
 
         ans = str(num)
         if ans[0] != '-': return ' +' + ans
@@ -179,7 +176,7 @@ class Polynomial (Lazy):
 	result, keys, name = '', self._powers, self.variablename
 
 	for key in keys:
-            val = self.__coefs[key]
+            val = self.coefficient(key)
             if key:
                 if val == 1: result = result + " +"
                 elif val == -1: result = result + ' -'
@@ -698,7 +695,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.6  2003-08-13 22:41:38  eddy
+Revision 1.7  2003-08-17 16:20:50  eddy
+Return coefficients as ints if they are (planned but goofed, previously).
+
+Revision 1.6  2003/08/13 22:41:38  eddy
 Various fixes to make polynomials with whole coefficients not lose track of that
 wholeness (but not report ints with L on the end).  Various refinements to let
 assertions allow tiny difference to be equality, abandoning divmod's assertion
