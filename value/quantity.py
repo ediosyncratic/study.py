@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.14 2001-12-12 17:10:01 eddy Exp $
+$Id: quantity.py,v 1.15 2002-02-02 18:36:27 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -18,6 +18,10 @@ _quantifier_dictionary = {
     9: 'giga',
     6: 'mega',
     3: 'kilo',
+    2: 'hecto',
+    1: 'deca', # a.k.a. deka; see below
+    -1: 'deci',
+    -2: 'centi',
     -3: 'milli',
     -6: 'micro',
     -9: 'nano',
@@ -35,10 +39,7 @@ for _key, _val in _quantifier_dictionary.items():
     exec '%s = 1e%d' % (_val, _key)
     _exponent_to_quantifier['e%+d' % _key] = _val
 
-hecto= 100
-deca = deka = 10
-deci = .1
-centi= .01
+deka = deca
 
 # Note: a gramme comes out as a milli * kilogramme, which is only fair, all
 # things considered.  Maybe I'll fix it some day ... but will someone object to
@@ -396,7 +397,7 @@ class Quantity(Object):
 
     def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
     def _lazy_get_variance_(self, ignored):
-        return Quantity(self.__scale.variance, scaledict(self.__units, 2))
+        return self._quantity(self.__scale.variance, scaledict(self.__units, 2))
 
     # lazy string and representation lookups:
 
@@ -408,6 +409,16 @@ class Quantity(Object):
     def __repr__(self): return self._full_repr
     # valid python expression, full names: e.g. 9.81 * micro * metre*kilogramme / second**2
     def _lazy_get__number_repr_(self, ignored): return `self.__scale`
+
+    # __scale isn't mentioned after this
+    def _lazy_get__quantity_stinu_bok_(self, ignored):
+        # Build reverse-lookup for self.__units
+        pows = {} # ! { power: list of units appearing with this power }
+        for key, val in self.__units.items():
+            try: pows[val].append(key)
+            except KeyError: pows[val] = [ key ]
+        return pows
+    # nor __units in the string infrastructure borrowed by eddy.science.quantity
 
     def _lazy_get__full_str_(self, ignored):
         # Gather components
@@ -443,10 +454,24 @@ class Quantity(Object):
                                 divide='/', Divide=' / ',
                                 lookemup=lookup)
 
+    def _lazy_get__quantity_stinu_skey_(self, ignored):
+        # Prepare the list of powers we'll be using (in descending order):
+        vals = self._quantity_stinu_bok.keys()
+        vals.sort()
+        vals.reverse()
+        while 0 in vals: vals.remove(0)
+        # We'll be folding x^-i^ terms in with y^i^ as (y/x)^i^ ...
+        # so eliminate -i from vals if i appears in it.
+        for val in vals[:]:
+            if val < 0: break
+            while -val in vals: vals.remove(-val)
+
+        return tuple(vals)
+
     def unit_string(self, scale='',
                     times='.', divide='/',
                     Times=None, Divide=None,
-                    lookemup=None):
+                    lookemup=lambda r: r):
         """Generates representations of a quantity.
 
         All arguments are optional and should be given by name when given.
@@ -467,42 +492,23 @@ class Quantity(Object):
           similar sequence in which each string may have been replaced with an
           alternative: typically, the strings in the input list will be short
           names of units, to be converted to long names where known,
-          e.g. [ kg ] -> [ kilogramme ].
+          e.g. [ kg ] -> [ kilogramme ], or vice versa.
 
         I hope to be able to do something smarter when I can see when to say J
         rather than kg.m.m/s/s, and etc.  But that will probably involve
-        creating a units base-class to replace the present __units dictionary.
-        """
+        creating a units base-class to replace the present _quantity_unit_bok
+        dictionary. """
 
-        # Build reverse-lookup for self.__units:
-        pows = {} # ! { power: list of units appearing with this power }
-        for key, val in self.__units.items():
-            try: pows[val].append(key)
-            except KeyError: pows[val] = [ key ]
-
-        # Prepare the list of powers we'll be using (in descending order):
-        vals = pows.keys()
-        vals.sort()
-        vals.reverse()
-        while 0 in vals: vals.remove(0)
-        # We'll be folding x^-i^ terms in with y^i^ as (y/x)^i^ ...
-        # so eliminate -i from vals if i appears in it.
-        for val in vals[:]:
-            if val < 0: break
-            while -val in vals: vals.remove(-val)
 
         # Honour Times='' even with times='.'
         if Times is None: Times = times
         # but not so for division ...
         if not Divide: Divide = divide
 
-        # Default lookup-each-item operation
-        if not lookemup:
-            def lookemup(row): return row
-
         head, tail = str(scale), ''
+        pows = self._quantity_stinu_bok 
 
-        for p in vals:
+        for p in self._quantity_stinu_skey: # sorted keys of pows
             # punctuate
             if p > 0:
                 if head or tail: tail = tail + Times
@@ -556,7 +562,13 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.14  2001-12-12 17:10:01  eddy
+ Revision 1.15  2002-02-02 18:36:27  eddy
+ fixed bug in variance (missing `self.')
+ included non-prial quantifiers among the rest.
+ lazified reverse-lookup of __units, eased lookemup default
+ untabified
+
+ Revision 1.14  2001/12/12 17:10:01  eddy
  untabified
 
  Revision 1.13  2001/12/12 17:09:23  eddy
