@@ -4,7 +4,7 @@ c.f. polynomial, using only one free variable.
 """
 
 _rcs_id_ = """
-$Id: multinomial.py,v 1.1 2003-07-27 19:52:55 eddy Exp $
+$Id: multinomial.py,v 1.2 2003-07-27 19:58:10 eddy Exp $
 """
 from basEddy.lazy import Lazy
 from polynomial import unNaturalPower
@@ -150,7 +150,9 @@ class Multinomial (Lazy):
             val, i = self.__coefs[key], len(args)
             while i > 0:
                 i = i - 1
-                if key[i]: val = val * args[i]**key[i]
+                try: p = key[i]
+                except IndexError: pass
+                else: val = val * args[i]**p
 
             result = result + val
 
@@ -252,7 +254,8 @@ class Multinomial (Lazy):
 
 _rcs_log_ = """
 $Log: multinomial.py,v $
-Revision 1.1  2003-07-27 19:52:55  eddy
-Initial revision
+Revision 1.2  2003-07-27 19:58:10  eddy
+Minor glitch in call.
 
+Initial Revision 1.1  2003/07/27 19:52:55  eddy
 """
