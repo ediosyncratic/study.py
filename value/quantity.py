@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.19 2002-10-06 18:07:44 eddy Exp $
+$Id: quantity.py,v 1.20 2002-10-07 17:56:19 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -370,10 +370,14 @@ class Quantity (Object):
 
     # Addition, subtraction and their reverses.
     def __kin(self,    scale): return self._quantity(scale, self.__units)
+
     def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck_(other, '+'))
-    def __radd__(self, other): return self.__kin(self.__addcheck_(other, '+') + self.__scale)
     def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
+    def __mod__(self,  other): return self.__kin(self.__scale % self.__addcheck_(other, '%'))
+
+    def __radd__(self, other): return self.__kin(self.__addcheck_(other, '+') + self.__scale)
     def __rsub__(self, other): return self.__kin(self.__addcheck_(other, '-') - self.__scale)
+    def __rmod__(self, other): return self.__kin(self.__addcheck_(other, '%') % self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
     def __unpack_(self, other):
@@ -588,7 +592,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.19  2002-10-06 18:07:44  eddy
+ Revision 1.20  2002-10-07 17:56:19  eddy
+ Added support for % to Quantity; shuffled __r forms of +,-,% apart from
+ forward forms for ease of reading.
+
+ Revision 1.19  2002/10/06 18:07:44  eddy
  Renamed Quantity.name() - bad choice of method name !
  Adjusted .document() to append to existing doc.
 
