@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.27 2004-02-15 15:47:34 eddy Exp $
+$Id: quantity.py,v 1.28 2004-02-15 16:14:56 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -145,12 +145,9 @@ class qSample (Sample):
     def _lazy_get__str_(self, ignored, mash=_massage_text):
         return mash(self._sample_repr, ' ')
 
-    # Sample's low and high are boundary weights, decidedly *inside* true bounds.
-    def _lazy_get_high_(self, which):
-        self.low, self.high = self.span
-        return self.__dict__[which]
-
-    _lazy_get_low_ = _lazy_get_high_
+    # Sample's .low and .high are boundary weights, decidedly *inside* true bounds.
+    def _lazy_get_high_(self, ignored): return self.span[1]
+    def _lazy_get_low_(self, ignored): return self.span[0]
 
 del _massage_text
 
@@ -613,7 +610,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.27  2004-02-15 15:47:34  eddy
+ Revision 1.28  2004-02-15 16:14:56  eddy
+ Don't combine low/high for qSample; each might over-write initialized value of the other.
+
+ Revision 1.27  2004/02/15 15:47:34  eddy
  Provide for preserving attributes on scale when unit is simple.
  [e.g. a sample with low and high set lost them when multiplied by 1]
 
