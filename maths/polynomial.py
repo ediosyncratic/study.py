@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.8 2003-08-17 18:03:04 eddy Exp $
+$Id: polynomial.py,v 1.9 2003-08-17 20:21:35 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -325,30 +325,37 @@ class Polynomial (Lazy):
         # assert r == self - q * other # tends to fail on small errors
 	return q, r
 
-    def __root(self, num, ratio=divide):
+    def scalarroot(val, exp, odd):
+        assert val
+        try:
+            if val > 0: pass
+            elif odd: return - ((-val)**exp)
+            else: val = val + 0j # even root of -ve; coerce to complex
+        except TypeError: pass # complex
+
+        return val ** exp
+
+    def __root(self, num, ratio=divide, root=scalarroot):
         # solve self = ans ** num
         assert num > 0 == self.rank % num
-        ans = self.coefficient(self.rank)
-        assert ans
-        if ans > 0: ans = ans **(1./num)
-        elif num % 2: ans = - ((-ans)**(1./num))
-        else: raise ValueError
 
         top = self.rank / num
-        ans = Polynomial({top: ans})
+        ans = Polynomial({
+            top: root(self.coefficient(self.rank), 1./num, num%2)})
         res = self - ans ** num
         while top > 0 and res:
             next = res.rank - (num-1)*ans.rank
             if next < top: top = next
             else: raise ValueError
-            ans = ans + Polynomial({top: ratio(res.coefficient(res.rank),
-                                               num*ans.coefficient(ans.rank)**(num-1))})
+            ans = ans + Polynomial({
+                top: ratio(res.coefficient(res.rank),
+                           num * ans.coefficient(ans.rank)**(num-1))})
             res = self - ans ** num
 
         if res: raise ValueError
         return ans
 
-    del divide
+    del divide, scalarroot
 
     def whole(val):
         try: return int(val)
@@ -374,22 +381,30 @@ class Polynomial (Lazy):
 
         try:
             if other < 0: raise TypeError
+            if self.rank < 0: return self # zero**+ve is zero
+            m = 0
             if not ok(other):
                 i = int(other)
                 if i == other: other = i
                 else:
                     # bad, unless we're very lucky
-                    m = other * self.rank
-                    if m != int(m): raise TypeError
-                    # OK, we *might* be able to get away with this ...
-                    # ... other is n/m; see if we have an m-th root:
+                    i = other * self.rank
+                    if i != int(i): raise TypeError
                     m = 1L
-                    while int(m*other) != m*other: m = 1+m
-                    assert m <= self.rank
-                    other, wer = int(other * m), self.__root(m) # will ValueError if not possible
 
         except (AttributeError, TypeError, ValueError):
             raise unNaturalPower, other
+
+        if m:
+            # OK, we *might* be able to get away with this ...
+            while 1:
+                m = 1 + m
+                i = m * other
+                if i == int(i): break
+            assert m <= self.rank
+            # ... other is i/m; see if we have an m-th root:
+            other, wer = int(i), self.__root(m) # will ValueError if not possible
+
 
 	while other >= 1:
 	    if other % 2: result = result * wer
@@ -740,7 +755,12 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.8  2003-08-17 18:03:04  eddy
+Revision 1.9  2003-08-17 20:21:35  eddy
+A bit of tidy-up in __root and __pow__.  The latter now special-cases
+zero**+ve and raises ValueError if fractional power was reasonable but
+didn't work, e.g. the square root of a quadratic that isn't a square.
+
+Revision 1.8  2003/08/17 18:03:04  eddy
 Allow long powers and fractional powers when they work ...
 
 Revision 1.7  2003/08/17 16:20:50  eddy
