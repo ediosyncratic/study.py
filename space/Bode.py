@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The auto-Bodalizer.
 
-Trying to invent a Titius-Body sort of a sequence for an arbitrary family of
+Trying to invent a Titius-Bode sort of a sequence for an arbitrary family of
 bodies orbiting a common centre.  Bogus and experimental.
 
-$Id: Bode.py,v 1.2 2005-03-12 14:14:42 eddy Exp $
+$Id: Bode.py,v 1.3 2005-03-13 18:45:49 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -61,8 +61,8 @@ Ceres Ferdinandea.\n"""
 
     def _lazy_get_bodytypes_(self, ignored, seq=[]):
         if seq: return tuple(seq)
-        from body import Planet, Planetoid, Body
-        seq[:] = [ Planet, Planetoid, Body ]
+        from body import Planet, Planetoid, Body, Object
+        seq[:] = [ Planet, Planetoid, Body, Object ]
 
     def __len__(self): return len(self.__seq)
     def __getitem__(self, key):
@@ -170,7 +170,10 @@ del Lazy
 
 _rcs_log = """
 $Log: Bode.py,v $
-Revision 1.2  2005-03-12 14:14:42  eddy
+Revision 1.3  2005-03-13 18:45:49  eddy
+body has renamed its exports; also, include Object as fall-back bodytype.
+
+Revision 1.2  2005/03/12 14:14:42  eddy
 Clean-up of import/export and use a nominal AU rather than the real one.
 
 Initial Revision 1.1  2005/03/12 14:00:04  eddy
