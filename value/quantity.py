@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.20 2002-10-07 17:56:19 eddy Exp $
+$Id: quantity.py,v 1.21 2003-04-20 14:21:55 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -40,6 +40,10 @@ for _key, _val in _quantifier_dictionary.items():
     _exponent_to_quantifier['e%+d' % _key] = _val
 
 deka = deca
+
+Ki = kibi = 1024
+Mi = mebi = Ki * 1024
+Gi = gibi = Mi * 1024
 
 # Note: a gramme comes out as a milli * kilogramme, which is only fair, all
 # things considered.  Maybe I'll fix it some day ... but will someone object to
@@ -419,8 +423,8 @@ class Quantity (Object):
         stat = getattr(self.__scale, which) # the statistic (e.g. best estimate) of scale
         return Quantity(stat, self.__units) # with the same units as self.
 
-    _lazy_get_low_ = _lazy_get_high_ = _lazy_get_mean_ = _lazy_get_mode_ \
-                   = _lazy_get_median_ = _lazy_get_width_ = _lazy_get_errors_ \
+    _lazy_get_low_ = _lazy_get_high_ = _lazy_get_width_ = _lazy_get_errors_ \
+                   = _lazy_get_median_ = _lazy_get_mean_ = _lazy_get_mode_ \
                    = _lazy_get_dispersor_ = _lazy_get_best_
 
     def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
@@ -592,7 +596,10 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.20  2002-10-07 17:56:19  eddy
+ Revision 1.21  2003-04-20 14:21:55  eddy
+ Added Ki, Mi, Gi; the official 1024-based k, M, G.
+
+ Revision 1.20  2002/10/07 17:56:19  eddy
  Added support for % to Quantity; shuffled __r forms of +,-,% apart from
  forward forms for ease of reading.
 
