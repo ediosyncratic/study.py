@@ -1,8 +1,72 @@
 """Assorted units of measurement.
 
-See SI.py for base units.
+See SI.py for base units.  This file documents lots of obscure and/or silly
+units, may of them derived from the /usr/share/misc/units repository of
+knowledge on the subject (see http://www.gnu.org/software/units/units.html for
+details).  This file aims to be all-inclusive, rather than sensible; however,
+there are `issues', since some of the units (especially ones relevant to trade
+in the anglophone world) have several variants - where possible, I have tried to
+find namespace-based ways to manage this mess (e.g.: print USbushel.__doc__),
+but sometimes (e.g. the chain) I just gave up and left a comment here indicating
+the part of the story that I've left out !
 
-$Id: units.py,v 1.6 2002-10-06 18:04:58 eddy Exp $
+There are enough units of measurement here to provide for some cutely specific
+units of measurements in all sorts of odd domains.
+
+  For example, consider the fuel efficiency of transport systems fueled by
+  petrol; this is commonly measured in miles / gallon in the anglophone world
+  (with consequent confusion between the new imperialists and the old; while the
+  two agree on what a mile is, they disagree on what a gallon is; five UK
+  gallons roughly equal six US gallons) or kilometres / litre in the civilised
+  world (48 miles / UK gallon is roughly equal to 40 miles / US gallon and to 17
+  kilometres / litre).  This last is, itself, one million times the natural SI
+  unit, metres per cubic metre.
+
+  Superficially, this is a 1/area unit, though the implicit `of petrol' clause
+  in it does subvert that a little; 17 km/litre is officially 17 million /
+  square metre, a.k.a. 17 per square millimetre; which is meaningless drivel
+  until I point out that it means that each square millimetre of cross-sectional
+  area of your fuel tank contributes (at this fuel efficiency) 17 to the ratio
+  between the speed of your vehicle and the rate at which the fuel level in the
+  tank is dropping; if your fuel tank's cross-section is one square foot (92,903
+  square mm), and your vehicle is managing 17 km/litre, then you're travelling a
+  little over one and a half million (i.e. 17 * 93) times as fast as the level
+  in the fuel tank is dropping.
+
+  In reality, fuel efficiencies of real road vehicles seem to fall in the range
+  from around 8 to around 80 mpg (UK), so that a unit of order 20 mpg would be
+  quite handy; as it happens, one furlong / UK floz is exactly 20 miles per UK
+  gallon, suggesting it as the ideal imperial unit for the task (i.e. it's the
+  right size and marvelously perverse).  A slightly saner unit would clearly be
+  the mile per UK pint - the given range runs from one to 10 of these, and
+  that's a nice range of numbers to work with - which is 2.83 km / litre.  By a
+  weird twist of fate, 2.83 is almost exactly the square root of 8; so that the
+  civilised unit, one km/litre, is 2.83 miles per UK gallon; and using this unit
+  makes the range of real-world values run from 2.8 to 28, with 10 km/litre
+  (roughly 28 miles per UK gallon or 23 per US gallon) presenting itself as a
+  fairly good cut-off between `inefficient' and `not so bad, all things
+  considered'.
+
+  Note that one might equally measure the same phenomenon as a fuel consumption
+  rate, in gallons per mile or litres per kilometre, which would encourage
+  trying to find a unit of order one UK gallon per 80 miles, a.k.a. one UK pint
+  per ten miles or 2 UK floz per mile.  (The pint per mile would also make quite
+  a good unit of measurement for pub-crawls, albeit with very different
+  semantics.)  A vehicle consuming a small number of floz per mile (up to five
+  or six, to match the cut-off above) would then be considered frugal, while
+  ones beyond that would be considered wasteful.
+
+Chosing the right unit, and the right way up (c.f. the contrast between fuel
+efficiency and consumption rate), is important to how measurements get
+interpreted - for example, although the gradient of a sloping road may formally
+be a dimensionless quantity, it makes sense to measure `slope' in such units as
+metre (of ascent or descent) per kilometre (of travel) or, in a culture which
+has different units for vertical and horizontal lengths, fathoms per furlong.
+Even when using the official SI unit, different ways of expressing a unit can
+change perceptions of its meaning - for example, (metre / second)**2 means the
+same as Joule / kilogramme, but expresses a different perspective on it.
+
+$Id: units.py,v 1.7 2003-04-17 22:19:20 eddy Exp $
 """
 from SI import *
 
@@ -90,7 +154,7 @@ Oe = Oersted = kilo * Ampere / metre / 4 / pi
 # see also particle.py for the electron-Volt, eV
 
 def Centigrade(number): return Kelvin * (number + 273.16)
-def toCentrigrade(T): return T/Kelvin - 273.16
+def toCentigrade(T): return T/Kelvin - 273.16
 
 Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
@@ -350,9 +414,9 @@ French = Object(foot = pied,
 # Anglophone units of mass:
 grain = Mass(64.79891e-6, kilogramme)        # K&L
 mite = Mass(1. / 20, grain)
-droit = Mass(1. / 24, mite)
-periot = Mass(1. / 20, droit)
-blanc = Mass(1. / 24, periot)
+droit = Mass(1. / 24, mite) # a cube of water half a mm on each side
+periot = Mass(1. / 20, droit) # an eighth of the Planck mass
+blanc = Mass(1. / 24, periot) # did I mention that some of these units are silly ?
 scruple = Mass(20, grain)
 lb = pound = Mass(350, scruple)
 oz = ounce = Mass(1. / 16, pound)
@@ -410,7 +474,7 @@ celo = foot / second**2
 jerk = celo / second
 poundal = pound * celo
 reyn = psi * second
-slug = Mass(1, pound.force * second**2 / foot)
+slug = Mass(1, pound.force / celo)
 slinch = Mass(12, slug)
 duty = foot * pound.force
 
@@ -427,9 +491,13 @@ USfirkin = 9 * USgallon
 UShogshead = 7 * USfirkin
 USbarrel = UShogshead / 2
 USbarrelDry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
-USbushel = Object(
-    2150.42 * pow(inch, 3), # volume of an 8 inch cylinder with 18.5 inch diameter
-    # North Americans also use `bushel' as a unit of mass for grains:
+USbushel = Quantity(2150.42, pow(inch, 3),
+                    doc="""The US bushel.
+
+This is the volume of an 8 inch cylinder with 18.5 inch diameter.
+However, the US bushel is also a unit of mass for various types of grain.
+See dir(USbushel) for details.
+""",
     wheat = Mass(60, pound),
     soybean = Mass(60, pound),
     corn = Mass(56, pound), # of course, this means maize, not wheat
@@ -462,7 +530,8 @@ hogshead = kilderkin * 3
 # hogshead' of 56 gallons; see also the US variants.
 wine = Object(
     doc = """Winchester measures, for wine.
-    (Due to Queen Anne, 1707)""",
+
+(Due to Queen Anne's regime, 1707)""",
     gallon = 231 * inch**3)
 wine.also(quart = wine.gallon / 4, pint = wine.gallon / 8,
           rundlet = 18 * wine.gallon, barrel = 63 * wine.gallon / 2,
@@ -480,7 +549,7 @@ ale = Object(
     doc = """Archaic measures for ale, 1688 to 1803.""",
     barrel = 34 * beer.gallon,
     hogshead = 51 * beer.gallon)
-# and so on ad nauseam !
+# and so on *ad nauseam* !
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 lienSwiss = 5249 * yard
@@ -525,7 +594,11 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.6  2002-10-06 18:04:58  eddy
+ Revision 1.7  2003-04-17 22:19:20  eddy
+ Fixed stupid typo in toCentrigrade; enhanced several docs; wrote, into
+ doc string, a minor essay on the relevance of choice of unit.
+
+ Revision 1.6  2002/10/06 18:04:58  eddy
  Removed use of the Quantity.name() - bad choice of method name !
  Also, eV is now elsewhere.
 
