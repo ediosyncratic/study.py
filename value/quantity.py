@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.5 1999-07-19 21:17:32 eddy Exp $
+$Id: quantity.py,v 1.6 1999-07-19 21:21:09 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -48,7 +48,7 @@ class qSample(Sample):
             what.update(sample.dir)
             sample = sample.mirror
 
-        apply(Sample.__init__, (self, sample, best) + args, what)
+        apply(Sample.__init__, (self, sample) + args, what)
 
     def _lazy_get__str_(self, ignored):
         ans = Sample._lazy_get__str_(self, ignored)
@@ -489,7 +489,10 @@ def base_unit(nom, fullname, doc):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.5  1999-07-19 21:17:32  eddy
+ Revision 1.6  1999-07-19 21:21:09  eddy
+ Dumb typo.
+
+ Revision 1.5  1999/07/19 21:17:32  eddy
  Extracted units into other files (units, SI, unit).
  Switched to new Sample class, in peer module sample.
  Mended file after disk-mess.
