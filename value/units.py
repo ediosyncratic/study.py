@@ -2,7 +2,7 @@
 
 See SI.py for base units.
 
-$Id: units.py,v 1.5 2002-09-23 18:52:44 eddy Exp $
+$Id: units.py,v 1.6 2002-10-06 18:04:58 eddy Exp $
 """
 from SI import *
 
@@ -84,10 +84,10 @@ erg = .1 * micro * Joule
 dyn = 10 * micro * Newton
 
 Ci = Curie = 37 * giga * Becquerel
-R = Rontgen = .258 * milli * Coulomb / kilogramme
-R.name('R&ouml;ntgen') # also Roentgen ?
+R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
+                       fullname='R&ouml;ntgen') # also Roentgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi
-eV = 160.21e-21 * Coulomb * Volt # electron-Volt, .16 atto Joules
+# see also particle.py for the electron-Volt, eV
 
 def Centigrade(number): return Kelvin * (number + 273.16)
 def toCentrigrade(T): return T/Kelvin - 273.16
@@ -525,7 +525,11 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.5  2002-09-23 18:52:44  eddy
+ Revision 1.6  2002-10-06 18:04:58  eddy
+ Removed use of the Quantity.name() - bad choice of method name !
+ Also, eV is now elsewhere.
+
+ Revision 1.5  2002/09/23 18:52:44  eddy
  Expanded sterling's doc.  Added Centigrade and Fahrenheit handlers.
 
  Revision 1.4  2002/03/21 03:06:18  eddy
