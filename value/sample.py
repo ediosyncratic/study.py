@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.22 2003-09-24 21:25:57 eddy Exp $
+$Id: sample.py,v 1.23 2004-02-14 20:41:50 eddy Exp $
 """
 
 class _baseWeighted:
@@ -67,7 +67,7 @@ class _baseWeighted:
 import math # del at end of this page
 from basEddy import Lazy # likewise
 
-class curveWeighted (Lazy):
+class curveWeighted (Lazy, _baseWeighted):
     """Interpretation of the weights dictionary as a curve.
 
     This introduces an implicit curve described by the weight dictionary.  If
@@ -94,6 +94,46 @@ class curveWeighted (Lazy):
     attribute with a suitable meaning. """
 
     tophat = {-1./6: 1, 1./6: 1} # produces uniform distribution from -.5 to +.5
+
+    def reach(self, low=None, high=None, share=1e-6):
+        """Ensure self's weights stretch as far as low and high, if non-None.
+
+        Arguments:
+          low -- None, or a lower bound that self should reach
+          high -- None, or an upper bound that self should reach
+          share -- fraction of self's total weight available to reach bounds
+
+        Note that if low or high is None, or is already within self's range, it
+        will be ignored.\n"""
+
+        if len(self) < 1:
+            # ignore share; low and high shall be our only weights
+            if high is None:
+                if low is not None: self.add({low: 1})
+            elif low is None: self.add({high: 1})
+            else: self.add({(low * 2 + high) / 3.: 1, (low + 2 * high) / 3.: 1})
+
+        else:
+            cut, sum = self.interpolator.cuts, self.interpolator.total * share
+            bok = {}
+            if low is not None and low < cut[0]:
+                # arrange for low to be new cut[0]
+                bok[(low * 2 + self.sortedkeys[0]) / 3.] = sum
+
+            if high is not None and high > cut[-1]:
+                bok[(self.sortedkeys[-1] + 2 * high) / 3.] = sum
+
+            if len(bok) > 1:
+                for k in bok.keys(): bok[k] = bok[k] / 2
+
+            if bok: self.add(bok)
+
+        # that invalidates some attributes:
+        try: del self.interpolator
+        except AttributeError: pass
+
+        try: del self.sortedkeys
+        except AttributeError: pass
 
     # Support tool: interpolator to interpret the dictionary as a curve.
     class _lazy_get_interpolator_ (Lazy):
@@ -941,7 +981,7 @@ class joinWeighted (curveWeighted):
 
 # Various statistical computations.
 
-class statWeighted(_baseWeighted):
+class statWeighted (_baseWeighted):
     """Interface class providing statistical reading of weight dictionaries.
 
     Provides standard statistical functionality: presumes that instances behave
@@ -1126,7 +1166,7 @@ class statWeighted(_baseWeighted):
 
 from basEddy.value import Object
 
-class _Weighted(Object, _baseWeighted):
+class _Weighted (Object, _baseWeighted):
     """Base-class providing a form of weight-dictionary. """
 
     # configure Object.copy()
@@ -1290,6 +1330,7 @@ class Sample (Object):
     # Sub-classes can use bolt-in replacements for Weighted ...
     _weighted_ = Weighted
 
+    __upinit = Object.__init__
     def __init__(self, weights=None, *args, **what):
         # augment lazy aliases:
         try: bok = what['lazy_aliases']
@@ -1335,8 +1376,9 @@ class Sample (Object):
         assert weights, 'I thought the TypeError took care of this ...'
 
         # Finished massaging inputs: initialise self.
-        apply(Object.__init__, (self,) + args, what)
+        apply(self.__upinit, args, what)
         self.__weigh = self._weighted_(weights)
+        self.__weigh.reach(what.get('low', None), what.get('high', None))
 
     def __update(self, weights):
         """Take note of what looks like a distribution.
@@ -1676,15 +1718,21 @@ Notice that gr.copy(lambda x: x**2-x-1) and gr**2-gr-1 will have quite
 different weight dictionaries !
 """
 
-tophat = Sample(Weighted.tophat, best=0,
-                __doc__="""Unit width zero-centred error bar.
+Sample.tophat = Sample(Weighted.tophat, best=0,
+                       __doc__="""Unit width zero-centred error bar.
 
 Also known as 0 +/- .5, which can readily be used as
 a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.22  2003-09-24 21:25:57  eddy
+  Revision 1.23  2004-02-14 20:41:50  eddy
+  Added new method, reach, to curveWeighted, so Sample can ensure its
+  distribution reaches any low or high bounds it's given.  Moved tophat
+  onto Sample, as attribute (so Quantity's tophat doesn't hide it).
+  Some tidying.
+
+  Revision 1.22  2003/09/24 21:25:57  eddy
   Turned __extract_ into a function, not a method; tunnelled it into join and
   __cmp__, del after; shuffled these three together to limit extract's scope.
 
