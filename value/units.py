@@ -1,15 +1,24 @@
 # -*- coding: iso-8859-1 -*-
 """Assorted units of measurement.
 
-See SI.py for base units.  This file documents lots of obscure and/or silly
-units, may of them derived from the /usr/share/misc/units repository of
-knowledge on the subject (see http://www.gnu.org/software/units/units.html for
-details).  This file aims to be all-inclusive, rather than sensible; however,
-there are `issues', since some of the units (especially ones relevant to trade
-in the anglophone world) have several variants - where possible, I have tried to
-find namespace-based ways to manage this mess (e.g.: print USbushel.__doc__),
-but sometimes (e.g. the chain) I just gave up and left a comment here indicating
-the part of the story that I've left out !
+See SI.py for base units.
+
+Interesting URLs:
+http://www.ukmetrication.com/history2.htm
+http://www.sylvaefa.com/svf1.htm
+http://www.maritimt.net/arkforsk/svenskem.htm
+http://en.wikipedia.org/wiki/Cgs
+http://home.clara.net/brianp/
+http://www.gnu.org/software/units/units.html
+
+This file documents lots of obscure and/or silly units, may of them derived from
+the /usr/share/misc/units repository of knowledge on the subject (see
+units.html, above, for details).  This file aims to be all-inclusive, rather
+than sensible; however, there are `issues', since some of the units (especially
+ones relevant to trade in the anglophone world) have several variants - where
+possible, I have tried to find namespace-based ways to manage this mess (e.g.:
+print bushel.US.__doc__), but sometimes (e.g. the chain) I just gave up and left
+a comment here indicating the part of the story that I've left out !
 
 There are enough units of measurement here to provide for some cutely specific
 units of measurements in all sorts of odd domains.
@@ -67,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.13 2005-01-16 16:40:47 eddy Exp $
+$Id: units.py,v 1.14 2005-01-16 19:28:09 eddy Exp $
 """
 from SI import *
 
@@ -101,17 +110,20 @@ as medium, 1k to 4.999 k as hot and 5k or above super-hot.  Chile sauces scoring
 extract scores about 4.5 k; pure Capsaicin rates over 15,000,000 Scoville Units.
 """)
 
-quid = base_unit('&sterling;', 'Pound Sterling',
+quid = base_unit('£', 'Pound Sterling',
 		 """The base unit of British currency.
 
 Used to be 20 shillings (21 shillings made a Guinea); each shilling was 12
 pence, each penny was four farthings.  A florin was two shillings; a crown was
-five.  Apparently a pound was also called a sovereign. """)
+five.  Apparently a pound was also called a sovereign.  HTML supports character
+entity &sterling; for the Pound Sterling.
+""")
 
 # dimensionless:
 dozen = Quantity(12, {}, baker = 13)
 half = .5
 quarter = .25
+percent = .01
 pair = 2
 nest = 3 # also (in card games): prial
 dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks'
@@ -176,8 +188,8 @@ dyn = 10 * micro * Newton
 
 Ci = Curie = 37 * giga * Becquerel
 R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
-                       fullname='R&ouml;ntgen') # also Roentgen ?
-Oe = Oersted = kilo * Ampere / metre / 4 / pi
+                       fullname='Röntgen') # also Roentgen ?
+Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 # see also particle.py for the electron-Volt, eV
 
 Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
@@ -204,7 +216,7 @@ from lazy import Lazy
 
 # temp class; one instance, working - see below, describes time and pay
 class Job (Lazy):
-    def __init__(self, pay, period, leave, dailyhours=7.5, bank=8, weeklydays=5):
+    def __init__(self, pay, period, leave, dailyhours=8, public=8, weeklydays=5):
 	"""Sets up job-related data.
 
 	Required arguments:
@@ -214,11 +226,11 @@ class Job (Lazy):
 	  
 	Optional arguments:
 	  dailyhours=7.5 -- hours worked per day (must be < 24)
-	  bank=8 -- number of bank holidays per year
+	  public=8 -- number of public holidays per year
 	  weeklydays=5 -- number of working days per week
 
 	Only pay and period should have units; the rest are numbers.  The job
-	allows bank+leave holidays per year, plus 7-weeklydays per week.
+	allows public+leave holidays per year, plus 7-weeklydays per week.
 
 	For pay and period, you can give an annual salary and year even if you
 	get paid monthly; or an hourly rate and `hour'.  If period is less than
@@ -228,12 +240,12 @@ class Job (Lazy):
 
 	assert dailyhours * hour <= day
 	assert weeklydays * day <= week
-	assert leave + bank <= year * weeklydays / week # i.e. yearlydays
+	assert leave + public <= year * weeklydays / week # i.e. yearlydays
 
 	self.__pay, self.__period = pay, period
 	# The remainder are numbers and may be irritatingly integer:
 	self.__daily, self.__weekly = dailyhours, weeklydays
-	self.__hols = bank + leave
+	self.__hols = public + leave
 	self.leave = leave
 
     # time spent working per ...:
@@ -375,37 +387,81 @@ champagne.also(
     nebuchadnezzar = 10 * champagne.magnum)
 
 # Anglophone units of length:
-inch = 2.54e-2 * metre
+inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
 caliber = inch / 100
 barleycorn = inch / 3
+line = barleycorn / 4
 hand = 4 * inch
 palmlength = 8 * inch
 span = 9 * inch
 fingerlength = span / 2
 fingerbreadth = 7 * inch / 8
 ell = cubit = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
-ft = foot = 3 * hand
-yard = 3 * foot
+# but also: cubit = yard / 2, span = cubit / 2 (but ell = 45 in, as here)
+ft = foot = Quantity(3, hand,
+                     survey = Quantity(1.2e3 / 3937, metre,
+                                       """The (geodetic) survey foot.
+
+In the US the Metric Act of 1866 defined the foot to equal exactly
+1200/3937m, or approximately 30.48006096cm.  This unit, still used for
+geodetic surveying in the United States, is now called the survey
+foot.\n"""))
+
+yard = Quantity(3, foot,
+                """The Modern Yard.
+
+The yard (0.9144 metres) is a modern survivor of a family of roughly
+stride-sized units of length dating back - if the excellent Monsieur Thom is to
+be believed - to prehistory (Thom measured the lengths in stone circles all over
+Europe and found evidence that they were measured to a common unit,
+approximately equal to the yard).  It takes its name from a Germanic word,
+'gyrd'.  Its metric replacement, the metre, is just slightly bigger.\n""")
+
 nail = yard / 16
 pace = Quantity(5, foot, US = 30 * inch)
 rope = 4 * pace
-fathom = 6 * foot
+fathom = Quantity(2, yard, """The Fathom.
+
+The fathom is cognate with the Swedish famn and Danish favn (q.v.) and has
+principally survived in use as a maritime measure of vertical distances -
+notably the depths of bodies of water.\n""")
+
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
-rod = pole = perch = chain / 4
+chain.engineer = 100 * foot
+rod = pole = perch = chain / 4 # rod from German
 link = pole / 25
-furlong = 10 * chain	# `furrow long'
-mile = 8 * furlong
+furlong = 10 * chain	# from German, `furrow long'
+mile = Quantity(8, furlong,
+                """The Statute Mile.
+
+The British mile (also used in the U.S.A.) is just over 1600 metres; for a long
+time it was used as a standard distance for races, fitting nicely with the
+pattern of doubling lengths upwards from 100m.  Like all Imperial units, it has
+a long and contorted history.
+
+Its nominal origin is in the Imperial Roman 'millum pes' - a thousand paces,
+though the Roman pes was the distance a soldier's foot travels in each stride,
+roughly double the separation of the feet when both are on the ground.  Compare
+this to the British 'pace', of 5 feet, which is quite close to one thousandth of
+a mile, while the US 'pace' is exactly half as long.
+
+Some backward countries seem likely to continue using this unit to measure
+distances - along with the mile per hour as a unit of speed - for some time to
+come.  Contrast mile.nautical and the Scandinavian mil.\n""")
+
 league = 3 * mile
 league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
 marathon = 26 * mile + 385 * yard
-pica = inch / 12
-point = pica / 6      # the printer's point
-point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below)
+pica = inch / 12        # c.f. French.line, Swedish.linje
+point = pica / 6        # the printer's point
+point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below - under mass !)
 shoe = Object( # units of thickness of leather in shoes
     iron = inch / 48, # soles
     ounce = inch / 64)# elsewhere
 railgauge = 4 * foot + 8.5 * inch
 mile.also(sea = 2000 * yard,
+          geographical = 7420 * metre,
+          Prussian = 7532 * metre,
           nautical = Quantity(1852, metre, # K&L, given as the definition of this unit.
                               """The nautical mile
 
@@ -436,18 +492,18 @@ French = Object(foot = pied,
                 arpent = (180 * pied)**2)
 
 # Archaic units of mass:
-grain = 64.79891e-6 * kilogramme        # K&L
+grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
 mite = grain / 20
 droit = mite / 24 # a cube of water half a mm on each side
 periot = droit / 20 # an eighth of the Planck mass
 blanc = periot / 24 # did I mention that some of these units are silly ?
 scruple = 20 * grain
-lb = pound = 350 * scruple
+lb = pound = 350 * scruple # from latin: libra and pondus
 oz = ounce = pound / 16
 dram = ounce / 16
 clove = 7 * pound
 stone = 2 * clove
-cental = 100 * pound
+cental = 100 * pound # cental is a UK name for the US cwt
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US)
 TNT = 4.184e9 * Joule / ton.US # (2.15 km/s)**2
@@ -458,7 +514,7 @@ BTU = Btu = BritishThermalUnit = CHU * Rankine / Kelvin
 therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
 
 # Anglophone units of area (KDWB):
-acre = chain * furlong          # consensus; mile**2/640.
+acre = chain * furlong          # consensus; mile**2/640.  From German/Norse: field
 rood = acre / 4
 rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
 # US names for certain areas:
@@ -484,6 +540,9 @@ denier.Troy = 24 * grain # = ounce.Troy / 20, the denier (a frankish coin) or pe
 ounce.Troy = 8 * dram.apothecary
 pound.Troy = 12 * ounce.Troy
 carat = Quantity(.2, gram, # metric variant, from /usr/share/misc/units
+                 """The Carat, a unit of mass used by jewelers.
+
+Apparently originally the mass of a carob seed.\n""",
                  Troy=3.17 * grain) # or 3.163 grain according to u.s.m.u
 Troy = Object(drachm = dram.apothecary, denier = denier.Troy, carat = carat.Troy,
               ounce = ounce.Troy, pound = pound.Troy)
@@ -521,9 +580,9 @@ pint = Quantity(1, quart / 2,
                 wine = quart.wine / 2,
                 beer = quart.beer / 2)
 gallon.US, quart.US, pint.US = gallon.wine, quart.wine, pint.wine
-ton.water = 224 * gallon
 
 bucket = 4 * gallon
+ton.water = 8 * 7 * bucket
 tierce = Quantity(42, gallon,
                   wine = gallon.wine * 42)
 puncheon = Quantity(21, bucket,		# or 18 buckets
@@ -580,12 +639,73 @@ ale = Object(beer,
              barrel = barrel.ale, hogshead = hogshead.ale)
 # and so on *ad nauseam* !
 
+# Swedish stuff from http://www.maritimt.net/arkforsk/svenskem.htm
+Swedish = Object(
+    doc = "Old Swedish units, as used since 1863",
+    aln = Quantity(.59372, metre, old=.5938097 * metre),
+    kvartmil = mile.nautical)
+Swedish.also(fot = Quantity(1, Swedish.aln/2, old=Swedish.aln.old/2), # foot
+             famn = Quantity(3, Swedish.aln,
+                             old = 3 * Swedish.aln.old), # fathom (Norsk: favn)
+             sjoemil = Quantity(4, Swedish.kvartmil, doc="Svensk sjømil")) # "sea mile"
+# Joachim also reports favn as a unit of volume ~ 2.4 metre**3 (so ~ 2 * housecord)
+Swedish.also(mil = Quantity(6000, Swedish.famn, old=6000 * Swedish.famn.old),
+             tum = Quantity(1, Swedish.fot / 10, # thumb, i.e. inch
+                            old = Swedish.fot.old / 12))
+Swedish.also(linje = Quantity(1, Swedish.tum / 10, # line (pica)
+                              old = Swedish.tum.old / 12),
+             rode = Quantity(8, Swedish.aln),
+             staang = Quantity(5, Swedish.aln, doc="Svensk stäng"))
+# also: fingerbredd = fot / 15, tv?rhand = fot / 3 (hand-width)
+Swedish.ref = Quantity(10, Swedish.staang)
+Swedish.old = Object(doc = "Swedish units in use prior to 1863",
+                     fot = Swedish.fot.old, aln = Swedish.aln.old,
+                     tum = Swedish.tum.old, famn = Swedish.famn.old,
+                     mil = Swedish.mil.old)
+foot.Swedish, inch.Swedish = Swedish.fot, Swedish.tum
+ell.Swedish, fathom.Swedish = Swedish.aln, Swedish.famn
+rod.Swedish = Swedish.rode
+# and there's also weights, volumes, etc. on that page ....
+
+# Dansk stuff from http://www.sylvaefa.com/svf1.htm
+Danish = Object(alen = .6277 * metre, pot = .9661 * litre,
+                # also, a sjømil = mile.nautical ...
+                paegl = Quantity(.2242, litre, "Dansk pægl"),
+                tyle=dozen, dusin=dozen, gros=gross, snes=20)
+Danish.also(fod = Danish.alen / 2, favn = 3 * Danish.alen,
+            kande = 2 * Danish.pot, skok = 3 * Danish.snes, ol = 4 * Danish.snes)
+Danish.also(tomme = Danish.fod / 12,
+            mil = 4000 * Danish.favn, # but 12000 alen, 7.532 km
+            anker = 20 * Danish.kande)
+Danish.oksehoved = 6 * Danish.anker # plural is ankre
+Danish.fad = 4 * Danish.oksehoved # pl. = oksehoveder
+
+Norse = Object(fot = .31374 * metre,
+               favn = 1.88245 * metre, # 6 * fot
+               mil = 11294.6 * metre) # 600 * favn
+Norse.also(alen = 2 * Norse.fot,
+           tom = Norse.fot / 12, linje = Norse.fot / 144)
+
+mil = Quantity(10, kilo * metre,
+               """The Norwegian mil, 10 km.
+
+In Norway, 10 km is known as 'en mil'.  This is clearly a metricised replacement
+for an archaic Norwegian unit of distance, presumably close to the Danish and
+Swedish variants which I've found documented on the web.  The name is doubtless
+cognate with the Anglic 'mile' (q.v.), but the distance is significantly larger.
+The related sjømil units of the Scandinavian tradition literally translate as
+'sea mile'; see Swedish.sjoemil, for example.  However, the Scandinavian
+countries have embraced international standards, so now use the 1929 nautical
+mile and the metric system of units, rather than clinging to archaic units like
+some less civilized countries.\n""",
+               Dansk = Danish.mil,
+               Svensk = Swedish.mil)
+
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 Swiss = Object(lien = 5249 * yard)
 Dutch = Object(oncen = kilogramme / 10)
 Turk = Object(oke = 2.8342 * pound,
               berri = 1828 * yard)
-mil = Object(Dane = 8238 * yard, Norway = 10 * kilo * metre)
 Russia = Object(verst = 1167 * yard,
                 pood = 36.11 * pound)
 
@@ -610,7 +730,7 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 barrel.US = hogshead.US / 2
 barrel.US.oil = 42 * gallon.US
 barrel.US.dry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
-bushel.US = Quantity(2150.42, pow(inch, 3),
+bushel.US = Quantity(2150.42, inch**3,
                     doc="""The US bushel.
 
 This is the volume of an 8 inch cylinder with 18.5 inch diameter.
@@ -637,7 +757,11 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.13  2005-01-16 16:40:47  eddy
+ Revision 1.14  2005-01-16 19:28:09  eddy
+ Merged in lots of data I'd gathered into my copy of this at work.
+ Added some documentation.
+
+ Revision 1.13  2005/01/16 16:40:47  eddy
  Made to{Centigrade,Fahrenheit} redundant - temperatures now have an attribute for this.
  Fixed iso-latin-1 mangled chars
 
