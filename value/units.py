@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.16 2005-02-06 10:46:56 eddy Exp $
+$Id: units.py,v 1.17 2005-02-13 20:47:09 eddy Exp $
 """
 from SI import *
 
@@ -117,13 +117,21 @@ Used to be 20 shillings (21 shillings made a Guinea); each shilling was 12
 pence, each penny was four farthings.  A florin was two shillings; a crown was
 five.  Apparently a pound was also called a sovereign.  HTML supports character
 entity &sterling; for the Pound Sterling.
+
+To properly handle money within a system of units, I need support for variation
+in time and space (conversion factors between different currencies vary with
+time; and you'll get different exchange rates from different trading partners).
+Then again, conversion factors between systems of units also show similar
+variation - contrast the different nations' archaic units of length, and notice
+how units of volume got re-defined by assorted legislative acts over the years.
 """)
 
-# dimensionless:
+# Dimensionless:
 dozen = Quantity(12, {}, baker = 13)
 pair, half, quarter = 2, .5, .25
+# few, some, several (.best=7), many ? Mainly of value for different-shaped distributions.
 percent = .01
-nest = 3 # also (in card games): prial
+prial = nest = 3
 dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks'
 score, shock, gross = 20, 60, 144 # c.f. Danish.{snes, skok, gros}
 timer = flock = 40
@@ -134,7 +142,7 @@ paper = Object(
 paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
            short = Object(quire = paper.quire.short, ream = paper.ream.short))
 
-# angles
+# Angles:
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
 grad = turn / 400 # a unit used by gunners, I believe.
@@ -142,78 +150,85 @@ arc = Object(degree = turn / 360)
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
 
-# degrees:
+# Degrees (of angle and temperature):
 degree = Object(arc.degree, arc = arc.degree,
                 Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
                 Fahrenheit = Kelvin / 1.8)
 degree.also(F = degree.Fahrenheit)
 
-# time
+# Time
 minute = Quantity(60, second, arc=arc.minute)
-hour = 60 * minute
+hour = 60 * minute # should this also be the degree of time ?
 day = 24 * hour
 week = 7 * day
-fortnight = 2 * week
-year = 27 * 773 * week / 400	# the Gregorian approximation
+fortnight, year = 2 * week, 27 * 773 * week / 400 # the Gregorian approximation
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 6**3 seconds abound ...
 
-# Other SI-compatible units
-gram = milli * kilogramme
+# Miscelaneous SI-compatible units (c.f. SI.py), notably cm,g,s ones:
+gram, tonne = milli * kilogramme, kilo * kilogramme
 km, cm = kilo * metre, centi * metre
 cc = pow(cm, 3)
 tex = gram / km # fineness of textiles
-dtex = deci * tex # see also: units.denier
+dtex, denier = deci * tex, deci * tex / .9
 
 St = Stokes = pow(cm, 2) / second # kinematic viscosity
-Angstrom = .1 * nano * metre    # Ångstrøm, aka Å (but there's a separate Unicode code-point for the unit ...).
-micron = micro * metre
-fermi = femto * metre
+Angstrom = .1 * nano * metre    # Ångstrøm, aka Å
+# (but there's a separate Unicode code-point for the unit ...).
+micron, fermi = micro * metre, femto * metre
 litre = milli * stere
 hectare = hecto * are
 barn = femto * hectare
 
+stilb = candela / cm**2
+phot = 10 * kilo * lux
+
 Gs = Gauss = .1 * milli * Tesla
 gamma = nano * Tesla
 Mx = Maxwell = 10 * nano * Weber
-stilb = 10 * kilo * candela / metre / metre
-phot = 10 * kilo * lux
 
-Bq = Becquerel = Hz             # Activity of a radionuclide
+erg = .1 * micro * Joule
+dyn = 10 * micro * Newton
+
+bar = .1 * mega * Pascal
+def Centigrade(number): return Kelvin * (number + 273.16)
+
+# Radiation and its effects:
+Bq = Becquerel = Hz             # Activity of a radionuclide (events / s)
 Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
 Sv = sievert = Gy               # Dose equivalent
 rem = 10 * milli * Sv
-# 10 milli Gray is also called a rad (conflicts with radian)
-
-# etc.
-erg = .1 * micro * Joule
-dyn = 10 * micro * Newton
+# 10 milli Gray is also called a rad (but its name conflicts with radian)
 
 Ci = Curie = 37 * giga * Becquerel
 R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
                        fullname='Röntgen') # also Roentgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 # see also particle.py for the electron-Volt, eV
-
-Rankine = degree.Fahrenheit
-def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
-def Centigrade(number): return Kelvin * (number + 273.16)
-
-tonne = kilo * kilogramme
-calorie = 4.1868 * Joule # the thermodynamic calorie (IT), not any other sort.
-# food talks about `calorie' but means kilo calorie
-clausius = kilo * calorie / Kelvin
-
-bar = .1 * mega * Pascal
+
+# Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(1.01325, bar,
                             """Standard Atmospheric Pressure""",
                             'atm', 'Atmoshpere')
-sound = Object(speed = Quantity(331.46, metre / second,
-                                doc = """The speed of sound in dry air
-                                (at standard temperature and pressure)"""))
-mach = sound.speed
+
+mach = Quantity(331.46, metre / second,
+                doc = """The speed of sound in dry air.
+\n(at standard temperature and pressure).\n""")
+
 torr = mmHg = 133.322 * Pascal
-denier = deci * tex / .9
+
+Rankine = degree.Fahrenheit
+def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
+
+calorie = Quantity(4.1868, Joule,
+                   # 3.088 * lb.force * foot
+                   doc="""The thermodynamic calorie (IT).
+
+Not to be confused with various other units that claim the same name.  In
+particular, note that dieticians and their ilk talk about `calorie' but means
+kilo calorie (allegedly).
+""")
+clausius = kilo * calorie / Kelvin
 
 from lazy import Lazy
 
@@ -285,6 +300,7 @@ del Job
 
 import string
 # Description of bytes, including the kilo = 1024 twist ...
+# but note kibi, mibi etc. should obsolete these; see quantity.py
 
 class bQuantity(Quantity):
     def _quantity(self, what, units):
@@ -372,11 +388,21 @@ Kb, Mb, Gb = kilobyte, megabyte, gigabyte
 # and Laby, NHD = New Hackers' Dictionary, KDWB = Kim's dad's 1936 white
 # booklet, EB = 11th edition Encyclopaedia Britannica, 1911, article on Weights
 # and Measures.)  Where source is not given in a comment (either on the line or
-# at start of section) the calculation of the line reflects a consensus.
+# at start of section) the calculation of the line reflects a consensus.  Either
+# that or it's some random detail I tripped over somewhere and jotted down ...
 
 # Units I describe as `anglophone' are, to the best of my knowledge, common to
 # all the `English-speaking' peoples: by `imperial' I mean those in which the US
-# and UK have diverged.
+# and UK have diverged.  The US versions of these are collected together in the
+# namespace of an object US; these units also appear as .US attributes of the UK
+# variants.  Various other nations' arcane units are likewise collected in
+# name-space objects (whose names are English words for the national
+# adjectives); where cognate with an anglophone unit, they also appear in that
+# unit's name-space (using the national adjective in its native tongue, except
+# for French - an attribute name can't have a cedilla in it).  For these
+# purposes, Troy is treated as a nation - but doesn't actually mean the ancient
+# city-state of that name !  I should probably do the same to the UK versions of
+# anglophone units - if only to make this module's name-space less cluttered !
 
 champagne = Object(
     split = .2 * litre,
@@ -512,12 +538,12 @@ ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
 TNT = Quantity(4.184 + .001 * tophat, giga * Joule) / ton.US # (2.15 km/s)**2
 
 # Anglophone units of energy:
-CHU = calorie * pound / gram     # whatever CHU is ! (KDWB)
+CHU = calorie * pound / gram # whatever CHU is ! (KDWB)
 BTU = Btu = BritishThermalUnit = CHU * Rankine / Kelvin
 therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
 
 # Anglophone units of area (KDWB):
-acre = chain * furlong          # consensus; mile**2/640.  From German/Norse: field
+acre = chain * furlong # consensus; mile**2/640.  From German/Norse: field
 rood = acre / 4
 rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
 # US names for certain areas:
@@ -764,7 +790,11 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.16  2005-02-06 10:46:56  eddy
+ Revision 1.17  2005-02-13 20:47:09  eddy
+ Suggest several et al.
+ Added to comments, shuffled order of bits, tidied up a bit.
+
+ Revision 1.16  2005/02/06 10:46:56  eddy
  Conformed French units to name-spacery used for Scandic ones.
  Noted similarity of Swiss lien to the league.
  Guessed error bar on TNT from number of sig. figs in given datum.
