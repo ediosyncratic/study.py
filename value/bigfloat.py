@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.1 2003-09-21 17:10:50 eddy Exp $
+$Id: bigfloat.py,v 1.2 2003-09-21 17:29:23 eddy Exp $
 """
 
 class BigFloat:
@@ -10,7 +10,7 @@ class BigFloat:
     def __init__(self, val=1, century=0):
         if century != long(century): raise ValueError, 'century must be whole'
         if val in (BigFloat.infinity, -BigFloat.infinity): raise ValueError, 'infinite'
-        if val == BigFloat.infinity * 0: raise ValueError, 'not a number'
+        if 1 == val == 0: raise ValueError, 'not a number'
 
         if isinstance(val, BigFloat):
             val, century = val.__scale, century + val.__century
@@ -65,8 +65,8 @@ class BigFloat:
         if val == 0: return BigFloat.logzero
         if val < 0: val = -val
         i = 0
-        while val <= .3: val, i = val * 10, i - 1
-        while val > 3: val, i = val * .1, i + 1
+        while val < .32: val, i = val * 10, i - 1
+        while val > 3.2: val, i = val * .1, i + 1
         return i
 
     def __add__(self, other, get=extract, log=decade):
@@ -106,6 +106,7 @@ class BigFloat:
         # self**frac is ans * 10**wer
 
         if whole < 0: val, dec, whole = 1./val, -dec, -whole
+        whole = long(whole)
         while whole:
             if whole % 2:
                 ans, wer = ans * val, wer + dec
@@ -143,7 +144,11 @@ class BigFloat:
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.1  2003-09-21 17:10:50  eddy
-Initial revision
+Revision 1.2  2003-09-21 17:29:23  eddy
+everything == nan, so test for it differently !
+pow algorithm depends on whole being of an integral type; make it so.
+make decade more symmetric
 
+Revision 1.1  2003/09/21 17:10:50  eddy
+Initial revision
 """
