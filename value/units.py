@@ -66,7 +66,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.9 2003-04-17 22:46:16 eddy Exp $
+$Id: units.py,v 1.10 2003-04-21 20:15:45 eddy Exp $
 """
 from SI import *
 
@@ -322,7 +322,7 @@ class bQuantity(Quantity):
     _lazy_get__number_str_ = _lazy_get__unit_str_
 
 _name = 'byte'
-byte = bQuantity(qSample(mean=8), # but no actual sample
+byte = bQuantity(qSample(best=8), # but no actual sample
                 bit,
                 """The standard unit of memory on a computer.
 
@@ -624,7 +624,10 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.9  2003-04-17 22:46:16  eddy
+ Revision 1.10  2003-04-21 20:15:45  eddy
+ Use best, not mean, in qSample constructor (now delegates directly to Sample).
+
+ Revision 1.9  2003/04/17 22:46:16  eddy
  Put non-SI units of angle back in units.py
 
  Revision 1.8  2003/04/17 22:42:02  eddy
