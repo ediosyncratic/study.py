@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.2 2003-09-21 17:29:23 eddy Exp $
+$Id: bigfloat.py,v 1.3 2003-09-22 07:20:32 eddy Exp $
 """
 
 class BigFloat:
@@ -22,8 +22,6 @@ class BigFloat:
 
         self.__century, self.__scale = long(century), float(val)
 
-    def __nonzero__(self): return self.__scale != 0
-    def __neg__(self): return BigFloat(-self.__scale, self.__century)
     def __str__(self):
         ans = '%e' % self.__scale
         siz, dec = ans.split('e') # raise exception unless exactly one 'e'
@@ -32,6 +30,24 @@ class BigFloat:
 
     __repr__ = __str__
     # def __repr__(self): return 'BigFloat(%g, %dL)' % (self.__scale, self.__century)
+
+    def __nonzero__(self): return self.__scale != 0
+    def __neg__(self): return BigFloat(-self.__scale, self.__century)
+    def __abs__(self): return BigFloat(abs(self.__scale), self.__century)
+    def __long__(self): return long(float(self))
+    def __int__(self): return int(float(self))
+
+    def __float__(self):
+        val, cen = self.__scale, self.__century
+        while cen > 0:
+            val, cen = val * 1e100, cen - 1
+            if val == val / 10: return val
+
+        while cen < 0:
+            val, cen = val * 1e-100, cen + 1
+            if val == 0: return val
+
+        return val
 
     def extract(other): # local function, not method
         try: return other.__scale, other.__century
@@ -144,7 +160,10 @@ class BigFloat:
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.2  2003-09-21 17:29:23  eddy
+Revision 1.3  2003-09-22 07:20:32  eddy
+Added support for abs, long, int, float
+
+Revision 1.2  2003/09/21 17:29:23  eddy
 everything == nan, so test for it differently !
 pow algorithm depends on whole being of an integral type; make it so.
 make decade more symmetric
