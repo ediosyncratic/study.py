@@ -21,7 +21,7 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.5 2001-12-10 20:42:43 eddy Exp $
+$Id: sample.py,v 1.6 2001-12-12 14:58:04 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1015,12 +1015,6 @@ class _Weighted(Object, _baseWeighted):
         self.borrow(self.__weights)
         # but override copy
 
-    def __change_weights(self):
-        # delete lazy attribute derived from weights
-        for nom in ('sortedkeys', 'interpolator'):
-            try: delattr(self, nom)
-            except AttributeError: pass
-
     def _lazy_get_sortedkeys_(self, ignored):
         row = self.keys()
         row.sort()
@@ -1030,11 +1024,8 @@ class _Weighted(Object, _baseWeighted):
     def __repr__(self): return `self.__weights`
     def __str__(self): return str(self.__weights)
     def __len__(self): return len(self.__weights)
-    def __delitem__(self, key):
-        del self.__weights[key]
-        self.__change_weights()
 
-    # override the get/set methods (which, likewise, we couldn't borrow)
+    # override the get/set/del methods (which, likewise, we couldn't borrow)
     def __getitem__(self, key):
         try: result = self.__weights[key]
         except KeyError: return 0
@@ -1044,13 +1035,25 @@ class _Weighted(Object, _baseWeighted):
 
     def __setitem__(self, key, val):
         val = float(val)
+        if val < 0: raise ValueError, ('Negative weight', key, val)
+
         if val > 0:
             self.__weights[key] = val
             self.__change_weights()
-        elif val < 0:
-            raise ValueError, ('Negative weight', key, val)
 
         # else: don't bother storing 0 values.
+
+    def __delitem__(self, key):
+        del self.__weights[key]
+        self.__change_weights()
+
+    def __change_weights(self,
+			 # lazy attributes derived from weights:
+			 volatiles=('sortedkeys', 'interpolator')):
+
+        for nom in volatiles:
+            try: delattr(self, nom)
+            except AttributeError: pass
 
     # Override a method of self.__weights
     def copy(self, func=None, scale=None):
@@ -1258,12 +1261,8 @@ class Sample(Object):
 
     # Representation:
     def __repr__(self): return self._repr
-    def __str__(self): return self._str
-
-    def _lazy_get__repr_(self, ignored):
-        return self.__weigh.round(self.best)
-
-    _lazy_get__str_ = _lazy_get__repr_
+    def __str__(self): return self._repr
+    def _lazy_get__repr_(self, ignored): return self.__weigh.round(self.best)
 
     # Comparison:
     def __cmp__(self, what):
@@ -1371,7 +1370,12 @@ class Sample(Object):
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.5  2001-12-10 20:42:43  eddy
+  Revision 1.6  2001-12-12 14:58:04  eddy
+  shuffled parts of _Weighted for clarity of reading.
+  Made Sample use _repr for __str__ rather than having a separate
+  _str for derived classes to need to over-ride as well as _repr.
+
+  Revision 1.5  2001/12/10 20:42:43  eddy
   Major re-write of repWeighted to use piecewise uniform interpolation
   mediated by an inner class as _lazy_get_interpolator_(), simplified
   bounds() and niles() to use interpolator.split().  Changed decompose to
