@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.9 2003-06-15 14:50:36 eddy Exp $
+$Id: particle.py,v 1.10 2003-07-07 23:12:39 eddy Exp $
 """
 
 from const import *
@@ -254,6 +254,10 @@ class Particle (Object):
 
     def _lazy_get_mass_(self, ignored, csqr = Vacuum.c**2):
         return self.energy / csqr
+
+    def _lazy_get_qperm_(self, ignored):
+        """Charge-to-mass ratio"""
+        return self.charge / self.mass
 
     def _lazy_get_frequency_(self, ignored):
         return self.energy / Quantum.h
@@ -545,7 +549,10 @@ Rydberg = (light.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vac
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.9  2003-06-15 14:50:36  eddy
+ Revision 1.10  2003-07-07 23:12:39  eddy
+ Added .qperm (c.f. const.Cosmos.qperm) as charge-to-mass ratio of particles.
+
+ Revision 1.9  2003/06/15 14:50:36  eddy
  Removed nucleus and atom (to new elements.py), made p,n,e into primary exports.
 
  Revision 1.8  2003/04/21 20:09:46  eddy
