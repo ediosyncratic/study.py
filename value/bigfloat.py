@@ -11,7 +11,7 @@ when added to a huge value of the other.
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.8 2003-10-04 10:12:15 eddy Exp $
+$Id: bigfloat.py,v 1.9 2003-10-04 10:22:14 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -161,6 +161,11 @@ class BigFloat (Lazy):
         return long(val * 10. ** gap) * 10L**(100L * cen - gap)
 
     def __pow__(self, other, log=decade):
+        if self.__scale == 0:
+            if other > 0: return self
+            if other < 0: return BigFloat.infinity
+            return BigFloat.infinity * 0
+
         whole, frac = divmod(other, 1)
         dec = log(self.__scale)
         val, dec = self.__scale * .1**dec, dec + self.__century * 100
@@ -329,7 +334,10 @@ class BigComplex (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.8  2003-10-04 10:12:15  eddy
+Revision 1.9  2003-10-04 10:22:14  eddy
+Fixed handling of powers of BigFloat(0)
+
+Revision 1.8  2003/10/04 10:12:15  eddy
 Added equality testing for complex.
 
 Revision 1.7  2003/10/04 10:04:42  eddy
