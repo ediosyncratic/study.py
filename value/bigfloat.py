@@ -11,7 +11,7 @@ when added to a huge value of the other.
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.7 2003-10-04 10:04:42 eddy Exp $
+$Id: bigfloat.py,v 1.8 2003-10-04 10:12:15 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -291,6 +291,10 @@ class BigComplex (Lazy):
         try: return other.real, other.imag
         except AttributeError: return other, 0
 
+    def __eq__(self, other, get=extract):
+        r, i = get(other)
+        return r == self.real and i == self.imag
+
     def __add__(self, other, get=extract):
         r, i = get(other)
         return BigComplex(self.real + r, self.imag + i)
@@ -325,7 +329,10 @@ class BigComplex (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.7  2003-10-04 10:04:42  eddy
+Revision 1.8  2003-10-04 10:12:15  eddy
+Added equality testing for complex.
+
+Revision 1.7  2003/10/04 10:04:42  eddy
 Made complex work.  Corrected phase.  Added str, repr, pow.  Fiddled exp so it works.
 
 Revision 1.6  2003/09/29 23:17:44  eddy
