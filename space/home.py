@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.4 2005-03-12 17:31:29 eddy Exp $
+$Id: home.py,v 1.5 2005-03-13 15:12:27 eddy Exp $
 """
 
 from basEddy.units import *
@@ -358,55 +358,14 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
-from basEddy.lazy import Lazy
-class PlanetList (Lazy):
-    def __len__(self): return 9
-    def __getitem__(self, ind):
-        if ind < 0 or ind > 8: raise IndexError, ind
-        if ind < 4: return self.inner[ind]
-        if ind < 8: return self.outer[ind - 4]
-        assert ind == 8
-        return self.final
-
-    def __repr__(self):
-        return repr(list(self.inner + self.outer + (self.final,)))
-
-    def __getslice__(self, at, to=None, step=None):
-        if step is None:
-            step = 1
-            if to is None: at, to = 0, at
-
-        if step > 0:
-            if to > len(self): to = len(self)
-            while at < 0: at = at + step
-        elif step < 0:
-            if to < 0: to = -1
-            while at > len(self): at = at + step
-        else:
-            raise ValueError, 'Zero step makes for a bad sequence ...'
-
-        return map(self.__getitem__, range(at, to, step))
-
-    def _lazy_get_inner_(self, ignored):
-        from space.inner import Mercury, Venus, Earth, Mars
-        return ( Mercury, Venus, Earth, Mars )
-
-    def _lazy_get_outer_(self, ignored):
-        from space.outer import Jupiter, Saturn, Uranus, Neptune
-        return ( Jupiter, Saturn, Uranus, Neptune )
-
-    def _lazy_get_final_(self, ignored):
-        from space.Kuiper import Pluto
-        return Pluto
-
-Planets = PlanetList()
-del PlanetList, Lazy
-
 del Orbit, Spin, Discovery, SurfacePart, Ocean, Island, Continent, LandMass, IAcontinent, IAisland, IAocean
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.4  2005-03-12 17:31:29  eddy
+Revision 1.5  2005-03-13 15:12:27  eddy
+Moved PlanetList and Planets out to __init__.py
+
+Revision 1.4  2005/03/12 17:31:29  eddy
 Fixing: needed LandMass, typo Planetlist, wrong assertion in getitem.
 Added repr and getslice for PlanetList.
 
