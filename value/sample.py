@@ -12,213 +12,198 @@ the other keys in the same dictionary: and the keys are roughly the odd 2n-iles,
 where n is the number of keys, so have roughly equal weights.
 
 When combining two such `numeric' values, we want to combine each key of one
-with each key of the other, giving the result (as its value) the product of the
-two keys' values (added to the same for any other pairs of keys producing the
-same result, of course, if they arise).  Then take the resulting big bok of
-weighted values, compute its odd 2n-iles for some chosen n, use these as the
-keys of a dictionary in which weight[key] is the sum of the big bok's values for
-keys which are closer to this key of weight than to any other.
+with each key of the other, using the result as a key in the composite
+dictionary.  This key gets a contribution to its value which is the product of
+the values of the two keys combined to produce it: if it is the result of
+several such combinations, its value will be a sum of such products.  Then take
+the resulting big bok of weighted values, compute its odd 2n-iles for some
+chosen n, use these as the keys of a dictionary in which weight[key] is the sum
+of the big bok's values for keys which are closer to this key of weight than to
+any other.
 
-$Id: sample.py,v 1.1 1999-06-01 21:17:47 eddy Exp $
+$Id: sample.py,v 1.2 1999-07-04 12:15:42 eddy Exp $
 """
 
-# First, some generally useful tools for { example: weight } mappings.
-def median(bok):
-    """Takes the median of a distribution.
+class _baseWeighted:
+    """Base class for weight dictionaries.
 
-    Represents a distribution as a dictionary whose keys and values are
-    notionally floats, the latter all being positive. """
+    A `weight dictionary' has `data points' as its keys and weights as the
+    associated values.  It is to be read as a `distribution': typically, as a
+    probability distribution (when the sum of the weights is one).  The presence
+    of a given { key: value } within the dictionary indicates that there is some
+    neighbourhood of the data point, key, in which there is a probability value
+    of finding your random thing.
 
-    if not bok: raise ValueError, 'Taking median of an empty population'
-    if len(bok) == 1: return bok.keys()[0] # trivial case
-
-    row = bok.keys()
-    row.sort()
-    return _median(bok, row)
+    The various kinds of functionality layered together to make this are split
+    from one another in this file to allow the possibility of re-use of some of
+    the toolset by alloying with some other implementation of other parts of the
+    toolset. """
 
-def _median(bok, sorted):
-    lo, hi = 0, len(row)
-    # half-total - sum(bok[row[hi:]]) and half-total - sum(bok[row[:lo]]):
-    top = bot = .5 * reduce(lambda x, y: x + y, bok.values(), 0.)
-    # I'll call this half-total simply `half', below.
+class statWeighted(_baseWeighted):
+    """Interface class providing statistical reading of weight dictionaries.
 
-    while bot > bok[row[lo]]:
-        bot = bot - bok[row[lo]]
-        lo = lo + 1
-    # assert: bok[row[lo]] >= bot > 0, so
-    # infer: sum(bok[row[:lo+1]]) >= half > sum(bok[row[:lo]])
-    # and, subtracting each from total,
-    # infer: sum(bok[row[lo+1:]]) <= half < sum(bok[row[lo:]])
+    Provides standard statistical functionality: presumes that instances behave
+    as dictionaries, which must be arranged for by alloying this base with some
+    other base-class providing that functionality. """
 
-    while top > bok[row[hi - 1]]:
-        hi = hi - 1
-        top = top - bok[row[hi]]
-    # assert: 0 < top <= bok[row[hi-1]]
-    # as above, 
-    # sum(bok[row[hi:]]) < half <= sum(bok[row[hi-1:]])
-    # sum(bok[row[:hi]]) > half >= sum(bok[row[:hi-1]])
-    # comparison with the above tells us hi-1 >= lo, so hi > lo ;^>
+    def high(self): return max(self.keys())
+    def low(self): return min(self.keys())
 
-    # Each end has been claiming territory up to, but never quite reaching, the
-    # half-way mark on an imaginary line, which we can mark out into contiguous
-    # chunks, each labelled with a key of bok, with length that key's value in
-    # bok, ordering the chunks by the order of their labels in row.  Any chunk
-    # wholly to one side or the other of the half-way mark will be claimed by
-    # its end of the line.  So an unclaimed chunk must either have the half-way
-    # mark as one of its end-points, or actually stradle it.  Likewise, either
-    # the half-way mark lies on a boundary between chunks or within a chunk.  We
-    # thus have two cases:
+    def median(self, row=None):
+        """Takes the median of a distribution.
 
-    # i) half-way line falls in a chunk, so it is the only one unclaimed:
-    if lo + 1 == hi: return row[lo]     # the one entry in row[lo:hi]
+        Represents a distribution as a dictionary whose keys and values are
+        notionally floats, the latter all being positive. """
 
-    # ii) the half-way line fell at the boundary of two chunks.
+        if not self: raise ValueError, 'Taking median of an empty population'
+        if len(self) == 1: return self.keys()[0] # trivial case
+        if row is None:
+            row = self.keys()
+            row.sort()
 
-    # Clearly, in this case, there's a risk that the loop tests might just get
-    # arithmitis and find almost-equality to be >, so an end might claim a piece
-    # # which abuts the half-way line.  If that happens to one but not the
-    # other, # I'm happy to allow the i) case to succeed here: if to both,
-    # however, we # should re-wind to what ii) expects.
+        lo, hi = 0, len(row)
+        # half-total - sum(self[row[hi:]]) and half-total - sum(self[row[:lo]]):
+        top = bot = .5 * reduce(lambda x, y: x + y, self.values(), 0.)
+        # I'll call this half-total simply `half', below.
 
-    # On the other hand, hereafter we want hi-1 rather than hi, so ...
-    if lo == hi: lo = lo - 1
-    else: hi = hi - 1
-    # assert: hi is lo + 1
+        while bot > self[row[lo]]:
+            bot = bot - self[row[lo]]
+            lo = lo + 1
+        # assert: self[row[lo]] >= bot > 0, so
+        # infer: sum(self[row[:lo+1]]) >= half > sum(self[row[:lo]])
+        # and, subtracting each from total,
+        # infer: sum(self[row[lo+1:]]) <= half < sum(self[row[lo:]])
 
-    # Now, decide between lo and hi, or (rather) between
-    low, hie = row[lo], row[hi]
+        while top > self[row[hi - 1]]:
+            hi = hi - 1
+            top = top - self[row[hi]]
+        # assert: 0 < top <= self[row[hi-1]]
+        # as above, 
+        # sum(self[row[hi:]]) < half <= sum(self[row[hi-1:]])
+        # sum(self[row[:hi]]) > half >= sum(self[row[:hi-1]])
+        # comparison with the above tells us hi-1 >= lo, so hi > lo ;^>
 
-    # low represents an interval whose
-    # width is roughly (row[lo+1] - row[lo-1]) / 2
-    # total integral of the density is bok[low]
-    # typical density is thus 2 * bok[low] / (row[lo+1] - row[lo-1])
-    # so try to pick the candidate who has higher typical density
-    try:
-        left = bok[low] * (row[hi+1] - row[hi-1])
-        right= bok[hie] * (row[lo+1] - row[lo-1])
-        # so ratio left:right is same as typical density in lo:hi intervals.
-    except IndexError: pass
-    else:
-        if left < right: return hie
-        if right < left: return low
+        # Each end has been claiming territory up to, but never quite reaching,
+        # the half-way mark on an imaginary line, which we can mark out into
+        # contiguous chunks, each labelled with a key of self, with length that
+        # key's value in self, ordering the chunks by the order of their labels
+        # in row.  Any chunk wholly to one side or the other of the half-way
+        # mark will be claimed by its end of the line.  So an unclaimed chunk
+        # must either have the half-way mark as one of its end-points, or
+        # actually stradle it.  Likewise, either the half-way mark lies on a
+        # boundary between chunks or within a chunk.  We thus have two cases:
 
-    # well, if I can't compute typical densities, or if the densities agree,
-    # I'll just have to make do with totals:
+        # i) half-way line falls in a chunk, so it is the only one unclaimed:
+        if lo + 1 == hi: return row[lo]     # the one entry in row[lo:hi]
 
-    if bok[hie] < bok[low]: return low
-    # err high in the event of a tie.
-    return hie
-
-def layers(bok, count, halves=None):
-    if len(bok) <= count: return bok
+        # ii) the half-way line fell at the boundary of two chunks.  This case
+        # should be rare, so I don't mind it being computationally expensive.
 
-    # OK, so carve bok up
-    step = reduce(lambda x, y: x + y, bok.values(), 0.) / count
-    parts, last = [{}], None
-    if halves: gap = .5 * step
-    else: gap = 0
+        # Clearly, in this case, there's a risk that the loop tests might just
+        # get arithmitis and find almost-equality to be >, so an end might claim
+        # a piece which abuts the half-way line.  If that happens to one but not
+        # the other, I'm happy that the i) case has succeeded here: if to both,
+        # however, we should re-wind to what ii) expects.
 
-    row = bok.keys()
-    row.sort()
+        # On the other hand, hereafter we want hi-1 rather than hi, so ...
+        if lo == hi: lo = lo - 1
+        else: hi = hi - 1
+        # assert: hi is lo + 1
 
-    for key in row:
-        val = bok[key]
+        # Now, decide between lo and hi, or (rather) between
+        low, hie = row[lo], row[hi]
 
-        while gap < val:
-            if gap > 0: parts[-1][key] = gap
-            parts.append({})
-            val, gap = val - gap, step
+        # low represents an interval whose
+        # width is roughly (row[lo+1] - row[lo-1]) / 2
+        # total integral of the density is self[low]
+        # typical density is thus 2 * self[low] / (row[lo+1] - row[lo-1])
+        # so try to pick the candidate who has higher typical density
+        try:
+            left = self[low] * (row[hi+1] - row[hi-1])
+            right= self[hie] * (row[lo+1] - row[lo-1])
+            # so ratio left:right is same as typical density in lo:hi intervals.
+        except IndexError: pass
+        else:
+            if left < right: return hie
+            if right < left: return low
 
-        if val > 0:
-            parts[-1][key] = val
-            gap = gap - val
+        # well, if I can't compute typical densities, or if the densities agree,
+        # I'll just have to make do with totals:
 
-    return parts
-
-def total(bok): return reduce(lambda x, y: x + y, bok.values(), 0)
-_total = total
+        if self[hie] < self[low]: return low
+        # err high in the event of a tie.
+        return hie
 
-def _mean(bok):
-    norm = sum = 0.
-    for key, val in bok.items():
-        norm, sum = val + norm, key * val + sum
+    def _moments(self, n):
+        """Returns a tuple of moments of the given distribution.
 
-    return norm, sum / norm
+        Argument, n, is the highest order for which moments are desired.
+        Returns a tuple with 1+n entries: for i running from 0 to n, result[i]
+        is the sum of val.pow(key, i) over self. """
 
-def mean(bok): return _mean(bok)[1]
+        row = (n + 1) * [ 0 ]
+        for key, val in self.items():
+            for i in range(n):
+                row[i] = val + row[i]
+                val = val * key
+            row[n] = val + row[n]
 
-def _variance(bok):
-    norm = sum = squares = 0.
-    for key, val in bok.items():
-        norm, sum, squares = val + norm, key * val + sum, key * key * val + squares
+        return tuple(row)
 
-    mean = sum / norm
-    return norm, mean, squares / norm - mean * mean
+    def total(self): return reduce(lambda x, y: x + y, self.values(), 0)
+    _total = total  # equiv to self._moments(0)[0]
 
-def variance(bok): return _variance(bok)[2]
+    def _mean(self):
+        norm, sum = self._moments(1)
+        return norm, sum * 1. / norm
 
-def modes(bok):  # in no particular order
-    same = ()
-    for key, val in bok.items():
-        if not same or val > most: most, same = val, [ key ]
-        elif val == most: same.append(key)
+    def mean(self): return self._mean()[1]
 
-    return same
+    def _variance(self):
+        norm, sum, squares = self._moments(2)
+        mean = sum * 1. / norm
+        return norm, mean, squares * 1. / norm - mean * mean
 
-def mode(bok):
-    row = modes(bok)
-    if not row: raise ValueError, 'Asking for mode of empty population'
-    row.sort()
-    n = len(row)
-    if n % 2: return row[n/2]
-    n = n / 2
-    # have to chose among middle pair: take closest to median or mean
-    lo, hi = row[n-1], row[n]
-    sum = lo + hi
-    for mide in (median, mean):
-            mid = mide(bok) * 2
+    def variance(self): return self._variance()[2]
+
+    def modes(self):  # in no particular order
+        same = ()
+        for key, val in self.items():
+            if not same or val > most: most, same = val, [ key ]
+            elif val == most: same.append(key)
+
+        return same
+
+    def mode(self):
+        row = modes(self)
+        if not row: raise ValueError, 'Asking for mode of empty population'
+        row.sort()
+        n = len(row)
+        if n % 2: return row[n/2]
+
+        # have to chose among middle pair: take closest to median or mean
+        n = n / 2
+        lo, hi = row[n-1], row[n]
+        sum = lo + hi
+        for mide in (self.median, self.mean):
+            mid = mide() * 2
             if mid < sum: return lo
             if mid > sum: return hi
 
-    # failing those, be arbitrary:
-    return hi
+        # failing those, be arbitrary:
+        return hi
 
-from basEddy.value import Value
+class joinWeighted(_baseWeighted):
+    """Interface-class defining how to stick distributions together.
 
-class Weighted(Value):
-    def __init__(self, weights, scale=1, detail=5, *args, **what):
-        apply(Value.__init__, (self,) + args, what)
-        self.__weights, self.__detail = {}, detail
-        self.add(weights, scale)
+    Provides apparatus for adding data to a distribution, re-sampling a
+    distribution, obtaining a canonical distribution (i.e. one whose weights'
+    neighbourhoods don't overlap) and for performing `cartesion product'
+    operations (i.e.  taking two distributions and obtaining the joint
+    distribution for some combinatin of their parameters). """
 
-        # borrow clear, update, get, has_key, items, keys, values from weights
-        self.borrow(lambda k, _w=self.__weights: getattr(_w, k))
-        # but override copy
-
-    def __delitem__(self, key): del self.__weights[key]
-    def __getitem__(self, key):
-        try: return self.__weights[key]
-        except KeyError: return 0
-    def __setitem__(self, key, val):
-        if val > 0: self.__weights[key] = val
-        elif val < 0: raise ValueError, ('Negative weight', key, val)
-        # don't bother storing 0 values
-
-    def __len__(self): return len(self.__weights)
-
-    def copy(self, func=None, scale=1):
-        if func is None: bok = self.__weights.copy()
-        else:
-            bok = {}
-            for k, v in self.items():
-                bok[func(k)] = v
-
-        if scale != 1:
-            for k, v in bok.items():
-                bok[k] = v * scale
-
-        return apply(self.__class__, (bok,))
-        
+    def __init__(self, detail):
+        self.__detail = detail
 
     def add(self, weights, scale=1, func=None):
         """Increment some of my keys.
@@ -234,79 +219,90 @@ class Weighted(Value):
 
           [func=None] -- a callable which accepts keys of weights and returns
           keys for self.  Used to transform any keys of weights which aren't
-          Weighted instances.
+          joinWeighted instances.
 
-        If a key of weights is itself a Weighted, self.add recurses with
+        If a key of weights is itself a joinWeighted, self.add recurses with
         self.add(key, weights[key] * scale, func).  Otherwise, keys should be
         scalars (at least, by the time func has done with them, if supplied).
         """
 
         try: mites = weights.items()
         except AttributeError: mites = [ (weights, 1) ]
+
         for key, val in mites:
             val = scale * val
-            if isinstance(key, Weighted): self.add(key, val, func)
+            if isinstance(key, joinWeighted): self.add(key, val, func)
             else:
                 if func: key = func(key)
                 self[key] = self[key] + val
 
-    def high(self): return max(self.keys())
-    def low(self): return min(self.keys())
+    def decompose(self, new, row=None):
+        if row is None:
+            row = self.keys()
+            row.sort()
 
-    def median(self): return median(self.__weights)
-    def mean(self): return mean(self.__weights)
-    def variance(self): return variance(self.__weights)
-    def modes(self): return modes(self.__weights)
-
-    def condense(self, count=None, bok=None):
-        if count is None: count = self.__detail
-        if bok is None:
-            if len(self) <= count: return self.copy()
-            bok = self.__weights
-        elif len(bok) <= count: return bok
-
-        # OK, so carve bok up
-        parts = layers(bok, count, halves=1)
-        # that's partitioned it into count-ile bands,
-        # except for half-bands at start and end (whose outer ends we now use).
-
-        row = bok.keys()
-        return self.decompose([ min(row) ] +
-                              map(median, filter(None, parts[1:-1])) +
-                              [ max(row) ])
-
-    def decompose(self, new):
         # assert: new is sorted (but may have some repeated entries)
         count = len(new)
         for k in new: # flush out any repeats
             while new.count(k) > 1: new.remove(k)
 
-        # Now flatten bok's distribution by `moving' each key to the nearest
-        # entry in new.  Do this by going through bok.keys() in order, so we
-        # always know which entries in new need considered as possible nearests:
+        # Now flatten self's distribution by `moving' each key to the nearest
+        # entry in new.  Do this by going through self.keys() in order, so we
+        # always know which entries in new need considered as possible nearests.
 
         result, ind, run, cut = {}, 0, 0, new[0] + new[1]
         # ind: which member of new was nearest the last key
         # run: a running total for result[new[ind]]
         # cut: when 2 * key exceeds this, it's time to advance along new
 
-        row = self.keys()
-        row.sort()
         for key in row:
             while 2 * key > cut:
                 result[new[ind]] = run
+                ind = ind + 1
                 run = result.get(new[ind], 0)
                 try: cut = new[ind] + new[ind+1]
                 except IndexError: cut = 3 * row[-1]        # ie huge
 
-            run = run + bok[key]
+            run = run + self[key]
 
         result[new[-1]] = run
 
-        return Weighted(result, detail=count)
+        return self._weighted_(result, detail=count)
+
+    def condense(self, count=None, bok=None):
+        if count is None: count = self.__detail
+        if bok is None: bok = self
+        if len(bok) <= count: return bok.copy()
+        row = bok.keys()
+        row.sort()
+
+        # Carve bok up into count-1 interior count-iles and two half-bands at
+        # top and bottom.
+        step = reduce(lambda x, y: x + y, bok.values(), 0.) / count
+        parts, last, gap = [self._weighted_({})], None, .5 * step
+
+        for key in row:
+            val = bok[key]
+
+            while gap < val:
+                if gap > 0: parts[-1][key] = gap
+                parts.append(self._weighted_({}))
+                val, gap = val - gap, step
+
+            if val > 0:
+                parts[-1][key] = val
+                gap = gap - val
+
+        # Select new sample points from parts: outer ends of the half-bands,
+        # medians of the interior count-iles.  Work out how much weight to give
+        # to each of these sample points.
+        return self.decompose([ row[0] ]
+                              + map(lambda i: i.median(),
+                                    filter(None, parts[1:-1]))
+                              [ row[-1] ])
 
     def combine(self, dict, func, count=None):
-        ans = Weighted({})
+        ans = self._weighted_({})
         for key, val in self.items():
             ans.add(dict, val,
                     lambda j, k=key, f=func: f(k,j))
@@ -316,16 +312,359 @@ class Weighted(Value):
             try: det = dict.__detail
             except AttributeError: count = self.__detail
             else: count = max(det, self.__detail)
+
         return ans.condense(count)
+
+# Support tool: interpolation to interpret the dictionary as a curve:
+import string
+
+class pwLinterp:
+    """Interpolation handler.
+
+    This is a piecewise-linear interpolator. """
+
+    def tail_slice(self, total, width, near, far):
+        """Computes the weight in a band in a tail of a distribution.
+
+        Models this by the area of a slice of a right-angle triangle.  The RAT's
+        right-angled corner is taken as origin, total is twice the area of the
+        triangle, width is how long one of its sides is: this side is taken as
+        the X-axis.  Two lines are drawn parallel to the Y axis, at X-ordinates
+        near and far: the value returned is the area of the portion of the
+        triangle lying between these two lines.
+
+        The triangle's base is width, its height is total/width.  Its height at
+        X-ordinate x (between 0 and width) is thus (1 - x/width) * total/width,
+        giving an area .5 * (width - x) times this height to the right of x.
+        This is .5 * total * pow(1 - x/width, 2).  We thus take the difference
+        of two such quantities, with x as near and far (possibly clipped) to
+        obtain our answer. """
+
+        assert 0 <= near < far, ('Bad args:', near, far)
+
+        # Transform X-ordinates as x-> 1 - x/width: at the same time, clip the
+        # interval to the triangle.
+        rate = 1. / width
+
+        if near < width: fat = 1 - rate * near
+        else: return 0      # band and triangle did not overlap.
+
+        if far > width: thin = 0
+        else: thin = 1 - rate * far
+
+        # expand fat * fat - thin * thin ...
+        return .5 * total * (fat - thin) * (fat + thin)
+
+    def body_slice(self, before, width, after, start, gap):
+        """Computes the weight in a band between two weight-points.
+
+        Two weights, before and after, are width apart: the band, of size gap,
+        begins start along from the before weight.
+
+        Constraint: _body_slice(after, width, before, width - start - gap, gap)
+        should be the same. """
+
+        if gap == 0: return 0
+        assert 0 <= start < start + gap <= width, ('Bad args', start, gap, width)
+
+        return after * gap / width + self.tail_slice(
+            before - after, width, start, start + gap)
+
+# Next layer of functionality: probabilities in intervals,
+# rounding a `best estimate'
+class repWeighted(_baseWeighted):
+    """Base-class for representation and integration.
+
+    We now introduce an implicit curve described by the weight dictionary.
+    This is arrived at by interpolation between keys.
+
+    If there is only one key, no interpolation is possible: an exact `delta
+    function' is assumed.  Otherwise, the gaps between adjacent keys are used
+    for interpolation: and the boundary keys are extrapolated outwards to a
+    width equal to that of the gap adjacent to the boundary.  Interpolation is
+    controlled by an object's interpolator attribute: this base class provides
+    an interpolator which performs `piecewise linear' interpolation.  This reads
+    each { key: weight } as a pair of triangles, each of area half the weight,
+    one spanning each of the gaps to either side of key.
+
+    """
+
+    interpolator = pwLinterp()
+    def between(self, low=None, high=None, row=None):
+        """Returns the weight associated with an interval.
+
+        Arguments are the low and high bounds of the interval.  Either may be
+        None, indicating an interval unbounded at that end.
+
+        Treats each interval between weight-points as having half of the weight
+        of each point inside it, uniformly distributed.  Treats each end as a
+        triangular wedge whose width is the separation of the last two
+        weight-points.  This is in suck-it-and-see mode: it may get `refined'
+        later. """
+
+        if low is None and high is None: return self.total()
+        if low is not None and high is not None and low >= high: return 0.
+        if row is None:
+            row = self.keys()
+            row.sort()
+
+        if not row: return 0.
+        if len(row) is 1:
+            # special case: delta function
+            if low is None or low < row[0]:
+                if high is None or high > row[0]:
+                    return self.total()
+                if high == row[0]: return .5 * self.total()
+            elif low == row[0]:
+                if high is None or high > row[0]:
+                    return .5 * self.total()
+            return 0
+
+        lo, hi = 0, len(row) - 1
+        if low is not None:
+            while lo <= hi and row[lo] < low: lo = lo + 1
+        if high is not None:
+            while lo <= hi and row[hi] > high: hi = hi - 1
+        # so row[lo:hi] lies between low and high - or is empty
+
+        if lo > hi:
+            # extreme case: no keys in the interval
+            if lo is 0:
+                # left tail: low < high <= row[0]
+                return self.interpolator.tail_slice(
+                    self[row[0]], row[1] - row[0],
+                    row[0] - high, row[0] - low)
+
+            elif lo is len(row):
+                # right tail: row[-1] <= low < high
+                return self.interpolator.tail_slice(
+                    self[row[-1]], row[-1] - row[-2],
+                    low - row[-1], high - row[-1])
+
+            else:
+                # interval between two weights:
+                return self.interpolator.body_slice(
+                    self[row[hi]], row[lo] - row[hi], self[row[lo]],
+                    low - row[hi], high - low)
+
+        assert low < row[lo] <= row[hi] < high
+        # (the other cases have already returned).
+
+        if lo < hi:
+            # Compute the weight from row[lo] to row[hi]: this consists of half
+            # the band at each end, plus all the bands in between (if any).
+            mid = .5 * (self[row[hi]] + self[row[lo]])
+            for key in row[lo+1:hi]: mid = mid + self[key]
+
+        else: mid = 0.
+
+        # Now deal with two tail-pieces ...
+        if lo > 0:
+            bot = self.interpolator.body_slice(
+                self[row[lo]], row[lo] - row[lo-1], self[row[lo-1]],
+                0, row[lo] - low)
+        else:
+            bot = self.interpolator.tail_slice(
+                self[row[0]], row[1] - row[0],
+                0, row[0] - low)
+
+        if hi < len(row) - 1:
+            top = self.interpolator.body_slice(
+                self[row[hi]], row[hi+1] - row[hi], self[row[hi+1]],
+                high - row[hi], 0)
+        else:
+            top = self.interpolator.tail_slice(
+                self[row[-1]], row[-1] - row[-2],
+                0, high - row[-1])
+
+        return bot + mid + top
+
+    def __unit(self, what):
+        """Returns a suitable power of 10 for examining what."""
+
+        decade = 0
+        while what >= 10: what, decade = what / 10., decade + 1
+        while what < 1: what, decade = what * 10, decade - 1
+
+        return pow(10., decade)
+
+    def round(self, estim=None, row=None):
+        """Returns a rounding-string for estim.
+
+        Argument, estim, is optional: if omitted, the distribution's mean will
+        be used.  Result is a string representing this value to some accuracy,
+        in %e-style format.
+
+        Result string implicity represents an interval, given by `plus or minus
+        a half in the last digit'.  This interval will contain estim and will
+        span less than half of self's total weight.  The result will be the
+        shortest string which matches this constraint.
+
+        E.g. if self.between(3.05, 3.15) >= .5 > self.between(3.135, 3.145) then
+        self.round(pi) will return '3.14'. """
+
+        # Handle argument defaults:
+        if estim is None: estim = self.mean()
+        if row is None:
+            row = self.keys()
+            row.sort()
+
+        threshold, stop = .5 * self.total(), 7 + len(row)
+
+        # Find half-width of self:
+        hi = top = len(row)
+        while hi > 0 and row[hi-1] > estim: hi = hi - 1
+        # assert row[hi] > estim >= row[hi-1], subject to IndexError
+        lo = hi
+
+        weight = 0      # sum(row[lo:hi]: self :)
+        while weight <= threshold:
+            # decide whether to grow up or down:
+            if lo <= 0: sign = -1
+            elif hi >= top: sign = +1
+            else: sign = row[hi] + row[lo-1] - 2 * estim
+
+            # grow:
+            if sign > 0:
+                lo = lo - 1
+                weight = weight + self[row[lo]]
+            else:
+                weight = weight + self[row[hi]]
+                hi = hi + 1
+
+        width = row[hi-1] - row[lo]     # plus some tails:
+        if hi < top: width = width + .5 * (row[hi] - row[hi-1])
+        elif top > 1: width = width + row[-1] - row[-2]
+        if lo > 0: width = width + .5 * (row[lo] - row[lo-1])
+        elif top > 1: width = width + row[1] - row[0]
+
+        # Initialise:
+        if estim < 0: head, sign = '-', -1
+        else: head, sign = '', +1
+        body = rounded = unround = ''
+        unit, aim = self.__unit(max(abs(estim), width)), 0
+        tail = ('%.0e' % unit)[1:]
+
+        # Loop until over-long string or as precise as we'll allow:
+        while len(body) < stop and (unit > width or weight > threshold):
+            # Append unrounded digit from last iteration (empty on first iteration):
+            body = body + unround
+            # Compute unrounded digit for present:
+            dig = int((estim - aim) / unit / sign)
+            # Compute unrounded approximation thereby implied:
+            aim, unround = aim + sign * unit * dig, `dig`
+
+            # Determine whether to round:
+            round = cmp((estim - aim) * sign, .5 * unit)
+            # on exact half, round to even:
+            if round == 0: round = { 1: +1, 0: -1 } [dig % 2]
+
+            # If rounding, use next digit up as mid-point: otherwise, use unrounded.
+            if round < 0: rounded, mid = `dig`, aim
+            else: rounded, mid = `dig + 1`, aim + sign * unit
+            if estim == mid and width <= 0: break
+
+            # Compute weight in interval implied by suitably-rounded value:
+            weight = self.between(mid - .5 * unit, mid + .5 * unit)
+
+            # Prepare for next digit:
+            unit = .1 * unit
+
+        # Construct correct form of body:
+        if body: body = body[0] + '.' + body[1:] + rounded
+        else: body = rounded
+
+        # Return answer:
+        return head + body + tail
+
+from basEddy.value import Value
+
+class _Weighted(Value):
+    """Base-class providing a form of weight-dictionary. """
+
+    def __init__(self, weights, scale=1, *args, **what):
+        apply(Value.__init__, (self,) + args, what)
+        self.__weights = {}
+        self.add(weights, scale)
+
+        # borrow clear, update, get, has_key, items, keys, values from weights
+        self.borrow(self.__weights)
+        # but override copy
+
+    # {} doesn't have a __delitem__ attribute to borrow - fake it:
+    def __delitem__(self, key): del self.__weights[key]
+    # override the get/set methods (which, likewise, we couldn't borrow)
+    def __getitem__(self, key):
+        try: return self.__weights[key]
+        except KeyError: return 0
+    def __setitem__(self, key, val):
+        if val > 0: self.__weights[key] = val
+        elif val < 0: raise ValueError, ('Negative weight', key, val)
+        # don't bother storing 0 values
+
+    def __len__(self): return len(self.__weights)
+
+    # Comparison: which is probably greater ?
+    def __cmp__(self, what):
+        ans = self._weighted_({})
+        for key, val in self.items():
+            ans.add(what, val, lambda j, k=key: cmp(k, j))
+
+        return cmp(ans[1], ans[-1])
+
+    def _weighted_(self, *args, **what):
+        """Method for overriding by derived classes.
+
+        Generates a new weight-book from the same creation args as a _Weighted.
+        Derived classes will typically want to generate instances of themselves,
+        which is what this does: if their __init__ has signature incompatible
+        with that of _Weighted, they can override this method with something
+        which works round that. """
+        return apply(self.__class__, args, what)
+
+    def copy(self, func=None, scale=1):
+        """Copies a distribution.
+
+        No arguments are required.  The new distribution is of the same class as
+        self.  With no arguments, this distribution is identical to the
+        original: the two optional arguments allow for its keys and values
+        (respectively) to be different.
+
+        Optional arguments:
+
+          scale -- a scaling to apply to the values in the distribution
+
+          func -- a function to apply to the keys: must accept keys (sample
+          points) of the existing distribution, yielding a key for the new
+          distribution.  Default is, strictly None: if func is None, the
+          identity, lambda x: x, is (implicitly) used.
+
+        see, e.g., negation of Samples (below).
+
+        """
+
+        if scale == 0: bok = {}
+        else:
+            if func is None:
+                if scale == 1: bok = self.__weights.copy()
+                else:
+                    bok = {}
+                    for k, v in self.items():
+                        bok[k] = v * scale
+            else:
+                bok = {}
+                for k, v in self.items():
+                    bok[func(k)] = v * scale
+
+        return Value.copy(self, bok)
 
 def _defaulted(dict):
     """Fills in any None entries in a weight dictionary.
 
-    Provided all positive values in the dictionary sum to less than 1, the
+    Provided the positive values in the dictionary sum to less than 1, the
     difference between this sum and 1 will be shared out equally among the keys
     given with `weight' None. """
 
-    
     try: vals = dict.values()
     except AttributeError:
         vals, rate, dict = dict, 1. / len(dict), {}
@@ -337,9 +676,12 @@ def _defaulted(dict):
         if v is None: nuns = nuns + 1
         elif v > 0: spare = spare - v
         # leave the value < 0 case for during add(), when we know its key
+
+    if spare < 0:
+        raise ValueError, ('Over-full dictionary with Nones needing filled in',
+                           1 - spare)
+
     default = spare / nuns
-    if default < 0:
-        raise ValueError, 'Over-full dictionary with Nones needing filled in'
 
     ans = {}
     for k, v in dict.items():
@@ -371,11 +713,14 @@ def _divide(this, what):
     # get doubled by the computation I just did).  Quite what to do if such
     # a number wants to be `integer-like' is another matter ...
 
-    try: that = float(what)
-    except AttributeError:
-
     return this / float(what)
 
+# still need: _sample_decade_split &c, __repr__ and __str__ (add to repWeighted)
+class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
+    def __init__(self, weights, scale=1, detail=5, *args, **what):
+        apply(_Weighted.__init__, (self, weights, scale) + args, what)
+        apply(joinWeighted.__init__, (self, detail))
+
 class Sample(Value):
     """Primitive distribution modeller. """
 
@@ -383,21 +728,23 @@ class Sample(Value):
     except AttributeError: _lazy_preserve_ = ()
     _lazy_preserve_ = tuple(_lazy_preserve_) + ( 'best', )
 
+    _weighted_ = Weighted
+
     def __init__(self, weights, best=None, *args, **what):
         apply(Value.__init__, (self,) + args, what)
         if best is not None: self.best = best
 
-        self.__weigh = Weighted(_defaulted(weights))
+        self.__weigh = self._weighted_(_defaulted(weights))
 
     def copy(self):
         return apply(self.__class__, (self.__weigh.copy(),), self.__dict__)
 
-    def update(self, other, weight=1, func=None):
+    def update(self, other, weight=1, func=None, **what):
         old = self.__weigh
         old.add(other, weight, func)
-        old = old.condense()
-        self.__weigh = old
+        self.__weigh = old.condense()
         self._lazy_reset_()
+        self.__dict__.update(what)
 
     def normalise(self):
         sum = reduce(lambda x, y: x + y, self.__weigh.values(), 0.)
@@ -407,15 +754,20 @@ class Sample(Value):
 
         self.__weigh.scale(sum)
 
+    # the method derived classes over-ride to fiddle behaviour to sums, prods, etc.
+    def _sampler_(self, weights, best=None, *args, **what):
+        return apply(Sample, (weights, best) + args, what)
+
+    def __extract_(self, what):
+        try: bok = what.__weigh
+        except AttributeError: return { what: 1 }, what
+        return bok, what.best
+
     # now define arithmetic
     def __bundle_(self, func, what):
-
-	try: bok = what.__weigh
-        except AttributeError: bok, best = { what: 1 }, what
-	else: best = what.best
-
-	return Sample(self.__weigh.combine(bok, func),
-                      func(self.best, best))
+        bok, best = self.__extract_(what)
+	return self._sampler_(self.__weigh.combine(bok, func),
+                              func(self.best, best))
 
     # Binary operators:
     def __add__(self, what): return self.__bundle_(lambda x, w: x+w, what)
@@ -444,6 +796,17 @@ class Sample(Value):
 
 	return self.__bundle_(lambda x, w: w/x, what)
 
+    # Comparison:
+    def __cmp__(self, what):
+        bok, best = self.__extract_(what)
+        return cmp(self.__weigh, bok) or cmp(self.best, best)
+
+    # Representation:
+    def __repr__(self):
+        return self.__weigh.round(self.best)
+
+    __str__ = __repr__
+
     # Other built-ins:
     def __nonzero__(self): return not(self.high == 0 == self.low)
     # NB: not(nonzero) is stricter than == 0.
@@ -453,7 +816,7 @@ class Sample(Value):
     def __neg__(self): return self._neg
 
     def _lazy_get__neg_(self, ignored):
-	result = Sample(self.__weigh.map(lambda x: -x), -self.best)
+	result = self._sampler_(self.__weigh.copy(lambda x: -x), -self.best)
 	result._neg = self
 	return result
 
@@ -464,12 +827,20 @@ class Sample(Value):
     def _lazy_get_mode_(self, ignored): return self.__weigh.mode()
     def _lazy_get_modes_(self, ignored): return self.__weigh.modes()
     def _lazy_get_median_(self, ignored): return self.__weigh.median()
-    def _lazy_get_variance_(self, ignored): return self.__weigh.variance()
 
+    # lazy lookup of variance (and mean):
+    def _lazy_get_variance_(self, ignored):
+        total, self.mean, vary = _variance(self.__weigh)
+        return vary
+
+    def _lazy_get_width_(self, ignored): return self.high - self.low
+    def _lazy_get_mirror_(self, ignored): return self.__weigh.condense()
+    def _lazy_get_errors_(self, ignored): return self - self.best
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.1  1999-06-01 21:17:47  eddy
-  Initial revision
+  Revision 1.2  1999-07-04 12:15:42  eddy
+  First working version.
 
+  Initial Revision 1.1  1999/06/01 21:17:47  eddy
 """
