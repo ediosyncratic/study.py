@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.3 2003-07-26 12:49:03 eddy Exp $
+$Id: cardan.py,v 1.4 2003-07-26 13:19:47 eddy Exp $
 """
 
 from math import cos, acos, pi
@@ -47,30 +47,33 @@ def Cardan(cube, square, linear, constant):
     # y**3 -3*y*((s/u/3)**2 -i/u/3) +2*(s/u/3)**3 -i*s/u/u/3 +c/u == 0
     offset = square / 3. / cube # y = x + offset
     E = offset**2 - linear / 3. / cube
-    F = linear * square / 3. / cube**2 -2 * offset**3 - constant * 1. / cube
-    # so cube*(y**3 -3*E*y -F) = ((cube*x +square)*x +linear)*x +constant;
-    # now solve y**3 -3*E*y -F = 0 and subtract offset from each y to get x.
-    #print 'E, F = %s, %s' % (E, F)
+    F = linear * square / 6. / cube**2 -offset**3 - constant * .5 / cube
+    # so cube*(y**3 -3*E*y -2*F) = ((cube*x +square)*x +linear)*x +constant;
+    # now solve y**3 -3*E*y -2*F = 0 and subtract offset from each y to get x.
+    #print 'offset, E, F = %s, %s, %s' % (offset, E, F)
+
+    def cuberoot(x, third=1./3):
+        # python doesn't like fractional powers of negative values ...
+        if x < 0: return - (-x)**third
+        return x**third
 
     # deal with two more easy cases:
     if not F: # 0 = y**3 -3*E*y = y*(y**2 -3*E)
         if E < 0: return -offset, # only one
         E = (3*E)**.5
         return -offset, -E-offset, E-offset
-    if not E: # y**3 = F
-        return F**(1./3) - offset,
+    if not E: # y**3 = 2.F
+        return cuberoot(2*F) - offset,
 
-    disc = F**2 -4 * E**3
+    disc = F**2 -E**3
     if disc > 0: # only one root
         disc = disc**.5
-        p, q = .5 * (F + disc), .5 * (F - disc)
-        p, q = p**(1./3), q**(1./3)
-        return p+q - offset,
+        return cuberoot(F + disc) + cuberoot(F - disc) - offset,
 
     assert E > 0
     E = E**.5
     if disc < 0: # three roots; 
-        a = acos(.5 * F / E**3) / 3
+        a = acos(F / E**3) / 3
         #print 'angle:', a * 180 / pi
         return 2*E*cos(a) - offset, 2*E*cos(a + 2*pi/3) - offset, 2*E*cos(a + 4*pi/3) - offset
 
@@ -95,7 +98,10 @@ def cardan(u, s, i, c, tol=1e-14):
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.3  2003-07-26 12:49:03  eddy
+Revision 1.4  2003-07-26 13:19:47  eddy
+Halved F, introduced cuberoot() to deal with a gotcha.
+
+Revision 1.3  2003/07/26 12:49:03  eddy
 Made assertion's tolerance an optional parameter.
 
 Revision 1.2  2003/07/26 12:46:24  eddy
