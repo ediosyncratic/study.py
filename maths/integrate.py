@@ -1,6 +1,6 @@
 """Integration made easy.
 
-$Id: integrate.py,v 1.1 2002-10-06 14:01:04 eddy Exp $
+$Id: integrate.py,v 1.2 2002-11-02 19:07:22 eddy Exp $
 """
 
 class Integrator:
@@ -8,6 +8,7 @@ class Integrator:
 
     Provides crude trapezium rule integrator, which derived classes might wish
     to over-ride.  More importantly, defines an API for integrators:
+        measure(func) -- integrator scaling self.integrand by func
         between(start, stop) -- integrates over an interval
         before(stop) -- as between, but with minus infinity as start
         beyond(start) -- as between, but with plus infinity as stop
@@ -55,6 +56,25 @@ class Integrator:
 
 	self.integrand = func
 	if width is not None: self.__unit = abs(width)
+
+    def measure(self, func, width=None):
+        """New integrator scaling self.integrand pointwise by a given function.
+
+        Required argument, func, is a function accepting the same inputs as
+        self.integrand().  Optional argument, width, is as for the Integrator
+        constructor; if omitted, the value used when self was constructed (if
+        any) is used.
+
+        Returns an Integrator whose integrand is (: func(x) * self.integrand(x)
+        &larr;x :) which can be construed as integrating func using self as
+        measure; or as integrating self using func as measure.  If self is a
+        probability distribution, its moments can be computed using func()s of
+        form (: x**i &larr;x :) for i = 1, 2, 3 ..."""
+
+        if width is None:
+            try: width = self.__unit
+            except AttributeError: pass
+        return Integrator(lambda x, f=func, i=self.integrand: f(x) * i(x), width)
 
     def between(self, start, stop, test=None, offset=None):
 	"""Integral over a range.
@@ -183,7 +203,10 @@ class Integrator:
 
 _rcs_log = """
  $Log: integrate.py,v $
- Revision 1.1  2002-10-06 14:01:04  eddy
+ Revision 1.2  2002-11-02 19:07:22  eddy
+ Added new method, measure.
+
+ Revision 1.1  2002/10/06 14:01:04  eddy
  Initial revision
 
 """
