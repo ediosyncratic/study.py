@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.6 2003-04-12 12:55:05 eddy Exp $
+$Id: object.py,v 1.7 2003-04-21 11:24:06 eddy Exp $
 """
 
 def aslookup(whom):
@@ -66,11 +66,9 @@ class Object (Lazy):
     def also(self, **what):
         self.__dict__.update(what)
 
-        row = self.__ephem()
-        add = row.append
-
-        for key in what.keys():
-            if key not in row: add(key)
+        # Note that lazy cache flush should *not* clear these attributes ...
+        for k in self._lazy_preserve_: what[k] = None
+        self._lazy_preserve_ = what.keys()
 
     _unborrowable_attributes_ = ()
     __upinit = Lazy.__init__
@@ -129,9 +127,8 @@ class Object (Lazy):
 	self._lazy_lookup_ = getit
 
     def __delattr__(self, key):
-        row = self.__ephem()
-        try: row.remove(key)
-        except ValueError: pass
+        if key in self._lazy_preserve_:
+            self.__ephem().remove(key)
 
         try: del self.__dict__[key]
         except KeyError:
@@ -156,7 +153,10 @@ class Value (Object): pass       # Backwards compatibility ...
 
 _rcs_log = """
  $Log: object.py,v $
- Revision 1.6  2003-04-12 12:55:05  eddy
+ Revision 1.7  2003-04-21 11:24:06  eddy
+ Slightly cleaner handling of _lazy_preserve_.
+
+ Revision 1.6  2003/04/12 12:55:05  eddy
  Provided for unborrowable attributes of Objects (for particle.py's
  benefit, in the first instance).  Clarified documentation a bit ...
 
