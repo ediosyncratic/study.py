@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.7 2003-08-13 22:15:12 eddy Exp $
+$Id: multiangle.py,v 1.8 2003-08-17 20:25:35 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -59,10 +59,16 @@ class LazySeq:
 z = Polynomial(0, 1)
 
 class Middle (LazySeq):
-    def growto(self, key, down={0: 1-z, 1: z-1}, up=z+1, two=-z-2):
+    def growto(self, key,
+               down={0: 1-z, 1: z-1}, up=z+1, two=-z-2,
+               q=(lambda p, x=z: (p(-x)*p(x-2)).unafter(x*(2-x)),
+                  lambda p, x=z: (((x+1)*p(x-2)**2 +(x-3)*p(-x)**2)/2/(x-1)).unafter(x*(x-2)-2),
+                  lambda p, x=z: ((4+(x-1)*p(-x-2)**2)/(x+3))**.5)):
         assert K is self
         prior = self[key-1]
-        return (prior * up + down[key%2] * prior(two)) * .5
+        ans = (prior * up + down[key%2] * prior(two)) * .5
+        assert not filter(lambda p, a=ans: p(a) != a, q)
+        return ans
 
 K = Middle()
 del Middle
@@ -101,7 +107,10 @@ del term, z, Polynomial
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.7  2003-08-13 22:15:12  eddy
+Revision 1.8  2003-08-17 20:25:35  eddy
+Added some assertions to Middle.
+
+Revision 1.7  2003/08/13 22:15:12  eddy
 Fixed d'oh; wrong sign for the term used by Cos.
 
 Revision 1.6  2003/08/12 22:57:43  eddy
