@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.16 2002-02-11 01:38:52 eddy Exp $
+$Id: quantity.py,v 1.17 2002-02-15 16:05:45 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -191,7 +191,9 @@ def scaledict(dict, scale):
 from basEddy.value import Object
 _terse_dict = {}
 
-class Quantity(Object):
+class Quantity (Object):
+
+    __obinit = Object.__init__
     def __init__(self, scale, units={},
                  doc=None, nom=None, fullname=None,
                  sample=None,
@@ -228,13 +230,12 @@ class Quantity(Object):
         which case each contributes its scale and units to the new Quantity,
         effectively multiplicatively. """
 
-        # Initialise self as a Object:
-        apply(Object.__init__, (self,) + args, what)
+        # Initialise self as an Object:
+        apply(self.__obinit, args, what)
 
         # massage the arguments: first mix scale and units
         if isinstance(units, Quantity):
             scale, units = scale * units.__scale, units.__units
-
         if isinstance(scale, Quantity):
             units, scale = adddict(units, scale.__units), scale.__scale
 
@@ -286,7 +287,10 @@ class Quantity(Object):
 
     def document(self, doc): self.__doc__ = doc
     def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
-    def copy(self): return Object.copy(self, self.__scale, self.__units)
+
+    __obcopy = Object.copy
+    def copy(self, func=None):
+	return self.__obcopy(self.__scale.copy(func), self.__units.copy())
 
     def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
@@ -296,11 +300,29 @@ class Quantity(Object):
 
         return h
 
+    def evaluate(self, f):
+	"""Return result of passing self to the given scalar function.
+
+	Takes a single argument, a callable, typically a function such as
+	math.exp which can only handle inputs of type scalar; returns the
+	appropriate Quantity obtained by supplying self to this function; but
+	raises TypeError unless self is dimensionless.  Result is always
+	dimensionless.
+
+	Note that self.copy(f) will do the corresponding thing but giving the
+	result the same units as self, whatever these may be; .copy() makes no
+	attempt to check whether what you asked for makes sense ... """
+
+	return self._quantity(self._scalar.copy(f), {})
+
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
     def __int__(self): return int(self._scalar)
 
     def _lazy_get__scalar_(self, ignored):
+	# in later equivalents, self.__units may use quantities as units; in
+	# which case, one should `flatten' self to check whether non-empty
+	# really means dimensioned ...
         if self.__units: raise TypeError('not dimensionless', self._unit_str)
         return self.__scale
 
@@ -561,7 +583,11 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.16  2002-02-11 01:38:52  eddy
+ Revision 1.17  2002-02-15 16:05:45  eddy
+ Added Quantity.evaluate, made .copy support optional function on scale.
+ Various minor tweaks.
+
+ Revision 1.16  2002/02/11 01:38:52  eddy
  Made TypeError with several args be a call.
 
  Revision 1.15  2002/02/02 18:36:27  eddy
