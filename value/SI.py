@@ -1,8 +1,10 @@
 """The SI units.
 
-See also units.py for a huge bestiary of other units.
+See also units.py for a huge bestiary of other units; and
+        http://physics.nist.gov/cuu/Units/current.html
+for a definitive source of information about units.
 
-$Id: SI.py,v 1.4 2002-02-15 16:15:20 eddy Exp $
+$Id: SI.py,v 1.5 2003-02-16 14:31:15 eddy Exp $
 """
 from quantity import *
 
@@ -66,6 +68,7 @@ The amount of substance which contains as many elementary units as there are
 atoms in 12e-3 kilogrammes (exactly) of pure carbon-12.  The elementary unit
 must be specified and may be atom, molecule, ion, radical, electron, photon
 <I>etc</I>. or collection of elementary units. """)
+# see also const.py, which adds some attributes, like Avogadro's constant.
 
 cd = candela = base_unit('cd', 'Candela',
                         """The SI base unit of luminous intensity.
@@ -142,7 +145,11 @@ dtex = deci * tex # see also: units.denier
 
 """
  $Log: SI.py,v $
- Revision 1.4  2002-02-15 16:15:20  eddy
+ Revision 1.5  2003-02-16 14:31:15  eddy
+ Added NIST URL and reference to const.py, which now stores some
+ attributes on mol which it previously kept on an object called molar.
+
+ Revision 1.4  2002/02/15 16:15:20  eddy
  Moved the Mass/Time bodges here (from units.py).
  Added units of textile fineness, tex and dtex.
 
