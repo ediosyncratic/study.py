@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.10 2001-12-10 21:28:11 eddy Exp $
+$Id: quantity.py,v 1.11 2001-12-10 21:58:03 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -253,8 +253,6 @@ class Quantity(Object):
 	self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.name(nom or fullname, fullname or nom)
 
-    def copy(self): return Object.copy(self, self.__scale, self.__units)
-
     def _primitive(self):
         """Returns a quantity in a primitive form.
 
@@ -267,17 +265,15 @@ class Quantity(Object):
             what = apply(Sample, (what.mirror,), what.dir)
         return Quantity(what, units)
 
-    def document(self, doc): self.__doc__ = doc
     def name(self, nom=None, fullname=None):
 	if nom: self._short_name_ = nom
 	if fullname: self._long_name_ = fullname
 
-    def observe(self, what):
-        self.__scale.update(self.__addcheck_(what, 'observe'))
+    def document(self, doc): self.__doc__ = doc
+    def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
+    def copy(self): return Object.copy(self, self.__scale, self.__units)
 
-    def __cmp__(self, other):
-	return cmp(self.__scale, self.__addcheck_(other, 'compare'))
-
+    def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
 	h = hash(self.__scale)
 	for k, v in self.__units.items():
@@ -288,7 +284,6 @@ class Quantity(Object):
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
     def __int__(self): return int(self._scalar)
-    def __abs__(self): return abs(self._scalar)
 
     def _lazy_get__scalar_(self, ignored):
         if self.__units: raise TypeError('not dimensionless', self._unit_str)
@@ -296,6 +291,9 @@ class Quantity(Object):
 
     def __nonzero__(self): return 0 != self.__scale
     def __neg__(self): return self._neg
+    def __abs__(self):
+	if self.__scale < 0: return self._neg
+	return self
 
     def _lazy_get__neg_(self, ignored):
         result = self._quantity( - self.__scale, self.__units)
@@ -330,21 +328,12 @@ class Quantity(Object):
 
 	    return other
 
-    def __kin(self, scale):
-        return self._quantity(scale, self.__units)
-
     # Addition, subtraction and their reverses.
-    def __add__(self, other):
-	return self.__kin(self.__scale + self.__addcheck_(other, '+'))
-
-    def __radd__(self, other):
-	return self.__kin(self.__addcheck_(other, '+') + self.__scale)
-
-    def __sub__(self, other):
-	return self.__kin(self.__scale - self.__addcheck_(other, '-'))
-
-    def __rsub__(self, other):
-	return self.__kin(self.__addcheck_(other, '-') - self.__scale)
+    def __kin(self,    scale): return self._quantity(scale, self.__units)
+    def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck_(other, '+'))
+    def __radd__(self, other): return self.__kin(self.__addcheck_(other, '+') + self.__scale)
+    def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
+    def __rsub__(self, other): return self.__kin(self.__addcheck_(other, '-') - self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
     def __unpack_(self, other):
@@ -396,15 +385,15 @@ class Quantity(Object):
         return Quantity(self.__scale.variance, scaledict(self.__units, 2))
 
     # lazy string and representation lookups:
-    def __repr__(self): return self._full_repr
+
     def __str__(self): return self._full_str
+    # short-form, e.g. 9.81 m.kg/s**2
+    def _lazy_get__unit_str_(self, ignored): return self.unit_string()
+    def _lazy_get__number_str_(self, ignored): return str(self.__scale) or '?'
 
-    def _lazy_get__unit_str_(self, ignored):
-        # short-form of units, e.g. m/s**2
-        return self.unit_string()
-
-    def _lazy_get__number_str_(self, ignored):
-        return str(self.__scale) or '?'
+    def __repr__(self): return self._full_repr
+    # valid python expression, full names: e.g. 9.81 * metre*kilogramme / second**2
+    def _lazy_get__number_repr_(self, ignored): return `self.__scale`
 
     def _lazy_get__full_str_(self, ignored):
         # Gather components
@@ -429,9 +418,6 @@ class Quantity(Object):
 
         # Stick the pieces together:
         return num + pad + uni
-
-    def _lazy_get__number_repr_(self, ignored):
-	return `self.__scale`
 
     def _lazy_get__full_repr_(self, ignored):
 
@@ -546,14 +532,11 @@ class Quantity(Object):
 	return head + tail
 
     # Methods for use by derived classes and kindred allies:
-    def _quantade_split_(self, power=1):
-        raise AssertionError, 'retired functionality'
-
     def _unit_order(self, unit):
         try: return self.__units[unit]
         except KeyError: return 0
 
-    # override this if needed in derived classes ...
+    # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
 
 def base_unit(nom, fullname, doc, **what):
@@ -563,7 +546,11 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.10  2001-12-10 21:28:11  eddy
+ Revision 1.11  2001-12-10 21:58:03  eddy
+ Made abs work even when non-dimensional, lots of layout changes on
+ trivial methods, fully retired _quantade_split.
+
+ Revision 1.10  2001/12/10 21:28:11  eddy
  Added abs, dispersor, dispersal to Quantity.  Shuffled hash, nonzero.
  Enhanced various docs.  Removed bogus debug.  Fixed noddy bugs:
  punctuating str((m*s)**2*kg); _lazy_get__scalar_'s ignored arg.
