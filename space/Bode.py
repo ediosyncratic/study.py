@@ -4,7 +4,7 @@
 Trying to invent a Titius-Bode sort of a sequence for an arbitrary family of
 bodies orbiting a common centre.  Bogus and experimental.
 
-$Id: Bode.py,v 1.3 2005-03-13 18:45:49 eddy Exp $
+$Id: Bode.py,v 1.4 2005-03-15 21:59:27 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -49,7 +49,7 @@ starting on the first day of the next year, Piazzi made the first of a series of
 observations of what he soon realised was such a missing planet, which he named
 Ceres Ferdinandea.\n"""
 
-    def __init__(self, seq, ignored):
+    def __init__(self, seq):
         # First identfy your demos ...
         plenty, k = len(seq), 3
         while k * k < plenty: k = 1 + k
@@ -170,7 +170,10 @@ del Lazy
 
 _rcs_log = """
 $Log: Bode.py,v $
-Revision 1.3  2005-03-13 18:45:49  eddy
+Revision 1.4  2005-03-15 21:59:27  eddy
+Revised Bode's constructor to take the one arg it's going to get ...
+
+Revision 1.3  2005/03/13 18:45:49  eddy
 body has renamed its exports; also, include Object as fall-back bodytype.
 
 Revision 1.2  2005/03/12 14:14:42  eddy
