@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.23 2003-04-21 20:33:47 eddy Exp $
+$Id: quantity.py,v 1.24 2003-07-05 13:27:51 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -50,89 +50,100 @@ Gi = gibi = Mi * 1024
 # mega * gramme not using an SI base unit ?
 
 import string
+def _cleandoc(text, strip=string.strip):
+    if text: text = strip(text)
+    if text: return text + '\n'
+
+def _massage_text(text, times,
+                  _e2q=_exponent_to_quantifier,
+                  split=string.split, a2i=string.atoi):
+    """Computes the representation of qSample.
+
+    Arguments (both required, none more allowed):
+      text -- preliminary representation of a number
+      times -- the text to put between a number and a quantifier to serve as
+               `multiplication' in the resulting string.
+
+    Result has form [sign]digits[.digits][quantifier] where: quantifier may be,
+    for instance, times + 'mega', meaning the appropriate power of 10, else it
+    is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which case the
+    exponent is a multiple of three.  The mantissa, digits[.digits], is always
+    in the range .1 to 1000 and only exceeds 100 if at least three significant
+    digits are available and, by so doing, we can avoid the need for a
+    [quantifier].  If the exponent is given as [e[sign]digits] and the
+    representation is exact, the e will be an E, e.g. the integer 4000 is 4E3.
+    Exact numbers will also elide their decimal point if it is the last
+    character of the mantissa, rough ones are less likely to. """
+
+    # Extract the sign, if present, and set it aside; we'll put it back as we return
+    if text[:1] in '-+': sign, text = text[:1], text[1:]
+    else: sign = ''
+
+    # Snip apart mantissa (head) and exponent (tail):
+    glue = 'e'
+    try: head, tail = split(text, 'e')
+    except ValueError:
+        try: head, tail = split(text, 'E')
+        except ValueError: head, tail = text, '0'
+        else: glue = 'E' # value is exact
+
+    # Decode (string) tail as an (integer) exponent:
+    exponent = a2i(tail)
+    # Snip apart the mantissa (head) at the dot (if any):
+    try: up, down = split(head, '.')
+    except ValueError: up, down = head, ''
+    # up is the whole part, down the fractional part
+
+    # Roll the dot left or right to make exponent a multiple of 3:
+    if exponent % 3 in (-2, 1):
+        exponent = exponent - 1
+        if up == '0': up = ''
+        if down: head = up + down[:1] + '.' + down[1:]
+        else: head = up + '0'
+    elif exponent % 3 in (-1, 2):
+        exponent = exponent + 1
+        if up: head = up[:-1] + '.' + up[-1:] + down
+        else: head = '.0' + down
+
+    # Now, about the exception for 400 rather than .400e3 (but .40e3 is .40 * kilo)
+    if exponent == 3 and head[0] == '.':
+        if len(head) > 3:
+            # head is '.ddd' or longer with 'e3' to follow
+            head = head[1:4] + '.' + head[4:]
+            exponent = 0
+        # if value is exact, we can treat implicit trailing zeros as significant ...
+        elif glue == 'E':
+            # head is '.dd' or shorter with 'E3' to follow
+            head = head[1:] + '0' * (4 - len(head)) # + '.' elided; about to be ditched.
+            exponent = 0
+
+    # Ditch trailing '.' if value is exact:
+    if head[-1] == '.' and glue == 'E': head = head[:-1]
+
+    # Finally, transform 'e[sign]prial' into a name, if we have one for it:
+    # e.g. 'e6' -> ' mega'
+    if exponent:
+        tail = 'e%+d' % exponent
+        try: mul = _e2q[tail]
+        except KeyError: tail = glue + `exponent`
+        else: tail = times + mul
+    else:
+        tail = ''
+
+    return sign + head + tail
+
+del _exponent_to_quantifier
+
 from basEddy.sample import Sample, tophat
 
 class qSample (Sample):
-    def __massage_text_(self, times, _e2q=_exponent_to_quantifier):
-        """Computes the representation of qSample.
-
-        Single argument, times, is the text to put between a number and a
-        quantifier to serve as `multiplication' in the resulting string.
-
-        Result has form [sign]digits[.digits][quantifier] where: quantifier may
-        be, for instance, times + 'mega', meaning the appropriate power of 10,
-        else it is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which
-        case the exponent is a multiple of three.  The mantissa,
-        digits[.digits], is always in the range .1 to 1000 and only exceeds 100
-        if at least three significant digits are available and, by so doing, we
-        can avoid the need for a [quantifier].  If the exponent is given as
-        [e[sign]digits] and the representation is exact, the e will be an E,
-        e.g. the integer 4000 is 4E3.  Exact numbers will also elide their
-        decimal point if it is the last character of the mantissa, rough ones
-        are less likely to. """
-
-        text = Sample._lazy_get__repr_(self, '_repr')
-        # Extract the sign, if present, and set it aside; we'll put it back as we return
-        if text[:1] in '-+': sign, text = text[:1], text[1:]
-        else: sign = ''
-
-        # Snip apart mantissa (head) and exponent (tail):
-        glue = 'e'
-        try: head, tail = string.split(text, 'e')
-        except ValueError:
-            try: head, tail = string.split(text, 'E')
-            except ValueError: head, tail = text, '0'
-            else: glue = 'E' # value is exact
-
-        # Decode (string) tail as an (integer) exponent:
-        exponent = string.atoi(tail)
-        # Snip apart the mantissa (head) at the dot (if any):
-        try: up, down = string.split(head, '.')
-        except ValueError: up, down = head, ''
-        # up is the whole part, down the fractional part
-
-        # Roll the dot left or right to make exponent a multiple of 3:
-        if exponent % 3 in (-2, 1):
-            exponent = exponent - 1
-            if up == '0': up = ''
-            if down: head = up + down[:1] + '.' + down[1:]
-            else: head = up + '0'
-        elif exponent % 3 in (-1, 2):
-            exponent = exponent + 1
-            if up: head = up[:-1] + '.' + up[-1:] + down
-            else: head = '.0' + down
-
-        # Now, about the exception for 400 rather than .400e3 (but .40e3 is .40 * kilo)
-        if exponent == 3 and head[0] == '.':
-            if len(head) > 3:
-                # head is '.ddd' or longer with 'e3' to follow
-                head = head[1:4] + '.' + head[4:]
-                exponent = 0
-            # if value is exact, we can treat implicit trailing zeros as significant ...
-            elif glue == 'E':
-                # head is '.dd' or shorter with 'E3' to follow
-                head = head[1:] + '0' * (4 - len(head)) # + '.' elided; about to be ditched.
-                exponent = 0
-
-        # Ditch trailing '.' if value is exact:
-        if head[-1] == '.' and glue == 'E': head = head[:-1]
-
-        # Finally, transform 'e[sign]prial' into a name, if we have one for it:
-        # e.g. 'e6' -> ' mega'
-        if exponent:
-            tail = 'e%+d' % exponent
-            try: mul = _e2q[tail]
-            except KeyError: tail = glue + `exponent`
-            else: tail = times + mul
-        else:
-            tail = ''
-
-        return sign + head + tail
-
     # Massage Sample's answers, which use any integer for the exponent
     # and put digits.[digits] between 1 and 10.
-    def _lazy_get__repr_(self, ignored): return self.__massage_text_(' * ')
-    def _lazy_get__str_(self, ignored): return self.__massage_text_(' ')
+    _lazy_get__sample_repr_ = Sample._lazy_get__repr_
+    def _lazy_get__repr_(self, ignored, mash=_massage_text):
+        return mash(self._sample_repr, ' * ')
+    def _lazy_get__str_(self, ignored, mash=_massage_text):
+        return mash(self._sample_repr, ' ')
 
     # Sample's low and high are boundary weights, decidedly *inside* true bounds.
     def _lazy_get_high_(self, which):
@@ -141,7 +152,7 @@ class qSample (Sample):
 
     _lazy_get_low_ = _lazy_get_high_
 
-del _exponent_to_quantifier
+del _massage_text
 
 def adddict(this, that):
     cop = this.copy()
@@ -262,6 +273,8 @@ class Quantity (Object):
             if row: scale = qSample(row)
             else: scale = new
 
+        if doc is not None: doc = _cleandoc(doc)
+
         # initialise self as a Quantity with the thus-massaged arguments
         self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.__name(nom or fullname, fullname or nom)
@@ -283,6 +296,9 @@ class Quantity (Object):
         if fullname: self._long_name_ = fullname
 
     def document(self, doc):
+        doc = _cleandoc(doc)
+        if not doc: return
+
         try: old = self.__dict__['__doc__']
         except AttributeError: old = None
         if old: self.__doc__ = old + '\n' + doc
@@ -498,7 +514,8 @@ class Quantity (Object):
     def unit_string(self, scale='',
                     times='.', divide='/',
                     Times=None, Divide=None,
-                    lookemup=lambda r: r):
+                    lookemup=lambda r: r,
+                    join=string.joinfields):
         """Generates representations of a quantity.
 
         All arguments are optional and should be given by name when given.
@@ -544,14 +561,14 @@ class Quantity (Object):
 
             # This might be a better place for the milli * kilogramme bodge ...
             row = lookemup(pows[p])
-            lang, top, bot = len(row), string.joinfields(row, times), ''
+            lang, top, bot = len(row), join(row, times), ''
 
             # ... do the promised folding:
             try: wor = lookemup(pows[-p])
             except KeyError: pass
             else:
                 if wor:
-                    bot = divide + string.joinfields(wor, divide)
+                    bot = divide + join(wor, divide)
                     lang = lang + len(wor)
 
             if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
@@ -581,6 +598,8 @@ class Quantity (Object):
 
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
+
+del string
 
 def base_unit(nom, fullname, doc, **what):
     result = apply(Quantity, (1, {nom:1}, doc, nom, fullname), what)
@@ -591,7 +610,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.23  2003-04-21 20:33:47  eddy
+ Revision 1.24  2003-07-05 13:27:51  eddy
+ Made qSample's text massager a function, outside the class; added _cleandoc to
+ canonicalise Quantity's doc strings; made string module del-able and del-ed it.
+
+ Revision 1.23  2003/04/21 20:33:47  eddy
  Made qSample support the sensible .low and .high attributes Sample no
  longer provides (it provides extremal weight-points: of debatable value).
 
