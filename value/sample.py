@@ -21,7 +21,7 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.6 2001-12-12 14:58:04 eddy Exp $
+$Id: sample.py,v 1.7 2001-12-12 16:56:27 eddy Exp $
 """
 
 class _baseWeighted:
@@ -734,7 +734,7 @@ class repWeighted(_baseWeighted):
         return i.total / exp(i.entropoid / i.total)
 
     def disperse(self, exp=math.exp):
-	"""Returns variant on self normalised to have zero entropoid."""
+        """Returns variant on self normalised to have zero entropoid."""
         i = self.interpolator
 
         if 1./i.total == 0:
@@ -1048,8 +1048,8 @@ class _Weighted(Object, _baseWeighted):
         self.__change_weights()
 
     def __change_weights(self,
-			 # lazy attributes derived from weights:
-			 volatiles=('sortedkeys', 'interpolator')):
+                         # lazy attributes derived from weights:
+                         volatiles=('sortedkeys', 'interpolator')):
 
         for nom in volatiles:
             try: delattr(self, nom)
@@ -1151,20 +1151,31 @@ def _divide(this, what):
 
 def _rdivide(this, what): return _divide(what, this)
 
-class Sample(Object):
-    """Primitive distribution modeller. """
+class Sample (Object):
+    """Models numeric values by distributions. """
 
     try: _lazy_preserve_ = Object._lazy_preserve_
     except AttributeError: _lazy_preserve_ = ()
     _lazy_preserve_ = tuple(_lazy_preserve_) + ( 'best', )
+    __alias = {'_str': '_repr'}
 
     # Sub-classes can use bolt-in replacements for Weighted ...
     _weighted_ = Weighted
 
-    def __init__(self, weights, best=None, *args, **what):
-        apply(Object.__init__, (self,) + args, what)
+    def __init__(self, weights, *args, **what):
+        # augment lazy aliases:
+        try: bok = what['lazy_aliases']
+        except KeyError: what['lazy_aliases'] = self.__alias
+        else:
+            new = {}
+            new.update(self.__alias)
+            new.update(bok) # so derived classes over-ride Sample
+            what['lazy_aliases'] = new
 
-        if best is not None:
+        # massage best estimate:
+        try: best = what['best']
+        except KeyError: pass
+        else:
             if not weights: weights = { best: 1 }
             # ... using the  given value of best for this, though it may be fuzzy.
             # Now coerce best to a raw scalar ...
@@ -1176,8 +1187,10 @@ class Sample(Object):
                 best = best.median()
 
             # ... and remember it.
-            self.best = best
+            what['best'] = best
 
+        # Finished massaging inputs: initialise self.
+        apply(Object.__init__, (self,) + args, what)
         self.__weigh = self._weighted_(weights)
 
     def update(self, other, weight=1, func=None, **what):
@@ -1215,8 +1228,7 @@ class Sample(Object):
         return apply(self._sampler_, (self.__weigh.copy(func),), bok)
 
     # Derived classes over-ride this to fiddle behaviour of sums, prods, etc.
-    def _sampler_(self, weights, best=None, *args, **what):
-        return apply(self.__class__, (weights, best) + args, what)
+    def _sampler_(self, *args, **what): return apply(self.__class__, args, what)
 
     def __extract_(self, what):
         try: bok = what.__weigh
@@ -1227,7 +1239,7 @@ class Sample(Object):
     def __bundle_(self, func, what):
         bok, best = self.__extract_(what)
         return self._sampler_(self.__weigh.combine(bok, func),
-                              func(self.best, best))
+                              best=func(self.best, best))
 
     # Binary operators:
     def __add__(self, what): return self.__bundle_(lambda x, w: x+w, what)
@@ -1261,7 +1273,7 @@ class Sample(Object):
 
     # Representation:
     def __repr__(self): return self._repr
-    def __str__(self): return self._repr
+    def __str__(self): return self._str
     def _lazy_get__repr_(self, ignored): return self.__weigh.round(self.best)
 
     # Comparison:
@@ -1370,7 +1382,12 @@ class Sample(Object):
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.6  2001-12-12 14:58:04  eddy
+  Revision 1.7  2001-12-12 16:56:27  eddy
+  Reinstated _str but made it an alias for _repr.
+  Shuffled Sample.__init__ to handle best via **what rather than overtly.
+  untabified.
+
+  Revision 1.6  2001/12/12 14:58:04  eddy
   shuffled parts of _Weighted for clarity of reading.
   Made Sample use _repr for __str__ rather than having a separate
   _str for derived classes to need to over-ride as well as _repr.
