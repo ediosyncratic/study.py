@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.28 2004-02-15 16:14:56 eddy Exp $
+$Id: quantity.py,v 1.29 2004-04-03 18:00:34 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -150,6 +150,59 @@ class qSample (Sample):
     def _lazy_get_low_(self, ignored): return self.span[0]
 
 del _massage_text
+
+# lazy-evaluators for special attributes of quantities of specific types
+def scalar():
+    from cmath import acos, acosh, asin, asinh, atanh, log
+    from math import atan, cosh, exp, sinh, tanh, pi
+    from SI import radian
+
+    def simple(val):
+        if val.imag == 0: return val.real
+        return val
+    def arccos(val, ac=acos, s=simple): return s(ac(val))
+    def arcsin(val, as=asin, s=simple): return s(as(val))
+    def arcsec(val, ac=acos, s=simple): return s(ac(1./val))
+    def arccosec(val, as=asin, s=simple): return s(as(1./val))
+    def arccosh(val, ac=acosh, s=simple): return s(ac(val))
+    def ln(val, lg=log, s=simple): return s(lg(val))
+
+    return { 'arcCos': lambda v, a=arccos, r=radian: r * v.evaluate(a),
+             'arcSin': lambda v, a=arcsin, r=radian: r * v.evaluate(a),
+             'arcTan': lambda v, a=atan, r=radian: r * v.evaluate(a),
+             'arcCoTan': lambda v, a=atan, r=radian, q=pi / 4: r * (q - v.evaluate(a)),
+             'arcSec': lambda v, a=arccos, r=radian: r * (1./v).evaluate(a),
+             'arcCoSec': lambda v, a=asin, r=radian: r * (1./v).evaluate(a),
+             'arcCosH': lambda v, a=arccosh: v.evaluate(a),
+             'arcSinH': lambda v, a=asinh: v.evaluate(a),
+             'arcTanH': lambda v, a=atanh: v.evaluate(a),
+             'CosH': lambda v, c=cosh: v.evaluate(c),
+             'SinH': lambda v, s=sinh: v.evaluate(s),
+             'TanH': lambda v, t=tanh: v.evaluate(t),
+             'log': lambda v, l=ln: v.evaluate(l),
+             'exp': lambda v, e=exp: v.evaluate(e) }
+
+def angle():
+    from math import cos, sin, tan, pi
+    from SI import radian
+    return { 'Sin': lambda v, s=sin, r=radian: (v / r).evaluate(s),
+             'Cos': lambda v, c=cos, r=radian: (v / r).evaluate(c),
+             'Tan': lambda v, t=tan, r=radian: (v / r).evaluate(t),
+             'Sec': lambda v: 1. / v.Cos,
+             'CoSec': lambda v: 1. / v.Sin,
+             'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan }
+
+def mass():
+    from SI import second, metre
+    def weigh(v, g = 9.80665 * metre / second**2): return v * g
+    return { 'weight': weigh, 'force': weigh }
+
+def time():
+    from SI import second, metre
+    return { 'light': lambda v, c=299792458 * metre / second: v * c }
+
+kind_prop_lookup = { '': scalar, 'rad': angle, 'kg': mass, 's': time }
+del scalar, angle, mass, time
 
 def adddict(this, that):
     cop = this.copy()
@@ -315,6 +368,26 @@ class Quantity (Object):
             h = h ^ v ^ hash(k)
 
         return h
+
+    __lazy_late_ = Object._lazy_late_
+    def _lazy_late_(self, key):
+        # fall-back lookup of kind-specific attributes:
+        bok = self._kind_lazy_props
+        try: f = bok[key]
+        except KeyError: return self.__lazy_late_(key)
+        else: return f(self)
+
+    def _lazy_get__kind_lazy_props_(self, ig, k=kind_prop_lookup, cache={}, empty={}):
+        key = self._unit_str
+        try: return cache[key]
+        except KeyError: pass
+
+        try: f = k[key]
+        except KeyError: bok = empty
+        else: bok = f()
+
+        cache[key] = bok
+        return bok
 
     def evaluate(self, f):
 	"""Return result of passing self to the given scalar function.
@@ -599,7 +672,7 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
 
-del string
+del string, kind_prop_lookup
 
 def base_unit(nom, fullname, doc, **what):
     result = apply(Quantity, (1, {nom:1}, doc, nom, fullname), what)
@@ -610,7 +683,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.28  2004-02-15 16:14:56  eddy
+ Revision 1.29  2004-04-03 18:00:34  eddy
+ Hook _lazy_late_ to deliver kind-specific attributes.
+
+ Revision 1.28  2004/02/15 16:14:56  eddy
  Don't combine low/high for qSample; each might over-write initialized value of the other.
 
  Revision 1.27  2004/02/15 15:47:34  eddy
