@@ -1,6 +1,9 @@
-"""The rationals. """
+"""The rationals.
 
-from natural import hcf
+See also:
+http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
+expounding the virtues of continued fractions.
+"""
 
 def _asint(val):
     try: return val.asint()
@@ -17,18 +20,20 @@ def intsplitfrac(val):
     while val < res: res = res - 1
     return res, val - res
 
+from natural import hcf
+
 class Rational:
     def __init__(self, numer, denom=1):
 	try: val = intsplitfrac(denom)[0]
 	except: pass
 	else:
-	    if val == denom: denom = val
+            if val == denom: denom = val
 	if denom == 0: raise ZeroDivisionError(numer, denom)
 
-	try: val = intsplitfrac(numer)[0]
+        try: val = intsplitfrac(numer)[0]
 	except: pass
 	else:
-	    if val == numer: numer = val
+            if val == numer: numer = val
 
 	common = hcf(numer, denom)
 	if denom < 0: common = -common
@@ -37,52 +42,76 @@ class Rational:
     def __add__(self, other):
 	num, den = self._rational
 	try: p, q = other._rational
-	except AttributeError:
-	    return Rational(num + other * den, den)
-	return Rational(num * q + p * den, den * q)
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(num * q + p * den, den * q)
+	    except OverflowError: num, den = long(num), long(den)
 
     __radd__ = __add__
 
     def __sub__(self, other):
 	num, den = self._rational
 	try: p, q = other._rational
-	except AttributeError:
-	    return Rational(num - other * den, den)
-	return Rational(num * q - p * den, den * q)
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(num * q - p * den, den * q)
+	    except OverflowError: den, num = long(den), long(num)
+
+    def __rsub__(self, other):
+	num, den = self._rational
+	try: p, q = other._rational
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(den * p - q * num, q * den)
+	    except OverflowError: den, num = long(den), long(num)
 
     def __mul__(self, other):
 	num, den = self._rational
 	try: p, q = other._rational
-	except AttributeError:
-	    return Rational(num * other, den)
-	return Rational(num * p, den * q)
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(num * p, den * q)
+	    except OverflowError: den, num = long(den), long(num)
+
+    __rmul__ = __mul__
 
     def __div__(self, other):
 	num, den = self._rational
 	try: p, q = other._rational
-	except AttributeError:
-	    return Rational(num, den * other)
-	return Rational(num * q, den * p)
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(num * q, den * p)
+	    except OverflowError: den, num = long(den), long(num)
 
-    def __mod__(self, other):
-	rat = self.__div__(other)
-	return self - rat * other
+    def __rdiv__(self, other):
+	num, den = self._rational
+	try: p, q = other._rational
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return Rational(p * den, q * num)
+	    except OverflowError: den, num = long(den), long(num)
 
     def __divmod__(self, other):
 	rat = self.__div__(other)
 	return rat, self - rat * other
 
+    def __mod__(self, other):
+	return self.__divmod__(other)[1]
+
     def __pow__(self, count):
 	num, den = self._rational
-	return Rational(pow(num, count), pow(den, count))
+	while 1>0:
+	    try: return Rational(num**count, den**count)
+	    except OverflowError: den, num = long(den), long(num)
 
     def __nonzero__(self): return self._rational[0]
     def __cmp__(self, other):
 	num, den = self._rational
 	try: p, q = other._rational
-	except AttributeError:
-	    return cmp(num, den * other)
-	return cmp(num * q, den * p)
+	except AttributeError: p, q = other, 1
+	while 1>0:
+	    try: return cmp(num * q, den * p)
+	    except OverflowError: den, num = long(den), long(num)
 
     def __hash__(self):
 	num, den = self._rational
@@ -103,7 +132,6 @@ class Rational:
 	rat = num / den
 	try: rat = int(rat)
 	except OverflowError: rat = long(rat)
-	except: pass
 
 	if num < rat * den: return rat - 1
 	return rat
@@ -115,7 +143,6 @@ class Rational:
 	rat = num / den
 	try: rat = int(rat)
 	except OverflowError: rat = long(rat)
-	except: pass
 
 	if num > rat * den: return rat + 1
 	return rat
@@ -133,24 +160,22 @@ class Rational:
 	except KeyError: raise AttributeError(self, key)
 
 _previous = {}
-def approximate(val, offer=None, toler=None, loquax=1>0):
+def approximate(val, toler=None, loquax=1>0, assess=None):
     # pi is very close to 355 / 113: within 3e-7
-    print '%9s %9s\t' % ('product', 'error'), 'Approximation'
+    print '%9s %9s\t' % ('score', 'error'), 'Approximation to', val
     floor, frac = intsplitfrac(val)
-    if toler == None: toler = 1.e-12 * max(abs(val), 1)
+    if toler is None: toler = 1.e-12 * max(abs(val), 1)
 
-    if offer != None:
-	best = offer
-	denom = best.denominator
-    else:
-	try: best, denom = _previous[val]
-	except KeyError:
-	    best, denom = Rational(floor), 1
+    try: best, denom = _previous[val]
+    except KeyError: best, denom = Rational(floor), 1
+    numer = 1
 
     while 1>0:
 	try:
 	    err = abs(val - best.asfloat())
-	    print '%9.3g %8.2e\t' % (err * denom * denom, err), best
+            if assess: weigh = assess(denom) + assess(numer)
+            else: weigh = denom + numer
+	    print '%9.3g %9.2e\t' % (err * denom * weigh, err), best
 	    if err < toler: break
 
 	    while 1>0:
@@ -163,10 +188,53 @@ def approximate(val, offer=None, toler=None, loquax=1>0):
 	except OverflowError: denom = 0L + denom
 
 	except Exception, what:
-	    print what
+	    if what.__class__.__module__ == 'exceptions':
+		klaz = what.__class__.__name__
+	    else: klaz = str(what.__class__)
+	    print 'Exception:', klaz + `what.args`
+
 	    print 'Aborted at denominator', denom, 'using', best
 	    break
+    else:
+        print   # to match printing the exception that might break.
 
     global _previous
     _previous[val] = best, denom
     return best
+
+def refine(val, offer=None):
+    floor, frac = intsplitfrac(val)
+
+    if offer is None:
+	try: best = _previous[val][0]
+	except KeyError:
+	    best = Rational(floor), 1
+    else:
+        best = offer
+
+    numer = best.numerator
+    denom = best.denominator
+
+    err = val - best.asfloat()
+    count = intsplitfrac(1 / abs(err) + .5)[0]
+
+    # val = err + numer / denom = err + (numer * count) / (denom * count)
+    # val = (err * count + (numer * count / denom)) / count
+    # and err * count is pretty close to 1 or -1.
+
+    while 1>0:
+	try: new = Rational(intsplitfrac(frac * denom * count + .5)[0],
+			    denom * count) + floor
+	except OverflowError: count = long(count)
+	else: break
+
+    gap = val - new.asfloat()
+    if abs(gap) < abs(err):
+	try: best, denom = _previous[val]
+	except KeyError: pass
+	else:
+	    if abs(err) * denom * denom > abs(gap) * new.denominator * new.denominator:
+		_previous[val] = new, new.denominator
+	return new
+
+    print 'Not as good: %g error from' % gap, new
