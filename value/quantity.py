@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.17 2002-02-15 16:05:45 eddy Exp $
+$Id: quantity.py,v 1.18 2002-10-06 15:36:42 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -46,7 +46,7 @@ deka = deca
 # mega * gramme not using an SI base unit ?
 
 import string
-from basEddy.sample import Sample
+from basEddy.sample import Sample, tophat
 
 class qSample (Sample):
     def __init__(self, sample=(), *args, **what):
@@ -580,10 +580,15 @@ def base_unit(nom, fullname, doc, **what):
     result = apply(Quantity, (1, {nom:1}, doc, nom, fullname), what)
     _terse_dict[nom] = result
     return result
+
+tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset to taste
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.17  2002-02-15 16:05:45  eddy
+ Revision 1.18  2002-10-06 15:36:42  eddy
+ Added tophat, a zero-centered unit-width error bar.
+
+ Revision 1.17  2002/02/15 16:05:45  eddy
  Added Quantity.evaluate, made .copy support optional function on scale.
  Various minor tweaks.
 
