@@ -1,26 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-Sources:
-
-    Kaye & Laby: Tables of physical and chemical constants
-    Patrick Moore: The new atlas of the universe
-    Isaac Asimov: From Earth to Heaven
-    Ronald Greeley, Raymond Batson: The Compact NASA Atlas of the Solar System (CUP, ISBN 0 521 80633X)
-    Johnston's Archive: http://www.johnstonsarchive.net/astro/
-    USGS: http://planetarynames.wr.usgs.gov/append8.html for radii, append7.html for discoveries
-    NASA Astronomy Pictures Of the Day, http://antwrp.gsfc.nasa.gov/apod/*, listed as '/apod/...' below
-
-Note (from the whatwg discussion on location): analogous to longitude
-and latitude, the tidy way to encode altitude is as
-   (radial co-ordinate / planet surface radius).evaluate(log) * radian
-which has some interesting ramifications.  It would be best to
-actually use gravitational potentials (and reverse the ratio) rather
-than radii, since this provides the means to correct for the planet
-not being spherical due to spin; sea level is a surface of constant
-gravitational potential, and is our normal zero-point for altitude.
-
-$Id: common.py,v 1.3 2005-03-12 17:58:56 eddy Exp $
+$Id: common.py,v 1.4 2005-03-13 14:32:03 eddy Exp $
 """
 
 from basEddy.units import tophat, arc, pi, Object, second
@@ -241,7 +222,10 @@ del tophat, arc, pi, Object, second
 
 _rcs_log = """
 $Log: common.py,v $
-Revision 1.3  2005-03-12 17:58:56  eddy
+Revision 1.4  2005-03-13 14:32:03  eddy
+Moved source comment to __init__.py
+
+Revision 1.3  2005/03/12 17:58:56  eddy
 Needed second, and had to tunnel in order to del.
 Missed param to __spin().
 
