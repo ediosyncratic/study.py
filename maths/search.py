@@ -1,6 +1,33 @@
 """Bits of python having to do with searching.
 
-$Id: search.py,v 1.3 2004-04-25 13:40:47 eddy Exp $
+Note on Newton-Raphson (from HAKMEM note,
+http://www.inwap.com/pdp10/hbaker/hakmem/hakmem.html):
+
+ Regarding convergence of Newton's method for quadratic equations:
+ Draw the perpendicular bisector of the line connecting the two
+ roots. Points on either side converge to the closest root.
+
+ On the line: 
+  * they do not converge
+  * there is a dense set of points which involve division by zero
+  * there is a dense set of points which loop, but roundoff error
+    propagates so all loops are unstable
+  * being on the line is also unstable (if the roots are imaginary and
+    you are on the real axis, you may be doing exact computation of
+    the imaginary part (0), hence stay on the line. Example: X^2 + 1 =
+    0, X0 = random real floating point number.)
+
+Regarding cubics (same source):
+ Solutions to
+   F(X) = X**3  - 3 * B * X**2  + C * X + D = 0
+ with derivative DF are
+   B - K * (F(B)/2 + math.hypot(F(B)/2, DF(B)/2))**(1./3)
+     - K * (F(B)/2 - math.hypot(F(B)/2, DF(B)/2))**(1./3)
+ where K is each cube root of 1; 1, (-1 +/- sqrt(-3))/2.
+
+Same source has endless more, e.g. on quartics, quintics ...
+
+$Id: search.py,v 1.4 2005-01-17 22:24:56 eddy Exp $
 """
 # I'll use complex numbers as a handy model of two dimensions
 def dot(x, y): return x.real * y.real + x.imag * y.imag
@@ -253,7 +280,7 @@ class Search:
 	  value is < threshold, rummage() will return the new best estimate and
 	  its answer, as a tuple, even if it hasn't yet done refine() tries
 	  times.  The default renders this impossible if goal() is never
-	  negative; however, the default alsomakes ZeroDivisionError quite
+	  negative; however, the default also makes ZeroDivisionError quite
 	  likely to arise (in which case self.best is probably quite good).
 
 	Returns the new best value if it beats the threshold, otherwise
@@ -323,7 +350,10 @@ def text_search(sought, text, skip = 0):
 
 """
  $Log: search.py,v $
- Revision 1.3  2004-04-25 13:40:47  eddy
+ Revision 1.4  2005-01-17 22:24:56  eddy
+ Added comment taken from HAKMEM note
+
+ Revision 1.3  2004/04/25 13:40:47  eddy
  Doc fix.
 
  Revision 1.2  2003/07/21 21:27:28  eddy

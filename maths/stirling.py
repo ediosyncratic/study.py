@@ -10,10 +10,35 @@ the value sqrt(pi)/2 = .886 at 3/2.
 
 It is worth knowing that, once n! &larr; n is extended to the whole complex
 plane, we find: (-n)!.n!.sinc(n.pi) = 1 for each complex non-integer n (and for
-n=0).  Thus factorial has a simple pole at each negative integer. """
+n=0).  Thus factorial has a simple pole at each negative integer.
+
+The HAKMEM papers e.g. at
+http://www.inwap.com/pdp10/hbaker/hakmem/hakmem.html
+offer
+
+  n! * (-n)! * sinc(pi*n) = 1
+  (2*pi)**(.5*(n-1)) * (n*z)! / n**(n*z+.5) = z!*(z-1./n)!*...*(z-(n-1)/z)!
+
+Stirling's formula gives an approximation to factorial:
+  log(n!) = (n+.5) * log(n) - n + .5 * log(2*pi) -1/12/n 
+with errors of order 1/n/n.
+
+Lanczos's formula does pretty well too - see lngamma() below.  Note: the gamma
+function attains a local minimum, 0.885603194411, at about 1.4616321 and takes
+the value sqrt(pi)/2 = .886 at 3/2.
+
+It is worth knowing that, once n! &larr; n is extended to the whole complex
+plane, we find: (-n)!.n!.sinc(n.pi) = 1 for each complex non-integer n (and for
+n=0).  Thus factorial has a simple pole at each negative integer.
+
+For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
+  log(chose(n+m,m))
+  = (n+m+.5)*log(n+m) -(n+.5)*log(n) -(m+.5)*log(m) -.5*log(2*pi) +(1/n +1/m -1/(n+m))/12
+  = .5 * log((1/n +1/m)/2/pi) +n*log(1+m/n) +m*log(1+n/m) +(1+n/m+m/n)/(n+m)/12
+"""
 
 _rcs_id_ = """
-$Id: stirling.py,v 1.2 2003-10-11 15:15:38 eddy Exp $
+$Id: stirling.py,v 1.3 2005-01-17 22:27:48 eddy Exp $
 """
 
 import math
@@ -135,7 +160,10 @@ def gerror(x):
 
 _rcs_log_ = """
 $Log: stirling.py,v $
-Revision 1.2  2003-10-11 15:15:38  eddy
+Revision 1.3  2005-01-17 22:27:48  eddy
+Added comment taken from HAKMEM note
+
+Revision 1.2  2003/10/11 15:15:38  eddy
 Made gamma cope better with complex (comparison has changed behaviour; it's
 now not OK to ask whether greater/less than one), told it about special case
 at 1.5 (since that happens to be analytically exact, and relevant to sphere).
