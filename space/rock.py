@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
 
-$Id: rock.py,v 1.1 2005-03-12 15:33:57 eddy Exp $
+$Id: rock.py,v 1.2 2005-03-12 17:57:42 eddy Exp $
 """
 
 from basEddy.units import *
@@ -45,7 +45,7 @@ def NASAmoon(name, planet, found, sma, per, shell, skin=None, mass=None, rho=Non
 def NamedOrbit(name, planet, sma, per, **what):
     # No data bon the bodies themselves, but good data on name and discovery
     what['orbit'] = NASAorbit(planet, sma, per, name=name)
-    return appply(Planetoid, (name,), what)
+    return apply(Planetoid, (name,), what)
 
 def SAOmoon(planet, found, nom, sma, per, name=None):
     # Names are catalogue numbers and we have no data on the bodies themselves ...
@@ -55,7 +55,8 @@ def SAOmoon(planet, found, nom, sma, per, name=None):
 
 _rcs_log = """
 $Log: rock.py,v $
-Revision 1.1  2005-03-12 15:33:57  eddy
-Initial revision
+Revision 1.2  2005-03-12 17:57:42  eddy
+typo-fix: appply
 
+Initial Revision 1.1  2005/03/12 15:33:57  eddy
 """
