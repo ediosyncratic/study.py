@@ -21,7 +21,7 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.8 2001-12-13 03:53:42 eddy Exp $
+$Id: sample.py,v 1.9 2002-10-05 13:06:45 eddy Exp $
 """
 
 class _baseWeighted:
@@ -53,7 +53,7 @@ class _baseWeighted:
     These are all alloyed together to build the final class, Weighted, which is
     what Sample actually uses. """
 
-    # these aren't ideal; nor do I still use them ...
+    # these aren't ideal, but it's sometimes nice to know highest and lowest keys.
     def high(self): return max(self.keys())
     def low(self): return min(self.keys())
 
@@ -198,7 +198,7 @@ class statWeighted(_baseWeighted):
 
         return self.copy(scale = 1. / sum)
 
-    def total(self): return reduce(lambda x, y: x + y, self.values(), 0)
+    def total(self, add=lambda x, y: x + y): return reduce(add, self.values(), 0)
     def _total(self): return self.total(), # analogue for _mean, _variance, ...
 
     def _mean(self):
@@ -254,7 +254,7 @@ class joinWeighted(_baseWeighted):
     def __init__(self, detail):
         self.__detail = detail
 
-    def add(self, weights, scale=1, func=None):
+    def add(self, weights, scale=1, func=None, oneach=lambda x: (x, 1)):
         """Increment some of my keys.
 
         Arguments:
@@ -281,9 +281,8 @@ class joinWeighted(_baseWeighted):
 
         try: mites = weights.items()
         except AttributeError:
-            try: weights[:]
+            try: mites = map(oneach, weights[:])
             except (TypeError, AttributeError): mites = [ (weights, 1) ]
-            else: mites = map(lambda x: (x, 1), weights)
 
         for key, val in mites:
             val = val * scale
@@ -295,7 +294,7 @@ class joinWeighted(_baseWeighted):
                 if func: key = func(key)
                 self[key] = self[key] + val
 
-    def decompose(self, new):
+    def decompose(self, new, mean=lambda a, b: (a+b)/2.):
         """Decomposes self.
 
         Argument, new, is a sorted sequence of keys to use.  Only keys in new
@@ -314,13 +313,19 @@ class joinWeighted(_baseWeighted):
         # Get repWeighted to share self's weights out correctly between run's entries:
         result = {}
         if run:
-            load = self.interpolator.weigh(map(lambda a, b: (a+b)/2, run[:-1], run[1:]))
+            load = self.interpolator.weigh(map(mean, run[:-1], run[1:]))
             for k in run: result[k], load = load[0], load[1:]
+        # I'm not convinced (2002/Feb) interpolator is the right solution here;
+        # this method is used when self is a messy hodge-podge, so the weight
+        # which straddles the mid-point between entries in new is haphazardly
+        # weighted.  I may have been better off lumping each weight to nearest
+        # in new or sharing each weight between the nearest entries in new in
+        # proportion to how close each is.
 
         # Build a new distribution with this weighting:
         return self._weighted_(result, detail=len(result))
 
-    def condense(self, count=None):
+    def condense(self, count=None, middle=lambda i: i.median()):
         """Simplifies a messy distribution.
 
         Argument, count, is optional: it specifies the desired level of detail
@@ -365,7 +370,7 @@ class joinWeighted(_baseWeighted):
         # Use medians of resulting parts as sample points for condensed
         # distribution.  Work out how much weight to give to each of these
         # sample points:
-        return self.decompose(map(lambda i: i.median(), filter(None, parts)))
+        return self.decompose(map(middle, filter(None, parts)))
 
     def __combine(self, dict, func):
         ans = self._weighted_({})
@@ -374,7 +379,7 @@ class joinWeighted(_baseWeighted):
             ans.add(dict, val,
                     lambda j, k=key, f=func: f(k,j))
 
-	return ans
+        return ans
 
     def combine(self, dict, func, count=None):
         if count is None:
@@ -387,20 +392,20 @@ class joinWeighted(_baseWeighted):
 
     # Comparison: which is probably greater ?
     def __cmp__(self, what):
-	sign = self.__combine(what, cmp)
-	# cmp coerces -ve values to -1, positives to +1; thank you Guido.
-	# Thus sign.keys() is [-1, 0, 1] in some order.
+        sign = self.__combine(what, cmp)
+        # cmp coerces -ve values to -1, positives to +1; thank you Guido.
+        # Thus sign.keys() is [-1, 0, 1] in some order.
 
-	half = sign.total() / 2.
-	# if either -1 or +1 has more than half the weight, it wins
-	# otherwise, if one is less than half and the other equals half, the latter wins
-	# otherwise, it's a draw.
+        half = sign.total() / 2.
+        # if either -1 or +1 has more than half the weight, it wins
+        # otherwise, if one is less than half and the other equals half, the latter wins
+        # otherwise, it's a draw.
 
-	if sign[-1] < half: b = 0
-	else: b = -1
+        if sign[-1] < half: b = 0
+        else: b = -1
 
-	if sign[1] < half: return b
-	return b + 1
+        if sign[1] < half: return b
+        return b + 1
 
 import math # del at end of this page
 from basEddy import Lazy # likewise
@@ -434,10 +439,10 @@ class repWeighted(_baseWeighted):
         """Integration of a curve interpolated from a weights-dictionary.
 
         What should be happening here ?
-        repWeighted (or its s, e.g. a Bezier interpolator) provides:
+        repWeighted (or its replacement, e.g. a Bezier interpolator) provides:
           between([low, high]) -- defaults, None, mean relevant infinity; yeilds weight
           weights(row) -- map(self.between, [ None ] + row, row + [ None ])
-          carve(weights) -- yields tuple for which map(self.between, [ None ] * len, yield) = weights.
+          carve(weights) -- yields tuple for which map(self.between, (), yield) = weights.
           round([estim]) -- yields string describing estim to self's accuracy.
 
         The meaning of a distribution is:
@@ -447,29 +452,29 @@ class repWeighted(_baseWeighted):
         total weight between (ks[i-1]+ks[i])/2 and (ks[i]+ks[i+1])/2 is w.
         It doesn't say anything about mean or median.
 
-        Doing it piecewise linearly looks a pig.  So do it piecewise constant, with a
-        step at the mid-points between adjacent weights.
-        """
+        Doing it piecewise linearly looks a pig.  So do it piecewise constant,
+        with steps at the mid-points between adjacent weights. """
 
         def __init__(self, weigher, ignored):
             self.cuts = self.__cuts(weigher.sortedkeys)
             self.size = tuple(map(lambda k, w=weigher: w[k], weigher.sortedkeys))
-            # the curve described has integral load[i] between cut[i] and cut[1+i].
+            # the curve described has integral size[i] between cut[i] and cut[1+i].
 
-        def __cuts(self, row):
+        def __cuts(self, row, mean=lambda a, b: (a+b)/2.):
             # computes cut points and ensures they're floats.
-            if not row: return ()
             if len(row) < 2:
+                if not row: return ()
                 x = 1. * row[0]
                 return (x, x)
 
             return ( 2. * row[0] - row[1], ) + \
-                   tuple(map(lambda a,b: (a+b)/2., row[:-1], row[1:])) + \
+                   tuple(map(mean, row[:-1], row[1:])) + \
                    ( 2. * row[-1] - row[-2], )
 
-        def _lazy_get_total_(self, ignored): return reduce(lambda a,b: a+b, self.size, 0)
+        def _lazy_get_total_(self, ignored, add=lambda a, b: a+b):
+            return reduce(add, self.size, 0)
 
-        def split(self, weights):
+        def split(self, weights, add=lambda a, b: a+b):
             """Cuts the distribution into pieces in the proportions requested.
 
             Required argument, weights, is a list of non-negative values, having
@@ -480,7 +485,7 @@ class repWeighted(_baseWeighted):
             self.weigh(result) equals the re-scaled weights-list. """
 
             assert not filter(lambda x: x < 0, weights), 'weights cannot be negative'
-            scale = self.total / reduce(lambda a, b: a+b, weights, 0.)
+            scale = self.total / reduce(add, weights, 0.)
 
             cut, load = self.cuts, self.size
             ans, prior, i = [], cut[0], 0
@@ -508,7 +513,7 @@ class repWeighted(_baseWeighted):
             distribution.  The sequence is presumed to be sorted.
 
             Returns a tuple of weights, result, one entry longer than the
-            sequence, with:each being the integral over the distribution between
+            sequence, with each being the integral over the distribution between
             two bounds:
               result[0] -- from minus infinity to seq[0]
               result[1+i] -- from seq[i] to seq[1+i]
@@ -565,7 +570,8 @@ class repWeighted(_baseWeighted):
 
         # dispersal, a.k.a. entropy or information content, computations:
 
-        def _lazy_get_entropoid_(self, ignored, log=math.log):
+        def _lazy_get_entropoid_(self, ignored, log=math.log, add=lambda a, b: a+b,
+                                 each=lambda l, h, w, g=math.log: w * g(w / (h-l))):
             """entropoid = integral(: p.log(p) :)
 
             Since p is piecewise constant, the integral is a sum of simple
@@ -584,9 +590,7 @@ class repWeighted(_baseWeighted):
             cut, siz = self.cuts, self.size
             if len(siz) < 2: return 0 # all zero, or a single spike
 
-            return reduce(lambda a, b: a+b,
-                          map(lambda l,h,w,g=log: w*g(w/(h-l)),
-                              cut[:-1], cut[1:], siz))
+            return reduce(add, map(each, cut[:-1], cut[1:], siz))
 
         def _lazy_get_dispersal_(self, ignored, log=math.log):
             """Computes the dispersal (an analogue of entropy) of the distribution.
@@ -629,8 +633,8 @@ class repWeighted(_baseWeighted):
             the distribution, in one guise or another.  The combination of scale
             invariance and translation invariance implies that the resulting
             dispersal will describe the *shape* of the distribution, rather than
-            its.  See the doc of self._unit (i.e. _lazy_get__unit_.__doc__) for
-            further discussion. """
+            anything else.  See also the docs, below, of _lazy_get__unit_ and
+            repWeighted.dispersor. """
 
             if len(self.size) < 2: return 0 # delta function - no dispersal ?
 
@@ -786,6 +790,9 @@ class repWeighted(_baseWeighted):
         in the .bounds(0.95) of the distribution; 2.5% lies below the first
         entry and 2.5% lies above the second. """
 
+        # arguably:
+        # a,b = bounds(u, 1-frac, v) with u+v=frac and a,b as close together as possible.
+
         if 0 <= frac < 1:
             return self.interpolator.split([ frac / 2., 1. - frac, frac / 2. ])
         else:
@@ -818,21 +825,21 @@ class repWeighted(_baseWeighted):
         else:   return self.interpolator.split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
     # Is this interpolator-work ?
-    def __embrace(self, total, about, row):
+    def __embrace(self, total, about):
         """Finds a slice of self, returns its weight and width.
 
         Arguments:
           total -- lower-bound on total weight of the slice.
           about -- slice will span this value
-          row -- self's keys, sorted.
         """
 
+        row = self.sortedkeys
         hi = top = len(row)
         while hi > 0 and row[hi-1] > about: hi = hi - 1
         # assert hi is 0 or row[hi] > about >= row[hi-1]
         lo = hi
 
-        # Expand [lo:hi] until it embraces more than half self's weight:
+        # Expand [lo:hi] until it embraces more weight than total:
         weight = 0      # sum, for key in row[lo:hi], of self[key]
         while weight <= total:
             # Chose an end at which to expand [lo:hi]
@@ -842,7 +849,7 @@ class repWeighted(_baseWeighted):
                 sign = +1
             elif hi >= top: sign = -1 # we can only grow downwards
             else:
-                # cmp(about, mid-point), but dodge int/2 gotcha
+                # cmp(about, midpoint), but dodge int/2 gotcha
                 sign = 2 * about - row[hi] - row[lo-1]
 
             if sign < 0:        # grow down
@@ -867,7 +874,9 @@ class repWeighted(_baseWeighted):
     def __unit(self, what):
         """Returns a suitable power of 10 for examining what."""
 
+        if not what: what = 1
         decade = 0
+
         while what >= 10: what, decade = what / 10., decade + 1
         while what < 1: what, decade = what * 10, decade - 1
 
@@ -904,6 +913,9 @@ class repWeighted(_baseWeighted):
             try: estim = self.median()
             except (AttributeError, ValueError): estim = self.mean()
 
+        # if self's keys include a non-numeric, e.g. Quantity(1,metre),
+        # what should happen ?
+
         # Deal with dumb case:
         if len(self) < 1: return `estim`
 
@@ -913,7 +925,7 @@ class repWeighted(_baseWeighted):
                                threshold, self.values())
 
         # Find half-width of self:
-        weight, width = self.__embrace(threshold, estim, self.sortedkeys)
+        weight, width = self.__embrace(threshold, estim)
 
         # Last pieces of initialisation:
         if estim < 0: head, sign = '-', -1
@@ -925,13 +937,12 @@ class repWeighted(_baseWeighted):
         # tail: exponent, the trailing 'e+07' part, if any
         # tweak: tells us whether we need to do carrying.
         # unit: value of a 1 in the next position of the mantissa
-        unit = self.__unit(max(abs(estim), width) or 1)
+        unit = self.__unit(max(abs(estim), width))
 
         if width <= 0:
             # Single-point distribution: special treatment.
             # No interval contains less than half the distribution ... so
             # the loop will not terminate without intervention !
-
             # Impose an upper limit on how many digits we'll produce: consider 1/3.
             stop = 7 + len(self.sortedkeys) # How many keys we have, +7 for good measure.
             # I'll actually produce up to one more than this (why 7 ? because
@@ -947,6 +958,7 @@ class repWeighted(_baseWeighted):
 
         else: tiny = 0 # suppress the special treatment
 
+        # what to do here if unit is a Quantity() ?
         if unit == 1: tail = ''
         else: tail = ('%.0e' % unit)[1:] # '1e93'[1:]
         # First, work out the un-rounded body (main loop); then round.
@@ -1037,7 +1049,7 @@ class _Weighted(Object, _baseWeighted):
 
         # borrow _borrowed_values_ from weights
         self.borrow(self.__weights)
-        # but override copy
+        # but override copy (see below)
 
     def _lazy_get_sortedkeys_(self, ignored):
         row = self.keys()
@@ -1065,7 +1077,10 @@ class _Weighted(Object, _baseWeighted):
             self.__weights[key] = val
             self.__change_weights()
 
-        # else: don't bother storing 0 values.
+        else:
+            # don't bother storing 0 values.
+            try: del self[key]
+            except KeyError: pass
 
     def __delitem__(self, key):
         del self.__weights[key]
@@ -1131,10 +1146,14 @@ class _Weighted(Object, _baseWeighted):
         return apply(self.__class__, args, what)
 
 class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
-    def __init__(self, weights, scale=1, detail=5, *args, **what):
-        apply(_Weighted.__init__, (self, weights, scale) + args, what)
-        joinWeighted.__init__(self, detail)
+    __joinit = joinWeighted.__init__
+    __weinit = _Weighted.__init__
 
+    def __init__(self, weights, scale=1, detail=5, *args, **what):
+        apply(self.__weinit, (weights, scale) + args, what)
+        self.__joinit(detail)
+
+# That's built Weighted; now to build Sample, its client.
 # random tools to deal with overflow and kindred hassles ...
 
 def _power(this, what):
@@ -1147,8 +1166,6 @@ def _multiply(this, what):
     try: return this * what
     except OverflowError: return long(this) * what
 
-def _rmultiply(this, what): return _multiply(what, this)
-
 def _divide(this, what):
     """Division straightener """
     ratio = this / what # let that decide whether to raise ZeroDivisionError
@@ -1158,13 +1175,13 @@ def _divide(this, what):
 
     # I made the interval wide (and don't test on type) in case some
     # sample-shaped `number' has enough natural width to it that it scarcely
-    # fits between -1 and 1 (or even, between -.5 and .5, since the errors may
-    # get doubled by the computation I just did).  Quite what to do if such
-    # a number wants to be `integer-like' is another matter ...
+    # fits between -1 and 1 (or, even, between -.5 and .5, since the errors may
+    # get doubled by the computation I just did).  Quite what to do if such a
+    # number wants to be `integer-like' is another matter ...
 
     return this / float(what)
 
-def _rdivide(this, what): return _divide(what, this)
+# should, in principle, also provide similar for addition and subtraction
 
 class Sample (Object):
     """Models numeric values by distributions. """
@@ -1182,10 +1199,9 @@ class Sample (Object):
         try: bok = what['lazy_aliases']
         except KeyError: what['lazy_aliases'] = self.__alias
         else:
-            new = {}
+            what['lazy_aliases'] = new = {}
             new.update(self.__alias)
             new.update(bok) # so derived classes over-ride Sample
-            what['lazy_aliases'] = new
 
         # massage best estimate:
         try: best = what['best']
@@ -1256,14 +1272,22 @@ class Sample (Object):
         return self._sampler_(self.__weigh.combine(bok, func),
                               best=func(self.best, best))
 
+        # problems arise; a sample * quantity is a sample, not a quantity, so
+        # loses its units !  the underlying __weigh has a quantity as a key
+        # ... if that key has units, the product has no _repr, because
+        # __weigh.round(best) has to compare `best < 0', violating
+        # dimensionality.
+
+        # Work-around: say Quantity(sample) * quantity ...
+
     # Binary operators:
-    def __add__(self, what): return self.__bundle_(lambda x, w: x+w, what)
-    def __sub__(self, what): return self.__bundle_(lambda x, w: x-w, what)
+    def __add__(self, what, f=lambda x, w: x+w): return self.__bundle_(f, what)
+    def __sub__(self, what, f=lambda x, w: x-w): return self.__bundle_(f, what)
     def __mul__(self, what): return self.__bundle_(_multiply, what)
 
-    def __radd__(self, what): return self.__bundle_(lambda x, w: w+x, what)
-    def __rsub__(self, what): return self.__bundle_(lambda x, w: w-x, what)
-    def __rmul__(self, what): return self.__bundle_(_rmultiply, what)
+    def __radd__(self, what, f=lambda x, w: w+x): return self.__bundle_(f, what)
+    def __rsub__(self, what, f=lambda x, w: w-x): return self.__bundle_(f, what)
+    def __rmul__(self, what, f=lambda x, w: _multiply(w, x)): return self.__bundle_(f, what)
 
     def __div__(self, what):
         try: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
@@ -1276,20 +1300,22 @@ class Sample (Object):
 
         return self.__bundle_(_divide, what)
 
-    def __rdiv__(self, what):
+    def __rdiv__(self, what, f=lambda x, w: _divide(w, x)):
         if cmp(self.low, 0) * cmp(self.high, 0) < 0:
             raise ZeroDivisionError, ('Dividing by interval about 0', self)
 
-        return self.__bundle_(_rdivide, what)
+        return self.__bundle_(f, what)
 
     # For pow, expect simple argument:
-    def __pow__(self, what): return self.copy(lambda x, _w=what: _power(x, _w))
+    def __pow__(self, what): return self.__bundle_(_power, what)
+    # officially: (self, what [, modulo ]) ... for ternary pow().
     def __abs__(self): return self.copy(abs)
 
     # Representation:
     def __repr__(self): return self._repr
     def __str__(self): return self._str
     def _lazy_get__repr_(self, ignored): return self.__weigh.round(self.best)
+    _lazy_get__str_ = _lazy_get__repr_
 
     # Comparison:
     def __cmp__(self, what):
@@ -1329,8 +1355,8 @@ class Sample (Object):
     def __int__(self): return int(self.median)
     def __neg__(self): return self._neg
 
-    def _lazy_get__neg_(self, ignored):
-        result = self.copy(lambda x: -x)
+    def _lazy_get__neg_(self, ignored, neg=lambda x: -x):
+        result = self.copy(neg)
         result._neg = self
         return result
 
@@ -1359,8 +1385,11 @@ class Sample (Object):
     def _lazy_get_dispersal_(self, ignored): return self.__weigh.dispersal()
     # self / self.dispersor is dimensionless (and its `entropoid' is zero, FAPP).
     def _lazy_get_dispersor_(self, ignored): return self.__weigh.dispersor()
-    def _lazy_get_span_(self, ignored): return self.bounds()
 
+    def _lazy_get_low_(self, ignored): return self.__weigh.low()
+    def _lazy_get_high_(self, ignored): return self.__weigh.high()
+    # but contrast (low, high) with:
+    def _lazy_get_span_(self, ignored): return self.bounds()
     def bounds(self, frac=1):
         """Returns upper and lower bounds on self's spread.
 
@@ -1371,12 +1400,6 @@ class Sample (Object):
         are returned by self.bounds(0.95). """
 
         return self.__weigh.bounds(frac)
-
-    def _lazy_get_low_(self, key):
-        self.low, self.high = self.bounds()
-        return { 'low': self.low, 'high': self.high }[key]
-
-    _lazy_get_high_ = _lazy_get_low_
 
     def fractiles(self, n, mid=None):
         """Cuts self's distribution into n equal parts.
@@ -1397,7 +1420,14 @@ class Sample (Object):
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.8  2001-12-13 03:53:42  eddy
+  Revision 1.9  2002-10-05 13:06:45  eddy
+  Use parameter defaults to build various lambda expressions only once.
+  Replaced repWeighted's `internal use only' sorted keys params with
+  sortedkeys lazy attribute on _Weighted.  Gave Sample a str() and
+  partially rehabilitated low and high methods on _baseWeighted.  Added
+  lots of commentary (much on possible difficulties) and untabified.
+
+  Revision 1.8  2001/12/13 03:53:42  eddy
   Refined Weighted.__cmp__ and moved it from _Weighted to joinWeighted.
   Also moved obsolete low, high to baseWeighted.  May retire later.
 
