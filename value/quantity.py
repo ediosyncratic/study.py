@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.6 1999-07-19 21:21:09 eddy Exp $
+$Id: quantity.py,v 1.7 2001-09-27 16:12:38 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -32,16 +32,22 @@ _quantifier_dictionary = {
     }
 
 _exponent_to_quantifier = {}
+# _quantifier_decoder = {}
 for _key, _val in _quantifier_dictionary.items():
     exec '%s = 1e%d' % (_val, _key)
-    _exponent_to_quantifier['e%+d' % _key] = ' ' + _val
+    # _quantifier_decoder[_val] = _key
+    _exponent_to_quantifier['e%+d' % _key] = _val
 hecto= 100
 deca = deka = 10
 deci = .1
 centi= .01
 
-from basEddy.sample import Sample
+# Note: a gramme comes out as a milli * kilogramme, which is only fair, all
+# things considered.  Maybe I'll fix it some day ... but will someone object to
+# mega * gramme not using an SI base unit ?
+
 import string
+from basEddy.sample import Sample
 class qSample(Sample):
     def __init__(self, sample=(), *args, **what):
         if isinstance(sample, Sample):
@@ -50,23 +56,46 @@ class qSample(Sample):
 
         apply(Sample.__init__, (self, sample) + args, what)
 
-    def _lazy_get__str_(self, ignored):
-        ans = Sample._lazy_get__str_(self, ignored)
+    def _lazy_get__repr_(self, ignored):
+        """Computes the representation of qSample.
+
+        This has form [sign]digits[.digits][quantifier] where: quantifier may
+        be, for instance, ' mega', meaning the appropriate power of 10, else it
+        is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which case the
+        exponent is a multiple of three.  The mantissa, digits[.digits], is
+        always in the range .1 to 1000 and only exceeds 100 if, by so doing, we
+        can avoid the need for a [quantifier].  If the exponent is given as
+        [e[sign]digits] and the representation is exact, the e will be an E,
+        e.g. the integer 4000 is 4E3.  Exact numbers will also elide their
+        decimal point if it is the last character of the mantissa, rough ones
+        are less likely to. """
+
+        # Obtain Sample's answer, which uses any integer for the exponent
+        # and puts digits.[digits] between 1 and 10.
+        ans = Sample._lazy_get__repr_(self, ignored)
+        # Extract the sign, if present, and set it aside; we'll put it back as we return
         if ans[:1] in '-+': sign, ans = ans[:1], ans[1:]
         else: sign = ''
 
+        # Snip apart mantissa (head) and exponent (tail):
+        glue = 'e'
         try: head, tail = string.split(ans, 'e')
         except ValueError:
-            head, tail = string.split(ans, 'E')
-            glue = 'E'
-        else: glue = 'e'
+            try: head, tail = string.split(ans, 'E')
+            except ValueError: head, tail = ans, '0'
+            else: glue = 'E'
 
+        # Decode (string) tail as an (integer) exponent:
         exponent = string.atoi(tail)
+        # Snip apart the mantissa (head) at the dot (if any):
         try: up, down = string.split(head, '.')
         except ValueError: up, down = head, ''
+        # up is the whole part, down the fractional part
 
+        # Roll the dot left or right to make exponent a multiple of 3:
         if exponent % 3 in (-2, 1):
             exponent = exponent - 1
+            if up == '0': up = ''
             if down: head = up + down[:1] + '.' + down[1:]
             else: head = up + '0'
         elif exponent % 3 in (-1, 2):
@@ -74,11 +103,22 @@ class qSample(Sample):
             if up: head = up[:-1] + '.' + up[-1:] + down
             else: head = '.0' + down
 
+        # Now, about the exception for 400 rather than .400e3 (but keep .4e3)
+        if exponent == 3 and head[0] == '.' and len(head) > 3:
+            # head is '.ddd' or longer with 'e3' to follow
+            head = head[1:4] + '.' + head[4:]
+            exponent = 0
+
+        # Ditch trailing '.' if e is E
+        if head[-1] == '.' and glue == 'E': head = head[:-1]
+
+        # Finally, transform 'e[sign]prial' into a name, if we have one for it:
+        # e.g. 'e6' -> ' mega'
         if exponent:
-            tail = 'e' + `exponent`
+            tail = 'e%+d' % exponent
             try: mul = _exponent_to_quantifier[tail]
             except KeyError: tail = glue + `exponent`
-            else: tail = mul
+            else: tail = ' * ' + mul
         else:
             tail = ''
 
@@ -133,10 +173,10 @@ def scaledict(dict, scale):
 
     return result
 
-from basEddy.value import Value
+from basEddy.value import Object
 _terse_dict = {}
 
-class Quantity(Value):
+class Quantity(Object):
     def __init__(self, scale, units={},
 		 doc=None, nom=None, fullname=None,
 		 sample=None,
@@ -173,8 +213,10 @@ class Quantity(Value):
 	which case each contributes its scale and units to the new Quantity,
 	effectively multiplicatively. """
 
-        # Initialise self as a Value:
-	apply(Value.__init__, (self,) + args, what)
+        debug = scale is 0
+
+        # Initialise self as a Object:
+        apply(Object.__init__, (self,) + args, what)
 
         # massage the arguments: first mix scale and units
 	if isinstance(units, Quantity):
@@ -184,28 +226,36 @@ class Quantity(Value):
 	    units, scale = adddict(units, scale.__units), scale.__scale
 
         # massaging scale as a sample (so we can trust its str() to work).
-        if not isinstance(scale, Sample): scale = qSample(best=scale)
+        if not isinstance(scale, Sample):
+            scale = qSample(best=scale)
+        elif not isinstance(scale, qSample):
+            scale = qSample(scale)
 
         # then (check and) massage sample:
 	if sample:
-	    row = []
+	    row = [] # sequence of __scale attributes
 
 	    for val in sample:
 		if val.__units != units:
 		    raise TypeError, ('Sample of wrong dimensions', val, units)
-		else: row.append(val.__scale)
 
-	    if row:
-		try: new = apply(scale.update, row)
-		except (TypeError, AttributeError):
-                    new = qSample(row + [ scale ])
+                row.append(val.__scale)
 
-		scale = new
-            # else assert oops !
+            assert row, ('non-empty but no entries !', sample)
+
+            try:
+                new = scale.copy()
+                apply(new.update, (row,))
+            except (TypeError, AttributeError):
+                new = qSample(row + [ scale ])
+
+            scale = new
 
         # initialise self as a Quantity with the thus-massaged arguments
 	self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.name(nom or fullname, fullname or nom)
+
+    def copy(self): return Object.copy(self, self.__scale, self.__units)
 
     def _primitive(self):
         """Returns a quantity in a primitive form.
@@ -225,21 +275,26 @@ class Quantity(Value):
 	if fullname: self._long_name_ = fullname
 
     def observe(self, what):
-        self.__scale = self.__scale.update(self.__addcheck_(what, 'observe'))
+        self.__scale.update(self.__addcheck_(what, 'observe'))
 
     def __cmp__(self, other):
 	return cmp(self.__scale, self.__addcheck_(other, 'compare'))
 
     def __nonzero__(self): return 0 != self.__scale
-    def __float__(self): return float(self.__scale)
-    def __long__(self): return long(self.__scale)
-    def __int__(self): return int(self.__scale)
+    def __float__(self): return float(self._scalar)
+    def __long__(self): return long(self._scalar)
+    def __int__(self): return int(self._scalar)
 
-    def __repr__(self):return self._full_repr
-    def __str__(self): return self._full_str
+    def _lazy_get__scalar_(self):
+        if self.__units: raise TypeError('not dimensionless', self._unit_str)
+        return self.__scale
 
-    def __neg__(self):
-	return self._quantity( - self.__scale, self.__units)
+    def __neg__(self): return self._neg
+
+    def _lazy_get__neg_(self, ignored):
+        result = self._quantity( - self.__scale, self.__units)
+        result._neg = self
+        return result
 
     # Support for additive functionality:
     def __addcheck_(self, other, why):
@@ -301,6 +356,7 @@ class Quantity(Value):
 
     def __div__(self, other): 
 	ot, her = self.__unpack_(other)
+        if not ot: raise ZeroDivisionError, other
 	return self._quantity(self.__scale / ot, subdict(self.__units, her))
 
     def __rdiv__(self, other):
@@ -316,26 +372,46 @@ class Quantity(Value):
 
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
-        return self.__scale.spread / self.__scale.mean
+        s = self.__scale
+        return (s.high - s.low) / s.best
+
+    def _lazy_get_best_(self, which):
+        stat = getattr(self.__scale, which)
+        return Quantity(stat, self.__units)
+
+    _lazy_get_low_ = _lazy_get_high_ = _lazy_get_mean_ = _lazy_get_mode_ \
+                     = _lazy_get_median_ = _lazy_get_width_ = _lazy_get_errors_ \
+                     = _lazy_get_best_
+
+    def _lazy_get_variance_(self, ignored):
+        return Quantity(self.__scale.variance, scaledict(self.__units, 2))
 
     # lazy string and representation lookups:
+    def __repr__(self): return self._full_repr
+    def __str__(self): return self._full_str
+
     def _lazy_get__unit_str_(self, ignored):
-	def power(whom, what, many):
-	    if many: whom = '(%s)' % whom
-	    return '%s^%s^' % (whom, what)
-	return self.unit_string(exp=power)
+        # short-form of units, e.g. m/s**2
+
+        return self.unit_string()
 
     def _lazy_get__number_str_(self, ignored):
         return str(self.__scale) or '?'
 
     def _lazy_get__full_str_(self, ignored):
+        # Gather components
         uni, num = self._unit_str, self._number_str
+        # Deal with easy cases:
         if uni[:1] == '/': return num + uni
         if not uni: return num
 
-        try: num = { '1': '', '-1': '-' }[num]
+        # Chuck 1 if that's all the number is:
+        try: num = { '-1': '-', '-1.': '-',
+                     '1': '', '1.': ''
+                     }[num]
 
         except KeyError:
+            # Otherwise, work out how to separate it from units:
             if num[-1] in '. \t\n\f': pad = ''
             elif '.' in num: pad = ' '
             elif num[-1] in '0123456789': pad = '.'
@@ -343,6 +419,7 @@ class Quantity(Value):
 
         else: pad = ''
 
+        # Stick the pieces together:
         return num + pad + uni
 
     def _lazy_get__number_repr_(self, ignored):
@@ -363,12 +440,12 @@ class Quantity(Value):
 	return self.unit_string(scale=self._number_repr,
 				times='*', Times=' * ',
 				divide='/', Divide=' / ',
-				lookemup=lookup, exp=power)
+				lookemup=lookup)
 
     def unit_string(self, scale='',
 		    times='.', divide='/',
 		    Times=None, Divide=None,
-		    lookemup=None, exp=None):
+		    lookemup=None):
 	"""Generates representations of a quantity.
 
 	All arguments are optional and should be given by name when given.
@@ -391,50 +468,46 @@ class Quantity(Value):
 	  names of units, to be converted to long names where known,
 	  e.g. [ kg ] -> [ kilogramme ].
 
-	  exp -- a function to denote exponentiation, takes arguments (whom,
-	  what, many), where whom is a unit-string, what is the exponent, exp's
-	  result must denote pow(whom, what) and many is a flag indicating
-	  whether whom is a single term or a compound: eg exp('m/s', 2, true) ->
-	  (m/s)^2^ but exp('m', 2, false) -> m^2^.  If omitted, repetition will
-	  be used (so, where exp('m/s', 2, true) would have been called, m.m/s/s
-	  gets used).  This function is never called with what in (-1, 0, 1).
-
 	I hope to be able to do something smarter when I can see when to say J
 	rather than kg.m.m/s/s, and etc.  But that will probably involve
 	creating a units base-class to replace the present __units dictionary.
 	"""
-	pows = {}
+
+        # Build reverse-lookup for self.__units:
+	pows = {} # ! { power: list of units appearing with this power }
 	for key, val in self.__units.items():
 	    try: pows[val].append(key)
 	    except KeyError: pows[val] = [ key ]
 
-	# Prepare the list of powers we'll be using:
+	# Prepare the list of powers we'll be using (in descending order):
 	vals = pows.keys()
 	vals.sort()
 	vals.reverse()
-	if 0 in vals: vals.remove(0)
+	while 0 in vals: vals.remove(0)
+        # We'll be folding x^-i^ terms in with y^i^ as (y/x)^i^ ...
+        # so eliminate -i from vals if i appears in it.
 	for val in vals[:]:
 	    if val < 0: break
-	    # We'll be folding x^-i^ terms in with y^i^ as (y/x)^i^ ...
-	    if -val in vals: vals.remove(-val)
+	    while -val in vals: vals.remove(-val)
 
-	# allow Times='' even with times='.'
+	# Honour Times='' even with times='.'
 	if Times is None: Times = times
 	if not Divide: Divide = divide
 
+        # Default lookup-each-item operation
 	if not lookemup:
 	    def lookemup(row): return row
 
-	try: result = scale + ''
-	except TypeError: result = `scale`
+        head, tail = str(scale), ''
 
 	for p in vals:
 	    # punctuate
 	    if p > 0:
-		if result: result = result + Times
-	    elif p < 0: result = result + Divide
+		if head: tail = tail + Times
+	    elif p < 0: tail = tail + Divide
 	    else: continue	# never happens - 0 got stripped
 
+            # This might be a better place for the milli * kilogramme bodge ...
 	    row = lookemup(pows[p])
 	    lang, top, bot = len(row), string.joinfields(row, times), ''
 
@@ -458,11 +531,23 @@ class Quantity(Value):
                 if ip == p: p = ip
 
 	    if p == 1: more = top + bot
-	    elif exp: more = exp(top + bot, p, lang > 1)
-	    else: more = string.joinfields([top] * p, times) + bot * p
-	    result = result + more
+	    else: more = self.__power(top + bot, p, lang > 1)
 
-	return result
+	    tail = tail + more
+
+        # The milli * kilogramme bodge
+        bykilo = Times + 'kilo'
+        if tail[:len(bykilo)] == bykilo:
+            # could potentially extend this to all known quantifiers ...
+            if head[-5:] == 'milli':
+                head, tail = head[:-5], tail[len(bykilo):]
+                if tail[:7] in ('gramme ', 'gramme'): tail = 'gram' + tail[6:]
+
+	return head + tail
+
+    def __power(self, whom, what, many):
+        if many: whom = '(%s)' % whom
+        return '%s**%s' % (whom, what)
 
     def _lazy_get__lazy_hash_(self, ignored):
 	h = hash(self.__scale)
@@ -481,15 +566,18 @@ class Quantity(Value):
 
     # override this if needed in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
-
-def base_unit(nom, fullname, doc):
-    result = Quantity(1, {nom:1}, doc, nom, fullname)
+
+def base_unit(nom, fullname, doc, **what):
+    result = apply(Quantity, (1, {nom:1}, doc, nom, fullname), what)
     _terse_dict[nom] = result
     return result
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.6  1999-07-19 21:21:09  eddy
+ Revision 1.7  2001-09-27 16:12:38  eddy
+ Two years of evolution.
+
+ Revision 1.6  1999/07/19 21:21:09  eddy
  Dumb typo.
 
  Revision 1.5  1999/07/19 21:17:32  eddy
