@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.18 2002-10-06 15:36:42 eddy Exp $
+$Id: quantity.py,v 1.19 2002-10-06 18:07:44 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -216,12 +216,10 @@ class Quantity (Object):
           This may alternatively be set by the .document(doc) method.
 
           [nom] -- a short name by which to refer to the quantity.
-          This may alternatively be set by the .name(short=nom) method.
 
           [fullname] -- a long name (capitalised, if appropriate) for the
-          quantity: as for nom, .name(long=fullname) can be used. [These two
-          arguments act as fall-backs for one another: if you give either of
-          them, it serves as the default for the other.]
+          quantity. [This and nom act as fall-backs for one another: if you give
+          either of them, it serves as the default for the other.]
 
           [sample] -- a sequence of quantities which should be equal to this
           one.
@@ -267,7 +265,7 @@ class Quantity (Object):
 
         # initialise self as a Quantity with the thus-massaged arguments
         self.__scale, self.__units, self.__doc__ = scale, units, doc
-        self.name(nom or fullname, fullname or nom)
+        self.__name(nom or fullname, fullname or nom)
 
     def _primitive(self):
         """Returns a quantity in a primitive form.
@@ -281,11 +279,16 @@ class Quantity (Object):
             what = apply(Sample, (what.mirror,), what.dir)
         return Quantity(what, units)
 
-    def name(self, nom=None, fullname=None):
+    def __name(self, nom=None, fullname=None):
         if nom: self._short_name_ = nom
         if fullname: self._long_name_ = fullname
 
-    def document(self, doc): self.__doc__ = doc
+    def document(self, doc):
+        try: old = self.__dict__['__doc__']
+        except AttributeError: old = None
+        if old: self.__doc__ = old + '\n' + doc
+        else:   self.__doc__ = doc
+
     def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
 
     __obcopy = Object.copy
@@ -585,7 +588,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.18  2002-10-06 15:36:42  eddy
+ Revision 1.19  2002-10-06 18:07:44  eddy
+ Renamed Quantity.name() - bad choice of method name !
+ Adjusted .document() to append to existing doc.
+
+ Revision 1.18  2002/10/06 15:36:42  eddy
  Added tophat, a zero-centered unit-width error bar.
 
  Revision 1.17  2002/02/15 16:05:45  eddy
