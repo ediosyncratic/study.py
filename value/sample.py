@@ -21,7 +21,7 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.4 2001-11-30 17:54:51 eddy Exp $
+$Id: sample.py,v 1.5 2001-12-10 20:42:43 eddy Exp $
 """
 
 class _baseWeighted:
@@ -174,6 +174,27 @@ class statWeighted(_baseWeighted):
 
         return tuple(row)
 
+    def normalise(self):
+        """Returns variant on self normalised to have .total() equal to 1."""
+        sum = self.total()
+        if sum == 1: return
+        if sum == 0: raise ZeroDivisionError, (
+            'Attempted to normalise zero-sum mapping', self)
+
+        if 1./sum == 0:
+            # cope with infinity or infinitessimal by going via a half-way house:
+            self = self.copy(scale = 1./max(self.values()))
+            sum = self.total()
+
+        elif 1./(1./sum) == 0:
+            # infinitessimal - similar, but in two steps
+            # since 1./max(self.values()) may be zero ...
+            s = pow(max(self.values()), -.5)
+            self = self.copy(scale=s).copy(scale=s)
+            sum = self.total()
+
+        return self.copy(scale = 1. / sum)
+
     def total(self): return reduce(lambda x, y: x + y, self.values(), 0)
     def _total(self): return self.total(), # analogue for _mean, _variance, ...
 
@@ -199,10 +220,11 @@ class statWeighted(_baseWeighted):
         return tuple(same)
 
     def mode(self):
-        row = modes(self)
-        if not row: raise ValueError, 'Asking for mode of empty population'
+        row = self.modes()
+        if not row: raise ValueError, 'empty population has no mode'
+        if len(row) < 2: return row[0] # easy case
+        row, n = list(row), len(row)
         row.sort()
-        n = len(row)
         if n % 2: return row[n/2]
 
         # have to chose among middle pair: take closest to median or mean
@@ -273,55 +295,26 @@ class joinWeighted(_baseWeighted):
     def decompose(self, new):
         """Decomposes self.
 
-        Argument, new, is a sorted sequence of keys to use.  The highest and
-        lowest keys of self will also be used: and only keys in new which lie
-        between these extremes will actually be used.
+        Argument, new, is a sorted sequence of keys to use.  Only keys in new
+        which lie between self's bounds will actually be used. """
 
-        Each weight in self contributes its all to whichever of the selected
-        keys is closest to it. """
-
-        row = self.sortedkeys
-        if not row: return self.copy() # trivial/bogus case
+        if not self.sortedkeys: return self.copy() # trivial/bogus case
         # assert: new is sorted (but may have some repeated entries)
 
         # Flush out any repeats and out-of-range:
+        lo, hi = self.bounds()
         run = []
         for k in new:
-            if k not in run and row[-1] > k > row[0]:
+            if k not in run and hi > k > lo:
                 run.append(k)
-        if run: new = run
-        else: new = [ row[-1] ] # happens to work sanely with the following
 
-        # Now flatten self's distribution by `moving' each key to the nearest
-        # entry in new.  Do this by going through self.keys() in order, so we
-        # always know which entries in new need considered as possible nearests.
+        # Get repWeighted to share self's weights out correctly between run's entries:
+        result = {}
+        if run:
+            load = self.interpolator.weigh(map(lambda a, b: (a+b)/2, run[:-1], run[1:]))
+            for k in run: result[k], load = load[0], load[1:]
 
-        result, ind, run = {}, 0, 0
-        # ind: which member of new was nearest the last key
-        # run: a running total for result[new[ind]]
-        mid, cut = row[0], row[0] + new[0]
-        # mid: the key whose weight run is accumulating
-        # cut: when 2 * key exceeds this, it's time to advance along new
-
-        for key in row:
-            while 2 * key > cut:
-                result[mid] = run
-                ind = ind + 1
-
-                try: mid = new[ind]
-                except IndexError:      # off new's end
-                    cut, mid = 2 * row[-1] + 1, row[-1]
-                else:
-                    try: cut = mid + new[ind+1]
-                    except IndexError: cut = mid + row[-1]      # final cut
-
-                run = result.get(mid, 0)
-
-            run = run + self[key]
-
-        result[mid] = run
-        assert mid is row[-1]
-
+        # Build a new distribution with this weighting:
         return self._weighted_(result, detail=len(result))
 
     def condense(self, count=None):
@@ -338,15 +331,15 @@ class joinWeighted(_baseWeighted):
 
         if count is None: count = self.__detail
         if len(self) <= count: return self.copy()
-        row = self.sortedkeys
 
-        # Carve self up into count-1 interior count-iles and two half-bands at
+        # Carve self up into count-2 interior (count-1)-iles and two half-bands at
         # top and bottom.
+        if count > 1: count = count - 1
         step, parts, last = self.total() * 1. / count, [ self._weighted_({}) ], None
         gap = .5 * step # total weight remaining in current band
         assert step > 0, 'Condensing degenerate weighting'
 
-        for key in row:
+        for key in self.sortedkeys:
             # Weight provided by this key:
             val = self[key]
 
@@ -366,256 +359,395 @@ class joinWeighted(_baseWeighted):
                 parts[-1][key] = val
                 gap = gap - val
 
-        # Select new sample points from parts: outer ends of the half-bands,
-        # medians of the interior count-iles.  Work out how much weight to give
-        # to each of these sample points.
-        return self.decompose(map(lambda i: i.median(),
-                                  filter(None, parts[1:-1])))
+        # Use medians of resulting parts as sample points for condensed
+        # distribution.  Work out how much weight to give to each of these
+        # sample points:
+        return self.decompose(map(lambda i: i.median(), filter(None, parts)))
 
     def combine(self, dict, func, count=None):
-        ans = self._weighted_({})
-        for key, val in self.items():
-            ans.add(dict, val,
-                    lambda j, k=key, f=func: f(k,j))
-
-        # that's generated our coarse distribution
         if count is None:
             try: det = dict.__detail
             except AttributeError: count = self.__detail
             else: count = max(det, self.__detail)
 
+        ans = self._weighted_({})
+        for key, val in self.items():
+            ans.add(dict, val,
+                    lambda j, k=key, f=func: f(k,j))
+
+        # That's generated our coarse distribution: condense it.
         return ans.condense(count)
 
-# Support tool: interpolator to interpret the dictionary as a curve.
-__rumination = """
-Note that functional separation between pwLinterp and repWeighted is still a mess.
+import math # del at end of this page
+from basEddy import Lazy # likewise
+# Next layer of functionality: integrating over intervals, etc.
+# including rounding a `best estimate'.
 
-What should be happening here ?
-repWeighted (or its s, e.g. a Bezier interpolator)
-provides:
-  between([low, high]) -- defaults, None, mean relevant infinity; yeilds weight
-  weights(row) -- map(self.between, [ None ] + row, row + [ None ])
-  carve(weights) -- yields tuple for which map(self.between, [ None ] * len, yield) = weights.
-  round([estim]) -- yields string describing estim to self's accuracy.
-
-The meaning of a distribution is:
-we have { position: weight, ... }
-and ks = sortedkeys lists the positions in increasing order
-what an entry { ks[i]: w }  in the mapping means is that the
-total weight between (ks[i-1]+ks[i])/2 and (ks[i]+ks[i+1])/2 is w.
-It doesn't say anything about mean or median.
-
-Doing it piecewise linearly looks a pig.  So do it piecewise constant, with a
-step at the mid-points between adjacent weights.
-"""
-
-import string
-
-class pwLinterp:
-    """Interpolation handler.
-
-    This is a piecewise-linear interpolator. """
-
-    # I del this class later; if you really want to sub-class it, reference it
-    # as the .interpolator.__class__ of a repWeighted, e.g. any Weighted.
-
-    def span(self, bok, row=None):
-        """Returns far left and far right of a distribution.
-
-        First argument, bok, is a mapping from sample points to weights; second
-        argument should be omitted or a sorted list of the keys of bok.  Returns
-        a 2-tuple (low, high) for which, if bok were a repWeighted,
-        bok.between(low, high) would be bok.total(). """
-
-        if row is None:
-            row = bok.keys()
-            row.sort()
-
-        if len(row) > 1: return 2 * row[0] - row[1], 2 * row[-1] - row[-2]
-        if row: return row[0], row[0]
-
-        raise ValueError('distribution with no weights has no span', bok, row)
-
-    def tail_slice(self, total, width, near, far):
-        """Computes the weight in a band in a tail of a distribution.
-
-        Models this by the area of a slice of a right-angle triangle.  The RAT's
-        right-angled corner is taken as origin, total is twice the area of the
-        triangle, width is how long one of its sides is: this side is taken as
-        the X-axis.  Two lines are drawn parallel to the Y axis, at X-ordinates
-        near and far: the value returned is the area of the portion of the
-        triangle lying between these two lines.
-
-        The triangle's base is width, its height is total/width.  Its height at
-        X-ordinate x (between 0 and width) is thus (1 - x/width) * total/width,
-        giving an area .5 * (width - x) times this height to the right of x.
-        This is .5 * total * pow(1 - x/width, 2).  We thus take the difference
-        of two such quantities, with x as near and far (possibly clipped) to
-        obtain our answer. """
-
-        if near >= far: return 0
-        assert 0 <= near < far, ('Bad args:', near, far)
-
-        # Transform X-ordinates as x-> 1 - x/width: at the same time, clip the
-        # interval to the triangle.
-        rate = 1. / width
-
-        if near < width: fat = 1 - rate * near
-        else: return 0      # band and triangle did not overlap.
-
-        if far > width: thin = 0
-        else: thin = 1 - rate * far
-
-        # expand fat * fat - thin * thin ...
-        return .5 * total * (fat - thin) * (fat + thin)
-
-    def body_slice(self, before, width, after, start, gap):
-        """Computes the weight in a band between two weight-points.
-
-        Two weights, before and after, are width apart: the band, of size gap,
-        begins start along from the before weight.
-
-        Constraint: body_slice(after, width, before, width - start - gap, gap)
-        should be the same. """
-
-        if gap == 0: return 0
-        assert 0 <= start < start + gap <= width, ('Bad args', start, gap, width)
-
-        return after * gap / width + \
-               self.tail_slice(before - after, width, start, start + gap)
-
-    def share_cut(self, before, width, after, share):
-        """Finds where to cut an interval to have a given total weight before the cut.
-
-        Two weights, before and after, are width apart: half the weight of each
-        falls into the interval.  We want to split this interval at such a point
-        that weight share falls before the cut; the rest of weight
-        (after+before)/2 will then fall after the cut.
-
-        """
-        # cuts interval so share of the total weight is before cut
-        if share < 0 or before < 0 or after < 0:
-            raise ValueError('weights should be positive', before, after, share)
-        if share > before + after:
-            raise ValueError('cannot subdivide into more than total', share, before, after)
-
-        # let b = before/width, a = after/width, s = 2*share/width;
-        # for 0 < x < 1, weight before x*width gives:
-        # s = b * (1 + 1-x) *x + a * x*x = (2*b +(a-b)*x) * x
-        # i.e. (a-b)*x*x +2*b*x -s = 0
-        # so either a = b and x = s/b/2
-        # or x = (sqrt(s*(a-b) +b*b) -b)/(a-b)
-
-        a, b, s = after/width, before/width, 2*share/width
-        if a == b: return width * s / b / 2
-        return width * (pow(s*(a-b) + b*b, .5) - b) / (a-b)
-
-# Next layer of functionality: probabilities in intervals,
-# rounding a `best estimate'
 class repWeighted(_baseWeighted):
-    """Base-class for representation and integration.
+    """Base-class for rounding (whence representation) and integration.
 
-    We now introduce an implicit curve described by the weight dictionary.
-    This is arrived at by interpolation between keys.
+    This introduces an implicit curve described by the weight dictionary.  If
+    there is only one key, we have no idea how broadly it should spread: an
+    exact `delta function' is assumed.  Otherwise, the gaps between adjacent
+    keys are used for interpolation: and the boundary keys are extrapolated
+    outwards to an extent comparable with their extent inwards.
 
-    If there is only one key, no interpolation is possible: an exact `delta
-    function' is assumed.  Otherwise, the gaps between adjacent keys are used
-    for interpolation: and the boundary keys are extrapolated outwards to a
-    width equal to that of the gap adjacent to the boundary.  Interpolation is
-    controlled by an object's interpolator attribute: this base class provides
-    an interpolator which performs `piecewise linear' interpolation.  This reads
-    each { key: weight } as a pair of triangles, each of area half the weight,
-    one spanning each of the gaps to either side of key. """
+    For this version, the curve is piecewise constant - i.e. it's a sum of
+    uniform distributions.  Each weight in self's dictionary is spread evenly
+    across the interval between the mid-points between the weight's position and
+    that of its nearest neighbour on either side.  The outer extreme of the
+    first and last weights' intervals are as far beyond the weight as it is
+    beyond its neighbour (so the end interval's outer tail is twice as long as
+    its inward tail; evenly spaced weights in the ratio 3:2:2:...:2:2:3 will
+    yield a true uniform distribution).
 
-    interpolator = pwLinterp() # class datum
+    More sophisticated replacements for repWeighted may be worth using in its
+    place when alloying a modified Weighted for use by Sample.  The replacement
+    should be sure to provide between(), weights(), carve() and round(). """
+
+    # Support tool: interpolator to interpret the dictionary as a curve.
+    class _lazy_get_interpolator_ (Lazy):
+        """Integration of a curve interpolated from a weights-dictionary.
+
+        What should be happening here ?
+        repWeighted (or its s, e.g. a Bezier interpolator) provides:
+          between([low, high]) -- defaults, None, mean relevant infinity; yeilds weight
+          weights(row) -- map(self.between, [ None ] + row, row + [ None ])
+          carve(weights) -- yields tuple for which map(self.between, [ None ] * len, yield) = weights.
+          round([estim]) -- yields string describing estim to self's accuracy.
+
+        The meaning of a distribution is:
+        we have { position: weight, ... }
+        and ks = sortedkeys lists the positions in increasing order.
+        What an entry { ks[i]: w } in the mapping means is that the
+        total weight between (ks[i-1]+ks[i])/2 and (ks[i]+ks[i+1])/2 is w.
+        It doesn't say anything about mean or median.
+
+        Doing it piecewise linearly looks a pig.  So do it piecewise constant, with a
+        step at the mid-points between adjacent weights.
+        """
+
+        def __init__(self, weigher, ignored):
+            self.cuts = self.__cuts(weigher.sortedkeys)
+            self.size = tuple(map(lambda k, w=weigher: w[k], weigher.sortedkeys))
+            # the curve described has integral load[i] between cut[i] and cut[1+i].
+
+        def __cuts(self, row):
+            # computes cut points and ensures they're floats.
+            if not row: return ()
+            if len(row) < 2:
+                x = 1. * row[0]
+                return (x, x)
+
+            return ( 2. * row[0] - row[1], ) + \
+                   tuple(map(lambda a,b: (a+b)/2., row[:-1], row[1:])) + \
+                   ( 2. * row[-1] - row[-2], )
+
+        def _lazy_get_total_(self, ignored): return reduce(lambda a,b: a+b, self.size, 0)
+
+        def split(self, weights):
+            """Cuts the distribution into pieces in the proportions requested.
+
+            Required argument, weights, is a list of non-negative values, having
+            positive sum.  A scaling is applied to all entries in the list to
+            make its sum equal to self.total().
+
+            Returns a list, result, one entry shorter than weights, for which
+            self.weigh(result) equals the re-scaled weights-list. """
+
+            assert not filter(lambda x: x < 0, weights), 'weights cannot be negative'
+            scale = self.total / reduce(lambda a, b: a+b, weights, 0.)
+
+            cut, load = self.cuts, self.size
+            ans, prior, i = [], cut[0], 0
+            for w in map(lambda x, s=scale: x*s, weights[:-1]):
+
+                avail = load[i]
+                # Maybe starting part way through a band:
+                if prior > cut[i]: avail = avail * (cut[1+i] - prior) / (cut[1+i] - cut[i])
+
+                # Swallow any bands we can:
+                while w >= avail:
+                    w, i, prior = w - avail, 1+i, cut[1+i]
+                    avail = load[i]
+
+                # grab what we need from present band:
+                if w > 0: prior = prior + w * (cut[i+1] - cut[i]) / load[i]
+                ans.append(prior)
+
+            return tuple(ans)
+
+        def weigh(self, seq):
+            """Integrates self's distribution between positions in a sequence.
+
+            Single argument, seq, is a sequence of positions in the
+            distribution.  The sequence is presumed to be sorted.
+
+            Returns a tuple of weights, result, one entry longer than the
+            sequence, with:each being the integral over the distribution between
+            two bounds:
+              result[0] -- from minus infinity to seq[0]
+              result[1+i] -- from seq[i] to seq[1+i]
+              result[-1] -- from seq[-1] to infinity
+            """
+
+            result, load, cut = [ 0. ] * (1 + len(seq)), self.size, self.cuts
+            if not self.size: return tuple(result)
+            if len(self.size) < 2:
+                # special case: only one weight, delta function.
+                weight = self.size[0]
+                i = len(filter(lambda x, r=self.cuts[0]: x < r, seq))
+                assert i == len(seq) or seq[i] >= self.cuts[0], ('mis-sorted positions', seq)
+                if i < len(seq) and self.cuts[0] == seq[i]: # even split
+                    result[i] = result[i+1] = weight / 2
+                else:
+                    result[i] = weight
+
+            else:
+                # sensible case where we have at least two weights.
+                i = s = 0 # we're processing size[i] for result[s]
+                last = None # last seq point if in present cut-gap, else None
+
+                try: # loop until we run off end of row ... can happen from inner loop.
+                    while 1:
+                        try: stop = seq[s]
+                        except IndexError: stop = cut[-1] # gather everything after seq[-1]
+
+                        if stop < cut[i]:
+                            # out-of-order entries in seq - unless i got incremented in error.
+                            assert seq[s-1] >= stop, 'must have incremented i in error'
+                            s = 1 + s # and leave last alone ...
+
+                        elif stop < cut[1+i]:
+                            if last is None: last = cut[i]
+                            if stop > last:
+                                result[s] = result[s] + load[i] * (stop - last) / (cut[1+i] - cut[i])
+                            last, s = stop, 1 + s
+
+                        else:
+                            if last is not None:
+                                result[s] = result[s] + load[i] * (cut[1+i] - last) / (cut[1+i] - cut[i])
+                                last, i = None, 1 + i
+
+                            while stop >= cut[1+i]:
+                                result[s], i = result[s] + load[i], 1 + i
+
+                except IndexError:
+                    assert i == len(load), \
+                           'algorithm exited loop surprisingly at %d/%d, %d/%d' \
+                           % (i, len(load), s, len(seq))
+
+            return tuple(result)
+
+        # dispersal, a.k.a. entropy or information content, computations:
+
+        def _lazy_get_entropoid_(self, ignored, log=math.log):
+            """entropoid = integral(: p.log(p) :)
+
+            Since p is piecewise constant, the integral is a sum of simple
+            terms: each term is an integral between two entries in self.cuts, h
+            apart, in which lies the matching weight, w, in self.size; this
+            makes p = w/h over the interval, so e gets a contribution
+            h.(log(w/h).w/h) = w.log(w/h).  This makes the integration easy.
+
+            It is not immediately clear what to do with a delta function ...
+            However, this datum is used via dispersal, which can handle that.
+
+            Note, as documented for dispersal, that entropoid depends on the
+            choice of unit of measurement for the quantity whose distribution
+            self describes. """
+
+            cut, siz = self.cuts, self.size
+            if len(siz) < 2: return 0 # all zero, or a single spike
+
+            return reduce(lambda a, b: a+b,
+                          map(lambda l,h,w,g=log: w*g(w/(h-l)),
+                              cut[:-1], cut[1:], siz))
+
+        def _lazy_get_dispersal_(self, ignored, log=math.log):
+            """Computes the dispersal (an analogue of entropy) of the distribution.
+
+            The caricature of what we return is integral(: -p*log(p) :).
+
+            However, the distribution, p, described by self is really a density
+            (: p :{u*x: scalar x}) for some unit u (as used for measurement of
+            the quantity whose distribution self describes); and integral(p) is
+            dimensionless.  The dimensions of integral(p) are those of p's
+            outputs times those of the integrating variable, i.e. u; so p's
+            outputs must be of the same kind as 1/u.
+
+            Thus log(p) isn't strictly meaningful; however, u*p is dimensionless
+            and we can take its log, giving us integral(p*log(u*p)).  This is
+            then meaningful, but depends on our unit, u.  With the choice of u
+            made by our client, we compute this integral as self.entropoid.
+            Using a different unit, w, in place of u will add
+            log(w/u)*self.total to self.entropoid:
+              integral(p*log(w*p)) = self.entropoid + log(w/u) * self.total
+
+            Furthermore, self's distribution is meant to be understood as being
+            independent of self.total, i.e. integral(p).  In general, scaling p
+            down by a factor k also changes integral(: p*log(u*p) :), to
+                integral(: log(u*p/k)*p/k :)
+                 = (self.entropoid - self.total * log(k)) / k
+
+            So we have to decide what unit to use and what overall scaling to
+            apply.  For the overall scaling, a natural choice is k = self.total,
+            so as to normalise p to yield self.total = 1.  If we replace our
+            unit, u, used implicitly in computing self.entropoid, with some more
+            apt unit w, this will give us, as integral(-log(w*p/k)*p/k),
+                r = log(self.total*u/w) - self.entropoid/self.total
+
+            The issue of chosing a sensible unit is, as ever, non-trivial.  I
+            intuit that the dispersal should be translation-invariant;
+            i.e. replacing p with (: p(x-z) &larr;x :) shouldn't change its
+            dispersal, for constant z, e.g. an average of the distribution.
+            Thus a sensible unit, w, must needs be obtained from the width of
+            the distribution, in one guise or another.  The combination of scale
+            invariance and translation invariance implies that the resulting
+            dispersal will describe the *shape* of the distribution, rather than
+            its.  See the doc of self._unit (i.e. _lazy_get__unit_.__doc__) for
+            further discussion. """
+
+            if len(self.size) < 2: return 0 # delta function - no dispersal ?
+
+            a = self.total
+            return log(a / self._unit) - self.entropoid / a
+
+        def _lazy_get__unit_(self, ignored):
+            """A `width of the distribution' unit for use in normalising dispersal.
+
+            This is still exploratory.
+
+            A suitable unit must be independent of applying an overall scaling
+            to self's weights, or to self's cuts; it must also be unchanged by
+            an overall translation of self's cuts.  Thus it must be a `width' of
+            the distribution, such as the total span or standard deviation.
+
+            Various units present themselves as candidates.  For each, I've
+            examined the theoretical value for uniform and for Gaussians; I've
+            also examined the limiting behaviour of binomial distributions.
+            I've tried the following:
+
+              standard deviation -- well, sqrt(variance) anyhow.  Gives positive
+              answers (which is good); uniform is log(12)/2 = 1.24 and a bit;
+              Gaussian is sqrt(pi/2) = 1.25 and a bit; binomials tend to about
+              1.4189 from below; Planck.mass gets 0.414ish.
+
+              total width -- i.e. cut[-1] - cut[0].  Gives negative answers
+              (bad); uniform is 0, Gaussian has no width, binomials tend to
+              about -pi from above; Planck.mass gets -0.592ish.
+
+              90% confidence interval -- i.e. difference between entries in
+              self.split([.5,9,.5]).  Uniforms get -log(.9) = 0.105 and a bit;
+              Gaussian has width 3.29 so gets log(sqrt(2*pi)/3.29) +.5 = 0.228
+              and a bit; binomials approximately stabilise on approximately this
+              last value; Planck.mass gets -0.584ish.
+
+              50% confidence interval -- i.e. similar for self.split([1,2,1]).
+              Uniforms get -log(.5) = log(2) = 0.69 and a bit; Gaussian has
+              width 1.348 so gets log(sqrt(2*pi)/1.348) +.5 = 1.12 and a bit;
+              binomials stabilise on slightly less than 1.12, oscillating among
+              1.118 and 1.119 mostly; Planck.mass gets -0.2765ish.
+
+            Generally:
+
+              uniform is, wlog, .5 between -1 and 1; integral(p) = 1,
+              integral(p*log(p)) = .5 *log(.5) * 2 = log(.5), dispersal is thus
+              log(u/w) -log(.5) = log(2*u/w); its exp is simply the actual total
+              width of the distribution divided by the unit we select.
+
+              Gaussian is, wlog, p = (: exp(-x*x/2) &larr;x :) with
+              total = integral(p) = sqrt(2*pi),
+              entropoid = integral(p*log(p)) = -total * variance / 2 = -total/2, so
+              dispersal = log(total*u/w) -entropoid/total = log(sqrt(2*pi)*u/w) +0.5.
+
+            Since I like +ve dispersals, I've settled on standard deviation ...
+            """
+
+            return self._deviation
+
+        def _lazy_get__deviation_(self, ignored, sqrt=math.sqrt):
+            """standard deviation"""
+
+            cut, siz = self.cuts, self.size
+            zero = one = two = 0.
+            # [zero,one,two][i] == integral(: x**i * p(x) &larr;x :)
+
+            last = cut[0]
+            for c in cut[1:]:
+                w, siz = siz[0], siz[1:]
+                # integral(: last < x < c; x**n *w/(c-last) &larr;x :)
+                # is just w*(c**(1+n) -last**(1+n))/(1+n)/(c-last)
+                # which is w*(c**n + last * c**(n-1) + ... + last**(n-1) * c +last**n)/(1+n)
+                last, zero, one, two = c, zero + w, one + w*(c +last)/2, two + w*(c*c +last*c +last*last)/3
+
+            return sqrt(two/zero - (one/zero)**2)
+
+    # end of inner class _lazy_get_interpolator_
+    def weights(self, seq): return self.interpolator.weigh(seq)
 
     def between(self, low=None, high=None):
         """Returns the weight associated with an interval.
 
         Arguments are the low and high bounds of the interval.  Either may be
-        None, indicating an interval unbounded at that end.
+        None, indicating an interval unbounded at that end. """
 
-        Treats each interval between weight-points as having half of the weight
-        of each point inside it, uniformly distributed.  Treats each end as a
-        triangular wedge whose width is the separation of the last two
-        weight-points.  This is in suck-it-and-see mode: it may get `refined'
-        later. """
+        row = []
+        if low is not None: row.append(low)
+        if high is not None: row.append(high)
 
-        if low is None:
-            if high is None: return self.total()
-        elif high is not None and low >= high: return 0.
+        row = self.interpolator.weigh(row)
 
-        row = self.sortedkeys
-        if not row: return 0.
-        if len(row) is 1:
-            # special case: delta function
-            if low is None or low < row[0]:
-                if high is None or high > row[0]:
-                    return self.total()
-                if high == row[0]: return .5 * self.total()
-            elif low == row[0]:
-                if high is None or high > row[0]:
-                    return .5 * self.total()
-            return 0
+        if low is None: return row[0]
+        if high is None: return row[-1]
+        return row[1]
 
-        lo, hi = 0, len(row) - 1
-        if low is not None:
-            while lo <= hi and row[lo] < low: lo = lo + 1
-        if high is not None:
-            while lo <= hi and row[hi] > high: hi = hi - 1
-        # so row[lo:hi] lies between low and high - or is empty
+    def dispersal(self):
+        """Integrates log(density) using the density as measure; a.k.a. entropy.
 
-        if lo > hi:
-            # extreme case: no keys in the interval
-            if lo is 0:
-                # left tail: low < high <= row[0]
-                return self.interpolator.tail_slice(
-                    self[row[0]], row[1] - row[0],
-                    row[0] - high, row[0] - low)
+        This also performs scale-invariance normalisations; the result is
+        actually integral(-log(w*p/k)*p/k) with k = integral(p) and w a unit
+        chosen based on the width of the distribution, p. """
 
-            elif lo is len(row):
-                # right tail: row[-1] <= low < high
-                return self.interpolator.tail_slice(
-                    self[row[-1]], row[-1] - row[-2],
-                    low - row[-1], high - row[-1])
+        return self.interpolator.dispersal
 
-            else:
-                # interval between two weights:
-                return self.interpolator.body_slice(
-                    self[row[hi]], row[lo] - row[hi], self[row[lo]],
-                    low - row[hi], high - low)
+    def dispersor(self, exp=math.exp):
+        """Divide self by this to get a (dimensionless) value with zero entropoid.
 
-        assert low <= row[lo] <= row[hi] <= high, (low, high, lo, hi)
-        # (the other cases have already returned).
+        Continuing from interpolator's docs:
 
-        if lo < hi:
-            # Compute the weight from row[lo] to row[hi]: this consists of half
-            # the band at each end, plus all the bands in between (if any).
-            mid = .5 * (self[row[hi]] + self[row[lo]])
-            for key in row[lo+1:hi]: mid = mid + self[key]
+        Had we used w in place of u, self.entropoid would have been:
+            integral(p*log(w*p)) = self.entropoid + log(w/u) * self.total
+        which tells us that exp(self.entropoid/self.total), which is
+        dimensionless, is proportional to u, the unit implicitly used in
+        computing self.entropoid; as shown earlier when looking at entropoid's
+        dependence on k, it's also proportional to self.total.  Thus
+        u*self.total/exp(self.entropoid/self.total) is independent of self.total
+        and u with the same dimensions as u, i.e. as the quantity whose
+        distribution we're looking at.  Thus this quantity appears below as the
+        `dispersor' of a Sample; dividing a Sample by its dispersor will give a
+        Sample whose distribution has zero dispersal. """
 
-        else: mid = 0.
+        if len(self) == 1: return 0 # entropoid should be infinite for delta spike.
+        i = self.interpolator
+        if i.total == 0: return 0
+        return i.total / exp(i.entropoid / i.total)
 
-        # Now deal with two tail-pieces ...
-        if lo > 0:
-            bot = self.interpolator.body_slice(
-                self[row[lo]], row[lo] - row[lo-1], self[row[lo-1]],
-                0, row[lo] - low)
-        else:
-            bot = self.interpolator.tail_slice(
-                self[row[0]], row[1] - row[0],
-                0, row[0] - low)
+    def disperse(self, exp=math.exp):
+	"""Returns variant on self normalised to have zero entropoid."""
+        i = self.interpolator
 
-        if hi < len(row) - 1:
-            top = self.interpolator.body_slice(
-                self[row[hi]], row[hi+1] - row[hi], self[row[hi+1]],
-                high - row[hi], 0)
-        else:
-            top = self.interpolator.tail_slice(
-                self[row[-1]], row[-1] - row[-2],
-                0, high - row[-1])
+        if 1./i.total == 0:
+            # cope with infinity by going via a half-way house:
+            self = self.copy(scale = 1./max(self.values()))
+            i = self.interpolator
+        elif 1./(1./i.total) == 0:
+            # cope with infinitessimals by going via two half-way houses:
+            s = pow(max(self.values()), -.5)
+            self = self.copy(scale=s).copy(scale=s)
+            i = self.interpolator
 
-        return bot + mid + top
+        return self.copy(scale = exp( - i.entropoid / i.total))
 
     def bounds(self, frac=1):
         """Bounds self's distribution.
@@ -630,41 +762,11 @@ class repWeighted(_baseWeighted):
         in the .bounds(0.95) of the distribution; 2.5% lies below the first
         entry and 2.5% lies above the second. """
 
-        lo, hi = self.interpolator.span(self, self.sortedkeys)
         if 0 <= frac < 1:
-            bot, top = lo, hi
-            tail = self.total() * (1 - frac) / 2.
-
-            ind, gap, stray = 0, tail, 0
-            while gap > 0:
-                try: next = self.sortedkeys[ind]
-                except IndexError: next, more = top, 0
-                else: more = self[next]
-
-                if stray + more <= 2 * gap:
-                    lo, ind = next, 1 + ind
-                    gap, stray = gap - (stray + more) / 2., more
-                else:
-                    lo = lo + self.interpolator.share_cut(
-                        stray, next - lo, more, gap)
-                    break
-
-            ind, gap, stray = len(self), tail, 0
-            while gap > 0:
-                if ind > 0:
-                    next = self.sortedkeys[ind-1]
-                    more = self[next]
-                else: next, more = bot, 0
-
-                if stray + more <= 2 * gap:
-                    hi, ind = next, ind - 1
-                    gap, stray = gap - (stray + more) / 2., more
-                else:
-                    hi = hi - self.interpolator.share_cut(
-                        stray, hi - next, more, gap)
-                    break
-
-        return lo, hi
+            return self.interpolator.split([ frac / 2., 1. - frac, frac / 2. ])
+        else:
+            cut = self.interpolator.cuts
+            return cut[0], cut[-1]
 
     def niles(self, n, mid=None):
         """Subdivides distribution into n equal bands.
@@ -688,62 +790,10 @@ class repWeighted(_baseWeighted):
         middle entry of self.niles(2). """
 
         if n < 1: raise ValueError('Can only subdivide range into positive number of parts')
-        row = self.sortedkeys
-        if not row: raise ValueError('Cannot subdivide range of empty distribution')
+        if mid: return self.interpolator.split([ 1 ] + [ 2 ] * n + [ 1 ])
+        else:   return self.interpolator.split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
-        # Sort out bogus/silly case:
-        if len(row) < 2:
-            if mid: n = n - 1
-            return (row[0],) * n
-
-        # OK, something to do ...
-        chunk = self.total() * 1. / n # total weight of each slice
-        last, end = self.bounds()
-        gone = 0 # weights of row[:gone] have been used up, except for the top half of
-        tail = 0 # last's weight, self[last].
-        # which is initially fictitious; last is row[gone-1] once gone > 0.
-
-        if mid: ans, gap = [], chunk / 2. # unrecorded initial half-band
-        elif n < 2: return (last, end) # another bogus/silly case (n == 1)
-        else: ans, gap = [ last ], chunk # first band starts at left of span
-
-        while len(ans) < n:
-            while gap > 0:
-                try: next = row[gone]
-                except IndexError: next, more = end, 0.
-                else: more = self[next]
-
-                if tail + more <= 2 * gap:
-                    bound = last = next
-                    gap, tail, gone = gap - (tail + more)/2., more, 1 + gone
-                else:
-                    if ans and ans[-1] > last:
-                        gap = gap + self.between(last, ans[-1])
-
-                    bound = last + self.interpolator.share_cut(
-                        tail, next - last, more, gap)
-                    break
-
-            ans.append(bound)
-            gap = chunk
-
-        if not mid: ans.append(end)
-
-        assert not filter(lambda x, q=chunk, t=max(chunk / 100, 1e-10): abs(x - q) > t,
-                          map(self.between, ans[:-1], ans[1:])), \
-               'promise: each n-ile should contain the same weight'
-
-        return tuple(ans)
-
-    def __unit(self, what):
-        """Returns a suitable power of 10 for examining what."""
-
-        decade = 0
-        while what >= 10: what, decade = what / 10., decade + 1
-        while what < 1: what, decade = what * 10, decade - 1
-
-        return pow(10., decade)
-
+    # Is this interpolator-work ?
     def __embrace(self, total, about, row):
         """Finds a slice of self, returns its weight and width.
 
@@ -790,6 +840,16 @@ class repWeighted(_baseWeighted):
 
         return weight, width
 
+    def __unit(self, what):
+        """Returns a suitable power of 10 for examining what."""
+
+        decade = 0
+        while what >= 10: what, decade = what / 10., decade + 1
+        while what < 1: what, decade = what * 10, decade - 1
+
+        return pow(10., decade)
+
+    # how far can we get with separating this from the interpolation kit ?
     def round(self, estim=None):
         """Returns a rounding-string for estim.
 
@@ -820,9 +880,10 @@ class repWeighted(_baseWeighted):
             try: estim = self.median()
             except (AttributeError, ValueError): estim = self.mean()
 
-        # Cope when private tunnel not in use
-        if not self.sortedkeys: return `estim`
+        # Deal with dumb case:
+        if len(self) < 1: return `estim`
 
+        # Compute half-weight:
         threshold = .5 * self.total()
         assert threshold > 0, ('Weights need to be positive for rounding algorithm',
                                threshold, self.values())
@@ -844,7 +905,7 @@ class repWeighted(_baseWeighted):
 
         if width <= 0:
             # Single-point distribution: special treatment.
-            # No inverval contains less than half the distribution ... so
+            # No interval contains less than half the distribution ... so
             # the loop will not terminate without intervention !
 
             # Impose an upper limit on how many digits we'll produce: consider 1/3.
@@ -864,7 +925,7 @@ class repWeighted(_baseWeighted):
 
         if unit == 1: tail = ''
         else: tail = ('%.0e' % unit)[1:] # '1e93'[1:]
-        # First, we work out the un-rounded body (main loop); then we round.
+        # First, work out the un-rounded body (main loop); then round.
 
         # Loop until over-long string or as precise as we'll allow:
         while unit > width or weight > threshold:
@@ -933,7 +994,7 @@ class repWeighted(_baseWeighted):
         # Join head to body and return:
         return head + body
 
-del pwLinterp
+del math, Lazy
 
 from basEddy.value import Object
 
@@ -955,8 +1016,10 @@ class _Weighted(Object, _baseWeighted):
         # but override copy
 
     def __change_weights(self):
-        try: del self.sortedkeys # lazy attribute derived from weights
-        except AttributeError: pass
+        # delete lazy attribute derived from weights
+        for nom in ('sortedkeys', 'interpolator'):
+            try: delattr(self, nom)
+            except AttributeError: pass
 
     def _lazy_get_sortedkeys_(self, ignored):
         row = self.keys()
@@ -1053,7 +1116,7 @@ class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     def __init__(self, weights, scale=1, detail=5, *args, **what):
         apply(_Weighted.__init__, (self, weights, scale) + args, what)
         joinWeighted.__init__(self, detail)
-
+
 # random tools to deal with overflow and kindred hassles ...
 
 def _power(this, what):
@@ -1131,13 +1194,8 @@ class Sample(Object):
         self.__weigh = self.__weigh.condense(count)
         self._lazy_reset_()
 
-    def normalise(self):
-        sum = self.__weigh.total()
-        if sum == 1: return
-        if sum == 0: raise ZeroDivisionError, (
-            'Attempted to normalise zero-sum mapping', self.__weigh)
-
-        self.__weigh = self.__weigh.copy(scale = 1. / sum)
+    def normalise(self): self.__weigh = self.__weigh.normalise()
+    def disperse(self): self.__weigh = self.__weigh.disperse()
 
     def copy(self, func=None):
         """Copies a sample, optionally transforming it.
@@ -1250,8 +1308,6 @@ class Sample(Object):
         result._neg = self
         return result
 
-    def _lazy_get_span_(self, ignored): return self.__weigh.bounds()
-
     def _lazy_get_best_(self, ignored): return self.mean
     def __call_or_best_(self, func):
         try: return func()
@@ -1273,6 +1329,11 @@ class Sample(Object):
     def _lazy_get_width_(self, ignored): return self.high - self.low
     def _lazy_get_mirror_(self, ignored): return self.__weigh.condense()
     def _lazy_get_errors_(self, ignored): return self - self.best
+
+    def _lazy_get_dispersal_(self, ignored): return self.__weigh.dispersal()
+    # self / self.dispersor is dimensionless (and its `entropoid' is zero, FAPP).
+    def _lazy_get_dispersor_(self, ignored): return self.__weigh.dispersor()
+    def _lazy_get_span_(self, ignored): return self.bounds()
 
     def bounds(self, frac=1):
         """Returns upper and lower bounds on self's spread.
@@ -1305,12 +1366,21 @@ class Sample(Object):
         If mid is false (the default) the first and last entries are the nominal
         extremes of the distribution and there are 1+n entries in the tuple. """
 
-        return self.__weigh.fractiles(n, mid)
+        return self.__weigh.niles(n, mid)
 
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.4  2001-11-30 17:54:51  eddy
+  Revision 1.5  2001-12-10 20:42:43  eddy
+  Major re-write of repWeighted to use piecewise uniform interpolation
+  mediated by an inner class as _lazy_get_interpolator_(), simplified
+  bounds() and niles() to use interpolator.split().  Changed decompose to
+  use repWeighted's notion of weights between end-points, tweaked
+  condense.  Made normalisation a feature of statWeighted, fixed noddy
+  bugs in mode and fractiles.  Added the means to compute dispersal
+  (entropy) along with various uses of it.
+
+  Revision 1.4  2001/11/30 17:54:51  eddy
   Much messing and rumination; about to do revolutionary change to repWeighted.
   Replaced internal-use optional row arguments with sortedkeys attribute.
   Moved cmp and hash together and documented irritation.  Value -> Object.
