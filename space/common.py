@@ -1,10 +1,29 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.2 2005-03-12 13:38:48 eddy Exp $
+Sources:
+
+    Kaye & Laby: Tables of physical and chemical constants
+    Patrick Moore: The new atlas of the universe
+    Isaac Asimov: From Earth to Heaven
+    Ronald Greeley, Raymond Batson: The Compact NASA Atlas of the Solar System (CUP, ISBN 0 521 80633X)
+    Johnston's Archive: http://www.johnstonsarchive.net/astro/
+    USGS: http://planetarynames.wr.usgs.gov/append8.html for radii, append7.html for discoveries
+    NASA Astronomy Pictures Of the Day, http://antwrp.gsfc.nasa.gov/apod/*, listed as '/apod/...' below
+
+Note (from the whatwg discussion on location): analogous to longitude
+and latitude, the tidy way to encode altitude is as
+   (radial co-ordinate / planet surface radius).evaluate(log) * radian
+which has some interesting ramifications.  It would be best to
+actually use gravitational potentials (and reverse the ratio) rather
+than radii, since this provides the means to correct for the planet
+not being spherical due to spin; sea level is a surface of constant
+gravitational potential, and is our normal zero-point for altitude.
+
+$Id: common.py,v 1.3 2005-03-12 17:58:56 eddy Exp $
 """
 
-from basEddy.units import tophat, arc, pi, Object
+from basEddy.units import tophat, arc, pi, Object, second
 
 class Discovery (Object):
     __upinit = Object.__init__
@@ -34,11 +53,13 @@ class Spin(Object):
         Takes arbitrary keyword arguments after the manner of Object (q.v.).
         """
         apply(self.__upinit, (), what)
-        self.period, self.tilt = period + 0 * second, tilt
-        # need to do arithmetic on period to:
-        #  * check it really is a time and
-        #  * ensure new object, since we'll do .observe() to it (see Orbit).
-        # Creating Earth.orbiter(day) shouldn't give day an error-bar !
+        self.period, self.tilt = self.__time(period), tilt
+
+    def __time(self, t, zero=0 * second): return t + zero
+    # need to do arithmetic on period to:
+    #  * check it really is a time and
+    #  * ensure new object, since we'll do .observe() to it (see Orbit).
+    # Creating Earth.orbiter(day) shouldn't give day an error-bar !
 
     def _lazy_get_inclination_(self, ignored, unit=arc.degree): return self.tilt * unit
     def _lazy_get_omega_(self, ignored, unit=2*pi): return unit / self.period
@@ -78,7 +99,7 @@ class Orbit (Round):
             eccentricity.document("""Eccentricity guessed from error bar on radius.  Not to be trusted !""")
             # ideally invent a suitable error bar on that ...
 
-        apply(self.__upinit, (radius, self.__spin(spin, times)), what)
+        apply(self.__upinit, (radius, self.__spin(spin, times, tilt)), what)
         self.centre, self.eccentricity = centre, eccentricity
 
     def __spin(self, maybe, times, tilt, squish=lambda x, tp=2*pi: tp/x):
@@ -216,11 +237,15 @@ class LandMass (SurfacePart): pass
 class Continent (LandMass): pass
 class Island (LandMass): pass # also used for groups of islands
 
-del tophat, arc, pi, Object
+del tophat, arc, pi, Object, second
 
 _rcs_log = """
 $Log: common.py,v $
-Revision 1.2  2005-03-12 13:38:48  eddy
+Revision 1.3  2005-03-12 17:58:56  eddy
+Needed second, and had to tunnel in order to del.
+Missed param to __spin().
+
+Revision 1.2  2005/03/12 13:38:48  eddy
 Cleaned up import/export fragments.
 
 Initial Revision 1.1  2005/03/12 13:13:26  eddy
