@@ -1,7 +1,7 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
-$Id: root.py,v 1.1 2004-04-25 13:56:17 eddy Exp $
+$Id: root.py,v 1.2 2004-04-25 14:06:46 eddy Exp $
 """
 
 class Search:
@@ -95,7 +95,10 @@ class Search:
         cut.sort()
         ig, (x,y), (k,v) = cut[0]
         rate = (v-y)/(k-x)
-        if rate: ans = x + (k-x) / rate
+        if rate:
+            move = - y / rate
+            if move: self.stride = move
+            ans = x + move
         else: ans = (k + x) / 2
 
         return ans, self.goal(self.func(ans))
@@ -117,7 +120,8 @@ class Search:
 
 _rcs_log = """
  $Log: root.py,v $
- Revision 1.1  2004-04-25 13:56:17  eddy
- Initial revision
+ Revision 1.2  2004-04-25 14:06:46  eddy
+ Fix dumb error in chord, and record its step size when sensible.
 
+ Initial Revision 1.1  2004/04/25 13:56:17  eddy
 """
