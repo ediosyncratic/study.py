@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.1 1999-01-24 22:34:32 eddy Exp $
+$Id: object.py,v 1.2 1999-02-21 01:31:57 eddy Exp $
 """
 
 from types import FloatType
@@ -21,210 +21,336 @@ class Value(Lazy):
 		except AttributeError: pass
 	    raise AttributeError, key
 	self._lazy_lookup_ = getit
+
 
-class Numeric(Value):
-    def __init__(self, base, tolerance=0, *args, **what):
+def _bchop(row, val):	# no longer needed ! (but pretty anyway ;^)
+    """Uses binary chop to find where val belongs in the ordered row. """
+    top, bot = len(row), 0
+    while top > bot + 1:
+	mid = (top + bot) / 2
+	# assert: top > mid > bot
+	if row[mid] <= val: bot = mid
+	if row[mid] >= val: top = mid
+	# assert: top - bot diminished
+
+    return top	# a valid index at which to insert val.
+
+def median(row, func=None):
+    """Returns the medianof a sequence of values.
+
+    Required argument, row, is a non-empty sequence of values supporting
+    comparison.  A `middle member' of this will be returned.
+
+    Optional argument, func, is a callable which, given a sorted copy of the
+    row, returns a value of the same kind as the entries in the list.  It will
+    only be called if (given and) the row is of even length with distinct middle
+    members (once sorted).
+
+    Strictly, a row of even length might have no median: it has two middle
+    entries.  If these are equal, the row has a median: otherwise, we need to
+    chose between them.  By default, somewhat arbitrarily, median() returns the
+    higher of the two.  However, if func is provided, the middle entry closest
+    to its output is used.  (Again somewhat arbitrarily, if they are equally
+    close, the higher one is used.)
+
+    For example, passing a func which will return the mean of row (say) will
+    bias the median choice to whichever of the middle two entries is closer to
+    the mean.  To override the default high-bias with a matching low-bias, use
+    lambda r: r[0] as func: the default is effectively lambda r: r[-1].
+
+    Note that the value returned is *always* an entry drawn from the list whose
+    median was sought: if this list is empty, a ValueError is raised. """
+
+    if not row: raise ValueError, 'Cannot take median of empty row'
+    row, n = list(row), len(row)
+    row.sort()
+
+    if n % 2: return row[n/2]
+
+    # Even length list: grab the middle pair.
+    n = (n-1)/2
+    lo, hi = row[n:n+2]
+    # assert: lo <= hi
+
+    if lo < hi and func and func(row) * 2 < lo + hi: return lo
+
+    return hi
+
+def _mean(row):
+    if row: return reduce(lambda x,y: x+y, row, 0) / len(row)
+    else: raise ValueError, 'Taking mean of empty sample'
+
+def _medial(row):
+    """Returns a short row with the same min, max and median as the given."""
+    if len(row) < 4: return row
+    # lists of length > 3: keep only three elements.
+    return [ min(row), median(row), max(row) ]
+
+def _power(this, what):
+    try: return pow(this, what)
+    except OverflowError: return pow(float(this), what)
+
+def _common_substr(given):
+    def common(s, r=given, n=len(given)):
+	m = min(len(s), n)
+	different = filter(lambda i, a=s,b=r: a[i] != b[i],
+			   range(m))
+	if different: return min(different)
+	return m
+    # So common takes a string and returns the first index at
+    # which that string differs from given.
+    return common
+
+def _majority_length(given, jury):
+    # how far down given do most of jury agree with it ?
+    return median(map(_common_substr(given), jury))
+
+class Sample(Value):
+    def __init__(self, sample=(), mean=None, *args, **what):
 	apply(Value.__init__, (self,) + args, what)
 
-	if tolerance < 0: tolerance = -tolerance
+	if isinstance(sample, Sample): sample = sample.__known
+	else:
+	    try: sample[:]
+	    except AttributeError: sample = [sample,]
+	    else: sample = list(sample)
 
-	if isinstance(base, Numeric):
-	    tol = base.__tolerance
-	    if tol > tolerance: tolerance = tol
-	    base = base.__scale
+	self.__known = sample
+	if mean: self.mean = mean
 
-	if isinstance(tolerance, Numeric):
-	    tolerance = tolerance.__scale + tolerance.__tolerance
+    # Internal utilities for the binary operators:
+    def __row_(self, func=None, seq=None):
+	if seq == None: seq = self.__known
+	if func: return _medial(map(func, seq))
+	return seq
 
-	self.__scale, self.__tolerance = base, tolerance
+    def __grid_(self, func, seq=None):
+	if seq == None: seq = self.__known
+	return _medial(reduce(lambda x,y: x+y, map(func, seq), []))
 
-    def decade(self, stride, base=None, top=None):
-	me, tol, it = abs(self.__scale), self.__tolerance, abs(stride)
+    def __bundle_(self, func, what):
+	def rower(w, r=self.__row_, f=func):
+	    return r(lambda x,m=w,g=f: g(x,m))
 
-	if stride < 0: stride = -stride
-	if stride < 1:
-	    stride = 1 / stride
-	    sign = -1
-	else: sign = 1
+	try: row = self.__grid_(rower, what.__known)
+	except AttributeError:
+	    row = rower(what)
+	    best = what
+	else: best = what.mean
 
-	if base:
-	    if base < 0: base = -base
-	    top = base * stride
-	elif top: base = float(top) / stride
-	else: base = 1
+	return Sample(row, mean=func(self.mean, best))
 
-	count = 0
+    # Binary operators:
+    def __add__(self, what): return self.__bundle_(lambda x, w: x+w, what)
+    def __sub__(self, what): return self.__bundle_(lambda x, w: x-w, what)
+    def __mul__(self, what): return self.__bundle_(lambda x, w: x*w, what)
 
-	while top <= me + tol:
-	    me, tol, count = me / it, tol / it,  count + 1
+    def __radd__(self, what): return self.__bundle_(lambda x, w: w+x, what)
+    def __rsub__(self, what): return self.__bundle_(lambda x, w: w-x, what)
+    def __rmul__(self, what): return self.__bundle_(lambda x, w: w*x, what)
 
-	while base > me:
-	    me, count = me * it, count - 1
-
-	# me * pow(stride, count) == self,
-	# base <= me < top
-
-	return sign * count
-
-    # Only an exact zero is truly zero:
-    def __nonzero__(self): return not(self.__scale == 0 == self.__tolerance)
-    def __float__(self): return float(self.__scale)
-    def __long__(self): return long(self.__scale)
-    def __int__(self): return int(self.__scale)
-    def __neg__(self): return Numeric( - self.__scale, self.__tolerance)
-    def __abs__(self):
-	if self.__scale < 0: return - self
-	return self
-
-    def __unpack_(self, what):
-	if isinstance(what, Numeric):
-	    return what.__scale, what.__tolerance
-	return what, 0
-
-    def __cmp__(self, what):
-	what, tol = self.__unpack_(what)
-	tol = max(self.__tolerance, tol)
-	diff = self.__scale - what
-	if tol < diff: return -1
-	if diff < -tol: return 1
-	return 0
-
-    def __add__(self, what):
-	what, tol = self.__unpack_(what)
-	tol = tol + self.__tolerance
-	return Numeric(self.__scale + what, tol)
-    __radd__ = __add__
-
-    def __sub__(self, what):
-	what, tol = self.__unpack_(what)
-	tol = tol + self.__tolerance
-	return Numeric(self.__scale - what, tol)
-
-    def __rsub__(self, what):
-	what, tol = self.__unpack_(what)
-	tol = tol + self.__tolerance
-	return Numeric(what - self.__scale, tol)
-
-    def __row_(self, func):
-	base, tol = self.__scale, self.__tolerance
-	lo = hi = mid = func(base)
-	if tol:
-	    try: row = ( base - tol, base + tol )
-	    except TypeError, what:
-		raise TypeError, what.args + (base, tol)
-	    for v in row:
-		q = func(v)
-		if q < lo: lo = q
-		if q > hi: hi = q
-
-	return lo, mid, hi
-
-    def __grid_(self, func, base, tol):
-	lo, mid, hi = func(base)
-	if tol:
-	    for m in base - tol, base + tol:
-		row = func(m)
-		for v in row:
-		    if v < lo: lo = v
-		    if v > hi: hi = v
-
-	return lo, mid, hi
-
-    def __mul__(self, what):
-	what, tol = self.__unpack_(what)
-	mine, mol = self.__scale, self.__tolerance
-	lo, mid, hi = self.__grid_(lambda w, s=self: s.__row_(lambda v, x=w: v * x),
-				   what, tol)
-	return Numeric(mid, max(hi - mid, mid - lo))
-
-    def __rmul__(self, what):
-	what, tol = self.__unpack_(what)
-	mine, mol = self.__scale, self.__tolerance
-	lo, mid, hi = self.__grid_(lambda w, s=self: s.__row_(lambda v, x=w: x * v),
-				   what, tol)
-	return Numeric(mid, max(hi - mid, mid - lo))
+    def __pow__(self, what): return self.__bundle_(_power, what)
 
     def __div__(self, what):
-	what, tol = self.__unpack_(what)
-	mine, mol = self.__scale, self.__tolerance
-	lo, mid, hi = self.__grid_(lambda w, s=self: s.__row_(lambda v,x=w: v / x),
-				   what, tol)
-	return Numeric(mid, max(hi - mid, mid - lo))
+	try:
+	    if what.low * what.high < 0:
+		raise ZeroDivisionError, ('Dividing by interval about 0', self, what)
+	except AttributeError:
+	    if what == 0:
+		raise ZeroDivisionError, ('Dividing by zero', self, what)
+
+	return self.__bundle_(lambda x, w: x/w, what)
 
     def __rdiv__(self, what):
-	what, tol = self.__unpack_(what)
-	mine, mol = self.__scale, self.__tolerance
-	lo, mid, hi = self.__grid_(lambda w, s=self: s.__row_(lambda v,x=w: x / v),
-				   what, tol)
-	return Numeric(mid, max(hi - mid, mid - lo))
+	if self.low * self.high < 0:
+	    raise ZeroDivisionError, ('Dividing by interval about 0', self)
 
-    def __pow__(self, what):
-	try: scale = pow(self.__scale, what)
-	except OverflowError: scale = pow(float(self._scale), what)
-	return Numeric(scale, what * scale * self.__tolerance / self.__scale)
+	return self.__bundle_(lambda x, w: w/x, what)
 
-    def __repr__(self):
-	return self._repr
+    # Other built-ins:
+    def __nonzero__(self): return not(self.high == 0 == self.low)
+    # NB: not(nonzero) is stricter than == 0.
+    def __float__(self): return float(self.mean)
+    def __long__(self): return long(self.median)
+    def __int__(self): return int(self.median)
+    def __neg__(self): return self._neg
+    def __repr__(self): return self._repr
+    def __str__(self): return self._str
 
-    def __str__(self):
-	return self._str
+    def __abs__(self, what):
+	if self.median > 0: return self
+	return self._neg
+
+    def __cmp__(self, what):
+	if self.high < what: return -1
+	if self.low > what: return 1
+	return 0
+
+    # Internal lazies for neg/repr/str:
+    def _lazy_get__neg_(self, ignored):
+	result = Sample(map(lambda x: -x, self.__known), -self.mean)
+	result._neg = self
+	return result
 
     def _lazy_get__repr_(self, ignored):
-	val, tol = self.__scale, self.__tolerance
-	if type(val) != FloatType and tol < .1:
+	val = self.mean
+	if type(val) != FloatType and self.spread < .1:
 	    # have a go at rendering it as an integer
 	    try: iscale = int(val)
 	    except OverflowError: iscale = long(val)
 	    if val == iscale: return `iscale`
 
 	result = `val`
-	if tol:
-	    lo, mi, hi = `val - tol`, result, `val + tol`
-	    ind = 0
-	    stop = max(len(lo), len(hi), len(mi))
-	    while ind < stop and (lo[ind] == mi[ind] or mi[ind] == hi[ind]):
-		ind = ind + 1
 
-	    if ind + 1 < stop:
-		ind = ind + 1
-	    
-		if 'e' in result:
-		    end = string.index(result, 'e')
-		    if ind > end: ind = end
-		    tail = result[end:]
-		    result = result[:end]
-		else: tail = ''
+	if '.' not in result: return result
+	import string
 
-		if '.' not in result[:ind] and '.' in result:
-		    ind = string.index(result, '.')
+	if 'e' in result:
+	    end = string.index(result, 'e')
+	    result, tail = result[:end], result[end:]
+	    if '.' not in result: return result + tail
 
-		result = result[:ind] + tail
+	else: tail = ''
 
-	return result
+	sample = map(repr, self.__known)
+	while result in sample: sample.remove(result)
+	ind = _majority_length(result, sample)
+	# So most sample strings agree with result at least as far as ind
+
+	# Don't truncate sooner than the decimal point ...
+	if '.' not in result[:ind]:
+	    ind = string.index(result, '.')
+
+	return result[:ind] + tail
 
     def _lazy_get__str_(self, ignored):
-	if type(self.__scale) != FloatType: return self._repr
+	if type(self.mean) != FloatType: return self._repr
 	off = 3 * self.decade(1000, .1)	# self / pow(10, off) is between .1 and 100.
-	val, tol = self.__scale, self.__tolerance
+	scale = pow(.1, off)
+	result = '%f' % (self.mean * scale)
+	# Assert: '.' in result
+	while result[-1] == '0': result = result[:-1]
 
-	low, mid, hie = map(lambda x, s=pow(.1, off): `x * s`,
-			    (val - tol, val, val + tol))
-	run = min(len(low), len(mid), len(hie))
-	ind = 0
-	while ind < run and (low[ind] == mid[ind] or mid[ind] == hie[ind]):
-	    ind = ind + 1
+	sample = map(lambda x, s=scale: '%f' % (x * s),
+		     self.__known)
+	ind = _majority_length(result, sample)
 
-	return mid[:ind] + 'e%+d' % off
+	if '.' not in result[:ind]:
+	    import string
+	    ind = string.index(result, '.')
+
+	return result[:ind] + 'e%+d' % off
+
+    # Lazy namespace: sample, width, high, mean, low, mid, spread, errors.
+    def _lazy_get_sample_(self, ignored): return _medial(self.__known)
+    def _lazy_get_width_(self, ignored): return self.high - self.low
+    def _lazy_get_high_(self, ignored): return max(self.__known)
+    def _lazy_get_mean_(self, ignored): return _mean(self.__known)
+    def _lazy_get_low_(self, ignored): return min(self.__known)
+
+    def _lazy_get_median_(self, ignored):
+	return median(self.__known,
+		      # offer self.mean as extra value, if needed.
+		      lambda r, s=self: s.mean)	# (ignores r)
+
+    def _lazy_get_spread_(self, ignored):
+	return max(abs(self.errors.low), abs(self.errors.high))
+    def _lazy_get_errors_(self, ignored):
+	return Sample(map(lambda x, m=self.mean: x-m, self.__known))
+
+    def observe(self, *vals, **stuff):
+	"""Returns a fresh sample characterised by the given values and self.
+
+	Thus, given self as a record of measurement of some physical quantity,
+		new = self.observe(3.14, 3.14159, 3.1415927, mean=pi)
+	will set new to a record of today's `more trusted' data, using today's
+	average as best estimate, but including both today's data and all prior
+	data from self. """
+
+	return apply(Sample, self.__known + list(vals), stuff)
+
+    def decade(self, stride=None, base=None, top=None):
+	"""Returns the power of stride needed to bring self into some standard interval.
+
+	Arguments are optional:
+
+	  stride -- ratio of base to top.
+	  base -- start-point of interval.
+	  top -- end-point of interval.
+
+	If the value returned is D, say, then self * power(D, scale) will be at
+	least as big as the smaller of base and top; unless forced by that, it
+	will also be no bigger than the bigger of the two. """
+
+	hi, lo = map(abs, (self.high, self.low))
+
+	if stride: it = abs(stride)
+	elif base and top: it = abs(float(top) / base)
+	else: it = 10
+
+	if it < 1:
+	    it = 1. / it	# if that overflows, stride is 0: dumb !
+	    sign = -1
+	elif it > 1: sign = 1
+	else:
+	    raise ValueError, 'Cannot change anything by scaling by 1'
+
+	if top and top < 0: top = -top
+
+	# Coerce range so 0 < base * it = top
+	if base:
+	    if base < 0: base = -base
+	    if not top: top = base * it
+	    elif top < base: top, base = base, top
+	elif top: base = float(top) / it
+	else: base, top = 1, it
+
+	# Compute the power of stride by which to multiply self to fall between
+	# base and top.
+	count = 0
+	while hi > top:
+	    lo, hi, count = lo / it, hi / it,  count + 1
+	while lo < base:
+	    lo, count = lo * it, count - 1
+
+	return sign * count
 
     # Things which compare equal must have equal hash values.
-    # Consider Numeric(n, 10) for integer n: enough of these compare equal
-    # that they must all have equal hash values ... and every Numeric is equal
-    # to at least several of them.
-    _lazy_hash = hash('Numeric') ^ hash(Value)
+    # Consider Numeric(n, 10) for integer n: enough of these compare equal that
+    # they must all have equal hash values ... and every Numeric is equal to at
+    # least several of them.  So all Numerics must have the same hash value.
+
+    _lazy_hash = hash('Sample') ^ hash(Value) ^ hash(__name__)
+
+def Numeric(base, tolerance=0, sample=(), *args, **what):
+
+    if tolerance < 0: tolerance = - tolerance
+    if isinstance(tolerance, Sample):
+	tolerance = tolerance.high
+
+    if isinstance(base, Sample):
+	tolerance = tolerance + base.spread
+	err = base.errors
+	base = base.mean
+    else: err = 0
+
+    if isinstance(sample, Sample): sample = (sample + err).sample
+    else: sample = list(sample)
+
+    if base not in sample: sample.append(base)
+    if tolerance:
+	for v in base - tolerance, base + tolerance:
+	    if v not in sample: sample.append(v)
+
+    sample.sort()
+    what['sample'] = sample
+    what['mean'] = base
+    return apply(Sample, args, what)
 
 """
  $Log: object.py,v $
- Revision 1.1  1999-01-24 22:34:32  eddy
- Initial revision
+ Revision 1.2  1999-02-21 01:31:57  eddy
+ Revolution.
 
+ Initial Revision 1.1  1999/01/24 22:34:32  eddy
 """
