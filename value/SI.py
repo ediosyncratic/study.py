@@ -4,7 +4,7 @@ See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
 for a definitive source of information about units.
 
-$Id: SI.py,v 1.5 2003-02-16 14:31:15 eddy Exp $
+$Id: SI.py,v 1.6 2003-04-17 22:40:09 eddy Exp $
 """
 from quantity import *
 
@@ -93,17 +93,35 @@ sr = steradian = base_unit('sr', 'Steradian',
 The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.""")
 
+# Angles:
+turn = cycle = revolution = 2 * pi * radian
+arc = Object(degree = turn / 360)
+arc.minute = arc.degree / 60
+arc.second = arc.minute / 60
+import math
+def Tan(ang, t=math.tan): return t(ang / radian)
+def Sin(ang, s=math.sin): return s(ang / radian)
+def Cos(ang, c=math.cos): return c(ang / radian)
+def direction2angle(forward, left, a=math.atan2): return a(forward, left) * radian
+arcTan2 = direction2angle
+def arcTan(ratio, a=math.atan): return a(ratio) * radian
+def arcSin(ratio, a=math.asin): return a(ratio) * radian
+def arcCos(ratio, a=math.acos): return a(ratio) * radian
+del math
+
 # Composite SI units
-N = Newton = kilogramme * metre / second / second       # Force
+stere = pow(metre, 3)   # c.f. litre
+are = pow(metre, 2)     # c.f. hectare
+lm = lumen = candela * steradian # Luminous flux
+lx = lux = lumen / are          # Illumination
 Hz = Hertz = 1 / second         # Frequency
 C = Coulomb = Ampere * second   # Charge
+
+N = Newton = kilogramme * metre / second / second       # Force
 J = Joule = Newton * metre      # Energy
 W = Watt = Joule / second       # Power
-Pa = Pascal = Newton / metre / metre    # Pressure
-lm = lumen = candela * steradian        # Luminous flux
-lx = lux = lumen / metre / metre        # Illumination
-stere = pow(metre, 3)
-litre = milli * stere
+Pa = Pascal = Newton / are      # Pressure
+P = poise = Pascal * second     # dynamic viscosity
 
 V = Volt = Joule / Coulomb      # Electromagnetic potential
 Wb = Weber = Joule / Ampere     # Magnetic flux
@@ -111,41 +129,14 @@ Ohm = Volt / Ampere             # Electrical resistance
 S = Siemens = 1 / Ohm           # Conductance
 F = Farad = second / Ohm        # Capacitance
 H = Henry = Weber / Ampere      # Inductance
-T = Tesla = Weber / metre / metre       # Magnetic flux density
-
-P = poise = Pascal * second       # dynamic viscosity
-
-# Other SI-compatible units
-gram = Mass(milli * kilogramme)
-km, cm = kilo * metre, centi * metre
-cc = pow(cm, 3)
-
-St = Stokes = pow(cm, 2) / second # kinematic viscosity
-Angstrom = .1 * nano * metre    # &Aring;ngstr&ouml;m, aka &Aring;.
-micron = micro * metre
-fermi = femto * metre
-are = pow(metre, 2)
-hectare = hecto * are
-barn = femto * hectare
-
-Gs = Gauss = .1 * milli * Tesla
-gamma = nano * Tesla
-Mx = Maxwell = 10 * nano * Weber
-stilb = 10 * kilo * candela / metre / metre
-phot = 10 * kilo * lux
-
-Bq = Becquerel = Hz             # Activity of a radionuclide
-Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
-Sv = sievert = Gy               # Dose equivalent
-rem = 10 * milli * Sv
-# 10 milli Gray is also called a rad (conflicts with radian)
-
-tex = gram / km # fineness of textiles
-dtex = deci * tex # see also: units.denier
+T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.5  2003-02-16 14:31:15  eddy
+ Revision 1.6  2003-04-17 22:40:09  eddy
+ Removed (most) SI-compatibles to unit.py; added trig functions using units of angle.
+
+ Revision 1.5  2003/02/16 14:31:15  eddy
  Added NIST URL and reference to const.py, which now stores some
  attributes on mol which it previously kept on an object called molar.
 
