@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.2 2003-07-26 12:46:24 eddy Exp $
+$Id: cardan.py,v 1.3 2003-07-26 12:49:03 eddy Exp $
 """
 
 from math import cos, acos, pi
@@ -82,20 +82,23 @@ def Cardan(cube, square, linear, constant):
     F = -E - offset
     return E-offset, F, F
 
-def cardan(u, s, i, c):
+def cardan(u, s, i, c, tol=1e-14):
     # debug wrapper on the above, doing the assertion
     ans = Cardan(u, s, i, c)
 
     for x, v in map(lambda x, u=u, s=s, i=i, c=c: (x, ((u*x +s)*x +i)*x +c), ans):
         if v:
-            print '%s -> %s' % (x, v)
-            assert abs(v) < 1e-14, '%s -> %s' % (x, v)
+            #print '%s -> %s' % (x, v)
+            assert abs(v) < tol, '%s -> %s' % (x, v)
 
     return ans
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.2  2003-07-26 12:46:24  eddy
+Revision 1.3  2003-07-26 12:49:03  eddy
+Made assertion's tolerance an optional parameter.
+
+Revision 1.2  2003/07/26 12:46:24  eddy
 Refined the assertion.
 
 Initial Revision 1.1  2003/07/26 12:37:25  eddy
