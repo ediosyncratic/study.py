@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.9 2005-03-16 23:00:14 eddy Exp $
+$Id: home.py,v 1.10 2005-03-19 17:25:57 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -26,8 +26,11 @@ MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
 
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's orbit
 # can't be specified until Sun has been created.
+def load_planets(): # lazy satellite loader for Sun
+    import space.inner, space.outer
+
 Sun = body.Star(
-    'Sun', type='G2 V',
+    'Sun', load_planets, type='G2 V',
     orbit = Orbit(MilkyWay,
 		  3e4 * year.light,
 		  Spin(225e6 * year), # period agrees with that from GM/r**3
@@ -88,6 +91,8 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
                    remain = (5 + tophat) * giga * year), # plus c. 2e9 years as a white dwarf
     magnitude = qSample({}, low=4.79, high=4.83), # K&L, Moore
     aliases = ('Sol',))
+
+del load_planets
 
 AU = AstronomicalUnit = Quantity(
     93, mega * mile,
@@ -361,7 +366,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.9  2005-03-16 23:00:14  eddy
+Revision 1.10  2005-03-19 17:25:57  eddy
+Equipped Sun with a lazy satellite loader.
+
+Revision 1.9  2005/03/16 23:00:14  eddy
 Simplified Star.
 
 Revision 1.8  2005/03/13 21:34:17  eddy
