@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.2 2003-07-27 14:02:19 eddy Exp $
+$Id: polynomial.py,v 1.3 2003-07-27 20:07:53 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -94,7 +94,7 @@ class Polynomial (Lazy):
             raise ValueError # sequence
         except ValueError: self.__fromseq(args)
         except (AttributeError, TypeError, KeyError):
-            try: arg.items, arg.get(0, 0)
+            try: arg.items, arg.get(0, None)
             except AttributeError: self.__store(0, arg) # constant polynomial
             else: self.__frombok(arg) # dictionary
 
@@ -124,7 +124,7 @@ class Polynomial (Lazy):
             if not ok(key) or key < 0: raise unNaturalPower
             elif val != 0: self.__store(key, val)
 
-    def coefficient(self, key): return self.__coefs.get(key, 0.0)
+    def coefficient(self, key): return self.__coefs.get(key, self._zero)
 
     def _lazy_get_rank_(self, ignored):
 	for key in self.__coefs.keys():
@@ -149,33 +149,31 @@ class Polynomial (Lazy):
         if scale == 1: return self
 	return self / scale
 
+    def __repr__(self): return self._repr
+    __str__ = __repr__
     variablename = 'x'
-    def __repr__(self):
-	# need to modify this so it can cope with non-scalar coefficients
-	result = ""
-	keys = self.__coefs.keys()
-	keys.sort()
-        keys.reverse()
-        name = self.variablename
 
-        def fmt(num):
+    def format(num):
+        # it might be nice to also cope with non-scalar coefficients ...
+        try:
+            if num.imag == 0:
+                num = num.real
+                raise AttributeError
+        except AttributeError:
             try:
-                if num.imag == 0:
-                    num = num.real
-                    raise AttributeError
-            except AttributeError:
-                try:
-                    if num == int(num): num = int(num)
-                except OverflowError: pass
+                if num == int(num): num = int(num)
+            except OverflowError: pass
 
-            ans = str(num)
-            if ans[0] != '-': return ' +' + ans
-            else: return ' ' + ans
+        ans = str(num)
+        if ans[0] != '-': return ' +' + ans
+        else: return ' ' + ans
+
+    def _lazy_get__repr_(self, ig, fmt=format):
+	result, keys, name = '', self._powers, self.variablename
 
 	for key in keys:
             val = self.__coefs[key]
-            if key == 0: result = result + fmt(val)
-            else:
+            if key:
                 if val == 1: result = result + " +"
                 elif val == -1: result = result + ' -'
                 else: result = result + fmt(val) + '*'
@@ -183,31 +181,41 @@ class Polynomial (Lazy):
                 if key == 1: result = result + name
                 else: result = result + "%s**%d" % (name, key)
 
-        if not result: return "lambda %s: 0" % name
-        elif result[:2] == ' +': return 'lambda %s: %s' % (name, result[2:])
-        else: return "lambda %s:%s" % (name, result)
+            else: result = result + fmt(val)
 
-    __str__ = __repr__
+        lamb = 'lambda %s:' % name
+        if not result: return lamb + ' 0'
+        if result[:2] == ' +': return lamb + ' ' + result[2:]
+        return lamb + result
+
+    del format
+
+    def _lazy_get__powers_(self, ig):
+	keys = self.__coefs.keys()
+	keys.sort()
+        keys.reverse()
+        return tuple(keys)
 
     def __add__(self, other):
         try: sum = other.__coefs.copy()
         except AttributeError: sum = {0: other}
 
+        zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, 0) + v
+            sum[k] = sum.get(k, zero) + v
 
         return Polynomial(sum)
 
     __radd__ = __add__
 
     def __sub__(self, other):
-	sum = self.__coefs.copy()
+	sum, zero = self.__coefs.copy(), self._zero
 
         try: bok = other.__coefs
-        except AttributeError: sum[0] = sum.get(0, 0) - other
+        except AttributeError: sum[0] = sum.get(0, zero) - other
         else:
             for key, val in bok.items():
-                sum[key] = sum.get(key, 0) - val
+                sum[key] = sum.get(key, zero) - val
 
 	return Polynomial(sum)
 
@@ -215,8 +223,9 @@ class Polynomial (Lazy):
         try: sum = other.__coefs.copy()
         except AttributeError: sum = {0: other}
 
+        zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, 0) - v
+            sum[k] = sum.get(k, zero) - v
 
         return Polynomial(sum)
 
@@ -224,23 +233,20 @@ class Polynomial (Lazy):
 	term = {}
         try: bok = other.__coefs
         except AttributeError:
-	    for key in self.__coefs.keys():
-		term[key] = self.__coefs[key] * other
+	    for key, val in self.__coefs.items():
+		term[key] = val * other
 	else:
+            zero = self._zero * other._zero
 	    for key, val in self.__coefs.items():
 		for cle, lue in bok.items():
 		    sum = key + cle
-                    term[sum] = term.get(sum, 0) + val * lue
+                    term[sum] = term.get(sum, zero) + val * lue
 
 	return Polynomial(term)
 
     __rmul__ = __mul__ # abelian multiplication
-
-    def __div__(self, other):
-	return self.__divmod__(other)[0]
-
-    def __mod__(self, other):
-	return self.__divmod__(other)[1]
+    def __div__(self, other): return self.__divmod__(other)[0]
+    def __mod__(self, other): return self.__divmod__(other)[1]
 
     def __divmod__(self, other):
 	"""Solves self = q.other + r for r of rank < other.rank: returns (q, r)
@@ -375,10 +381,7 @@ class Polynomial (Lazy):
 	polynomial's formal parameter.
 	"""
 
-	result = arg * 0	# NB may be, eg, a matrix
-	keys, max = self.__coefs.keys(), -1
-	keys.sort()
-	keys.reverse()
+	result, keys, max = self._zero, self._powers, -1
 
 	for key in keys:	# highest first
 	    if max < 0: max = key
@@ -452,6 +455,10 @@ class Polynomial (Lazy):
 
         return 1
 
+    def _lazy_get__zero_(self, ig):
+        try: return self.__coefs.values()[0] * 0
+        except IndexError: return 0
+
     def _lazy_get_isreal_(self, ignored): return self.__pure_real()
 
     def _lazy_get_sign_(self, ignored):
@@ -467,39 +474,6 @@ class Polynomial (Lazy):
         if hi < 0: return -1 # definitely everywhere negative
 
         return None # this is over-cautious
-
-    def __nonzero__(self): return self.rank >= 0
-
-    def __never_zero(self): # a much stronger condition !
-        if self.rank == 0: return 1
-        if self.rank < 0 or self.rank % 2 or not self.__pure_real(): return None
-        b, r = self.assquares
-        if r.rank > 0: return None
-        sign = witness = 0
-        for k, v in b.items():
-            if sign < 0:
-                if v > 0: return None
-            elif sign > 0:
-                if v < 0: return None
-            else: sign = v
-
-            if k.rank == 0:
-                witness = k.coefficient(0)
-
-        if witness: return 1
-        witness = None
-        for k in b.keys():
-            if k.__never_zero(): return 1
-            if k.rank == 1:
-                witness = k.coefficient(0) / k.coefficient(1) # its root
-
-        if witness is not None:
-            for k in b.keys():
-                if k.rank != 1 and k(witness): return 1
-
-        # Well, self *may* be never zero, but we haven't proved it
-        # Further work looking at b's keys
-        return None
 
     from cardan import cubic
     def __cubic_root(self, cub=cubic):
@@ -665,7 +639,13 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.2  2003-07-27 14:02:19  eddy
+Revision 1.3  2003-07-27 20:07:53  eddy
+A whole bunch of clean-up prompted by stuff noticed while writing
+proof-of-concept draft for multinomial.  Added lazy ._zero as `zero of
+same kind as my outputs'.  Added lazy ._powers, made repr lazy.  Ripped
+out unused __never_zero and spurious repeat of __nonzero__.
+
+Revision 1.2  2003/07/27 14:02:19  eddy
 Clean-up.  Many doc enhancements, notably doc'd the class.  Provide for
 repr to use another variable name than x; to express whole numbers as
 such; and to include the *s needed to be a real python lambda
