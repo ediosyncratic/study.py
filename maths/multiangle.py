@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.8 2003-08-17 20:25:35 eddy Exp $
+$Id: multiangle.py,v 1.9 2003-09-01 05:25:43 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -60,14 +60,17 @@ z = Polynomial(0, 1)
 
 class Middle (LazySeq):
     def growto(self, key,
-               down={0: 1-z, 1: z-1}, up=z+1, two=-z-2,
-               q=(lambda p, x=z: (p(-x)*p(x-2)).unafter(x*(2-x)),
-                  lambda p, x=z: (((x+1)*p(x-2)**2 +(x-3)*p(-x)**2)/2/(x-1)).unafter(x*(x-2)-2),
-                  lambda p, x=z: ((4+(x-1)*p(-x-2)**2)/(x+3))**.5)):
+               down={0: z-1, 1: 1-z}, up=z+1, two=z+2, slab=z*(z+2),
+               checks=(lambda p, x=z: (p(-x)*p(x-2)).unafter(x*(2-x)),
+                       lambda p, x=z: ((p(x*(x+2)-2)*(x+1)+2)/(x+3))**.5,
+                       lambda p, x=z: ((4+(x-1)*p(-x-2)**2)/(x+3))**.5)):
         assert K is self
-        prior = self[key-1]
-        ans = (prior * up + down[key%2] * prior(two)) * .5
-        assert not filter(lambda p, a=ans: p(a) != a, q)
+        n, r = divmod(key, 3)
+        m = n + r - 1
+        assert key == 2*n + m + 1
+        this, that = self[n], self[m]
+        ans = .5*(down[(n+m)%2]*this(-slab)*that(-two) + up*this(slab-2)*that)
+        assert not filter(lambda p, a=ans: p(a) != a, checks)
         return ans
 
 K = Middle()
@@ -107,7 +110,10 @@ del term, z, Polynomial
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.8  2003-08-17 20:25:35  eddy
+Revision 1.9  2003-09-01 05:25:43  eddy
+Changed Middle to use addition-derived formulae.  Refined a check.
+
+Revision 1.8  2003/08/17 20:25:35  eddy
 Added some assertions to Middle.
 
 Revision 1.7  2003/08/13 22:15:12  eddy
