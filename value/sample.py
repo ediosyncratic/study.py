@@ -21,7 +21,7 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.7 2001-12-12 16:56:27 eddy Exp $
+$Id: sample.py,v 1.8 2001-12-13 03:53:42 eddy Exp $
 """
 
 class _baseWeighted:
@@ -52,17 +52,20 @@ class _baseWeighted:
 
     These are all alloyed together to build the final class, Weighted, which is
     what Sample actually uses. """
+
+    # these aren't ideal; nor do I still use them ...
+    def high(self): return max(self.keys())
+    def low(self): return min(self.keys())
 
 class statWeighted(_baseWeighted):
     """Interface class providing statistical reading of weight dictionaries.
 
     Provides standard statistical functionality: presumes that instances behave
     as dictionaries, which must be arranged for by alloying this base with some
-    other base-class providing that functionality. """
+    other base-class providing that functionality.
 
-    # these aren't ideal; nor do I still use them ...
-    def high(self): return max(self.keys())
-    def low(self): return min(self.keys())
+    Also provides for comparison.
+    """
 
     def median(self):
         """Takes the median of a distribution.
@@ -364,19 +367,40 @@ class joinWeighted(_baseWeighted):
         # sample points:
         return self.decompose(map(lambda i: i.median(), filter(None, parts)))
 
+    def __combine(self, dict, func):
+        ans = self._weighted_({})
+
+        for key, val in self.items():
+            ans.add(dict, val,
+                    lambda j, k=key, f=func: f(k,j))
+
+	return ans
+
     def combine(self, dict, func, count=None):
         if count is None:
             try: det = dict.__detail
             except AttributeError: count = self.__detail
             else: count = max(det, self.__detail)
 
-        ans = self._weighted_({})
-        for key, val in self.items():
-            ans.add(dict, val,
-                    lambda j, k=key, f=func: f(k,j))
-
         # That's generated our coarse distribution: condense it.
-        return ans.condense(count)
+        return self.__combine(dict, func).condense(count)
+
+    # Comparison: which is probably greater ?
+    def __cmp__(self, what):
+	sign = self.__combine(what, cmp)
+	# cmp coerces -ve values to -1, positives to +1; thank you Guido.
+	# Thus sign.keys() is [-1, 0, 1] in some order.
+
+	half = sign.total() / 2.
+	# if either -1 or +1 has more than half the weight, it wins
+	# otherwise, if one is less than half and the other equals half, the latter wins
+	# otherwise, it's a draw.
+
+	if sign[-1] < half: b = 0
+	else: b = -1
+
+	if sign[1] < half: return b
+	return b + 1
 
 import math # del at end of this page
 from basEddy import Lazy # likewise
@@ -1095,15 +1119,6 @@ class _Weighted(Object, _baseWeighted):
 
         return Object.copy(self, bok)
 
-    # Comparison: which is probably greater ?
-    def __cmp__(self, what):
-        ans = self._weighted_({})
-        for key, val in self.items():
-            ans.add(what, val, lambda j, k=key: cmp(k, j))
-
-        if abs(ans[1] - ans[-1]) < .5 * ans[0]: return 0
-        return cmp(ans[1], ans[-1])
-
     # `make something like me'
     def _weighted_(self, *args, **what):
         """Method for overriding by derived classes.
@@ -1382,7 +1397,11 @@ class Sample (Object):
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.7  2001-12-12 16:56:27  eddy
+  Revision 1.8  2001-12-13 03:53:42  eddy
+  Refined Weighted.__cmp__ and moved it from _Weighted to joinWeighted.
+  Also moved obsolete low, high to baseWeighted.  May retire later.
+
+  Revision 1.7  2001/12/12 16:56:27  eddy
   Reinstated _str but made it an alias for _repr.
   Shuffled Sample.__init__ to handle best via **what rather than overtly.
   untabified.
