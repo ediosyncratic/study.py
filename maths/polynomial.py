@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.3 2003-07-27 20:07:53 eddy Exp $
+$Id: polynomial.py,v 1.4 2003-08-04 22:28:36 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -189,6 +189,37 @@ class Polynomial (Lazy):
         return lamb + result
 
     del format
+
+    def __eachattr(self, each):
+        bok = {}
+        for k, v in self.__coefs.items():
+            bok[k] = each(v)
+        return Polynomial(bok)
+
+    def toreal(val):
+        try: return val.real
+        except AttributeError: return val
+
+    def _lazy_get_real_(self, ignored, as=toreal):
+        return self.__eachattr(as)
+
+    del toreal
+    def toimag(val):
+        try: return val.imag
+        except AttributeError: return 0
+
+    def _lazy_get_imag_(self, ignored, as=toimag):
+        return self.__eachattr(as)
+
+    del toimag
+    def conjug8(val):
+        try: return val.conjugate
+        except AttributeError: return val
+
+    def _lazy_get_conjugate_(self, ignored, as=conjug8):
+        return self.__eachattr(as)
+
+    del conjug8
 
     def _lazy_get__powers_(self, ig):
 	keys = self.__coefs.keys()
@@ -639,7 +670,11 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.3  2003-07-27 20:07:53  eddy
+Revision 1.4  2003-08-04 22:28:36  eddy
+Added support for real, imag and conjugate; attributes of a complex
+value, applied to each coefficient of the polynomial separately.
+
+Revision 1.3  2003/07/27 20:07:53  eddy
 A whole bunch of clean-up prompted by stuff noticed while writing
 proof-of-concept draft for multinomial.  Added lazy ._zero as `zero of
 same kind as my outputs'.  Added lazy ._powers, made repr lazy.  Ripped
