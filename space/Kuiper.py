@@ -1,11 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.6 2005-03-16 23:24:35 eddy Exp $
+$Id: Kuiper.py,v 1.7 2005-03-21 23:21:14 eddy Exp $
 """
 
 from basEddy.units import Sample, Quantity, tophat, \
-     tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
+     tera, giga, mega, kilo, metre, mile, day, hour, year, kg, \
+     Fahrenheit, Centigrade
 from space.home import Sun, Earth, AU, KLplanet, KLsurface
 from space.outer import Neptune
 from space.common import Orbit, Spin, Discovery, Spheroid
@@ -14,18 +15,37 @@ from space.body import Planet, Object, Ring, Shell
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
-                           flattening = 0, material="CH4 ice"),
+                           flattening = 0, material="CH4 ice",
+                           temperature=Centigrade(-233 + 10 * tophat)),
                  Orbit(Sun, (5936 + .1 * tophat) * giga * metre,
                        Spin(250 * year, 17.13), .253),
-                 .0025, 1.1, atmosphere="trace CH4")
+                 .0025, 1.95 + .3 * tophat, # K&L gave 1.1 g/cc; solstation gave 1.8 to 2.1
+                 atmosphere="trace CH4",
+                 discovery=Discovery('Clyde Tombaugh', 1930,
+                                     date="1930 February 18 or 23",
+                                     location="Lowell observatory, Flagstaff, Arizona",
+                                     story="""Discovery of Pluto
+
+Lowell, among others, noticed that the orbits of Neptune and Uranus wobbled,
+hinting at another planet further out.  Lowell predicted the planet's orbit and
+set in motion a project to find it - which continued after his death and lead to
+successful discovery.
+
+The telescope which took the discovery pictures was only installed in 1929 (on
+'Mars Hill' no less).
+"""))
+# Always keeps > 18 AUs from Neptune, due to that 17 degree tilt out of the ecliptic:
+# perihelion happens at max tilt.  Orbital period is neatly 1.5 times Neptune's.
 Pluto.mass.observe(15e21 * kg)
 Pluto.surface.spin.period.observe(6.3867 * day)
 Pluto.surface.radius.observe(mega * (1.195 + .001 * tophat) * metre) # NASA
+# but http://www.solstation.com/stars/kuiper.htm gives 2320 km diameter, i.e. r=1.16 Mm
 Pluto.orbit.spin.period.observe(248.5 * 365.242198781 * day)
 Pluto.orbit.spin.period.observe(248.02 * year) # NASA
 Pluto.orbit.radius.observe(giga * (5915.80 + .1 * tophat) * metre) # NASA
 
-Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.6, 6.39, NASAshell(593), "ice")
+Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.64, 6.39, NASAshell(593), "ice")
+# but http://www.solstation.com/stars/kuiper.htm gives surface radius 635 km
 
 Quaoar = Planet('Quaoar', Spheroid(800 * mile),
                 # I haven't yet found radius ... but its eccentricity is low
@@ -80,27 +100,31 @@ Kuiper = Ring("The Kuiper Belt", Sun, Neptune.orbit.radius, 50 * AU,
               2 * Pluto.orbit.spin.tilt,
               # Let Orbit guess eccentricity, don't use Ring's default, 0.
               None,
-              __doc__ = """The Kuiper Belt
+              __doc__ = """The Edgeworth-Kuiper Belt
 
 From the orbit of Neptune out to roughly 100 AU from the Sun, the solar system
 is surrounded by a belt of rocks, of various sizes (some consider Pluto to be
 merely a large one of them), known as the Kuiper Belt.  When these rocks stray
 into the inner solar system, as some of the more eccentric ones sometimes do,
-they are known as comets.
+they are known as comets.  However, most inhabitants of this zone of the solar
+system follow roughly circular orbits fairly close to the plane of the ecliptic.
 
 Originally postulated by Gerard Kuiper in 1951, a year after Jan Oort had
-postulated his cloud (much further out).  The first conclusive observation of a
-Kuiper Belt object (unless you count Pluto) was in 1992; in the next decade more
-thatn 500 more were found..  High resolution CCD cameras combined with powerful
-computers are making it much easier to detect such objects.\n""")
+postulated his cloud (much further out); but fore-shadowed by Kenneth Edgeworth
+in 1943 and 1949.  The first conclusive observation of a Kuiper Belt object
+(unless you count Pluto) was in 1992; in the next decade more thatn 500 more
+were found.  High resolution CCD cameras combined with powerful computers are
+making it much easier to detect such objects.\n""")
 
-Oort = Shell("The Oort Cloud", Sun, (5 + 8 * tophat) * 11 * kilo * AU,
-             # from Bode index 17 to 20
+Oort = Shell("The Oort Cloud", Sun,
+             (5 + 8 * tophat) * 11 * kilo * AU, # from Bode index 17 to 20
+             mass=(9 + 14 * tophat) * 20 * Earth.mass,
+             # estimates from about 40 times Earth's mass to greater than that of Jupiter
             __doc__ = """The Oort Cloud
 
 The solar system is surrounded by a roughly spherical (except for the hole in
 its middle) cloud of interstellar debris, stretching from roughly 11 kAU out to
-around 100 kAU (that's about 1.6 light-years).
+around 100 kAU (i.e. about 1.6 light-years).
 
 Named after a Dutch astronomer, Jan Oort, who first asserted its existence, back
 in 1950.\n""")
@@ -128,6 +152,8 @@ results in a pressure wave in the interstellar gas, essentially like the bow
 wave of a boat in water; this causes a bow shock.
 
 See also: http://antwrp.gsfc.nasa.gov/apod/ap020624.html
+and a picture of the bow shock of a young star, LL Orionis, in Orion at
+http://antwrp.gsfc.nasa.gov/apod/ap020313.html
 """)
 
 # Notional boundary of the solar system (after Asimov):
@@ -148,7 +174,12 @@ del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.6  2005-03-16 23:24:35  eddy
+Revision 1.7  2005-03-21 23:21:14  eddy
+Added discovery and temperature data on Pluto, total mass estimate for Ooort cloud;
+added reference to Edgeworth in Kuiper belt, and noted low eccentricity in Kuiper;
+refined Charon's orbit from solstation and noted its discrepancies with NASA data.
+
+Revision 1.6  2005/03/16 23:24:35  eddy
 Moved Gliese710 to star, added Heliosphere and its parts, made some things Shell()s.
 
 Revision 1.5  2005/03/13 16:45:01  eddy
