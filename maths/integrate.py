@@ -1,6 +1,6 @@
 """Integration made easy.
 
-$Id: integrate.py,v 1.2 2002-11-02 19:07:22 eddy Exp $
+$Id: integrate.py,v 1.3 2004-04-25 10:30:48 eddy Exp $
 """
 
 class Integrator:
@@ -124,7 +124,9 @@ class Integrator:
         try:
             w = eg.width
             try:
-                while eg is not eg.best: eg = eg.best
+                count = 10
+                while count > 0: eg, count = eg.best, count-1
+                while eg.width > 0 * eg.best: eg = eg.best
             except AttributeError: pass
 
             if w > 0 * eg: return bywidth
@@ -203,7 +205,10 @@ class Integrator:
 
 _rcs_log = """
  $Log: integrate.py,v $
- Revision 1.2  2002-11-02 19:07:22  eddy
+ Revision 1.3  2004-04-25 10:30:48  eddy
+ even when width is zero, a Quantity is not equal to its own .best
+
+ Revision 1.2  2002/11/02 19:07:22  eddy
  Added new method, measure.
 
  Revision 1.1  2002/10/06 14:01:04  eddy
