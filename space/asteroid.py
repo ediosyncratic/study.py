@@ -1,11 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """The Asteroids, and Mars' two mooons.
 
-$Id: asteroid.py,v 1.2 2005-03-12 17:56:42 eddy Exp $
+See also: http://www.johnstonsarchive.net/astro/asteroidmoons.html and links
+therefrom.
+
+$Id: asteroid.py,v 1.3 2005-03-13 15:21:30 eddy Exp $
 """
 
 from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
-from space.home import Sun, AU, Planets
+from space import Planets, D
 from space.body import Asteroid, Ring, Planetoid
 from space.common import Discovery, Orbit
 from space.rock import NASAmoon, NASAshell
@@ -25,7 +28,7 @@ Deimos = NASAmoon("Deimos", Mars, tmp, 23.46, 1.26,
                   etymology="Greek: Deimos (= English: Fear)")
 del Mars, tmp
 
-Asteroids = Ring("The Asteroid Belt", Sun, AU, 5 * AU,
+Asteroids = Ring("The Asteroid Belt", D.Sun, D.AU, 5 * D.AU,
                  # at least as much tilt as any inner planet
                  max(map(lambda x: abs(x.orbit.spin.tilt), Planets.inner)),
                  # Let Orbit guess eccentricity (don't use Ring's default, 0)
@@ -40,7 +43,7 @@ quite a few that inhabit Jupiter's Lagrange points.\n""")
 def IArock(name, when, period, maxdiam, mass, miss,
            blur=(1+.01*Sample.tophat), Tton=tera*ton.US, Mmile=mega*mile,
            Q=Quantity, bar=Sample.tophat, yr=year, ml=mile,
-           find=Discovery, rock=Asteroid, sol=Sun):
+           find=Discovery, rock=Asteroid, sol=D.Sun):
     """Asteroids described by Asimov in From Earth to Heaven.
 
 See p. 210, table 32.\n"""
@@ -56,7 +59,7 @@ See p. 210, table 32.\n"""
 
 #' When I know Ceres' mass, I can make it an Asteroid() ...
 Ceres = Planetoid('Ceres',
-                  orbit=Orbit(Sun, Quantity(2.77 + .01 * tophat, AU)),
+                  orbit=Orbit(D.Sun, Quantity(2.77 + .01 * tophat, D.AU)),
                   discovery=Discovery("Piazzi", 1801,
                                       day="January 1st 1801",
                                       __doc__="""The discovery of Ceres.
@@ -84,12 +87,16 @@ Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
-del Sun, AU, Planets, Asteroid, Ring, Planetoid, Discovery, Orbit, NASAmoon, NASAshell, IArock
+del Planets, D, Asteroid, Ring, Planetoid, Discovery, Orbit, NASAmoon, NASAshell, IArock
 del Sample, ton, tera, mega, mile, Quantity, year, tophat
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.2  2005-03-12 17:56:42  eddy
+Revision 1.3  2005-03-13 15:21:30  eddy
+Moved Planets from home to __init__;
+may as well get Sun and AU via D while we're at it.
+
+Revision 1.2  2005/03/12 17:56:42  eddy
 Missed imports and a punctuation glitch.
 
 Initial Revision 1.1  2005/03/12 16:28:45  eddy
