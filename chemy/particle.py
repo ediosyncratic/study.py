@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.12 2005-01-16 19:39:25 eddy Exp $
+$Id: particle.py,v 1.13 2005-01-28 01:29:09 eddy Exp $
 """
 
 from const import *
@@ -310,9 +310,9 @@ class Photon (Boson):
     """Photons are the irreducible corpuscles of light.
 
 Isaac would have been proud.
-The visible spectrum ranges from .4 to .7 microns.  See, e.g.,
-http://www.sundog.clara.co.uk/rainbows/primcol.htm
-on the site that persuaded me to broaden the spectrum to 380--700 nm
+See also visible's doc and
+http://imagine.gsfc.nasa.gov/docs/science/know_l1/spectrum_chart.html
+from which I took the extra-visible spectrum.
 """
 
     speed = Vacuum.c
@@ -399,6 +399,12 @@ def photon(lo, hi, name, **what):
     return apply(Photon, (), what)
 
 visible = photon(380, 700, 'visible',
+                 doc="""The spectrum of visible light.
+
+The visible spectrum ranges from .4 to .7 microns.  See, e.g.,
+    http://www.sundog.clara.co.uk/rainbows/primcol.htm
+on the site that persuaded me to broaden the spectrum to 380--700 nm
+""",
                  spectrum = ( # all rather approximate; see Nuffield, pp46--47.
     photon(624, 700, 'red'),
     photon(606, 624, 'orange'), # but see Na orange
@@ -412,7 +418,22 @@ visible = photon(380, 700, 'visible',
                  # Flagrantly contradicting spectrum (and should be two lines):
                  sodium = Photon(name='sodium orange', wavelength=590*nano*metre))
 
-# Photon(name='infra-red', frequency=...), Photon('gamma', ...)
+_unit = .5 + tophat
+radio = Photon(name="radio", frequency = Quantity(3 * _unit, giga * Hertz))
+microwave = Photon(name="microwave",
+                   wavelength = Quantity(1 + 99 * _unit, milli * metre),
+                   frequency = Quantity(1 + 99 * _unit, 3 * giga * Hertz))
+infrared = Photon(name="infra-red",
+                  wavelength = Quantity(.7 + 999.3 * _unit, micro * metre),
+                  frequency = Quantity(.3 + 399.7 * _unit, tera * Hertz))
+ultraviolet = Photon(name="ultra-violet",
+                     wavelength = Quantity(10 + 390 * _unit, nano * metre),
+                     frequency = Quantity(.75 + 29.25 * _unit, peta * Hertz))
+Xray = Photon(name="X-ray",
+              wavelength = Quantity(.01 + 9.99 * _unit, nano * metre),
+              frequency = Quantity(.01 + 9.99 * _unit, 3 * exa * Hertz))
+gamma = Photon(name="gamma", wavelength = Quantity(10 * _unit, pico * metre))
+del _unit
 
 class Fermion (Particle):
     def _lazy_get_spin_(self, ignored, default=Quantum.hbar/2):
@@ -584,7 +605,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.12  2005-01-16 19:39:25  eddy
+ Revision 1.13  2005-01-28 01:29:09  eddy
+ Added extra-visible specrum, thanks to NASA.
+
+ Revision 1.12  2005/01/16 19:39:25  eddy
  Cleaner presentation of the visible spectrum.
 
  Revision 1.11  2004/02/17 00:14:47  eddy
