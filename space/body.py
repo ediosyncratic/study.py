@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.7 2005-03-13 16:22:04 eddy Exp $
+$Id: body.py,v 1.8 2005-03-13 21:30:51 eddy Exp $
 """
 
 from basEddy import value
@@ -350,10 +350,20 @@ class Planet (Planetoid):
         try: g, r, m = surface.gravity, surface.radius, self.GM
         except AttributeError: pass
         else: g.observe(m/r**2)
+
+class Galaxy (Object): pass
+class Star (Body):
+    __upinit = Body.__init__
+    def __init__(self, name, distance, **what):
+        apply(self.__upinit, (name,), what)
+        self.distance = distance * year.light
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.7  2005-03-13 16:22:04  eddy
+Revision 1.8  2005-03-13 21:30:51  eddy
+Add Galaxy and Star.
+
+Revision 1.7  2005/03/13 16:22:04  eddy
 Deal with issues caused by private namespace collision for two classes called Object !
 Also move an import line later, since we now can.
 
