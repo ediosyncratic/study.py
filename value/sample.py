@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.14 2003-01-26 16:03:25 eddy Exp $
+$Id: sample.py,v 1.15 2003-04-20 14:53:35 eddy Exp $
 """
 
 class _baseWeighted:
@@ -871,15 +871,21 @@ class repWeighted(_baseWeighted):
 
         # assert weight > total or (lo, hi) == (0, top), 'while loop exit'
 
-        # So, how wide is this range ?
-        # Separation between end-points plus the tail of each end-band:
-        width = row[hi-1] - row[lo]
-        if hi < top: width = width + .5 * (row[hi] - row[hi-1])
-        elif top > 1: width = width + row[-1] - row[-2]
-        if lo > 0: width = width + .5 * (row[lo] - row[lo-1])
-        elif top > 1: width = width + row[1] - row[0]
+        # So, how wide is this range ?  Identify nominal end-points:
+        if hi < top: right = .5 * (row[hi] + row[hi-1])
+        elif top > 1: right = 2 * row[-1] - row[-2]
+        else: right = row[hi-1]
 
-        return weight, width
+        if lo > 0: left = .5 * (row[lo] + row[lo-1])
+        elif top > 1: left = 2 * row[0] - row[1]
+        else: left = row[lo]
+
+        # Expand to embrace about:
+        assert left <= right
+        if right < about: right = about
+        elif left > about: left = about
+
+        return weight, right - left
 
     def __unit(self, what):
         """Returns a suitable power of 10 for examining what."""
@@ -1466,7 +1472,14 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.14  2003-01-26 16:03:25  eddy
+  Revision 1.15  2003-04-20 14:53:35  eddy
+  Fix to width-computation in repWeighted.__embrace, so as to ensure
+  correct rounding when the half-width interval fails to embrace the
+  target value; either because it's outside the distribution, or because
+  enough weight was on the weight-point nearest it.  Fixes rounding bug
+  first noticed in tophat**2's repr being "0".
+
+  Revision 1.14  2003/01/26 16:03:25  eddy
   Bug-fix so .between() copes if input sequence includes some positions
   less than all cut-points of our distribution (i.e. our result needs to
   begin with some zeros).
