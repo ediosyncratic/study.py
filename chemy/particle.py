@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.15 2005-03-21 22:49:36 eddy Exp $
+$Id: particle.py,v 1.16 2005-03-21 23:46:03 eddy Exp $
 """
 
 from const import *
@@ -448,7 +448,27 @@ microwave = Photon(name="microwave",
                    frequency = Quantity(1 + 99 * _unit, 3 * giga * Hertz))
 infrared = Photon(name="infra-red",
                   wavelength = Quantity(.7 + 999.3 * _unit, micro * metre),
-                  frequency = Quantity(.3 + 399.7 * _unit, tera * Hertz))
+                  frequency = Quantity(.3 + 399.7 * _unit, tera * Hertz),
+                  near=Photon(name='near infra-red',
+                              # (.7-1) to 5 microns
+                              wavelength=Quantity(.7 + 4.3 * _unit, micro * metre)),
+                  mid=Photon(name='mid infra-red',
+                             # 5 to (25-40) microns
+                             wavelength=Quantity(5 + 35 * _unit, micro * metre)),
+                  far=Photon(name = 'far infra-red',
+                             # (25-40) to (200-350) microns
+                             wavelength = Quantity(25 + 325 * _unit, micro * metre)),
+                  __doc__="""Infra-Red Light
+
+The infra-red spectrum is loosely divided into three bands - near, mid and far - though
+boundaries are even more subjective than those for the visible spectrum.  Near infra-red
+over-laps with the red end of the visible spectrum, but its long-wavelength boundary is
+set by the atmosphere: air is transparent to it.  The longer wavelengths can only be used,
+for astronomy, from outside Earth's atmosphere.  See
+    http://www.ipac.caltech.edu/Outreach/Edu/Regions/irregions.html
+for further details.
+""")
+# visible fits in here
 ultraviolet = Photon(name="ultra-violet",
                      wavelength = Quantity(10 + 390 * _unit, nano * metre),
                      frequency = Quantity(.75 + 29.25 * _unit, peta * Hertz))
@@ -628,7 +648,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.15  2005-03-21 22:49:36  eddy
+ Revision 1.16  2005-03-21 23:46:03  eddy
+ Added some data on the infra-red.
+
+ Revision 1.15  2005/03/21 22:49:36  eddy
  Doc/coment burble, expanded red out to 780 micron.
 
  Revision 1.14  2005/02/14 08:08:04  eddy
