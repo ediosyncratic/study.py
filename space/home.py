@@ -1,30 +1,30 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.5 2005-03-13 15:12:27 eddy Exp $
+$Id: home.py,v 1.6 2005-03-13 16:33:47 eddy Exp $
 """
 
 from basEddy.units import *
-from space.body import Body, discreteBody, Planet
+from space import body
 from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
 
 # some rough data from my Nuffield data book:
-MilkyWay = Body('Milky Way', mass=1e41 * kg,
-                        # given as 1e21 metre by Nuffield,
-                        # 100,000 light years by /apod/ap030103.html
-                        radius=(.97 + .06 * tophat) * zetta * metre,
-                        starcount=200 * giga, # same apod, assuming billion is giga
-                        # and from an article in el Reg:
-                        age=(13.6 + 0.8 * tophat) * giga * year)
+Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
+                       temperature = 4 * Kelvin)
+MilkyWay = body.Object('Milky Way', mass=1e41 * kg,
+                       # given as 1e21 metre by Nuffield,
+                       # 100,000 light years by /apod/ap030103.html
+                       radius=(103 + 6 * tophat) * kilo * year.light,
+                       starcount=200 * giga, # same apod, assuming US billion, i.e. giga
+                       # and from an article in el Reg:
+                       age=(13.6 + 0.8 * tophat) * giga * year)
 # which is part of a local group of galaxies, which moves at about 600
 # kilometers per second relative to the primordial (cosmic background)
 # radiation: see http://antwrp.gsfc.nasa.gov/apod/ap030209.html
-Universe = Body('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
-                        temperature = 4 * Kelvin)
 
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's orbit
 # can't be specified until Sun has been created.
-Sun = discreteBody(
+Sun = body.Body(
     'Sun',
     orbit = Orbit(MilkyWay,
 		  3e4 * year.light,
@@ -87,9 +87,6 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
     type = 'G2 V',
     magnitude = qSample({}, low=4.79, high=4.83), # K&L, Moore
     aliases = ('Sol',))
-
-del Body, discreteBody
-SolarConstant = Sun.bright
 
 AU = AstronomicalUnit = Quantity(
     93, mega * mile,
@@ -171,44 +168,45 @@ def IAocean(name, area=None, depth=None, *parts, **what):
     return apply(Ocean, parts, what)
 
 # My home planet:
-Earth = Planet('Earth',
-               Surface(Quantity(qSample(6367650 + 21476 * Sample.tophat,
-                                        best=6371020, low=6352400, high=6384100),
-                                metre, """Radius of the Earth's surface.
+Earth = body.Planet(
+    'Earth',
+    Surface(Quantity(qSample(6367650 + 21476 * Sample.tophat,
+                             best=6371020, low=6352400, high=6384100),
+                     metre, """Radius of the Earth's surface.
 
 This is how far mean sea level is from the Earth's centre; which varies
 significantly between the poles and equator, thanks to centrifugal force.  I've
 included, as .low and .high, the extremes of the radius at the Earth's solid
 surface, 4.5 km below sea level in the Arctic and 5.89 km above sea level at the
 top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
-                       # radius should also be nauticalMile * 60 * 180 / math.pi
+            # radius should also be nauticalMile * 60 * 180 / math.pi
 
-                       kg.force / kg, # by definition, from special property of masses
+            kg.force / kg, # by definition, from special property of masses
 
-                       Spin(Quantity(day * (1 - day / year),
-                                     doc="""Rotational period of Earth wrt the fixed stars""",
-                                     sample = (23 * hour + 56 * minute + 4 * second,),
-                                     fullname="Sidereal Day"),
-                            23.4, axis = 'Polaris'),
+            Spin(Quantity(day * (1 - day / year),
+                          doc="""Rotational period of Earth wrt the fixed stars""",
+                          sample = (23 * hour + 56 * minute + 4 * second,),
+                          fullname="Sidereal Day"),
+                 23.4, axis = 'Polaris'),
 
-                       # Ocean
-                       SurfacePart(IAocean('Pacific', 68, 2.6),
-                                   IAocean('Atlantic', 41.5, 2.1),
-                                   IAocean('Indian', 30, 2.4),
-                                   name = 'Ocean',
-                                   fresh = Object(ice = 23.67e18 * kg,
-                                                  water = .5e18 * kg,
-                                                  steam = 14.17e15 * kg)),
+            # Ocean
+            SurfacePart(IAocean('Pacific', 68, 2.6),
+                        IAocean('Atlantic', 41.5, 2.1),
+                        IAocean('Indian', 30, 2.4),
+                        name = 'Ocean',
+                        fresh = Object(ice = 23.67e18 * kg,
+                                       water = .5e18 * kg,
+                                       steam = 14.17e15 * kg)),
 
-                       # Land
-                       SurfacePart(IAcontinent('Africa', 11.5),
-                                   LandMass(IAcontinent('Asia', 16.5),
-                                            IAcontinent('Europe', 3.8),
-                                            name = 'Eurasia'),
-                                   LandMass(IAcontinent('South America', 7.035),
-                                            IAcontinent('North America', 9.385),
-                                            name = 'America'),
-                                   IAcontinent('Antarctica', 5.1),
+            # Land
+            SurfacePart(IAcontinent('Africa', 11.5),
+                        LandMass(IAcontinent('Asia', 16.5),
+                                 IAcontinent('Europe', 3.8),
+                                 name = 'Eurasia'),
+                        LandMass(IAcontinent('South America', 7.035),
+                                 IAcontinent('North America', 9.385),
+                                 name = 'America'),
+                        IAcontinent('Antarctica', 5.1),
                                    IAcontinent('Australia', 2.971021),
                                    IAcontinent('Greenland', .84),
                                    IAisland('islands', 2.5,
@@ -236,61 +234,59 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                                                              low = 0, high = 8840),
                                                      metre)),
 
-                       # misc other data:
-                       rainfall = .125e18 * kg / year,
-                       flattening = 1 / 298.25,
-                       albedo = .39, # so 61% of incident radiation is absorbed
-                       nature = { 'Land': .292, 'Ocean': .708 },
-                       material = "basalt, granite, water",
-                       magnetism = Object(
-                           sampled = 'London, 1960',
-                           horizontal = 1.87e-5 * Tesla,
-                           vertical = 4.36e-5 * Tesla),
+            # misc other data:
+            rainfall = .125e18 * kg / year,
+            flattening = 1 / 298.25,
+            albedo = .39, # so 61% of incident radiation is absorbed
+            nature = { 'Land': .292, 'Ocean': .708 },
+            material = "basalt, granite, water",
+            magnetism = Object(
+    sampled = 'London, 1960',
+    horizontal = 1.87e-5 * Tesla,
+    vertical = 4.36e-5 * Tesla),
 
-                       altitude = Quantity(qSample({-4000: 3, 2000: 1},
-                                                   low = -10915, high = 8882),
-                                           metre, """\
+            altitude = Quantity(qSample({-4000: 3, 2000: 1},
+                                        low = -10915, high = 8882),
+                                metre, """\
 Variation in Earth's surface altitude, relative to sea level.
 
 I know the extremes, but have only a vague knowledge of the distribution in
 between.  Note that the 19.8 km range is comparable with the variation in
 Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
 
-               Orbit(Sun,
-                     Quantity(
-                         AU,
-                         sample = [
-                             8.3 * minute.light,
-                             # Somewhere, I've also seen .155 * tera * metre #'
-                             .149600 * tera * metre ]), # K&L, NASA and some other source ...
-                     Spin(year, 0, plane='Ecliptic'),
-                     .0167, # eccentricity; c.f. perihelion & apehelion, below.
-                     __doc__ = """The Earth's orbit about the Sun.
+    Orbit(Sun,
+          Quantity(AU,
+                   sample = [ 8.3 * minute.light,
+                              #' Somewhere, I've also seen .155 * tera * metre
+                              .149600 * tera * metre ]), # K&L, NASA and some other source ...
+          Spin(year, 0, plane='Ecliptic'),
+          .0167, # eccentricity; c.f. perihelion & apehelion, below.
+          __doc__ = """The Earth's orbit about the Sun.
 
 The plane of this orbit is known as the ecliptic: all other orbits' inclinations
 are given relative to this.  The mean radius of this orbit is known as the
 astronomical unit; see AU.__doc__ for details. """),
 
-               discovery=Discovery("the earliest life-forms", -3e9,
-                                   etymology="""Earth
+    discovery=Discovery("the earliest life-forms", -3e9,
+                        etymology="""Earth
 
 From ancient Indo-European 'er', whence sprang lots of words for soil, land,
 ground ... earth.
 """),
 
-               magnetic = Object(dipole = 8.1e22 * Ampere * metre * metre),
-               mass = 5.976e24 * kilogramme,
-               density = 5.518 * kilogramme / litre,
-	       age = 1e17 * second, # Nuffield, approx
-               Atmosphere = Object(mass = 5.27e18 * kilogramme, pressure = bar,
-                                   composition = { "N2": .78, "O2": .21 }),
+    magnetic = Object(dipole = 8.1e22 * Ampere * metre * metre),
+    mass = 5.976e24 * kilogramme,
+    density = 5.518 * kilogramme / litre,
+    age = 1e17 * second, # Nuffield, approx
+    Atmosphere = Object(mass = 5.27e18 * kilogramme, pressure = bar,
+                        composition = { "N2": .78, "O2": .21 }),
 
-               Core = Object(name = "Earth's core",
-                             surface = Object(radius = 3.488e6 * metre,
-                                              flattening = 1/390.),
-                             mass = 1.88e24 * metre,
-                             density = 10.72 * kilogramme / litre),
-               aliases = ('Terra', 'Gaia'))
+    Core = Object(name = "Earth's core",
+                  surface = Object(radius = 3.488e6 * metre,
+                                   flattening = 1/390.),
+                  mass = 1.88e24 * metre,
+                  density = 10.72 * kilogramme / litre),
+    aliases = ('Terra', 'Gaia'))
 
 Earth.surface.radius.observe(6.37814 * mega * metre) # NASA
 Earth.mass.observe(5.9742e24 * kilogramme)
@@ -299,14 +295,12 @@ Earth.orbit.radius.observe(Quantity(qSample({},
                                             high = 152.1e9, # aphelion
                                             best = 1000001017.8 * 149.597871), # mean
                                     metre))
+
+del IAcontinent, IAisland, IAocean
 
-def KLsurface(radius, gravity, spin, **what):
+def KLsurface(radius, gravity, spin, S=Surface, G=Earth.surface, **what):
     """As Surface, but with radius and gravity scaled to Earth = 1."""
-    return apply(Surface,
-                 (radius * Earth.surface.radius,
-                  gravity * Earth.surface.gravity,
-                  spin),
-                 what)
+    return apply(S, (radius * G.radius, gravity * G.gravity, spin), what)
 
 # Sol: reprise
 Sun.also(
@@ -321,15 +315,16 @@ Sun.surface.radius.observe(6.96e8 * metre)
 Sun.mass.observe(1.9891e30 * kilogramme) # over 700 times the sum of all the planets' masses
 # </bootstrap>
 
-def KLplanet(name, surface, orbit, mass, density, **what):
+def KLplanet(name, surface, orbit, mass, density, P=body.Planet, **what):
     """As Planet, but with mass scaled by that of the earth and density in g/cc"""
     what['mass'] = Earth.mass * mass
     what['density'] = density * kilogramme / litre
-    return apply(Planet, (name, surface, orbit), what)
+    return apply(P, (name, surface, orbit), what)
 
 # Kaye & Laby also give, for orbits, synodic periods and longitudes of node and
 # perihelion (closest approach).  Several of the following also get .observe
 # applied to some of their data, giving the /usr/share/misc/units value.
+del body
 
 Moon = KLplanet('Moon',
                 KLsurface(.272, .17, Spin(29.4 * day, 5.2), material="silicates"),
@@ -358,11 +353,16 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
-del Orbit, Spin, Discovery, SurfacePart, Ocean, Island, Continent, LandMass, IAcontinent, IAisland, IAocean
+del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.5  2005-03-13 15:12:27  eddy
+Revision 1.6  2005-03-13 16:33:47  eddy
+Renamed body's exports, used them as body.* to avoid clash over Object.
+Dumped SolarConstant.  Cleaned up a few bits, notably: can now del Surface;
+and moved del IA* earlier.
+
+Revision 1.5  2005/03/13 15:12:27  eddy
 Moved PlanetList and Planets out to __init__.py
 
 Revision 1.4  2005/03/12 17:31:29  eddy
