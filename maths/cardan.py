@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.4 2003-07-26 13:19:47 eddy Exp $
+$Id: cardan.py,v 1.5 2003-07-26 15:20:07 eddy Exp $
 """
 
 from math import cos, acos, pi
@@ -32,7 +32,7 @@ def Cardan(cube, square, linear, constant):
         disc = linear**2 -4. * square * constant
         if disc < 0:
             raise ValueError, 'Positive definite quadratic has no real roots'
-        mid, gap = -linear * 1. / square, disc**.5 / square
+        mid, gap = -linear * .5 / square, .5 * disc**.5 / square
         return mid+gap, mid-gap
 
     # deal with easy special case:
@@ -98,7 +98,10 @@ def cardan(u, s, i, c, tol=1e-14):
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.4  2003-07-26 13:19:47  eddy
+Revision 1.5  2003-07-26 15:20:07  eddy
+missed out the factor of 1/2 in the quadratic special-case !
+
+Revision 1.4  2003/07/26 13:19:47  eddy
 Halved F, introduced cuberoot() to deal with a gotcha.
 
 Revision 1.3  2003/07/26 12:49:03  eddy
