@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.11 2004-02-17 00:14:47 eddy Exp $
+$Id: particle.py,v 1.12 2005-01-16 19:39:25 eddy Exp $
 """
 
 from const import *
@@ -307,6 +307,14 @@ class Boson (Particle):
         return default
 
 class Photon (Boson):
+    """Photons are the irreducible corpuscles of light.
+
+Isaac would have been proud.
+The visible spectrum ranges from .4 to .7 microns.  See, e.g.,
+http://www.sundog.clara.co.uk/rainbows/primcol.htm
+on the site that persuaded me to broaden the spectrum to 380--700 nm
+"""
+
     speed = Vacuum.c
     speed.document("""The speed of light in vacuum""")
 
@@ -385,18 +393,26 @@ class Photon (Boson):
 
         return self.energy / Vacuum.c
 
-light = Photon(spectrum = ( # all rather approximate; see Nuffield, pp46--47.
-    Photon(name='red', wavelength=Quantity(sample(642, 18), nano*metre)),
-    Photon(name='orange', wavelength=Quantity(sample(615, 9), nano*metre)), # but see Na orange
-    Photon(name='yellow', wavelength=Quantity(sample(598, 8), nano*metre)),
-    # the human eye's peak response is at 550nm
-    Photon(name='green', wavelength=Quantity(sample(555, 35), nano*metre)),
-    Photon(name='cyan', wavelength=Quantity(sample(505, 15), nano*metre)), # blue-green
-    Photon(name='blue', wavelength=Quantity(sample(465, 25), nano*metre)),
-    Photon(name='indigo', wavelength=Quantity(sample(430, 10), nano*metre)), # dk blue
-    Photon(name='violet', wavelength=Quantity(sample(408, 12), nano*metre)))) # purple
+def photon(lo, hi, name, **what):
+    what['name'] = name
+    what['wavelength'] = Quantity(.5 * (hi + lo) + tophat * (hi - lo), nano * metre)
+    return apply(Photon, (), what)
+
+visible = photon(380, 700, 'visible',
+                 spectrum = ( # all rather approximate; see Nuffield, pp46--47.
+    photon(624, 700, 'red'),
+    photon(606, 624, 'orange'), # but see Na orange
+    photon(590, 606, 'yellow'),
+    photon(520, 590, 'green'), #' the human eye's peak response is at 550nm
+    photon(490, 520, 'cyan'), # blue-green
+    photon(440, 490, 'blue'),
+    photon(420, 440, 'indigo'), # dk blue
+    photon(380, 420, 'violet')), # purple
+                 # ruby ? absorb green -> emit red channel ...
+                 # Flagrantly contradicting spectrum (and should be two lines):
+                 sodium = Photon(name='sodium orange', wavelength=590*nano*metre))
+
 # Photon(name='infra-red', frequency=...), Photon('gamma', ...)
-Photon(name='sodium orange', wavelength=590*nano*metre) # flagrantly contradicting spectrum
 
 class Fermion (Particle):
     def _lazy_get_spin_(self, ignored, default=Quantum.hbar/2):
@@ -421,6 +437,10 @@ class Lepton (Fermion):
     """Lepton: primitive fermion. """
 
     _charge = -3
+    class __item (Lazy):
+        def _lazy_get_positron_(self, ignored): return self.electron.anti
+    item = __item(lazy_aliases={'anti-electron': 'positron'})
+    del __item
 
     __upinit = Fermion.__init__
     def __init__(self, *args, **what):
@@ -465,7 +485,7 @@ class Family (Object):
 	raise IndexError, 'A quark/lepton family has only four members'
 
 def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm,
-	     mev=mega*eV/light.speed**2):
+	     mev=mega*eV/Photon.speed**2):
 
     """Deciphering Kaye&Laby p449.
 
@@ -560,11 +580,14 @@ proton, neutron, electron = Nucleon.item.proton, Nucleon.item.neutron, Lepton.it
 # Some atom-scale constants:
 radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron.mass
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
-Rydberg = (light.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
+Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.11  2004-02-17 00:14:47  eddy
+ Revision 1.12  2005-01-16 19:39:25  eddy
+ Cleaner presentation of the visible spectrum.
+
+ Revision 1.11  2004/02/17 00:14:47  eddy
  Noted muon's magnetic dipole, added Nucleon.amuk, AMU/k.
  Noted neutron's half life, mumbled about pion.
 
