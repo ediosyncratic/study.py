@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.27 2004-12-30 14:42:55 eddy Exp $
+$Id: sample.py,v 1.28 2004-12-30 20:42:51 eddy Exp $
 """
 
 class _baseWeighted:
@@ -59,7 +59,7 @@ class _baseWeighted:
     These are all alloyed together to build the final class, Weighted, which is
     what Sample actually uses. """
 
-    # these aren't ideal, but it's sometimes nice to know highest and lowest keys.
+    # These aren't ideal, but it's sometimes nice to know highest and lowest keys (see Sample.__div__).
     def high(self): return max(self.keys())
     def low(self): return min(self.keys())
 
@@ -1526,9 +1526,15 @@ class Sample (Object):
     def __rmul__(self, what,
                  f=lambda x, w, m=_multiply: m(w, x)): return self.join(f, what)
 
-    # division is slightly messier, thanks to ZeroDivisionError
+    # Division is slightly messier, thanks to ZeroDivisionError
+    # In principle, we should use true .high and .low (which qSample deploys),
+    # but the following uses the ones from __weigh (if available) since they're
+    # all we need for the algorithms to work; this is moderately dodgy.
     def __div__(self, what, f=_divide):
-        try: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
+        try:
+            try: w = what.__weigh
+            except AttributeError: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
+            else: lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
         except AttributeError:
             if not what:
                 raise ZeroDivisionError, ('Dividing by zero', self, what)
@@ -1539,7 +1545,8 @@ class Sample (Object):
         return self.join(f, what)
 
     def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
-        lo, hi = cmp(self.low, 0), cmp(self.high, 0)
+        w = self.__weigh
+        lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
         if lo == 0 == hi or lo * hi < 0:
             raise ZeroDivisionError, ('Dividing by interval about 0', what, self)
 
@@ -1634,6 +1641,9 @@ class Sample (Object):
         return result
 
     def _lazy_get_best_(self, ignored):
+        # It might make sense to take the candidate nearest self's
+        # distribution's median ... i.e. use the distribution rather than just
+        # the ordering in self.__best; but I'm not doing this yet !
         b = self.__best
         if b: b.sort()
         else: return self.mean
@@ -1726,7 +1736,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.27  2004-12-30 14:42:55  eddy
+  Revision 1.28  2004-12-30 20:42:51  eddy
+  Bodged Sample division to tolerate distributions that span 0 provided their weights don't ...
+
+  Revision 1.27  2004/12/30 14:42:55  eddy
   Corrected phrasing of interpolator._unit's scale invariance properties.
 
   Revision 1.26  2004/02/15 16:31:12  eddy
