@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.25 2003-09-24 21:29:05 eddy Exp $
+$Id: quantity.py,v 1.26 2004-02-15 15:39:10 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -134,7 +134,7 @@ def _massage_text(text, times,
 
 del _exponent_to_quantifier
 
-from basEddy.sample import Sample, tophat
+from basEddy.sample import Sample
 
 class qSample (Sample):
     # Massage Sample's answers, which use any integer for the exponent
@@ -608,11 +608,14 @@ def base_unit(nom, fullname, doc, **what):
     _terse_dict[nom] = result
     return result
 
-tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset to taste
+tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale and add offset to taste
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.25  2003-09-24 21:29:05  eddy
+ Revision 1.26  2004-02-15 15:39:10  eddy
+ sample.tophat moved to sample.Sample.tophat
+
+ Revision 1.25  2003/09/24 21:29:05  eddy
  Made __unpack_ into a function, not a method;
  tunnel into methods needing it, del once used.
 
