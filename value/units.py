@@ -1,3 +1,4 @@
+# -*- coding: iso-8859-1 -*-
 """Assorted units of measurement.
 
 See SI.py for base units.  This file documents lots of obscure and/or silly
@@ -66,7 +67,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.12 2004-04-03 18:09:26 eddy Exp $
+$Id: units.py,v 1.13 2005-01-16 16:40:47 eddy Exp $
 """
 from SI import *
 
@@ -150,7 +151,7 @@ tex = gram / km # fineness of textiles
 dtex = deci * tex # see also: units.denier
 
 St = Stokes = pow(cm, 2) / second # kinematic viscosity
-Angstrom = .1 * nano * metre    # &Aring;ngstr&ouml;m, aka &Aring;.
+Angstrom = .1 * nano * metre    # Ångstrøm, aka Å (but there's a separate Unicode code-point for the unit ...).
 micron = micro * metre
 fermi = femto * metre
 litre = milli * stere
@@ -179,12 +180,9 @@ R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
 Oe = Oersted = kilo * Ampere / metre / 4 / pi
 # see also particle.py for the electron-Volt, eV
 
-def Centigrade(number): return Kelvin * (number + 273.16)
-def toCentigrade(T): return T/Kelvin - 273.16
-
 Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
-def toFahrenheit(T): return 32 + 1.8 * toCentigrade(T)
+def Centigrade(number): return Kelvin * (number + 273.16)
 
 tonne = kilo * kilogramme
 calorie = 4.1868 * Joule # the thermodynamic calorie (IT), not any other sort.
@@ -639,7 +637,11 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.12  2004-04-03 18:09:26  eddy
+ Revision 1.13  2005-01-16 16:40:47  eddy
+ Made to{Centigrade,Fahrenheit} redundant - temperatures now have an attribute for this.
+ Fixed iso-latin-1 mangled chars
+
+ Revision 1.12  2004/04/03 18:09:26  eddy
  Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
 
  Revision 1.11  2003/09/05 00:22:00  eddy
