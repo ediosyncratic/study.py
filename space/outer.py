@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The Outer Planets of our Solar system
 
-$Id: outer.py,v 1.1 2005-03-12 15:21:04 eddy Exp $
+$Id: outer.py,v 1.2 2005-03-13 18:52:47 eddy Exp $
 """
 
-from basEddy.units import *
+from basEddy.units import tophat, giga, mega, metre, day, hour, minute, year, kg
 from space.home import Sun, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery
 tyr = 365.242198781 * day
@@ -23,13 +23,13 @@ The Romans, like the Greeks, named this planet (which we now know to be the
 largest and most massive) after the king of their gods.
 """),
                    aliases=("Zeus", "Jove"))
-Jupiter.mass.observe(1898.8e24 * kilogramme)
+Jupiter.mass.observe(1898.8e24 * kg)
 Jupiter.surface.radius.observe(72 * mega * metre)
 Jupiter.surface.radius.observe(mega * (71.492 + .001 * tophat) * metre) # NASA
 Jupiter.surface.spin.period.observe(0.41354 * day)
 Jupiter.orbit.spin.period.observe(11.862 * tyr)
 Jupiter.orbit.radius.observe(giga * (778.30 + .1 * tophat) * metre) # NASA
-
+
 Saturn = KLplanet('Saturn',
                   KLsurface(9.41, 1.07, Spin(10 * hour + 14 * minute, 26.7),
                             flattening = .1076),
@@ -47,7 +47,7 @@ Saturn is the most distant planet that can be observed from Earth with the naked
 eye.  It was the first gas giant whose rings got noticed.
 """),
                   aliases=("Cronos",))
-Saturn.mass.observe(568.5e24 * kilogramme)
+Saturn.mass.observe(568.5e24 * kg)
 Saturn.surface.radius.observe(60.5 * mega * metre)
 Saturn.surface.radius.observe(mega * (60.268 + .001 * tophat) * metre) # NASA
 Saturn.surface.spin.period.observe(0.4375 * day)
@@ -60,7 +60,7 @@ Uranus = KLplanet('Uranus',
                   Orbit(Sun, (2886 + .1 * tophat) * giga * metre,
                         Spin(84.75 * year, .773), .047),
                   14.5, 1.30, atmosphere=gassy, discovery=Discovery("Herschel", 1781))
-Uranus.mass.observe(86.625e24 * kilogramme)
+Uranus.mass.observe(86.625e24 * kg)
 Uranus.surface.radius.observe(26.7 * mega * metre)
 Uranus.surface.radius.observe(mega * (25.559 + .001 * tophat) * metre) # NASA
 Uranus.surface.spin.period.observe(0.72 * day) # NASA
@@ -82,7 +82,7 @@ there must be a planet further out than Uranus, to account for observed motions;
 they were mostly ignored, but le Verrier persuaded Galle to check.  On September
 23rd, 1846, Galle found Neptune pretty much exactly where he'd been told to
 look.  A mere 17 days later, Lassell found Triton orbiting it.\n"""))
-Neptune.mass.observe(102.78e24 * kilogramme)
+Neptune.mass.observe(102.78e24 * kg)
 Neptune.surface.radius.observe(24.9 * mega * metre)
 Neptune.surface.radius.observe(mega * (24.764 + .001 * tophat) * metre) # NASA
 Neptune.surface.spin.period.observe(0.67 * day) # NASA
@@ -90,11 +90,13 @@ Neptune.orbit.spin.period.observe(164.798 * tyr)
 Neptune.orbit.spin.period.observe(163.72 * year) # NASA
 Neptune.orbit.radius.observe(giga * (4504.45 + .1 * tophat) * metre) # NASA
 
-del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, tyr, gassy
+del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
+    tophat, giga, mega, metre, day, hour, minute, year, kg, tyr, gassy
 
 _rcs_log = """
 $Log: outer.py,v $
-Revision 1.1  2005-03-12 15:21:04  eddy
-Initial revision
+Revision 1.2  2005-03-13 18:52:47  eddy
+Clean up import/export.
 
+Initial Revision 1.1  2005/03/12 15:21:04  eddy
 """
