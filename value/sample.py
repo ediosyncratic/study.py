@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.21 2003-09-24 21:01:38 eddy Exp $
+$Id: sample.py,v 1.22 2003-09-24 21:25:57 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1470,36 +1470,7 @@ class Sample (Object):
     # Derived classes over-ride this to fiddle behaviour of sums, prods, etc.
     def _sampler_(self, *args, **what): return apply(self.__class__, args, what)
 
-    def __extract_(self, what):
-        try: bok = what.__weigh
-        except AttributeError: return { what: 1 }, what
-        return bok, what.best
-
-    def join(self, func, what):
-        """Combine with another Sample via a two-parameter function.
-
-        First argument is the function, second is the other sample (or a plain
-        number, which will be handled as if it were a single-point sample).  An
-        intermediate distribution is built: for each point in each distribution
-        (self and the other), the product of their weights gives the weight used
-        for the result of applying the function to the two sample points.  The
-        resulting distribution may then be somewhat simplified.  Its best
-        estimate is obtained by applying the function to self's best estimate
-        and that of the other sample. """
-
-        bok, best = self.__extract_(what)
-        return self._sampler_(self.__weigh.combine(bok, func),
-                              best=func(self.best, best))
-
-        # problems arise; a sample * quantity is a sample, not a quantity, so
-        # loses its units !  the underlying __weigh has a quantity as a key
-        # ... if that key has units, the product has no _repr, because
-        # __weigh.round(best) has to compare `best < 0', violating
-        # dimensionality.
-
-        # Work-around: say Quantity(sample) * quantity ...
-
-    # now define arithmetic, using join
+    # now define arithmetic, using join (see below)
 
     # Binary operators:
     def __add__(self, what, f=lambda x, w: x+w): return self.join(f, what)
@@ -1543,10 +1514,44 @@ class Sample (Object):
     def _lazy_get__repr_(self, ignored): return self.__weigh.round(self.best)
     _lazy_get__str_ = _lazy_get__repr_
 
+    # Extractor function (not method) needed by join and __cmp__:
+    def extract(what):
+        try: bok = what.__weigh
+        except AttributeError: return { what: 1 }, what
+        return bok, what.best
+
+    def join(self, func, what, grab=extract):
+        """Combine with another Sample via a two-parameter function.
+
+        First argument is the function, second is the other sample (or a plain
+        number, which will be handled as if it were a single-point sample).  Do
+        not pass more than two arguments.
+
+        An intermediate distribution is built: for each point in each
+        distribution (self and the other), the product of their weights gives
+        the weight used for the result of applying the function to the two
+        sample points.  The resulting distribution may then be somewhat
+        simplified.  Its best estimate is obtained by applying the function to
+        self's best estimate and that of the other sample. """
+
+        bok, best = grab(what)
+        return self._sampler_(self.__weigh.combine(bok, func),
+                              best=func(self.best, best))
+
+        # problems arise; a sample * quantity is a sample, not a quantity, so
+        # loses its units !  the underlying __weigh has a quantity as a key
+        # ... if that key has units, the product has no _repr, because
+        # __weigh.round(best) has to compare `best < 0', violating
+        # dimensionality.
+
+        # Work-around: say Quantity(sample) * quantity ...
+
     # Comparison:
-    def __cmp__(self, what):
-        bok, best = self.__extract_(what)
+    def __cmp__(self, what, grab=extract):
+        bok, best = grab(what)
         return cmp(self.__weigh, bok) or cmp(self.best, best)
+
+    del extract
 
     # Hashing:
     __why_lazy_hash = """Lazy hash value for samples.  Sub-optimal.
@@ -1679,7 +1684,11 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.21  2003-09-24 21:01:38  eddy
+  Revision 1.22  2003-09-24 21:25:57  eddy
+  Turned __extract_ into a function, not a method; tunnelled it into join and
+  __cmp__, del after; shuffled these three together to limit extract's scope.
+
+  Revision 1.21  2003/09/24 21:01:38  eddy
   Tweaks to cope with bigfloat.BigFloat() as sample points.
   Added what*0 to __unit()'s 10. to coerce its type.
   Try parsing str(unit) to compute exponent.
