@@ -1,10 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.1 2005-03-12 15:17:22 eddy Exp $
+$Id: inner.py,v 1.2 2005-03-13 18:47:23 eddy Exp $
 """
 
-from basEddy.units import *
+from basEddy.units import Object, tophat, \
+     giga, mega, year, day, hour, minute, metre, kg, bar
 from space.home import Sun, Earth, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery
 
@@ -21,12 +22,12 @@ From Latin, named for the messenger of the goods; so called because it moves so
 fast.  Compare the element hydrargyrum.
 """))
 
-Mercury.mass.observe(0.33022e24 * kilogramme)
+Mercury.mass.observe(0.33022e24 * kg)
 Mercury.surface.spin.period.observe(58.6462 * day)
 Mercury.surface.radius.observe(2.57 * mega * metre)
-Mercury.surface.radius.observe(mega * (2.4397 + .0001) * metre) # NASA
+Mercury.surface.radius.observe(mega * (2.4397 + .0001 * tophat) * metre) # NASA
 Mercury.orbit.spin.period.observe(86.96 * day)
-
+
 Venus = KLplanet('Venus',
                  # tilt of 177, i.e. nearly 180, means retrograde rotation ...
                  KLsurface(.949, .9, Spin((243.015 + tophat * .01) * day, 177.3),
@@ -41,13 +42,13 @@ Venus = KLplanet('Venus',
 From Latin, named for the goddess of love.  Other civilizations have variously
 named it for love or war deities.
 """))
-Venus.mass.observe(4.8690e24 * kilogramme)
+Venus.mass.observe(4.8690e24 * kg)
 Venus.surface.radius.observe(6.3 * mega * metre)
 Venus.surface.radius.observe(mega * (6.0518 + .0001 * tophat) * metre) # NASA
 Venus.orbit.spin.period.observe(224.68 * day)
-
+
 # Earth goes here ...
-
+
 Mars = KLplanet('Mars',
                 KLsurface(.532, .38, Spin(24 * hour + 37 * minute, 25.2),
                           flattening = .0052, material = "basalt, clays"),
@@ -60,17 +61,19 @@ Mars = KLplanet('Mars',
 
 The Romans named it after their god of war, thanks to its reddish colour.
 """))
-Mars.mass.observe(0.64191e24 * kilogramme)
+Mars.mass.observe(0.64191e24 * kg)
 Mars.surface.spin.period.observe(1.02595675 * day)
 Mars.surface.radius.observe(3.43 * mega * metre)
 Mars.surface.radius.observe(mega * (3.397 + .001 * tophat) * metre) # NASA
 Mars.orbit.spin.period.observe(686.95 * day)
 
-del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface
+del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
+    Object, tophat, giga, mega, year, day, hour, minute, metre, kg, bar
 
 _rcs_log = """
 $Log: inner.py,v $
-Revision 1.1  2005-03-12 15:17:22  eddy
-Initial revision
+Revision 1.2  2005-03-13 18:47:23  eddy
+Clean up import/export, include a missing tophat.
 
+Initial Revision 1.1  2005/03/12 15:17:22  eddy
 """
