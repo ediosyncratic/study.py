@@ -2,7 +2,7 @@
 
 See SI.py for base units.
 
-$Id: units.py,v 1.4 2002-03-21 03:06:18 eddy Exp $
+$Id: units.py,v 1.5 2002-09-23 18:52:44 eddy Exp $
 """
 from SI import *
 
@@ -37,7 +37,11 @@ extract scores about 4.5 k; pure Capsaicin rates over 15,000,000 Scoville Units.
 """)
 
 quid = base_unit('&sterling;', 'Pound Sterling',
-		 """The base unit of British currency.""")
+		 """The base unit of British currency.
+
+Used to be 20 shillings (21 shillings made a Guinea); each shilling was 12
+pence, each penny was four farthings.  A florin was two shillings; a crown was
+five.  Apparently a pound was also called a sovereign. """)
 
 # dimensionless:
 from math import pi
@@ -85,7 +89,13 @@ R.name('R&ouml;ntgen') # also Roentgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi
 eV = 160.21e-21 * Coulomb * Volt # electron-Volt, .16 atto Joules
 
+def Centigrade(number): return Kelvin * (number + 273.16)
+def toCentrigrade(T): return T/Kelvin - 273.16
+
 Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
+def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
+def toFahrenheit(T): return 32 + 1.8 * toCentigrade(T)
+
 tonne = Mass(kilo, kilogramme)
 calorie = 4.1868 * Joule	# the thermodynamic calorie (IT), not any other sort.
 # food talks about `calorie' but means kilo calorie
@@ -515,7 +525,10 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.4  2002-03-21 03:06:18  eddy
+ Revision 1.5  2002-09-23 18:52:44  eddy
+ Expanded sterling's doc.  Added Centigrade and Fahrenheit handlers.
+
+ Revision 1.4  2002/03/21 03:06:18  eddy
  Added Scoville unit of pungency.
 
  Revision 1.3  2002/02/15 16:03:51  eddy
