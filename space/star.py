@@ -5,10 +5,10 @@ Sources:
   http://www.solstation.com/stars/alp-cent3.htm
   comes with good links, and yas more data I haven't finished plundering ;^)
 
-$Id: star.py,v 1.1 2005-03-13 23:55:49 eddy Exp $
+$Id: star.py,v 1.2 2005-03-14 00:01:01 eddy Exp $
 """
 
-from basEddy.units import tophat, mega, year
+from basEddy.units import tophat, kilo, mega, giga, micro, year, day
 from space.body import Object, Galaxy, Star
 from space.common import Discovery, Spheroid, Spin, Orbit
 from space.home import MilkyWay, Sun, AU
@@ -80,6 +80,7 @@ AlphaCentauri.B.orbit = Orbit(AlphaCentauri,
                               (23.7 + .1 * tophat) * AU * frac,
                               Spin(year * (79.90 + .01), 79.23),
                               0.519)
+del frac
 # i.e. they're 23.7 AU apart and mutually orbiting.
 
 # Source says Proxima might be hyperbolic, i.e. eccentricity may exceed 1; but,
@@ -100,7 +101,8 @@ del MilkyWay, Sun, Object, Galaxy, Star
 
 _rcs_log = """
 $Log: star.py,v $
-Revision 1.1  2005-03-13 23:55:49  eddy
-Initial revision
+Revision 1.2  2005-03-14 00:01:01  eddy
+Import/export clean-up.
 
+Initial Revision 1.1  2005/03/13 23:55:49  eddy
 """
