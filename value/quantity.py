@@ -1,17 +1,18 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.12 2001-12-12 15:23:34 eddy Exp $
+$Id: quantity.py,v 1.13 2001-12-12 17:09:23 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
 _quantifier_dictionary = {
-    # see quantifiers in the New Hackers' Dictionary
+    # <q src="New Hackers' Dictionary">
     30: 'grouchi',
     27: 'harpi',
-    # from http://www.weburbia.demon.co.uk/physics/notation.html
+    # <q src="http://www.weburbia.demon.co.uk/physics/notation.html">
     24: 'yotta',
     21: 'zetta',
-    18: 'exa', # Kaye & Laby starts here
+    # <q src="Kaye & Laby">
+    18: 'exa',
     15: 'peta',
     12: 'tera',
     9: 'giga',
@@ -22,13 +23,11 @@ _quantifier_dictionary = {
     -9: 'nano',
     -12: 'pico',
     -15: 'femto',
-    -18: 'atto', # Kaye & Laby stops here.
+    -18: 'atto', # </q>
     -21: 'zepto',
-    -24: 'yocto',
-    # back to quantifiers (suggested by Morgan Burke, probably unratified ;^)
+    -24: 'yocto', # </q>; last two suggested by Morgan Burke (probably unratified ;^)
     -27: 'harpo',
-    -30: 'groucho',
-    # also: zeppo, gummo, chico ?
+    -30: 'groucho' # also: zeppo, gummo, chico ? </q>
     }
 
 _exponent_to_quantifier = {} # needed for qSample._repr
@@ -48,7 +47,7 @@ centi= .01
 import string
 from basEddy.sample import Sample
 
-class qSample(Sample):
+class qSample (Sample):
     def __init__(self, sample=(), *args, **what):
         if isinstance(sample, Sample):
             what.update(sample.dir)
@@ -56,34 +55,36 @@ class qSample(Sample):
 
         apply(Sample.__init__, (self, sample) + args, what)
 
-    def _lazy_get__repr_(self, ignored, _e2q=_exponent_to_quantifier):
+    def __massage_text_(self, times, _e2q=_exponent_to_quantifier):
         """Computes the representation of qSample.
 
-        This has form [sign]digits[.digits][quantifier] where: quantifier may
-        be, for instance, ' mega', meaning the appropriate power of 10, else it
-        is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which case the
-        exponent is a multiple of three.  The mantissa, digits[.digits], is
-        always in the range .1 to 1000 and only exceeds 100 if at least three
-        significant digits are available and, by so doing, we can avoid the need
-        for a [quantifier].  If the exponent is given as [e[sign]digits] and the
-        representation is exact, the e will be an E, e.g. the integer 4000 is
-        4E3.  Exact numbers will also elide their decimal point if it is the
-        last character of the mantissa, rough ones are less likely to. """
+        Single argument, times, is the text to put between a number and a
+        quantifier to serve as `multiplication' in the resulting string.
 
-        # Obtain Sample's answer, which uses any integer for the exponent
-        # and puts digits.[digits] between 1 and 10.
-        ans = Sample._lazy_get__repr_(self, ignored)
+        Result has form [sign]digits[.digits][quantifier] where: quantifier may
+        be, for instance, times + 'mega', meaning the appropriate power of 10,
+        else it is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which
+        case the exponent is a multiple of three.  The mantissa,
+        digits[.digits], is always in the range .1 to 1000 and only exceeds 100
+        if at least three significant digits are available and, by so doing, we
+        can avoid the need for a [quantifier].  If the exponent is given as
+        [e[sign]digits] and the representation is exact, the e will be an E,
+        e.g. the integer 4000 is 4E3.  Exact numbers will also elide their
+        decimal point if it is the last character of the mantissa, rough ones
+        are less likely to. """
+
+        text = Sample._lazy_get__repr_(self, '_repr')
         # Extract the sign, if present, and set it aside; we'll put it back as we return
-        if ans[:1] in '-+': sign, ans = ans[:1], ans[1:]
+        if text[:1] in '-+': sign, text = text[:1], text[1:]
         else: sign = ''
 
         # Snip apart mantissa (head) and exponent (tail):
         glue = 'e'
-        try: head, tail = string.split(ans, 'e')
+        try: head, tail = string.split(text, 'e')
         except ValueError:
-            try: head, tail = string.split(ans, 'E')
-            except ValueError: head, tail = ans, '0'
-            else: glue = 'E'
+            try: head, tail = string.split(text, 'E')
+            except ValueError: head, tail = text, '0'
+            else: glue = 'E' # value is exact
 
         # Decode (string) tail as an (integer) exponent:
         exponent = string.atoi(tail)
@@ -104,13 +105,19 @@ class qSample(Sample):
             else: head = '.0' + down
 
         # Now, about the exception for 400 rather than .400e3 (but .40e3 is .40 * kilo)
-        if exponent == 3 and head[0] == '.' and len(head) > 3:
-            # head is '.ddd' or longer with 'e3' to follow
-            head = head[1:4] + '.' + head[4:]
-            exponent = 0
+        if exponent == 3 and head[0] == '.':
+            if len(head) > 3:
+                # head is '.ddd' or longer with 'e3' to follow
+                head = head[1:4] + '.' + head[4:]
+                exponent = 0
+            # if value is exact, we can treat implicit trailing zeros as significant ...
+            elif glue == 'E':
+                # head is '.dd' or shorter with 'E3' to follow
+                head = head[1:] + '0' * (4 - len(head)) # + '.' elided; about to be ditched.
+                exponent = 0
 
-        # Ditch trailing '.' if e is E
-        if head[-1] == '.' and glue == 'E': head = head[:-1]
+        # Ditch trailing '.' if value is exact:
+	if head[-1] == '.' and glue == 'E': head = head[:-1]
 
         # Finally, transform 'e[sign]prial' into a name, if we have one for it:
         # e.g. 'e6' -> ' mega'
@@ -118,11 +125,16 @@ class qSample(Sample):
             tail = 'e%+d' % exponent
             try: mul = _e2q[tail]
             except KeyError: tail = glue + `exponent`
-            else: tail = ' * ' + mul
+            else: tail = times + mul
         else:
             tail = ''
 
         return sign + head + tail
+
+    # Massage Sample's answers, which use any integer for the exponent
+    # and put digits.[digits] between 1 and 10.
+    def _lazy_get__repr_(self, ignored): return self.__massage_text_(' * ')
+    def _lazy_get__str_(self, ignored): return self.__massage_text_(' ')
 
 del _exponent_to_quantifier
 
@@ -389,16 +401,12 @@ class Quantity(Object):
     # lazy string and representation lookups:
 
     def __str__(self): return self._full_str
-    # short-form, e.g. 9.81 m.kg/s**2
+    # short-form, e.g. 9.81 micro m.kg/s**2
     def _lazy_get__unit_str_(self, ignored): return self.unit_string()
-    def _lazy_get__number_str_(self, ignored):
-	ans = str(self.__scale) or '?'
-	if '*' in ans: # '[0-9.]+ \* quantifier'
-	    ans = string.join(map(string.strip, string.splitfields(ans, '*')))
-	return ans
+    def _lazy_get__number_str_(self, ignored): return str(self.__scale) or '?'
 
     def __repr__(self): return self._full_repr
-    # valid python expression, full names: e.g. 9.81 * metre*kilogramme / second**2
+    # valid python expression, full names: e.g. 9.81 * micro * metre*kilogramme / second**2
     def _lazy_get__number_repr_(self, ignored): return `self.__scale`
 
     def _lazy_get__full_str_(self, ignored):
@@ -548,7 +556,12 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.12  2001-12-12 15:23:34  eddy
+ Revision 1.13  2001-12-12 17:09:23  eddy
+ Pulled back qSample's _str and _repr to work via a shared method with
+ alternate multiplier.  Refined the e3 exception to work with exact
+ values (which are precise enough).
+
+ Revision 1.12  2001/12/12 15:23:34  eddy
  buried _exponent_to_quantifier in argument tunnel so I can del it.
  Removed gratuitous punctuation from '2.54 * centi' as _number_str.
  Some minor tidy-up.
