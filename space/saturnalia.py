@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.2 2005-03-12 17:46:04 eddy Exp $
+$Id: saturnalia.py,v 1.3 2005-03-15 21:24:05 eddy Exp $
 """
 
 from basEddy.units import mega, metre, km, tophat
@@ -37,11 +37,13 @@ Epimetheus = NASAmoon("Epimetheus", Saturn, Discovery("Fountain et al.", 1980, s
                       151.42, 0.69, NASAshell(69, 55, 55), "ice?", .0055, .63)
 Helene = NASAtrojan("Helene", Discovery("Laques, Lecacheux", 1980, source="Voyager 1"),
                     Dione, '+', NASAshell(18, 16, 15), "ice?")
-# had to guess which of these leads and which follows ...
+# I had to guess which of these leads and which follows ...
+# http://antwrp.gsfc.nasa.gov/apod/ap020519.html
+# appears to indicate Telesto ahead, Calypso behind.
 Telesto = NASAtrojan("Telesto", Discovery("Smith et al.", 1980, source="Voyager 1"),
-                     Tethys, '-', NASAshell(15, 12.5, 7.5), "ice?")
+                     Tethys, '+', NASAshell(15, 12.5, 7.5), "ice?")
 Calypso = NASAtrojan("Calypso", Discovery("Pascu et al.", 1980, source="Voyager 1"),
-                     Tethys, '+', NASAshell(15, 8, 8), "ice?")
+                     Tethys, '-', NASAshell(15, 8, 8), "ice?")
 Atlas = NASAmoon("Atlas", Saturn, Discovery("Terrile", 1980, source="Voyager 1"),
                  137.67, 0.60, NASAshell(18.5, 17.2, 13.5), "ice?")
 _tmp = Discovery("Collins", 1980, source="Voyager 1")
@@ -91,7 +93,10 @@ del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav
 
 _rcs_log = """
 $Log: saturnalia.py,v $
-Revision 1.2  2005-03-12 17:46:04  eddy
+Revision 1.3  2005-03-15 21:24:05  eddy
+New source for Telesto/Calypso ordering.
+
+Revision 1.2  2005/03/12 17:46:04  eddy
 Mention the centre of each Hoop !
 
 Initial Revision 1.1  2005/03/12 15:51:02  eddy
