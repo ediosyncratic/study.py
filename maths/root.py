@@ -1,7 +1,7 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
-$Id: root.py,v 1.4 2004-04-25 17:10:42 eddy Exp $
+$Id: root.py,v 1.5 2004-04-25 17:11:45 eddy Exp $
 """
 
 class Search:
@@ -61,7 +61,7 @@ class Search:
             while data and not data[0][0]: data = data[1:]
 
         # convert to slopes and find median:
-        data = map(lambda k, v: v/k, data)
+        data = map(lambda (k,v): v/k, data)
         data.sort()
         mid, bit = divmod(len(data), 2)
         if bit: return data[mid]
@@ -147,7 +147,10 @@ class Search:
 
 _rcs_log = """
  $Log: root.py,v $
- Revision 1.4  2004-04-25 17:10:42  eddy
+ Revision 1.5  2004-04-25 17:11:45  eddy
+ correct punctuation in a lambda
+
+ Revision 1.4  2004/04/25 17:10:42  eddy
  Make logrange less wasteful.  Get gradient's chord-filtering right.
  Use min instead of .sort() and [0].  Added __broaden for when slope is too low.
 
