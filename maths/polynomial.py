@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.4 2003-08-04 22:28:36 eddy Exp $
+$Id: polynomial.py,v 1.5 2003-08-10 20:29:37 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -101,8 +101,10 @@ class Polynomial (Lazy):
         # self.__coefs should now be immutable.
 
     # Coefficients only require the ability to add, multiply and divmod.
-    def _get_coeff(val, oktypes=(types.ComplexType, types.FloatType, types.IntType, types.LongType)):
-        if type(val) in oktypes: return val + 0.
+    def _get_coeff(val, oktypes=(types.IntType, types.ComplexType, types.FloatType, types.LongType)):
+        if type(val) in oktypes:
+            if val == long(val): return long(val)
+            return val
         elif hasattr(val, '__add__') and hasattr(val, '__mul__'):
             # This means we can use polynomials as coefficients ...
             # likewise, linear maps, &c.
@@ -276,7 +278,11 @@ class Polynomial (Lazy):
 	return Polynomial(term)
 
     __rmul__ = __mul__ # abelian multiplication
-    def __div__(self, other): return self.__divmod__(other)[0]
+    def __div__(self, other):
+        q, r = self.__divmod__(other)
+        if r: raise ValueError(self, 'not a multiple of', other)
+        return q
+
     def __mod__(self, other): return self.__divmod__(other)[1]
 
     def __divmod__(self, other):
@@ -292,11 +298,13 @@ class Polynomial (Lazy):
 	got = self.rank
 
 	# We now reduce the rank of r (by at least 1) at each iteration, by
-	# shifting x**got - top**.other (with scaling) from r to q*other; thus, as
+	# shifting other*x**(got-top) times a scalar from r to q*other; thus, as
 	# rank r is finite, it must eventually descend to 0.
 	while got >= top:
-	    scale = Polynomial({ got - top:
-				 r.__coefs[got] / other.__coefs[top] })
+            m, o = r.__coefs[got], other.__coefs[top]
+            rat = m / o
+            if o * rat != m: rat = m * 1. / o
+            scale = Polynomial({ got - top: rat })
 
 	    q, r = q + scale, r - scale * other
 	    if r.coefficient(got) != 0.0:
@@ -305,6 +313,7 @@ class Polynomial (Lazy):
 		del r.__coefs[got]	# => forcefully set to zero
 	    got = r.rank
 
+        assert r == self - q * other
 	return q, r
 
     def __pow__(self, other, ok=lambda i, t=types.IntType: type(i) == t):
@@ -670,7 +679,11 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.4  2003-08-04 22:28:36  eddy
+Revision 1.5  2003-08-10 20:29:37  eddy
+Handle exact whole coeffs as such, via long.  Tweak divmod to cope (and assert
+its post-condition).  Made division fussy; raise ValueError unless exact.
+
+Revision 1.4  2003/08/04 22:28:36  eddy
 Added support for real, imag and conjugate; attributes of a complex
 value, applied to each coefficient of the polynomial separately.
 
