@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.10 2002-10-06 14:20:00 eddy Exp $
+$Id: sample.py,v 1.11 2002-10-06 15:41:52 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1430,12 +1430,15 @@ del _power, _multiply, _divide
 tophat = Sample(Weighted.tophat, best=0,
                 __doc__="""Unit width zero-centred error bar.
 
-                Also known as 0 +/- .5, which can readily be used as a simple
-                way to implement a+/-b as a + 2*b*tophat. """)
+Also known as 0 +/- .5, which can readily be used as
+a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.10  2002-10-06 14:20:00  eddy
+  Revision 1.11  2002-10-06 15:41:52  eddy
+  Lose leading hspace on tophat's doc string.
+
+  Revision 1.10  2002/10/06 14:20:00  eddy
   Doc tweaks to *Weighted, more lambda tweaks, added tophat implementing +/-.5.
   Fixed bug in width induced by recent rehabilitation of high and low.
   Fixed Sample's .modes to always produce a tuple (unlike __call_or_best_).
