@@ -1,6 +1,6 @@
 """Lazy toys.
 
-$Id: lazy.py,v 1.2 2003-04-12 13:57:23 eddy Exp $
+$Id: lazy.py,v 1.3 2004-12-30 12:55:38 eddy Exp $
 """
 # This is in the same spirit as cacheing, but quite independent.
 class Lazy:
@@ -107,6 +107,8 @@ class Lazy:
         # (reveals fascinating detail about python internals, too !)
         # Could use a debug.debugStack() to control those messages ...
 
+        # Fix for bug resulting from subtle changes in coercion semantics at 2.3 or so ...
+        if key == '__coerce__': raise AttributeError # not supplied by class, so punt.
 
         # check not in protected region:
         if self.__recursion_bok_ is None:
@@ -494,7 +496,10 @@ class Delegator:
 
 _rcs_log = """
 $Log: lazy.py,v $
-Revision 1.2  2003-04-12 13:57:23  eddy
+Revision 1.3  2004-12-30 12:55:38  eddy
+Fix twisted bug caused by 2.3 change in coercion semantics.
+
+Revision 1.2  2003/04/12 13:57:23  eddy
 Lots of documentation changes.  Added infrastructure to protect against
 recursion (so lazy lookups can reference one another mutually, on the
 off chance that *one* of the attributes is ther, possibly falling back
