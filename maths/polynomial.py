@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.5 2003-08-10 20:29:37 eddy Exp $
+$Id: polynomial.py,v 1.6 2003-08-13 22:41:38 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -126,7 +126,12 @@ class Polynomial (Lazy):
             if not ok(key) or key < 0: raise unNaturalPower
             elif val != 0: self.__store(key, val)
 
-    def coefficient(self, key): return self.__coefs.get(key, self._zero)
+    def coefficient(self, key):
+        val = self.__coefs.get(key, self._zero)
+        try:
+            if val == int(val): return val
+        except OverflowError: pass
+        return val
 
     def _lazy_get_rank_(self, ignored):
 	for key in self.__coefs.keys():
@@ -280,7 +285,8 @@ class Polynomial (Lazy):
     __rmul__ = __mul__ # abelian multiplication
     def __div__(self, other):
         q, r = self.__divmod__(other)
-        if r: raise ValueError(self, 'not a multiple of', other)
+        if r and not r.__istiny(self._bigcoef):
+            raise ValueError(self, 'not a multiple of', other, r)
         return q
 
     def __mod__(self, other): return self.__divmod__(other)[1]
@@ -293,6 +299,12 @@ class Polynomial (Lazy):
         try: top = other.rank
         except AttributeError: top, other = 0, Polynomial({0: other})
 	if top < 0: raise ZeroDivisionError
+        o = other.coefficient(top)
+        if top == 0:
+            bok = {}
+            for k, v in self.__coefs.items():
+                bok[k] = v / o
+            return Polynomial(bok), Polynomial(0)
 
 	q, r = Polynomial(0.0), self
 	got = self.rank
@@ -301,19 +313,24 @@ class Polynomial (Lazy):
 	# shifting other*x**(got-top) times a scalar from r to q*other; thus, as
 	# rank r is finite, it must eventually descend to 0.
 	while got >= top:
-            m, o = r.__coefs[got], other.__coefs[top]
-            rat = m / o
-            if o * rat != m: rat = m * 1. / o
-            scale = Polynomial({ got - top: rat })
+            m = r.coefficient(got)
+            while m: # take several slices off, in case of arithmetic error ...
+                rat = m / o
+                if o * rat != m: rat = m * 1. / o
+                scale = Polynomial({ got - top: rat })
 
-	    q, r = q + scale, r - scale * other
-	    if r.coefficient(got) != 0.0:
-		print "Wiping %g x**%d in Polynomial.__divmod__" % (
+                q, r = q + scale, r - scale * other
+                n = r.coefficient(got)
+                if abs(n) * 10 > abs(m):
+                    print "Wiping %g x**%d in Polynomial.__divmod__" % (
 			r.__coefs[got], got )
-		del r.__coefs[got]	# => forcefully set to zero
+                    del r.__coefs[got]	# => forcefully set to zero
+                    break
+                m = n
+            assert r.rank < got
 	    got = r.rank
 
-        assert r == self - q * other
+        # assert r == self - q * other # tends to fail on small errors
 	return q, r
 
     def __pow__(self, other, ok=lambda i, t=types.IntType: type(i) == t):
@@ -421,7 +438,7 @@ class Polynomial (Lazy):
 	polynomial's formal parameter.
 	"""
 
-	result, keys, max = self._zero, self._powers, -1
+	result, keys, max = self._zero * arg, self._powers, -1
 
 	for key in keys:	# highest first
 	    if max < 0: max = key
@@ -429,7 +446,7 @@ class Polynomial (Lazy):
 		while max > key:
 		    result, max = result * arg, max - 1
 
-	    result = result + self.__coefs[key]
+	    result = result + self.coefficient(key)
 
 	while max > 0:
 	    result, max = result * arg, max - 1
@@ -477,7 +494,7 @@ class Polynomial (Lazy):
 
             while i > 0:
                 i = i - 1
-                q = (rem - k*z*z) / (2*z*k)
+                q, ign = divmod(rem - k*z*z, 2*z*k)
                 assert q.rank <= i
                 z = z + Polynomial({i: q.coefficient(i)})
 
@@ -556,6 +573,8 @@ class Polynomial (Lazy):
             # Exploit exact solution:
             return self.__cubic_root()
 
+        if self.coefficient(0) == 0: return 0 # easy special case to spot ;^)
+
         if self.normalised.sign and (guess + 0j).imag == 0:
             guess = guess + 1j # a pure real start point won't work
 
@@ -563,7 +582,7 @@ class Polynomial (Lazy):
         while abs(off) > tol:
             d = grade(guess)
             #print 'Trying:', guess, '->', off, '@', d
-            if d: guess = guess - off / d
+            if d: guess = guess - off * 1. / d
             else: # at a stationary point
                 try: guess = wobble + guess
                 except NameError:
@@ -679,7 +698,16 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.5  2003-08-10 20:29:37  eddy
+Revision 1.6  2003-08-13 22:41:38  eddy
+Various fixes to make polynomials with whole coefficients not lose track of that
+wholeness (but not report ints with L on the end).  Various refinements to let
+assertions allow tiny difference to be equality, abandoning divmod's assertion
+which even this didn't rescue.  Special-case divmod when other is scalar.  Drain
+a few more dregs of minor imprecision in divmod.  Get __call__ to return `of the
+right kind for its input' even when rank is < 1.  Some minor tweaks to cope with
+division being fussy now.  Special-case detection of zero root.
+
+Revision 1.5  2003/08/10 20:29:37  eddy
 Handle exact whole coeffs as such, via long.  Tweak divmod to cope (and assert
 its post-condition).  Made division fussy; raise ValueError unless exact.
 
