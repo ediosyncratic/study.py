@@ -1,9 +1,9 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.11 2001-12-10 21:58:03 eddy Exp $
+$Id: quantity.py,v 1.12 2001-12-12 15:23:34 eddy Exp $
 """
 
-# The multipliers (these are dimensionless)
+# The multipliers (these are dimensionless) - also used by units.py
 _quantifier_dictionary = {
     # see quantifiers in the New Hackers' Dictionary
     30: 'grouchi',
@@ -31,23 +31,23 @@ _quantifier_dictionary = {
     # also: zeppo, gummo, chico ?
     }
 
-_exponent_to_quantifier = {}
-# _quantifier_decoder = {}
+_exponent_to_quantifier = {} # needed for qSample._repr
 for _key, _val in _quantifier_dictionary.items():
     exec '%s = 1e%d' % (_val, _key)
-    # _quantifier_decoder[_val] = _key
     _exponent_to_quantifier['e%+d' % _key] = _val
+
 hecto= 100
 deca = deka = 10
 deci = .1
 centi= .01
-
+
 # Note: a gramme comes out as a milli * kilogramme, which is only fair, all
 # things considered.  Maybe I'll fix it some day ... but will someone object to
 # mega * gramme not using an SI base unit ?
 
 import string
 from basEddy.sample import Sample
+
 class qSample(Sample):
     def __init__(self, sample=(), *args, **what):
         if isinstance(sample, Sample):
@@ -56,7 +56,7 @@ class qSample(Sample):
 
         apply(Sample.__init__, (self, sample) + args, what)
 
-    def _lazy_get__repr_(self, ignored):
+    def _lazy_get__repr_(self, ignored, _e2q=_exponent_to_quantifier):
         """Computes the representation of qSample.
 
         This has form [sign]digits[.digits][quantifier] where: quantifier may
@@ -116,13 +116,15 @@ class qSample(Sample):
         # e.g. 'e6' -> ' mega'
         if exponent:
             tail = 'e%+d' % exponent
-            try: mul = _exponent_to_quantifier[tail]
+            try: mul = _e2q[tail]
             except KeyError: tail = glue + `exponent`
             else: tail = ' * ' + mul
         else:
             tail = ''
 
         return sign + head + tail
+
+del _exponent_to_quantifier
 
 def adddict(this, that):
     cop = this.copy()
@@ -389,7 +391,11 @@ class Quantity(Object):
     def __str__(self): return self._full_str
     # short-form, e.g. 9.81 m.kg/s**2
     def _lazy_get__unit_str_(self, ignored): return self.unit_string()
-    def _lazy_get__number_str_(self, ignored): return str(self.__scale) or '?'
+    def _lazy_get__number_str_(self, ignored):
+	ans = str(self.__scale) or '?'
+	if '*' in ans: # '[0-9.]+ \* quantifier'
+	    ans = string.join(map(string.strip, string.splitfields(ans, '*')))
+	return ans
 
     def __repr__(self): return self._full_repr
     # valid python expression, full names: e.g. 9.81 * metre*kilogramme / second**2
@@ -403,16 +409,12 @@ class Quantity(Object):
         if not uni: return num
 
         # Chuck 1 if that's all the number is:
-        try: num = { '-1': '-', '-1.': '-',
-                     '1': '', '1.': ''
-                     }[num]
-
+        try: num = { '-1': '-', '-1.': '-', '1': '', '1.': ''}[num]
         except KeyError:
             # Otherwise, work out how to separate it from units:
             if num[-1] in '. \t\n\f': pad = ''
-            elif '.' in num: pad = ' '
-            elif num[-1] in '0123456789': pad = '.'
-            else: pad = ' '
+            elif '.' in num or num[-1] not in '0123456789': pad = ' '
+            else: pad = '.'
 
         else: pad = ''
 
@@ -546,7 +548,12 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.11  2001-12-10 21:58:03  eddy
+ Revision 1.12  2001-12-12 15:23:34  eddy
+ buried _exponent_to_quantifier in argument tunnel so I can del it.
+ Removed gratuitous punctuation from '2.54 * centi' as _number_str.
+ Some minor tidy-up.
+
+ Revision 1.11  2001/12/10 21:58:03  eddy
  Made abs work even when non-dimensional, lots of layout changes on
  trivial methods, fully retired _quantade_split.
 
