@@ -13,7 +13,7 @@ plane, we find: (-n)!.n!.sinc(n.pi) = 1 for each complex non-integer n (and for
 n=0).  Thus factorial has a simple pole at each negative integer. """
 
 _rcs_id_ = """
-$Id: stirling.py,v 1.1 2003-09-21 16:29:14 eddy Exp $
+$Id: stirling.py,v 1.2 2003-10-11 15:15:38 eddy Exp $
 """
 
 import math
@@ -79,21 +79,23 @@ def lngamma(x,
 
     return base + log(scale * sum)
 
-def gamma(x, exp=math.exp):
+def gamma(x, exp=math.exp, special=math.sqrt(math.pi/4)):
     result = 1
 
     # coerce to real part between 1 and 2
-    # ordering of complex numbers goes on real part, if equal on imaginary part.
+    try: r = x.real
+    except AttributeError: r = x
     try:
-	while x < 1: result, x = result * 1. / x, 1 + x
+	while r < 1: result, x, r = result * 1. / x, 1 + x, 1 + r
     except ZeroDivisionError:
 	raise ZeroDivisionError, 'The Gamma function has poles at all non-positive integers'
 
-    while x > 2:
-	x = x -1
+    while r > 2:
+	x, r = x - 1, r - 1
 	result = result * x
 
     if x in (1, 2): return result
+    if x == 1.5: return result * special
     else: return result * exp(lngamma(x))
 
 def gactorial(x):
@@ -133,7 +135,11 @@ def gerror(x):
 
 _rcs_log_ = """
 $Log: stirling.py,v $
-Revision 1.1  2003-09-21 16:29:14  eddy
-Initial revision
+Revision 1.2  2003-10-11 15:15:38  eddy
+Made gamma cope better with complex (comparison has changed behaviour; it's
+now not OK to ask whether greater/less than one), told it about special case
+at 1.5 (since that happens to be analytically exact, and relevant to sphere).
 
+Revision 1.1  2003/09/21 16:29:14  eddy
+Initial revision
 """
