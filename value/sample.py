@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.11 2002-10-06 15:41:52 eddy Exp $
+$Id: sample.py,v 1.12 2002-10-06 16:12:45 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1427,6 +1427,23 @@ class Sample (Object):
         return self.__weigh.niles(n, mid)
 
 del _power, _multiply, _divide
+_surprise = """\
+Note that one can do some surprising things with Sample()s; e.g.:
+    >>> gr = (1 + Sample({5.**.5: 1, -(5.**.5): 1}))/2
+    >>> gr
+    0.
+    >>> gr+1
+    2.
+    >>> gr**2
+    0.
+    >>> gr**2 > gr+1
+    1
+
+in which gr's weighs are the roots to x*x=x+1 (and its .best is .5).
+Notice that gr.copy(lambda x: x**2-x-1) and gr**2-gr-1 will have quite
+different weight dictionaries !
+"""
+
 tophat = Sample(Weighted.tophat, best=0,
                 __doc__="""Unit width zero-centred error bar.
 
@@ -1435,7 +1452,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.11  2002-10-06 15:41:52  eddy
+  Revision 1.12  2002-10-06 16:12:45  eddy
+  Added note, _surprise, on how Sample()s can behave strangely.
+
+  Revision 1.11  2002/10/06 15:41:52  eddy
   Lose leading hspace on tophat's doc string.
 
   Revision 1.10  2002/10/06 14:20:00  eddy
