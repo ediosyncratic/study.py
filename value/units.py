@@ -66,7 +66,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.8 2003-04-17 22:42:02 eddy Exp $
+$Id: units.py,v 1.9 2003-04-17 22:46:16 eddy Exp $
 """
 from SI import *
 
@@ -108,7 +108,6 @@ pence, each penny was four farthings.  A florin was two shillings; a crown was
 five.  Apparently a pound was also called a sovereign. """)
 
 # dimensionless:
-from math import pi
 dozen = 12
 bakersDozen = 13
 half = .5
@@ -128,6 +127,13 @@ paper = Object(
     ream = 500,
     perfectream = 516) # 43 * dozen
 paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream)
+
+# angles
+from math import pi
+turn = cycle = revolution = 2 * pi * radian
+arc = Object(degree = turn / 360)
+arc.minute = arc.degree / 60
+arc.second = arc.minute / 60
 
 # time
 minute = Time(60 * second)
@@ -618,7 +624,10 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.8  2003-04-17 22:42:02  eddy
+ Revision 1.9  2003-04-17 22:46:16  eddy
+ Put non-SI units of angle back in units.py
+
+ Revision 1.8  2003/04/17 22:42:02  eddy
  moved various SI-compatibles in from SI; moved angles to SI; some comments
 
  Revision 1.7  2003/04/17 22:19:20  eddy

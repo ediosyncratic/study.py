@@ -4,7 +4,7 @@ See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
 for a definitive source of information about units.
 
-$Id: SI.py,v 1.6 2003-04-17 22:40:09 eddy Exp $
+$Id: SI.py,v 1.7 2003-04-17 22:45:50 eddy Exp $
 """
 from quantity import *
 
@@ -92,12 +92,8 @@ sr = steradian = base_unit('sr', 'Steradian',
 
 The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.""")
-
-# Angles:
-turn = cycle = revolution = 2 * pi * radian
-arc = Object(degree = turn / 360)
-arc.minute = arc.degree / 60
-arc.second = arc.minute / 60
+
+# Angle support:
 import math
 def Tan(ang, t=math.tan): return t(ang / radian)
 def Sin(ang, s=math.sin): return s(ang / radian)
@@ -133,7 +129,10 @@ T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.6  2003-04-17 22:40:09  eddy
+ Revision 1.7  2003-04-17 22:45:50  eddy
+ Put non-SI units of angle back in units.py
+
+ Revision 1.6  2003/04/17 22:40:09  eddy
  Removed (most) SI-compatibles to unit.py; added trig functions using units of angle.
 
  Revision 1.5  2003/02/16 14:31:15  eddy
