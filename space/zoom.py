@@ -56,7 +56,7 @@ Constant acceleration
 Now consider an object accelerating at constant rate a, parallel to v.  That its
 acceleration is `constant' says that, over any short enough time interval q, its
 velocity at the end of the interval, in the frame of reference with respect to
-whic it was at rest at the interval's start, is a.q plus tiny terms quadratic in
+which it was at rest at the interval's start, is a.q plus tiny terms quadratic in
 q.  Let c.v(t) be its velocity as a function of t; then, replacing u with a.q/c,
 v(t) changes by
 
@@ -75,7 +75,7 @@ co-ordinate system (without changing which objects it deems to be at rest) so
 that our object is at rest at t = x = w = 0.  Thus dx/dt = v.c = c.tanh(a.t/c);
 since d(log(cosh(z))) = tanh(z).dz, we obtain
 
-   dx = (c.c/a).d(log(cosh(a.t/c))), whence
+   dx = c.(c/a).d(log(cosh(a.t/c))), whence
    exp(a.x/c/c) = cosh(a.t/c)
 
 Along our uniformly accelerating trajectory, we have
@@ -106,7 +106,7 @@ Note that v = tanh(a.t/c) = tan(a.s/c).cos(a.s/c) = sin(a.s/c).
 From -pi/2 < a.s/c < pi/2 and standard gravity we can infer a unit of time,
 pi*c/g = 3.04337 years, the time it takes to travel arbitrarily far and stop.
 
-$Id: zoom.py,v 1.3 2003-02-08 12:01:00 eddy Exp $
+$Id: zoom.py,v 1.4 2003-07-06 17:48:53 eddy Exp $
 """
 
 from basEddy.units import Object, year, pound
@@ -176,7 +176,10 @@ del Object, year, pound
 
 _rcs_id = """
  $Log: zoom.py,v $
- Revision 1.3  2003-02-08 12:01:00  eddy
+ Revision 1.4  2003-07-06 17:48:53  eddy
+ typo fix + minor presentation tweak
+
+ Revision 1.3  2003/02/08 12:01:00  eddy
  Added some sub-section headings to the theory doc
 
  Revision 1.2  2002/02/18 17:57:55  eddy
