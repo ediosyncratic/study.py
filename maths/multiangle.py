@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.5 2003-08-10 20:45:02 eddy Exp $
+$Id: multiangle.py,v 1.6 2003-08-12 22:57:43 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -58,79 +58,27 @@ class LazySeq:
 
 z = Polynomial(0, 1)
 
-class LazyPos (LazySeq):
-    __check = LazySeq.check
-    def check(self, val): return val > 0 and self.__check(val)
+class Middle (LazySeq):
+    def growto(self, key, down={0: 1-z, 1: z-1}, up=z+1, two=-z-2):
+        assert K is self
+        prior = self[key-1]
+        return (prior * up + down[key%2] * prior(two)) * .5
 
-class EvenCos (LazyPos):
-    """Sequence of polynomials giving cos of even multiples of angles
+K = Middle()
+del Middle
 
-    C[2*n](u) = A[n](-2*u*u) * (-1)**n; see C for details.\n"""
-
-    def growto(self, key, factor=Polynomial(0,2,1)):
-        assert A is self
-        if key == 1: return Polynomial(1, 1)
-        n = key / 2
-        m = key - n
-        assert n and m
-        return self[n] * self[m] + factor * R[n-1] * R[m-1]
-
-class OddCos (LazyPos):
-    """Sequence of polynomials giving cos of odd multiples of angles
-
-    C[2*n+1](u) = u*B[n](-2*u*u) * (-1)**n; see C for details.\n"""
-
-    def growto(self, key, factor=Polynomial(2, 1)):
-        assert B is self
-        if key == 1: return Polynomial(3, 2)
-        n = key / 2
-        m = key - n
-        assert n and m
-        return self[n] * A[m] + factor * Q[n] * R[m-1]
-
-class OddSin (LazyPos):
-    """Sequence of polynomials giving sin of odd multiples of angles
-
-    S[2*n+1](u) = Q[n](-2*u*u) * (-1)**n; see S for details.\n"""
-
-    def growto(self, key, factor=z):
-        assert Q is self
-        if key == 1: return Polynomial(1, 2)
-        n = key / 2
-        m = key - n
-        assert n and m
-        return self[n] * A[m] + factor * B[n] * R[m-1]
-
-class EvenSin (LazyPos):
-    """Sequence of polynomials giving sin of even multiples of angles
-
-    S[2*(n+1)](u) = 2*u*R[n](-2*u*u) * (-1)**n; see S for details.\n"""
-
-    # Could sensibly be given a [-1] equal to Polynomial(0).
-    def growto(self, key):
-        assert R is self
-        if key == 1: return Polynomial(2, 2)
-        n = key / 2
-        m = key - n
-        assert n and m
-        return self[n] * A[m] + A[n+1] * self[m-1]
-
-# [n] of each has n roots between -2 and 0
-A, B, Q, R = EvenCos(), OddCos(), OddSin(), EvenSin()
-del EvenCos, OddCos, EvenSin, OddSin
-
-term = Polynomial(0, 0, -2)
+term = Polynomial(1, 0, -2)
 
 class seqCos (LazySeq):
     """Sequence of polynomials describing cos(n.t) in terms of cos(t)
 
     C[n](cos(t)) = cos(n.t)\n"""
-    def growto(self, key, factor=z):
+    def growto(self, key, kate=4*z*z-3, term=term, z=z):
         n, r = divmod(key, 2)
-        if r: ans = factor * B[n](term)
-        else: ans = A[n](term)
+        if r: ans = z * K[n](kate)
+        else: ans = self[n](term)
+
         assert ans.rank == key
-        if n % 2: return -ans
         return ans
 
 class seqSin (LazySeq):
@@ -138,36 +86,27 @@ class seqSin (LazySeq):
 
     sin(t)*S[n](cos(t)) == sin(n.t)\n"""
 
-    def growto(self, key, factor=z):
+    def growto(self, key, stem=1-4*z*z, term=term, z=z):
         n, r = divmod(key, 2)
-        if r: ans = 2 * factor * R[n](term)
-        else: ans = Q[n](term)
+        if r: ans = 2 * z * S[n](-term)
+        else: ans = K[n](stem) * {0: 1, 1: -1}[n%2]
+
         assert ans.rank == key
-        if n % 2: return -ans
         return ans
 
 # C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin()
 del seqCos, seqSin
-
-class Middle (LazySeq):
-    def growto(self, key, term=2*z+1, Bchk=-(2*z+3), x=z, Cchk=4*z*z-3, Schk=1-4*z*z):
-        # Theoretically, the Q and B uses of .unafter() can be replaced by
-        # passing their self's appropriate polynomials inputs; but the float
-        # arithmetic involved breaks for large enough key; .unafter() is more
-        # robust, albeit at the expense of time ...
-        ans = Q[key].unafter(term)
-        assert ans.rank == key
-        assert ans == (C[2*key+1]/x).unafter(Cchk)
-        assert S[2*key].unafter(Schk) == ans * {0: 1, 1: -1}[key % 2] == B[key].unafter(Bchk)
-        return ans
-
-D = T = Middle()
-del z
+del term, z, Polynomial
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.5  2003-08-10 20:45:02  eddy
+Revision 1.6  2003-08-12 22:57:43  eddy
+Eliminated A, B, Q, R in favour of K and halvings through S and C;
+i.e. I have now proved B-Q unification (and renamed T and D to K), along
+with eliminating A and R as mere aspects of C and S (respectively).
+
+Revision 1.5  2003/08/10 20:45:02  eddy
 Added implementation of the polynomial that unifies Q and B, albeit I haven't
 yet *proved* it does so.  The assertions make me confident, though ;^>
 
