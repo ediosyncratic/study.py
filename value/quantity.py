@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.3 1999-02-21 13:41:54 eddy Exp $
+$Id: quantity.py,v 1.4 1999-05-07 17:22:13 eddy Exp $
 """
 
 def adddict(this, that):
@@ -46,7 +46,10 @@ def scaledict(dict, scale):
     return result
 
 # The multipliers (these are dimensionless)
-muldict = {
+_quantifier_dictionary = {
+    # see quantifiers in the New Hackers' Dictionary
+    30: 'grouchi',
+    27: 'harpi',
     # from http://www.weburbia.demon.co.uk/physics/notation.html
     24: 'yotta',
     21: 'zetta',
@@ -63,23 +66,55 @@ muldict = {
     -15: 'femto',
     -18: 'atto',
     -21: 'zepto',
-    -24: 'yocto'
+    -24: 'yocto',
+    # back to quantifiers (suggested by Morgan Burke, probably unratified ;^)
+    -27: 'harpo',
+    -30: 'groucho',
+    # also: zeppo, gummo, chico ?
     }
-for key, val in muldict.items():
-    exec '%s = 1e%d' % (val, key)
+for _key, _val in _quantifier_dictionary.items():
+    exec '%s = 1e%d' % (_val, _key)
 hecto= 100
 deka = 10
 deca = 10
 deci = .1
 centi= .01
 
+dozen = 12
 
 from basEddy.value import Value, Sample
+_Sample = Sample
+class Sample(_Sample):
+    def __init__(self, sample=(), *args, **what):
+        if isinstance(sample, _Sample):
+            what.update(sample.__dict__)
+            sample = sample.__known
+
+        apply(_Sample.__init__, (self, sample) + args, what)
+
+    def _sample_decade_split(self):
+        off = 3 * self.decade(1000)
+        if not off: return 1, ''
+        try: mul = _quantifier_dictionary[off]
+        except KeyError: mul = 'e%+d' % off
+        return pow(10., off), mul
+
+class bSample(Sample):
+    def _sample_decade_split(self):
+        off = self.decade(1024)
+        if not off: return 1, ''
+
+        try: mul = _quantifier_dictionary[3 * off]
+        except KeyError: return 1, ''
+
+        try: return pow(1024, off), mul
+        except OverflowError: return pow(1024L, off), mul
+
 import string
 _terse_dict = {}
 
 class Quantity(Value):
-    def __init__(self, scale, units,
+    def __init__(self, scale, units=None,
 		 doc=None, nom=None, fullname=None,
 		 sample=None,
 		 *args, **what):
@@ -90,10 +125,11 @@ class Quantity(Value):
 	  scale -- a scalar, e.g. integer, long or float: it must support
 	  addition with and multiplication by at least these types.
 
-	  units -- a dictionary with string keys and integer values, or a
+	  [units] -- a dictionary with string keys and integer values, or a
 	  Quantity.  Each key names a unit of measurement: the whole dictionary
 	  represents the product of pow(key, units[key]) over all keys, so
-	  {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the Joule.
+	  {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the Joule.  If
+	  omitted, or None, a new empty dictionary is used.
 
 	  [doc] -- a documentation string for the quantity (default None).
 	  This may alternatively be set by the .document(doc) method.
@@ -102,7 +138,9 @@ class Quantity(Value):
 	  This may alternatively be set by the .name(short=nom) method.
 
 	  [fullname] -- a long name (capitalised, if appropriate) for the
-	  quantity: as for nom, .name(long=fullname) can be used.
+	  quantity: as for nom, .name(long=fullname) can be used. [These two
+	  arguments act as fall-backs for one another: if you give either of
+	  them, it serves as the default for the other.]
 
 	  [sample] -- a sequence of quantities which should be equal to this
 	  one.
@@ -110,30 +148,41 @@ class Quantity(Value):
 	The first two arguments, scale and units, may be Quantity instances: in
 	which case each contributes its scale and units to the new Quantity,
 	effectively multiplicatively. """
-	# self, scale, units, doc=None, nom=None, fullname=None, *args, **what
 
-	if isinstance(units, Quantity):
-	    scale = scale * units.__scale
-	    units = units.__units
+        # Initialise self as a Value:
+	apply(Value.__init__, (self,) + args, what)
+
+        # massage the arguments: first mix scale and units
+	if units is None: units = {}    # avoid nature's gotcha
+        elif isinstance(units, Quantity):
+	    scale, units = scale * units.__scale, units.__units
 
 	if isinstance(scale, Quantity):
-	    units, scale = addict(units, scale.__units), scale.__scale
+	    units, scale = adddict(units, scale.__units), scale.__scale
 
+        # massaging scale as a sample (so we can trust its str() to work).
+        if not isinstance(scale, Sample): scale = Sample(mean=scale)
+
+        # then (check and) massage sample:
 	if sample:
 	    row = []
+
 	    for val in sample:
 		if val.__units != units:
 		    raise TypeError, ('Sample of wrong dimensions', val, units)
 		else: row.append(val.__scale)
+
 	    if row:
 		try: new = apply(scale.observe, row)
-		except: new = Sample(row + [ scale ])
+		except (TypeError, AttributeError):
+                    new = Sample(row + [ scale ])
+
 		scale = new
+            # else assert oops !
 
-	apply(Value.__init__, (self,) + args, what)
-
-	self.__scale, self.__units = scale, units
-	self.__doc__, self._short_name_, self._long_name_ = doc, nom, fullname
+        # initialise self as a Quantity with the thus-massaged arguments
+	self.__scale, self.__units, self.__doc__ = scale, units, doc
+        self.name(nom or fullname, fullname or nom)
 
     def document(self, doc): self.__doc__ = doc
     def name(self, nom=None, fullname=None):
@@ -149,7 +198,7 @@ class Quantity(Value):
 	try:
 	    if self.__units != other.__units:
 		raise TypeError, ('comparing quantities of different dimensions',
-				  self._unit_repr, other._unit_repr)
+				  self._unit_str, other._unit_str)
 
 	    other = other.__scale
 
@@ -157,7 +206,7 @@ class Quantity(Value):
 	    # other is scalar => dimensionless
 	    if self.__units:
 		raise TypeError, ('comparing scalar to dimensioned quantity',
-				  other, self._unit_repr)
+				  other, self._unit_str)
 
 	return cmp(self.__scale, other)
 
@@ -169,14 +218,14 @@ class Quantity(Value):
 	try:
 	    if self.__units != other.__units:
 		raise TypeError, ('+ or - with differing dimensions',
-				  self._unit_repr, other._unit_repr)
+				  self._unit_str, other._unit_str)
 
 	    return other.__scale
 
 	except AttributeError:
 	    if self.__units:
 		raise TypeError, ('+ or - between scalar and dimensioned quantity',
-				  other, self._unit_repr)
+				  other, self._unit_str)
 
 	    return other
 
@@ -226,12 +275,14 @@ class Quantity(Value):
     def __str__(self): return self._full_str
 
     # lazy attribute lookups:
-    def _lazy_get__full_str_(self, ignored):
+    def _lazy_get__unit_str_(self, ignored):
 	def power(whom, what, many):
 	    if many: return '(%s)^%s^' % (whom, what)
 	    return '%s^%s^' % (whom, what)
-	num = self._number_str
-	uni = self.unit_string(exp=power)
+	return self.unit_string(exp=power)
+
+    def _lazy_get__full_str_(self, ignored):
+	num, uni = self._number_str, self._unit_str
 	if num and uni: return num + ' ' + uni
 	return num or uni or '1'
 
@@ -306,7 +357,7 @@ class Quantity(Value):
 	    if -val in vals: vals.remove(-val)
 
 	# allow Times='' even with times='.'
-	if Times == None: Times = times
+	if Times is None: Times = times
 	if not Divide: Divide = divide
 
 	if not lookemup:
@@ -353,27 +404,11 @@ class Quantity(Value):
 	return `self.__scale`
 
     def _lazy_get__number_str_(self, ignored):
-	"""Coerce the number to my preferred form.
-
-	This has the bit before the e as a number between .1 and 100.
-
-	"""
-	scale= str(self.__scale)
+	scale = str(self.__scale)
 	try: return { '1': '', '-1': '-' }[scale]
-	except KeyError: pass
-
-	try:
-	    mant, expo = string.splitfields(scale, 'e')
-	    pone = string.atoi(expo)
-
-	    if pone == 0: return mant
-	    mul = muldict[pone]
-
-	except (ValueError, KeyError): return scale
-
-	return mant + ' ' + mul
+	except KeyError: return scale
 
-# Some handy constants in SI units
+# The SI units
 
 def _base_unit(nom, fullname, doc):
     result = Quantity(1, {nom:1}, doc, nom, fullname)
@@ -393,6 +428,13 @@ s = second = _base_unit('s', 'second',
 
 9192631770 periods of the radiation corresponding to the transition between
 the two hyperfine levels of the ground state of  the caesium-133 atom.""")
+
+# Now that light speed is used (formally) to define one of time and space from
+# the other, it would make sense to give the defining number (the ratio of metre
+# to second as space-time co-ordinates, give or take some imagination) as a
+# `unit' of speed.  It should be called `light' so that, e.g., `light * year'
+# will work naturally.  But I don't know the defining number, or which (if
+# either) of the other two is as given.
 
 kg = kilogramme = _base_unit('kg', 'kilogramme',
 			   """The SI unit of mass.
@@ -442,6 +484,25 @@ sr = steradian = _base_unit('sr', 'Steradian',
 The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.""")
 
+bit = _base_unit('bit', 'bit',
+                 """The definitive unit of binary data.
+
+A single binary digit is capable of exactly two states, known as 0 and 1.
+A sequence of n binary digits thus has pow(2, n) possible states. """)
+
+Lenat = _base_unit('L', 'Lenat',
+                   """The standard unit of bogosity
+
+See the New Hackers' Dictionary, under microLenat.  Also known as the Reid. """)
+
+Helen = _base_unit('Helen', 'Helen',
+                   """The standard unit of beauty (trad).
+
+Definitively `beautiful enough to launch a thousand ships', so that launching a
+single ship gains credit for a single milli-Helen.  The origin of this is the
+story of the Trojan war, in which a Greek fleet of a thousand ships, carrying a
+great army, went to retrieve Helen from Troy, to which Paris had taken her. """)
+
 _dimension_dict = _terse_dict.copy()
 # Composite SI units
 N = Newton = kilogramme * metre / second / second	# Force
@@ -467,37 +528,46 @@ minute = 60 * second
 hour = 60 * minute
 day = 24 * hour
 week = 7 * day
+fortnight = 2 * week
 year = (365 + 1/ (4 + 1/(25 + 1/4.))) * day	# Gregorian
 
 cm = centi * metre
-# Do not define g = gram: reserve g for EarthSurfaceGravity
 gram = milli * kilogramme
 cc = pow(cm, 3)
-
 
-# (UK) Imperial units converted to SI
-inch = 2.54e-2 * metre
-ft = foot = 12 * inch
-yard = 3 * foot
-# chain
-# furlong 
-# 1760 = 20 * 88 = 22 * 80 = 32 * 5 * 11
-mile = 1760 * yard
-nauticalMile = 2000 * yard
-# or a minute of arc.
-# EarthRadius * pi / mile / 180 / 60 is a little over one mile:
-# 2026 yards, to the precision (such as it is) that I know.
+_name = 'byte'
+byte = Quantity(8, bit,
+                """The standard unit of memory on a computer.
 
-# NB: I don't know if the US oz is the same as the UK one
-lb = pound = .45359237 * kilogramme
-oz = ounce = pound / 16
-stone = 14 * pound
+Whereas the bit is the *natural* unit of binary data, in practice one normally
+manipulates data in larger chunks.  These may vary from machine to machine, but
+one mostly deals with multiples of 8 bits (these days) - these suffice for 256
+distinct values.
 
-# NB: the US floz et al. are different from the UK ones
-gallon = 4.54609 * litre
-pint = gallon / 8
-floz = pint / 20
+Groups of (typically 2, 4, 8 and sometimes higher powers of two) bytes tend to
+have special significance to the machine, and form the building blocks out of
+which one builds data structures.
 
+On the large scale, one tends to measure amounts of data in units of kilobytes,
+megabytes, gigabytes, ... in which the factor by which each is a multiple of its
+predecessor is 1024, rather than the 1000 normally used in kilo, mega, giga ...
+So I also define Kb, Mb, Gb, along with the full swath of positive-exponent
+quantifiers applied to byte, as kilobyte etc. above.  Indeed, it is mainly in
+order to do this that I bother defining the byte ... """,
+                _name) # but no sample, though 8 bit will get used.
+
+_row = filter(lambda x: x > 0, _quantifier_dictionary.keys())
+_row.sort()
+for _key in _row:
+    _nom = '%sbyte' % _quantifier_dictionary[_key]
+    try: exec '%s = Quantity(1024, %s, nom="%s")' % (_nom, _name, _nom)
+    except OverflowError:
+        # assert: _nom is terabyte
+        exec '%s = Quantity(1024L, %s, nom="%s")' % (_nom, _name, _nom)
+    _name = _nom
+
+Kb, Mb, Gb = kilobyte, megabyte, gigabyte
+
 calorie = 4.184 * Joule	# the thermodynamic calorie, not any other sort.
 BTU = BritishThermalUnit = 1.05506 * kilo * Joule
 horsepower = 745.7 * Watt
@@ -506,9 +576,54 @@ Atmosphere = Quantity(.101325, mega * Pascal,
 		      """Standard Atmospheric Pressure""",
 		      'Atm', 'Atmoshpere')
 
+# (UK) Imperial units converted to SI
+inch = 2.54e-2 * metre
+ft = foot = 12 * inch
+yard = 3 * foot
+chain = 22 * yard
+furlong = 10 * chain
+mile = 8 * furlong
+nauticalMile = 1852 * metre
+# or a minute of arc, or 2000 yards.
+# EarthRadius * pi / mile / 180 / 60 is a little over one mile:
+# 2026 yards, to the precision (such as it is) that I know.
+
+acre = 4840 * yard * yard
+hectare = 2.471 * acre
+are = hectare / 100
+
+# NB: I don't know if the US oz is the same as the UK one
+lb = pound = .45359237 * kilogramme
+oz = ounce = pound / 16
+stone = 14 * pound
+scruple = pound / 350
+grain = scruple / 20
+troyOunce = 24 * scruple
+troyPound = 12 * troyOunce
+
+gallon = 4.54609 * litre        # officially, 10 * pound / water.density
+pint = gallon / 8
+floz = fluidOunce = pint / 20
+fluidDrachm = floz / 8
+
+# the volumes following are from various sources
+firkin = 9 * gallon / 2 # (36 pints) Dave, landlord of my local
+barrel = 4 * firkin     # NHD (so 12 dozen gallons)
+# along with confused tales from Steve that give pin = 2 firkin, kill = 2 pin,
+# Barrel = 2 kill (contradicting NHD) and 
+hogshead = 54 * gallon  # == 12 firkin
+# which the Oxford handy dictionary supports
+
+USGallon = 231 * pow(inch, 3)   # (aka wine gallon) ancient encyclopaedia
+USPint = USGallon / 8   # 16.65 UK floz; ? 12, 16 or 20 US ones ?
+
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.3  1999-02-21 13:41:54  eddy
+ Revision 1.4  1999-05-07 17:22:13  eddy
+ Several things inspired by the New Hackers' Dictionary, some other bits
+ and pieces: now I'm going to lug data out of Kaye & Laby ...
+
+ Revision 1.3  1999/02/21 13:41:54  eddy
  Ditched tolerance, moved to sample-form, simplified numeric side.
  Tidied up __*__ routines, maintenance.
 
