@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.1 2003-08-03 23:21:14 eddy Exp $
+$Id: multiangle.py,v 1.2 2003-08-05 21:42:34 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -94,6 +94,7 @@ class EvenSin (LazySeq):
 
     S[2*(n+1)](u) = 2*u*R[n](-2*u*u) * (-1)**n; see S for details.\n"""
 
+    # Could sensibly be given a [-1] equal to Polynomial(0).
     def growto(self, key):
         assert R is self
         if key == 1: return Polynomial(2, 2)
@@ -102,6 +103,7 @@ class EvenSin (LazySeq):
         assert n and m
         return self[n] * A[m] + A[n+1] * self[m-1]
 
+# [n] of each has n roots between -2 and 0
 A, B, Q, R = EvenCos(), OddCos(), OddSin(), EvenSin()
 del EvenCos, OddCos, EvenSin, OddSin
 
@@ -123,19 +125,22 @@ class seqSin (LazySeq):
 
     sin(t)*S[n](cos(t)) == sin(n.t)\n"""
 
-    def growto(self, key, factor=2*z):
+    def growto(self, key, factor=z):
         n, r = divmod(key-1, 2)
-        if r: ans = factor * R[n](term)
-        else: ans = Q[n](term)
+        if r: ans = 2 * factor * R[n](term)
+        elif n: ans = Q[n](term)
+        else: ans = factor # else S[0] is 1, rather than Polynomial(1) !
         if n % 2: return -ans
         return ans
 
+# C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin(Polynomial(0))
 del seqCos, seqSin, z
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.1  2003-08-03 23:21:14  eddy
-Initial revision
+Revision 1.2  2003-08-05 21:42:34  eddy
+Tweaked so S[1] is a polynomial, not 1.0; added comments.
 
+Initial Revision 1.1  2003/08/03 23:21:14  eddy
 """
