@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.26 2004-02-15 16:31:12 eddy Exp $
+$Id: sample.py,v 1.27 2004-12-30 14:42:55 eddy Exp $
 """
 
 class _baseWeighted:
@@ -397,9 +397,10 @@ class curveWeighted (Lazy, _baseWeighted):
             This is still exploratory.
 
             A suitable unit must be independent of applying an overall scaling
-            to self's weights, or to self's cuts; it must also be unchanged by
-            an overall translation of self's cuts.  Thus it must be a `width' of
-            the distribution, such as the total span or standard deviation.
+            to self's weights or overall translation of self's cuts; a uniform
+            scaling of self's cuts should cale the unit proportionately.  Thus
+            the unit must be a `width' of the distribution, such as the total
+            span or standard deviation.
 
             Various units present themselves as candidates.  For each, I've
             examined the theoretical value for uniform and for Gaussians; I've
@@ -1725,7 +1726,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.26  2004-02-15 16:31:12  eddy
+  Revision 1.27  2004-12-30 14:42:55  eddy
+  Corrected phrasing of interpolator._unit's scale invariance properties.
+
+  Revision 1.26  2004/02/15 16:31:12  eddy
   Fix stupid bug in repWeighted.bounds() when frac between 0 and 1
 
   Revision 1.25  2004/02/15 16:16:00  eddy
