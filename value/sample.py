@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.20 2003-09-21 14:17:35 eddy Exp $
+$Id: sample.py,v 1.21 2003-09-24 21:01:38 eddy Exp $
 """
 
 class _baseWeighted:
@@ -607,7 +607,7 @@ class repWeighted (curveWeighted):
         while what >= 10: what, decade = what / 10., decade + 1
         while what < 1: what, decade = what * 10, decade - 1
 
-        return pow(10., decade)
+        return pow(10. + what * 0, decade)
 
     # how far can we get with separating this from the interpolation kit ?
     def round(self, estim=None):
@@ -689,7 +689,12 @@ class repWeighted (curveWeighted):
 
         # what to do here if unit is a Quantity() ?
         if unit == 1: tail = ''
-        else: tail = ('%.0e' % unit)[1:] # '1e93'[1:]
+        else:
+            tail = str(unit)
+            if tail[:2] == '1.' and 'e' in tail:
+                tail = 'e' + tail.split('e')[1]
+            else:
+                tail = ('%.0e' % unit)[1:] # '1e93'[1:]
         # First, work out the un-rounded body (main loop); then round.
 
         # Loop until over-long string or as precise as we'll allow:
@@ -1674,7 +1679,12 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.20  2003-09-21 14:17:35  eddy
+  Revision 1.21  2003-09-24 21:01:38  eddy
+  Tweaks to cope with bigfloat.BigFloat() as sample points.
+  Added what*0 to __unit()'s 10. to coerce its type.
+  Try parsing str(unit) to compute exponent.
+
+  Revision 1.20  2003/09/21 14:17:35  eddy
   Deal with infinity in repWeighted.round()
 
   Revision 1.19  2003/07/05 15:03:04  eddy
