@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.8 2001-10-12 15:43:52 eddy Exp $
+$Id: quantity.py,v 1.9 2001-10-12 16:02:06 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -519,7 +519,6 @@ class Quantity(Object):
 	    if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
 	    else: more = top + bot
 
-	    # only invoke pow if abs(power) > 1.
 	    p = abs(p)
 	    if p != 1:
 		try:
@@ -534,14 +533,6 @@ class Quantity(Object):
 		more = '%s**%s' % (more, p)
 
 	    tail = tail + more
-
-        # The milli * kilogramme bodge
-        bykilo = Times + 'kilo'
-        if tail[:len(bykilo)] == bykilo:
-            # could potentially extend this to all known quantifiers ...
-            if head[-5:] == 'milli':
-                head, tail = head[:-5], tail[len(bykilo):]
-                if tail[:7] in ('gramme ', 'gramme'): tail = 'gram' + tail[6:]
 
 	return head + tail
 
@@ -570,7 +561,11 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.8  2001-10-12 15:43:52  eddy
+ Revision 1.9  2001-10-12 16:02:06  eddy
+ Removed milli*kilogramme bodge - was wrong on, e.g., 1e3 *kg*kg = 1 *gram**2
+ May try again later ...
+
+ Revision 1.8  2001/10/12 15:43:52  eddy
  fixed powered units bug omitting () from, e.g., m**2/(s*kg).
 
  Revision 1.7  2001/09/27 16:12:38  eddy
