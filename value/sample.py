@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.23 2004-02-14 20:41:50 eddy Exp $
+$Id: sample.py,v 1.24 2004-02-15 15:41:48 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1352,7 +1352,7 @@ class Sample (Object):
 
         except AttributeError:
             self.__best = []
-            if not weights:
+            if not weights and what.get('low', None) is None and what.get('high', None) is None:
                 raise TypeError, 'What kind of numeric Sample has no data at all ?'
         else:
             def flatten(b):
@@ -1372,8 +1372,6 @@ class Sample (Object):
             else:
                 if not weights: weights = best
                 self.__best = map(flatten, best)
-
-        assert weights, 'I thought the TypeError took care of this ...'
 
         # Finished massaging inputs: initialise self.
         apply(self.__upinit, args, what)
@@ -1726,7 +1724,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.23  2004-02-14 20:41:50  eddy
+  Revision 1.24  2004-02-15 15:41:48  eddy
+  Allow weights to be empty if reach()ing is going to give us a value.
+
+  Revision 1.23  2004/02/14 20:41:50  eddy
   Added new method, reach, to curveWeighted, so Sample can ensure its
   distribution reaches any low or high bounds it's given.  Moved tophat
   onto Sample, as attribute (so Quantity's tophat doesn't hide it).
