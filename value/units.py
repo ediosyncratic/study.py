@@ -66,7 +66,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.11 2003-09-05 00:22:00 eddy Exp $
+$Id: units.py,v 1.12 2004-04-03 18:09:26 eddy Exp $
 """
 from SI import *
 
@@ -133,17 +133,17 @@ arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
 
 # time
-minute = Time(60, second, arc=arc.minute)
-hour = Time(60, minute)
-day = Time(24, hour)
-week = Time(7, day)
-fortnight = Time(2, week)
-year = Time(27 * 773, week / 400)	# the Gregorian approximation
-month = Time(year / 12) # on average, at least; c.f. planets.Month, the lunar month
+minute = Quantity(60, second, arc=arc.minute)
+hour = 60 * minute
+day = 24 * hour
+week = 7 * day
+fortnight = 2 * week
+year = 27 * 773 * week / 400	# the Gregorian approximation
+month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 216 seconds abound ...
 
 # Other SI-compatible units
-gram = Mass(milli, kilogramme)
+gram = milli * kilogramme
 km, cm = kilo * metre, centi * metre
 cc = pow(cm, 3)
 tex = gram / km # fineness of textiles
@@ -186,7 +186,7 @@ Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def toFahrenheit(T): return 32 + 1.8 * toCentigrade(T)
 
-tonne = Mass(kilo, kilogramme)
+tonne = kilo * kilogramme
 calorie = 4.1868 * Joule # the thermodynamic calorie (IT), not any other sort.
 # food talks about `calorie' but means kilo calorie
 clausius = kilo * calorie / Kelvin
@@ -239,12 +239,12 @@ class Job (Lazy):
 	self.leave = leave
 
     # time spent working per ...:
-    def _lazy_get_day_(self, ignored): return Time(self.__daily * hour)
-    def _lazy_get_week_(self, ignored): return Time(self.__weekly * self.day)
+    def _lazy_get_day_(self, ignored): return self.__daily * hour
+    def _lazy_get_week_(self, ignored): return self.__weekly * self.day
     def _lazy_get_year_(self, ignored):
-	return Time(self.day * (year * self.__weekly / week - self.__hols))
-    def _lazy_get_month_(self, ignored): return Time(self.year / 12)
-    def _lazy_get_quarter_(self, ignored): return Time(self.year / 4)
+	return self.day * (year * self.__weekly / week - self.__hols)
+    def _lazy_get_month_(self, ignored): return self.year / 12
+    def _lazy_get_quarter_(self, ignored): return self.year / 4
 
     # Rates of pay
 
@@ -437,21 +437,21 @@ French = Object(foot = pied,
                 toise = 6 * pied,
                 arpent = (180 * pied)**2)
 
-# Anglophone units of mass:
-grain = Mass(64.79891e-6, kilogramme)        # K&L
-mite = Mass(1. / 20, grain)
-droit = Mass(1. / 24, mite) # a cube of water half a mm on each side
-periot = Mass(1. / 20, droit) # an eighth of the Planck mass
-blanc = Mass(1. / 24, periot) # did I mention that some of these units are silly ?
-scruple = Mass(20, grain)
-lb = pound = Mass(350, scruple)
-oz = ounce = Mass(1. / 16, pound)
-dram = Mass(1. / 16, ounce)
-clove = Mass(7, pound)
-stone = Mass(2, clove)
-cental = Mass(100, pound)
-cwt = hundredweight = Mass(8, stone, US = cental)
-ton = Mass(20, cwt, US = Mass(20, cwt.US))
+# Archaic units of mass:
+grain = 64.79891e-6 * kilogramme        # K&L
+mite = grain / 20
+droit = mite / 24 # a cube of water half a mm on each side
+periot = droit / 20 # an eighth of the Planck mass
+blanc = periot / 24 # did I mention that some of these units are silly ?
+scruple = 20 * grain
+lb = pound = 350 * scruple
+oz = ounce = pound / 16
+dram = ounce / 16
+clove = 7 * pound
+stone = 2 * clove
+cental = 100 * pound
+cwt = hundredweight = Quantity(8, stone, US = cental)
+ton = Quantity(20, cwt, US = 20 * cwt.US)
 TNT = 4.184e9 * Joule / ton.US # (2.15 km/s)**2
 
 # Anglophone units of energy:
@@ -480,17 +480,17 @@ ton.also(displacement = 35 * foot.timber,
          register = 100 * foot.timber)	# internal capacity of ships
 
 # Other units of mass: KDWB
-stone.butcher = Mass(8, pound)
-dram.apothecary = Mass(3, scruple)
-denier.Troy = Mass(24, grain) # = ounce.Troy / 20, the denier (a frankish coin) or pennyweight
-ounce.Troy = Mass(8, dram.apothecary)
-pound.Troy = Mass(12, ounce.Troy)
-carat = Mass(.2, gram, # metric variant, from /usr/share/misc/units
-             Troy=Mass(3.17, grain)) # or 3.163 grain according to u.s.m.u
+stone.butcher = 8 * pound
+dram.apothecary = 3 * scruple
+denier.Troy = 24 * grain # = ounce.Troy / 20, the denier (a frankish coin) or pennyweight
+ounce.Troy = 8 * dram.apothecary
+pound.Troy = 12 * ounce.Troy
+carat = Quantity(.2, gram, # metric variant, from /usr/share/misc/units
+                 Troy=3.17 * grain) # or 3.163 grain according to u.s.m.u
 Troy = Object(drachm = dram.apothecary, denier = denier.Troy, carat = carat.Troy,
               ounce = ounce.Troy, pound = pound.Troy)
-point.jeweller = Mass(.01, carat)
-pound.mercantile = Mass(15, Troy.ounce)
+point.jeweller = carat / 100
+pound.mercantile = 15 * Troy.ounce
 
 # Imperial force, power, etc.:
 psi = pound.force / inch**2
@@ -506,8 +506,8 @@ celo = foot / second**2
 jerk = celo / second
 poundal = pound * celo
 reyn = psi * second
-slug = Mass(1, pound.force / celo)
-slinch = Mass(12, slug)
+slug = pound.force / celo
+slinch = 12 * slug
 duty = foot * pound.force
 
 # Imperial units of volume (part 1):
@@ -584,12 +584,12 @@ ale = Object(beer,
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 Swiss = Object(lien = 5249 * yard)
-Dutch = Object(oncen = Mass(.1, kilogramme))
-Turk = Object(oke = Mass(2.8342, pound),
+Dutch = Object(oncen = kilogramme / 10)
+Turk = Object(oke = 2.8342 * pound,
               berri = 1828 * yard)
 mil = Object(Dane = 8238 * yard, Norway = 10 * kilo * metre)
 Russia = Object(verst = 1167 * yard,
-                pood = Mass(36.11, pound))
+                pood = 36.11 * pound)
 
 # Imperial units of volume (part 2):
 
@@ -619,13 +619,13 @@ This is the volume of an 8 inch cylinder with 18.5 inch diameter.
 However, the US bushel is also a unit of mass for various types of grain.
 See dir(bushel.US) for details.
 """,
-    wheat = Mass(60, pound),
-    soybean = Mass(60, pound),
-    corn = Mass(56, pound), # of course, this means maize, not wheat
-    rye = Mass(56, pound),
-    barley = Mass(48, pound),
-    oat = Mass(32, pound), # Canada uses 34lb
-    rice = Mass(45, pound))
+    wheat = 60 * pound,
+    soybean = 60 * pound,
+    corn = 56 * pound, # of course, this means maize, not wheat
+    rye = 56 * pound,
+    barley = 48 * pound,
+    oat = 32 * pound, # Canada uses 34lb
+    rice = 45 * pound)
 peck.US = bushel.US / 4
 gallon.US.dry = peck.US / 2
 quart.US.dry = gallon.US.dry / 4
@@ -639,7 +639,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.11  2003-09-05 00:22:00  eddy
+ Revision 1.12  2004-04-03 18:09:26  eddy
+ Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
+
+ Revision 1.11  2003/09/05 00:22:00  eddy
  Packed various things into namespaces, rather than jamming several words
  together to make their names.  Lots of tidy-up in the process.
 

@@ -4,48 +4,29 @@ See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
 for a definitive source of information about units.
 
-$Id: SI.py,v 1.8 2003-07-05 15:44:11 eddy Exp $
+$Id: SI.py,v 1.9 2004-04-03 18:11:23 eddy Exp $
 """
 from quantity import *
 
-# there has to be a better way to do these ...
-
-# tweak masses to support .force:
-class Mass (Quantity):
-    def _lazy_get_force_(self, ignored):
-	"""weight or force of a mass under `standard gravity'"""
-	return self * 9.80665 * metre / second**2
-    _lazy_get_weight_ = _lazy_get_force_
-
-    _quantity = Quantity
-
-# and times to support .light:
-class Time (Quantity):
-    def _lazy_get_light_(self, ignored):
-	"""distance travelled by light in a given amount of time"""
-	return self * 299792458 * metre / second
-
-    _quantity = Quantity
-
 # The base units [kg and s get more sophisticated in units.py]
-second = sec = s = Time(base_unit('s', 'second',
-				  """The SI base unit of time.
+second = sec = s = base_unit('s', 'second',
+                             """The SI base unit of time.
 
 9192631770 periods of the radiation corresponding to the transition between
-the two hyperfine levels of the ground state of  the caesium-133 atom."""))
+the two hyperfine levels of the ground state of the caesium-133 atom.""")
 
 m = metre = base_unit('m', 'metre',
-                     """The SI base unit of length.
+                      """The SI base unit of length.
 
 The length of the path travelled by light in vacuum during a time interval of
 1/299792458 of a second. """)
 
-kilogramme = kilogram = kg = Mass(base_unit('kg', 'kilogramme',
-					    """The SI base unit of mass.
+kilogramme = kilogram = kg = base_unit('kg', 'kilogramme',
+                                       """The SI base unit of mass.
 
 The mass of the *International Prototype* kilogramme (a platinum-iridium
 cylinder) kept in the Bureau International des Poids et Mesures (BIPM),
-S&egrave;vres, Paris."""))
+S&egrave;vres, Paris.""")
 
 A = Ampere = base_unit('A', 'Ampere',
                       """The SI base unit of electric current.
@@ -119,7 +100,10 @@ T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.8  2003-07-05 15:44:11  eddy
+ Revision 1.9  2004-04-03 18:11:23  eddy
+ Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
+
+ Revision 1.8  2003/07/05 15:44:11  eddy
  Moved trigonometric functions out to trig.py
 
  Revision 1.7  2003/04/17 22:45:50  eddy
