@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.7 2001-09-27 16:12:38 eddy Exp $
+$Id: quantity.py,v 1.8 2001-10-12 15:43:52 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -434,9 +434,6 @@ class Quantity(Object):
 		except KeyError: out.append(nom)
 	    return out
 
-	def power(whom, what, many):
-	    return 'pow(%s, %s)' % (whom, what)
-
 	return self.unit_string(scale=self._number_repr,
 				times='*', Times=' * ',
 				divide='/', Divide=' / ',
@@ -519,19 +516,22 @@ class Quantity(Object):
 		    bot = divide + string.joinfields(wor, divide)
 		    lang = lang + len(wor)
 
+	    if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
+	    else: more = top + bot
+
 	    # only invoke pow if abs(power) > 1.
 	    p = abs(p)
-            try:
-                # if we can represent p as an integer ...
-                try: ip = int(p)
-                except OverflowError: ip = long(p)
-            except (AttributeError, ValueError): pass
-            else:
-                # ... use that by preference !
-                if ip == p: p = ip
+	    if p != 1:
+		try:
+		    # if we can represent p as an integer ...
+		    try: ip = int(p)
+		    except OverflowError: ip = long(p)
+		except (AttributeError, ValueError): pass
+		else:
+		    # ... use that by preference !
+		    if ip == p: p = ip
 
-	    if p == 1: more = top + bot
-	    else: more = self.__power(top + bot, p, lang > 1)
+		more = '%s**%s' % (more, p)
 
 	    tail = tail + more
 
@@ -544,10 +544,6 @@ class Quantity(Object):
                 if tail[:7] in ('gramme ', 'gramme'): tail = 'gram' + tail[6:]
 
 	return head + tail
-
-    def __power(self, whom, what, many):
-        if many: whom = '(%s)' % whom
-        return '%s**%s' % (whom, what)
 
     def _lazy_get__lazy_hash_(self, ignored):
 	h = hash(self.__scale)
@@ -574,7 +570,10 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.7  2001-09-27 16:12:38  eddy
+ Revision 1.8  2001-10-12 15:43:52  eddy
+ fixed powered units bug omitting () from, e.g., m**2/(s*kg).
+
+ Revision 1.7  2001/09/27 16:12:38  eddy
  Two years of evolution.
 
  Revision 1.6  1999/07/19 21:21:09  eddy
