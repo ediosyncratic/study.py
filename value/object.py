@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.2 1999-02-21 01:31:57 eddy Exp $
+$Id: object.py,v 1.3 1999-02-21 01:49:47 eddy Exp $
 """
 
 from types import FloatType
@@ -322,34 +322,12 @@ class Sample(Value):
 
     _lazy_hash = hash('Sample') ^ hash(Value) ^ hash(__name__)
 
-def Numeric(base, tolerance=0, sample=(), *args, **what):
-
-    if tolerance < 0: tolerance = - tolerance
-    if isinstance(tolerance, Sample):
-	tolerance = tolerance.high
-
-    if isinstance(base, Sample):
-	tolerance = tolerance + base.spread
-	err = base.errors
-	base = base.mean
-    else: err = 0
-
-    if isinstance(sample, Sample): sample = (sample + err).sample
-    else: sample = list(sample)
-
-    if base not in sample: sample.append(base)
-    if tolerance:
-	for v in base - tolerance, base + tolerance:
-	    if v not in sample: sample.append(v)
-
-    sample.sort()
-    what['sample'] = sample
-    what['mean'] = base
-    return apply(Sample, args, what)
-
 """
  $Log: object.py,v $
- Revision 1.2  1999-02-21 01:31:57  eddy
+ Revision 1.3  1999-02-21 01:49:47  eddy
+ Redundant Numeric.
+
+ Revision 1.2  1999/02/21 01:31:57  eddy
  Revolution.
 
  Initial Revision 1.1  1999/01/24 22:34:32  eddy
