@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.11 2005-03-19 17:24:20 eddy Exp $
+$Id: body.py,v 1.12 2005-03-19 17:34:09 eddy Exp $
 """
 
 class Satellites:
@@ -203,7 +203,7 @@ class Body (Object):
         return self.GM / G
 
     def _lazy_get_GM_(self, ignored, G=Cosmos.G, Q=Quantity):
-        row = self.satellites.GMs # assorted estimates
+        row = self.satellites.GMs() # assorted estimates
 
         try: row.append(self.surface._GM)
         except AttributeError: pass
@@ -393,7 +393,10 @@ class Star (Body): pass
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.11  2005-03-19 17:24:20  eddy
+Revision 1.12  2005-03-19 17:34:09  eddy
+Call GMs, don't try to use it as a list !
+
+Revision 1.11  2005/03/19 17:24:20  eddy
 Star's __init__ was now just echoing Object's, so removed it.
 Moved Satellites (back) out from being the lazy method and arranged for
 it to be capable of loading primaries on demand.
