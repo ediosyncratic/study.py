@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.13 2002-10-07 17:53:42 eddy Exp $
+$Id: sample.py,v 1.14 2003-01-26 16:03:25 eddy Exp $
 """
 
 class _baseWeighted:
@@ -542,6 +542,10 @@ class repWeighted(_baseWeighted):
                 # sensible case where we have at least two weights.
                 i = s = 0 # we're processing size[i] for result[s]
                 last = None # last seq point if in present cut-gap, else None
+
+                try: # step over any entries in seq that precede all cuts
+                    while seq[s] < cut[0]: s = 1 + s
+                except IndexError: pass
 
                 try: # loop until we run off end of row ... can happen from inner loop.
                     while 1:
@@ -1462,7 +1466,12 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.13  2002-10-07 17:53:42  eddy
+  Revision 1.14  2003-01-26 16:03:25  eddy
+  Bug-fix so .between() copes if input sequence includes some positions
+  less than all cut-points of our distribution (i.e. our result needs to
+  begin with some zeros).
+
+  Revision 1.13  2002/10/07 17:53:42  eddy
   Fixed two bugs: normalise() would return None if total() was 1; copy()
   would discard some weights if func mapped several keys to equal outputs.
   Also made __combine() normalise its result if possible, added support
