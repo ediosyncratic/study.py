@@ -4,7 +4,7 @@
 See also: http://www.johnstonsarchive.net/astro/asteroidmoons.html and links
 therefrom.
 
-$Id: asteroid.py,v 1.5 2005-03-13 19:08:26 eddy Exp $
+$Id: asteroid.py,v 1.6 2005-03-16 21:27:44 eddy Exp $
 """
 
 from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
@@ -59,7 +59,7 @@ See p. 210, table 32.\n"""
 
 #' When I know Ceres' mass, I can make it an Asteroid() ...
 Ceres = Planetoid('Ceres',
-                  orbit=Orbit(D.Sun, Quantity(2.77 + .01 * tophat, D.AU)),
+                  orbit=Orbit(D.Sun, Quantity(2.77 + .01 * tophat, D.AU), None),
                   discovery=Discovery("Piazzi", 1801,
                                       day="January 1st 1801",
                                       __doc__="""The discovery of Ceres.
@@ -92,7 +92,10 @@ del Sample, ton, tera, mega, mile, Quantity, year, tophat
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.5  2005-03-13 19:08:26  eddy
+Revision 1.6  2005-03-16 21:27:44  eddy
+Orbit now has to explicitly give None as spin if unknown.
+
+Revision 1.5  2005/03/13 19:08:26  eddy
 Sample*Quantity gotcha hit maxdiam :-( but now I've fixed it :-)
 Also use Quantity for periterrion.
 
