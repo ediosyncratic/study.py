@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.3 2003-08-10 11:47:33 eddy Exp $
+$Id: multiangle.py,v 1.4 2003-08-10 12:45:42 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -17,12 +17,20 @@ class LazySeq:
     def __growto(self, key):
         val = self.growto(key)
 
+        if __debug__:
+            i = val.rank
+            while i >= 0:
+                assert self.check(val.coefficient(i))
+                i = i-1
+
         if key >= len(self.__seq):
             self.__seq = self.__seq + [ None ] * (1 + key - len(self.__seq))
 
         self.__seq[key] = val
 
         return val
+
+    def check(self, val): return val == long(val)
 
     def __getitem__(self, key):
         try: ans = self.__seq[key]
@@ -50,7 +58,11 @@ class LazySeq:
 
 z = Polynomial(0, 1)
 
-class EvenCos (LazySeq):
+class LazyPos (LazySeq):
+    __check = LazySeq.check
+    def check(self, val): return val > 0 and self.__check(val)
+
+class EvenCos (LazyPos):
     """Sequence of polynomials giving cos of even multiples of angles
 
     C[2*n](u) = A[n](-2*u*u) * (-1)**n; see C for details.\n"""
@@ -63,7 +75,7 @@ class EvenCos (LazySeq):
         assert n and m
         return self[n] * self[m] + factor * R[n-1] * R[m-1]
 
-class OddCos (LazySeq):
+class OddCos (LazyPos):
     """Sequence of polynomials giving cos of odd multiples of angles
 
     C[2*n+1](u) = u*B[n](-2*u*u) * (-1)**n; see C for details.\n"""
@@ -76,7 +88,7 @@ class OddCos (LazySeq):
         assert n and m
         return self[n] * A[m] + factor * Q[n] * R[m-1]
 
-class OddSin (LazySeq):
+class OddSin (LazyPos):
     """Sequence of polynomials giving sin of odd multiples of angles
 
     S[2*n+1](u) = Q[n](-2*u*u) * (-1)**n; see S for details.\n"""
@@ -89,7 +101,7 @@ class OddSin (LazySeq):
         assert n and m
         return self[n] * A[m] + factor * B[n] * R[m-1]
 
-class EvenSin (LazySeq):
+class EvenSin (LazyPos):
     """Sequence of polynomials giving sin of even multiples of angles
 
     S[2*(n+1)](u) = 2*u*R[n](-2*u*u) * (-1)**n; see S for details.\n"""
@@ -117,6 +129,7 @@ class seqCos (LazySeq):
         n, r = divmod(key, 2)
         if r: ans = factor * B[n](term)
         else: ans = A[n](term)
+        assert ans.rank == key
         if n % 2: return -ans
         return ans
 
@@ -126,21 +139,24 @@ class seqSin (LazySeq):
     sin(t)*S[n](cos(t)) == sin(n.t)\n"""
 
     def growto(self, key, factor=z):
-        n, r = divmod(key-1, 2)
+        n, r = divmod(key, 2)
         if r: ans = 2 * factor * R[n](term)
         else: ans = Q[n](term)
-        # that'll leave S[1] as 1, not the polynomial
-        if not n and not isinstance(ans, Polynomial): ans = Polynomial(ans)
+        assert ans.rank == key
         if n % 2: return -ans
         return ans
 
 # C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
-C, S = seqCos(), seqSin(Polynomial(0))
+C, S = seqCos(), seqSin()
 del seqCos, seqSin, z
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.3  2003-08-10 11:47:33  eddy
+Revision 1.4  2003-08-10 12:45:42  eddy
+Renumbered S down by 1, so S[n].rank is n.
+Added assorted assertions.
+
+Revision 1.3  2003/08/10 11:47:33  eddy
 Fixed the S[1] tweak so it's lambda x: 1, not lambda x: x - d'oh !
 
 Revision 1.2  2003/08/05 21:42:34  eddy
