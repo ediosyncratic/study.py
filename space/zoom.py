@@ -13,6 +13,9 @@ time-like t (measured in units of time) and a space-like 3-vector r (measured in
 units of length); dr**2 is implicitly a 3-vector (positive-definite) inner
 product dr&middot;dr; c is the speed of light, in units of length/time.
 
+Addition law for velocities
+---------------------------
+
 For alternative co-ordinates T time-like and R space-like, let v.c be the
 velocity wrt of (t,r) of an object at rest wrt (T,R); decompose r and R into
 components parallel and perpendicular to v, r = w+x, R=W+X; w and W are
@@ -46,6 +49,9 @@ velocity, wrt (t,x,w), of an object at rest wrt (S,Y,Z).  Note that
 so (S,Y,Z) are, indeed, just related to (t,x,w) in the manner appropriate for
 velocity c.(u+v)/(1+u.v).  Thus the `sum' of two velocities, c.u and c.v, is
 c.(u+v)/(1+u.v).
+
+Constant acceleration
+---------------------
 
 Now consider an object accelerating at constant rate a, parallel to v.  That its
 acceleration is `constant' says that, over any short enough time interval q, its
@@ -100,7 +106,7 @@ Note that v = tanh(a.t/c) = tan(a.s/c).cos(a.s/c) = sin(a.s/c).
 From -pi/2 < a.s/c < pi/2 and standard gravity we can infer a unit of time,
 pi*c/g = 3.04337 years, the time it takes to travel arbitrarily far and stop.
 
-$Id: zoom.py,v 1.2 2002-02-18 17:57:55 eddy Exp $
+$Id: zoom.py,v 1.3 2003-02-08 12:01:00 eddy Exp $
 """
 
 from basEddy.units import Object, year, pound
@@ -170,7 +176,10 @@ del Object, year, pound
 
 _rcs_id = """
  $Log: zoom.py,v $
- Revision 1.2  2002-02-18 17:57:55  eddy
+ Revision 1.3  2003-02-08 12:01:00  eddy
+ Added some sub-section headings to the theory doc
+
+ Revision 1.2  2002/02/18 17:57:55  eddy
  Tidy-up.  Removed gamma and asymptote remarks; but made .times() support
  asymptotes.  Added v as function of s and discussion of implied unit of
  time; changed saturation to deliver v as function of s.  Import stuff
