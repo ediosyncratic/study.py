@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.32 2005-01-17 22:46:48 eddy Exp $
+$Id: quantity.py,v 1.33 2005-01-21 00:03:05 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -530,8 +530,12 @@ class Quantity (Object):
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
         s = self.__scale
-        # maybe use s.bounds ?
+        # maybe use s.bounds ? or span
         return (s.high - s.low) / s.best
+
+    def _lazy_get_span_(self, ig):
+        lo, hi = self.__scale.span
+        return Quantity(lo, self.__units), Quantity(hi, self.__units)
 
     def _lazy_get_best_(self, which):
         """generic method for statistics, packaging those for __scale with __units """
@@ -714,7 +718,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.32  2005-01-17 22:46:48  eddy
+ Revision 1.33  2005-01-21 00:03:05  eddy
+ Added Quantity.span
+
+ Revision 1.32  2005/01/17 22:46:48  eddy
  Expanded the byte-quantifiers list and the sarcasm about the gram.
 
  Revision 1.31  2005/01/16 16:39:22  eddy
