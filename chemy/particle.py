@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.7 2003-04-12 13:38:17 eddy Exp $
+$Id: particle.py,v 1.8 2003-04-21 20:09:46 eddy Exp $
 """
 
 from const import *
@@ -46,7 +46,7 @@ class Particle (Object):
 	self.__name = name
 
     _unborrowable_attributes_ = Object._unborrowable_attributes_ + (
-        'name', 'symbol', 'charge', '_charge', 'anti')
+        'name', 'symbol', 'charge', 'anti')
 
     def constituents(self, *primitives):
         """Returns self's composition.
@@ -589,7 +589,10 @@ Rydberg = (light.speed / (1/Lepton.item.electron.mass
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.7  2003-04-12 13:38:17  eddy
+ Revision 1.8  2003-04-21 20:09:46  eddy
+ _charge just ceased being borrowable anyway, so no need to say not to borrow it.
+
+ Revision 1.7  2003/04/12 13:38:17  eddy
  Made various attributes, notably charge, non-borrowable (fixed problem
  of positron.charge being negative); made all .item carrier objects cope
  with name aliasing, also with .anti sub-object; thus made positron be
