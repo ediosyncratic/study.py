@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.17 2003-04-21 11:49:19 eddy Exp $
+$Id: sample.py,v 1.18 2003-04-21 19:55:25 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1278,11 +1278,12 @@ class Sample (Object):
     """Models numeric values by distributions. """
 
     __alias = {'_str': '_repr'}
+    _unborrowable_attributes_ = Object._unborrowable_attributes_ + ('best',)
 
     # Sub-classes can use bolt-in replacements for Weighted ...
     _weighted_ = Weighted
 
-    def __init__(self, weights, *args, **what):
+    def __init__(self, weights=None, *args, **what):
         # augment lazy aliases:
         try: bok = what['lazy_aliases']
         except KeyError: what['lazy_aliases'] = self.__alias
@@ -1291,11 +1292,21 @@ class Sample (Object):
             new.update(self.__alias)
             new.update(bok) # so derived classes over-ride Sample
 
+        if isinstance(weights, Sample):
+            args = (weights,) + args # i.e. borrow attributes off it
+            weights = weights.__weigh
+
         # massage best estimate:
-        try: best = what['best']
-        except KeyError: self.__best = []
+        try:
+            try: best = what['best']
+            except KeyError: best = apply(Object, args).best
+            else: del what['best']
+
+        except AttributeError:
+            self.__best = []
+            if not weights:
+                raise TypeError, 'What kind of numeric Sample has no data at all ?'
         else:
-            del what['best']
             def flatten(b):
                 """Coerce a Sample or Weighted to a scalar."""
                 while isinstance(b, Sample): b = b.best
@@ -1313,6 +1324,8 @@ class Sample (Object):
             else:
                 if not weights: weights = best
                 self.__best = map(flatten, best)
+
+        assert weights, 'I thought the TypeError took care of this ...'
 
         # Finished massaging inputs: initialise self.
         apply(Object.__init__, (self,) + args, what)
@@ -1647,7 +1660,15 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.17  2003-04-21 11:49:19  eddy
+  Revision 1.18  2003-04-21 19:55:25  eddy
+  Handle case where a Sample is supplied as the weights when constructing
+  a Sample (so quantity.qSample doesn't need a constructor).  Made best a
+  non-borrowable attribute, but made what *would* be borrowed serve as a
+  replacement for what['best'], when absent.  Ensured any Sample gets
+  non-empty __weigh when initialised, but allow constructor to be given no
+  weights - in which case a best estimate must be available !
+
+  Revision 1.17  2003/04/21 11:49:19  eddy
   More change to Sample.update(); ensure single-point distributions are
   interpreted as mere best estimates, so that joinWeighted.cross can work
   sensibly.  Stopped struggling to tell lazy infrastructure to preserve
