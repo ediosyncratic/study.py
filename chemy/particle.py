@@ -15,12 +15,12 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.3 2002-10-08 21:30:04 eddy Exp $
+$Id: particle.py,v 1.4 2003-01-26 16:43:30 eddy Exp $
 """
 
 from const import *
-eV = Quantum.Millikan * Volt
-eV.document('The electron-Volt: a standard unit of energy in particle physics.')
+eV = Quantity(Quantum.Millikan, Volt,
+              doc='The electron-Volt: a standard unit of energy in particle physics.')
 
 def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
     """Returns a sample from `almost zero' up to a given value.
@@ -272,67 +272,6 @@ class Particle (Object):
 
     def __hash__(self): return hash(self.__name)
 
-class Decays (Lazy):
-    """Describes all the decays of some species of particle.
-    """
-
-    def __init__(self, source, *procs):
-        """Initialises a Decays description.
-
-        First argument is what decays; this must be either a Particle() or a
-        sequence whose members are either Particle()s or Quantity()s with units
-        of energy; this first argument shall subsequently be accessible as
-        self.source.
-
-        Each subsequent argument (if any) is a sequence whose:
-
-            * first member is a decay rate (the probability per unit time of the
-              thing which decays doing this decay),
-
-            * second member is the energy released (as kinetic energy - any
-              photon energy should be included among the particles produced), or
-              None (in which case the energy defecit between other yields and
-              what decayed will be computed), and
-
-            * all subsequent members are decay products, which must be
-              Particle()s, of the decay mode which, at the given rate, releases
-              the given energy.
-
-        Each such sequence is used to construct an object holding the decay rate
-        as its .rate, the (possibly computed) energy as its .energy and the
-        decay products as its .fragments, a tuple.  These objects (if any) will
-        be accessible as the members of self.processes, a tuple.
-
-        The overall rate of decay of self.source is provided by self.rate; it is
-        simply the sum of the .rate attributes over self.processes. """
-
-        self.source = source
-        row, rate = [], 0 / second
-        for proc in procs:
-            rate = rate + proc[0] # raising TypeError if not number/second
-            row.append(apply(self.__Decay, proc))
-        self.processes, self.rate = tuple(row), rate
-
-    class __Decay:
-        def __init__(self, family, rate, energy, *frags):
-            if energy is None:
-                energy = family.energy
-                for it in frags:
-                    energy = energy - it.energy
-
-            assert not filter(lambda y: not isinstance(y, Particle), frags)
-            self.rate, self.source, self.fragments, self.energy = rate, family.source, frags, energy
-
-    def _lazy_get_energy_(self, ignored, csqr = Vacuum.c**2):
-        if isinstance(self.source, Particle): return self.source.mass * csqr
-        sum = 0 * Joule
-        # source should be either Particle or sequence of Particle()s and amounts of energy
-        for it in self.source:
-            try: sum = sum + it.mass * csqr
-            except (TypeError, AttributeError):
-                sum = sum + it # must be an energy
-        return sum
-
 class Boson (Particle):
     def _lazy_get_spin_(self, ignored, default=Quantum.hbar):
         return default
@@ -346,11 +285,13 @@ class Photon (Boson):
 
     __upinit = Boson.__init__
     def __init__(self, *args, **what):
-        try: what['name']
+        try: self.name = what['name']
         except KeyError: args = ('photon',) + args
         apply(self.__upinit, args, what)
 
     def __repr__(self):
+        try: return self.__dict__['name']
+        except KeyError: pass
         # avoid using '(metre/second)**2 * kilogramme' as unit
         try: e = self.energy / eV
         except AttributeError: return 'light'
@@ -403,7 +344,18 @@ class Photon (Boson):
 
         return self.energy / Vacuum.c
 
-light = Photon()
+light = Photon(spectrum = ( # well, hey, all rather approximate; see Nuffield, pp46--47.
+    Photon(name='red', wavelength=Quantity(sample(642, 18), nano*metre)),
+    Photon(name='orange', wavelength=Quantity(sample(615, 9), nano*metre)), # but see Na orange
+    Photon(name='yellow', wavelength=Quantity(sample(598, 8), nano*metre)),
+    # the human eye's peak response is at 550nm
+    Photon(name='green', wavelength=Quantity(sample(555, 35), nano*metre)),
+    Photon(name='cyan', wavelength=Quantity(sample(505, 15), nano*metre)), # blue-green
+    Photon(name='blue', wavelength=Quantity(sample(465, 25), nano*metre)),
+    Photon(name='indigo', wavelength=Quantity(sample(430, 10), nano*metre)), # dk blue
+    Photon(name='violet', wavelength=Quantity(sample(408, 12), nano*metre)))) # purple
+# Photon(name='infra-red', frequency=...), Photon('gamma', ...)
+Photon(name='sodium orange', wavelength=590*nano*metre) # flagrantly contradicting spectrum
 
 class Fermion (Particle):
     def _lazy_get_spin_(self, ignored, default=Quantum.hbar/2):
@@ -601,7 +553,12 @@ Rydberg = (light.speed / (1/Lepton.item.electron.mass
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.3  2002-10-08 21:30:04  eddy
+ Revision 1.4  2003-01-26 16:43:30  eddy
+ Removed Decays into its own module, for further mangling.
+ Refined definition of eV, repr of Photon.
+ Added .spectrum to light, noted sodium orange.
+
+ Revision 1.3  2002/10/08 21:30:04  eddy
  Rearranged view of Particle's constituents; now wants them supplied as
  `highest-level' and provides .constituents([primitives...]) to decompose
  them to chosen level.  Likewise, scraps previous binding* attributes in
