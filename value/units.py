@@ -1,6 +1,6 @@
 """Assorted units of measurement.
 
-$Id: units.py,v 1.1 2001-03-21 20:04:06 eddy Exp $
+$Id: units.py,v 1.2 2002-02-11 01:37:00 eddy Exp $
 """
 from SI import *
 
@@ -23,7 +23,32 @@ Definitively `beautiful enough to launch a thousand ships', so that launching a
 single ship gains credit for a single milli-Helen.  The origin of this is the
 story of the Trojan war, in which a Greek fleet of a thousand ships, carrying a
 great army, went to retrieve Helen from Troy, to which Paris had taken her. """)
+
+quid = base_unit('&sterling;', 'Pound Sterling',
+		 """The base unit of British currency.""")
 
+# there has to be a better way to do these ...
+
+# tweak masses to support .force:
+class Mass (Quantity):
+    def _lazy_get_force_(self, ignored, g=9.80665 * metre / second**2):
+	return self * g
+    _lazy_get_weight_ = _lazy_get_force_
+
+    _quantity = Quantity
+
+# and times to support .light:
+class Time (Quantity):
+    def _lazy_get_light_(self, ignored, speed=second.light / second):
+	return self * speed
+
+    _quantity = Quantity
+
+# over-ride base units:
+kilogramme = kilogram = kg = Mass(kilogramme)
+second = sec = s = Time(second)
+
+# dimensionless:
 from math import pi
 dozen = 12
 bakersDozen = 13
@@ -42,22 +67,22 @@ paper = Object(
     quire = 25,
     shortream = 480,
     ream = 500,
-    perfectream = 516)
+    perfectream = 516) # 43 * dozen
 paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream)
 
-minute = 60 * second
-hour = 60 * minute
-day = 24 * hour
-week = 7 * day
-fortnight = 2 * week
-year = 27 * 773 * (week / 400)   	# the Gregorian approximation
+# time
+minute = Time(60 * second)
+hour = Time(60 * minute)
+day = Time(24 * hour)
+week = Time(7 * day)
+fortnight = Time(2 * week)
+year = Time(27 * 773 * (week / 400))	# the Gregorian approximation
+month = Time(year / 12) # on average, at least; c.f. planets.Month, the lunar month
 # factors of 216 seconds abound ...
-# My working year has 8 bank holidays + 25 my holidays and
-# I work 5-day weeks, nominally 7.5 hours per day.
-workyear = (year * 5. / week - 33) * 7.5 * hour
 # how about lunar months ? how do they relate to all this ? e.g. 216 secs ?
 
-turn = revolution = 2 * pi * radian
+# etc.
+turn = cycle = revolution = 2 * pi * radian
 arc = Object(degree = turn / 360)
 arc.minute = arc.degree / 60
 arc.second = arc.minute / 60
@@ -70,15 +95,13 @@ Oe = Oersted = kilo * Ampere / metre / 4 / pi
 eV = 160.21e-21 * Coulomb * Volt # electron-Volt, .16 atto Joules
 
 Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
-tonne = kilo * kilogramme
-slug = 14.5939 * kilogramme
-kilogramforce = 9.80665 * Newton
+tonne = Mass(kilo, kilogramme)
 calorie = 4.1868 * Joule	# the thermodynamic calorie (IT), not any other sort.
 # food talks about `calorie' but means kilo calorie
 BTU = Btu = BritishThermalUnit = 1.05506 * kilo * Joule
 # calorie * pound * Farenheit / gram / Kelvin
 CHU = 1.8 * BTU         # whatever CHU is ! (KDWB)
-chevalVapeur = 75 * kilogramforce * metre / second
+chevalVapeur = 75 * kilogram.force * metre / second
 therm = 1.05506e8 * Joule # US uses 1.054804e8
 clausius = kilo * calorie / Kelvin
 
@@ -92,34 +115,82 @@ sound = Object(speed = Quantity(331.46, metre / second,
 mach = sound.speed
 torr = mmHg = 133.322 * Pascal
 
+from lazy import Lazy
+
+# temp class; one instance, working - see below, describes time and pay
+class Job (Lazy):
+    def __init__(self, pay, period, leave, dailyhours=7.5, bank=8, weeklydays=5):
+	"""Sets up job-related data.
+
+	Required arguments:
+	  pay -- amount of money you get paid
+	  period -- time period between payments
+	  leave -- with how many days you get to chose to take off per year
+	  
+	Optional arguments:
+	  dailyhours=7.5 -- hours worked per day (must be < 24)
+	  bank=8 -- number of bank holidays per year
+	  weeklydays=5 -- number of working days per week
+
+	Only pay and period should have units; the rest are numbers.  The job
+	allows bank+leave holidays per year, plus 7-weeklydays per week.
+
+	For pay and period, you can give an annual salary and year even if you
+	get paid monthly; or an hourly rate and `hour'.  If period is less than
+	a day, pay is presumed to be the actual pay per that much time;
+	otherwise, it is presumed to be how much you are paid per that long when
+	working the hours you would `normally' work during that period. """
+
+	assert dailyhours * hour <= day
+	assert weeklydays * day <= week
+	assert leave + bank <= year * weeklydays / week # i.e. yearlydays
+
+	self.__pay, self.__period = pay, period
+	# The remainder are numbers and may be irritatingly integer:
+	self.__daily, self.__weekly = dailyhours, weeklydays
+	self.__hols = bank + leave
+	self.leave = leave
+
+    # time spent working per ...:
+    def _lazy_get_day_(self, ignored): return Time(self.__daily * hour)
+    def _lazy_get_week_(self, ignored): return Time(self.__weekly * self.day)
+    def _lazy_get_year_(self, ignored):
+	return Time(self.day * (year * self.__weekly / week - self.__hols))
+    def _lazy_get_month_(self, ignored): return Time(self.year / 12)
+    def _lazy_get_quarter_(self, ignored): return Time(self.year / 4)
+
+    # Rates of pay
+
+    # relative to actual time spent working:
+    def _lazy_get_rate_(self, ignored):
+	time = self.__period
+	rate = self.__pay / time # naive estimate
+	if time < day: return rate
+	# otherwise, make allowance for time off ...
+	if time < week: return rate * day / self.day # eat, drink, sleep
+	if 4 * time < year: return rate * week / self.week # week-end
+	# more than a season; assume inputs took account of holidays
+	return rate * year / self.year
+
+    # amount of pay received per ...
+    def _lazy_get_hourly_(self, ignored): return self.rate * hour
+    def _lazy_get_daily_(self,  ignored): return self.rate * self.day
+    def _lazy_get_weekly_(self, ignored): return self.rate * self.week
+    def _lazy_get_annual_(self, ignored): return self.rate * self.year
+    def _lazy_get_monthly_(self,   ignored): return self.annual / 12
+    def _lazy_get_quarterly_(self, ignored): return self.annual / 4
+
+working = Job(28000 * quid, year, 25)
+del Job
+
 import string
 # Description of bytes, including the kilo = 1024 twist ...
-from quantity import _quantifier_dictionary
-# strictly, I should filter keys() for multiples of 3, or scale its keys by 3 ...
-_biggest = max(_quantifier_dictionary.keys()) / 3
-
-class bSample(qSample):
-    def _sample_decade_split(self, power=1):
-        raise AssertionError, 'I thought this was defunct !'
-        off = self.decade(pow(1024., power), 100 * pow(8., power))
-        # problem - e.g. range for 1/byte is 8/10.24 to 800
-        if 1 > off: return 1, ''
-        # don't use an unfamiliar prefix unless it'll work ...
-        if off > _biggest: off = 4
-
-        try: mul = _quantifier_dictionary[3 * off]
-        except KeyError: return 1, ''
-
-        try: return pow(1024, off), mul
-        except OverflowError: return pow(1024L, off), mul
 
 class bQuantity(Quantity):
     def _quantity(self, what, units):
         try: order = units['bit']
         except KeyError: order = 0
         if order: return self.__class__(what, units)
-        # if we have no byte-ness left, shed sophistication ...
-        if isinstance(what, bSample): what = qSample(what)
         return Quantity(what, units)
 
     def _lazy_get__unit_str_(self, key):
@@ -129,7 +200,6 @@ class bQuantity(Quantity):
         if factor < 1: factor, mul = 1, ''
         tail = self / pow(factor * byte, order)
         tail = tail._primitive()
-        # assert: tail isn't a bQuantity and its scale isn't a bSample.
         num, uni = tail._number_str, tail._unit_str
 
         if order > 0:
@@ -157,7 +227,7 @@ class bQuantity(Quantity):
     _lazy_get__number_str_ = _lazy_get__unit_str_
 
 _name = 'byte'
-byte = bQuantity(bSample(mean=8), # but no actual sample
+byte = bQuantity(qSample(mean=8), # but no actual sample
                 bit,
                 """The standard unit of memory on a computer.
 
@@ -178,9 +248,11 @@ quantifiers applied to byte, as kilobyte etc. above.  Indeed, it is mainly in
 order to do this that I bother defining the byte ... """,
                 _name)
 
+from quantity import _quantifier_dictionary
 _row = filter(lambda x: x > 0, _quantifier_dictionary.keys())
 _row.sort()
 for _key in _row:
+    if _key % 3: continue # skip deka, hecto
     _nom = '%sbyte' % _quantifier_dictionary[_key]
     try: exec '%s = Quantity(1024, %s, nom="%s")' % (_nom, _name, _nom)
     except OverflowError:
@@ -188,6 +260,7 @@ for _key in _row:
         exec '%s = Quantity(1024L, %s, nom="%s")' % (_nom, _name, _nom)
     _name = _nom
 
+del _nom, _name, _key, _row, _quantifier_dictionary
 Kb, Mb, Gb = kilobyte, megabyte, gigabyte
 
 # Many units are or have been subject to what amounts to dialect variation, some
@@ -254,6 +327,7 @@ link = pole / 25
 furlong = 10 * chain	# `furrow long'
 mile = 8 * furlong
 league = 3 * mile
+league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
 marathon = 26 * mile + 385 * yard
 ppoint = inch / 72      # the printer's point
 spoint = inch / 4000    # the silversmith's point (see also jeweler's, under mass !)
@@ -263,6 +337,7 @@ shoe = Object( # units of thickness of leather in shoes
 railgauge = 4 * foot + 8.5 * inch
 UKnm = 6080 * foot		# until 1970
 seamile = 6000 * foot
+
 pied = 4500 * metre / 13853	# pied de roi, French foot
 French = Object(foot = pied,
                 inch = pied / 12,
@@ -272,21 +347,21 @@ French = Object(foot = pied,
                 arpent = (180 * pied)**2)
 
 # Anglophone units of mass:
-grain = 64.79891e-6 * kilogramme        # K&L
-mite = grain / 20
-droit = mite / 24
-periot = droit / 20
-blanc = periot / 24
-scruple = 20 * grain
-lb = pound = 350 * scruple
-oz = ounce = pound / 16
-dram = ounce / 16
-clove = 7 * pound
-stone = 2 * clove
-cwt = hundredweight = 8 * stone
-ton = 20 * cwt
-UScwt = cental = 100 * pound
-USton = 20 * UScwt
+grain = Mass(64.79891e-6, kilogramme)        # K&L
+mite = Mass(1. / 20, grain)
+droit = Mass(1. / 24, mite)
+periot = Mass(1. / 20, droit)
+blanc = Mass(1. / 24, periot)
+scruple = Mass(20, grain)
+lb = pound = Mass(350, scruple)
+oz = ounce = Mass(1. / 16, pound)
+dram = Mass(1. / 16, ounce)
+clove = Mass(7, pound)
+stone = Mass(2, clove)
+cwt = hundredweight = Mass(8, stone)
+ton = Mass(20, cwt)
+UScwt = cental = Mass(100, pound)
+USton = Mass(20, UScwt)
 TNT = 4.184e9 * Joule / USton
 
 # Anglophone units of area (KDWB):
@@ -310,21 +385,20 @@ displacementTon = 35 * timberfoot
 registerTon = 100 * timberfoot		# internal capacity of ships
 
 # Other units of mass: KDWB
-butcherStone = 8 * pound
-drachmTroy = 3 * scruple	# aka apothecary's dram
-ounceTroy = 8 * drachmTroy
-denierTroy = 24 * grain # = ounceTroy / 20, the denier (a frankish coin) or pennyweight
-poundTroy = 12 * ounceTroy
-caratTroy = 3.17 * grain	# or 3.163 grain according to u.s.m.u
-carat = .2 * gram		# metric variant, from /usr/share/misc/units
-jpoint = carat / 100		# jeweler's point
-mercantilePound = 15 * ounceTroy
+butcherStone = Mass(8, pound)
+drachmTroy = Mass(3, scruple)	# aka apothecary's dram
+ounceTroy = Mass(8, drachmTroy)
+denierTroy = Mass(24, grain) # = ounceTroy / 20, the denier (a frankish coin) or pennyweight
+poundTroy = Mass(12, ounceTroy)
+caratTroy = Mass(3.17, grain)	# or 3.163 grain according to u.s.m.u
+carat = Mass(.2, gram)		# metric variant, from /usr/share/misc/units
+jpoint = Mass(.01, carat)	# jeweler's point
+mercantilePound = Mass(15, ounceTroy)
 
 # Imperial force and power:
-poundforce = kilogramforce * pound / kilogramme
 horsepower = Object(
-    550 * foot * poundforce / second,
-    metric = 75 * kilogramforce * metre / second,
+    550 * foot * pound.force / second,
+    metric = 75 * kilogram.force * metre / second,
     electric = 746 * Watt,
     boiler = 9809.50 * Watt,
     water = 746.043 * Watt,
@@ -332,10 +406,10 @@ horsepower = Object(
 celo = foot / second**2
 jerk = celo / second
 poundal = pound * celo
-reyn = poundforce * second / inch**2
-slug = poundforce * second**2 / foot
-slinch = slug * 12
-duty = foot * poundforce
+reyn = pound.force * second / inch**2
+slug = Mass(1, pound.force * second**2 / foot)
+slinch = Mass(12, slug)
+duty = foot * pound.force
 
 # US units of volume:
 USgallon = 3 * 11 * 7 * pow(inch, 3)   # (aka wine gallon) ancient encyclopaedia, K&L
@@ -353,13 +427,13 @@ USbarrelDry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
 USbushel = Object(
     2150.42 * pow(inch, 3), # volume of an 8 inch cylinder with 18.5 inch diameter
     # North Americans also use `bushel' as a unit of mass for grains:
-    wheat = 60 * pound,
-    soybean = 60 * pound,
-    corn = 56 * pound, # of course, this means maize, not wheat
-    rye = 56 * pound,
-    barley = 48 * pound,
-    oat = 32 * pound, # Canada uses 34lb
-    rice = 45 * pound)
+    wheat = Mass(60, pound),
+    soybean = Mass(60, pound),
+    corn = Mass(56, pound), # of course, this means maize, not wheat
+    rye = Mass(56, pound),
+    barley = Mass(48, pound),
+    oat = Mass(32, pound), # Canada uses 34lb
+    rice = Mass(45, pound))
 USpeck = USbushel / 4
 USgallonDry = USpeck / 2
 USquartDry = USgallonDry / 4
@@ -407,12 +481,12 @@ ale = Object(
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 lienSwiss = 5249 * yard
-oncenDutch = kilogramme / 10
-okeTurk = 2.8342 * pound
+oncenDutch = Mass(.1, kilogramme)
+okeTurk = Mass(2.8342, pound)
 berriTurk = 1828 * yard
 milDane = 8238 * yard
 verstRussia = 1167 * yard
-poodRussia = 36.11 * pound
+poodRussia = Mass(36.11, pound)
 
 # Imperial units of volume (part 2):
 
@@ -426,7 +500,7 @@ gill = noggin = pint / 4        # gill confirmed by Nick
 # but gill = pint / 2 in North England, where noggin is used (KDWB)
 cup = pint / 2
 teacup = pint / 3
-tablespoon = floz / 2
+tablespoon = floz / 2 # but 20 cc in metric versions
 desertspoon = tablespoon / 2
 dram = teaspoon = fluidDrachm = desertspoon / 2
 minim = drop = dram / 60
@@ -446,9 +520,11 @@ boll = 2 * sack
 chaldron = 12 * sack
 cran = 75 * gallon / 2	# measures herring - c. 750 fish
 
-"""
-  $Log: units.py,v $
-  Revision 1.1  2001-03-21 20:04:06  eddy
-  Initial revision
+_rcs_log = """
+ $Log: units.py,v $
+ Revision 1.2  2002-02-11 01:37:00  eddy
+ Added Mass and Time to implement .force and .light attributes (respectively).
+ Added quid and some comments.  Replaced workyear mess with Job etc.
 
+ Initial Revision 1.1  2001/03/21 20:04:06  eddy
 """
