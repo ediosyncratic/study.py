@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.15 2002-02-02 18:36:27 eddy Exp $
+$Id: quantity.py,v 1.16 2002-02-11 01:38:52 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -250,7 +250,7 @@ class Quantity(Object):
 
             for val in sample:
                 if val.__units != units:
-                    raise TypeError, ('Sample of wrong dimensions', val, units)
+                    raise TypeError('Sample of wrong dimensions', val, units)
 
                 row.append(val.__scale)
 
@@ -331,15 +331,15 @@ class Quantity(Object):
 
         try:
             if self.__units != other.__units:
-                raise TypeError, (why + ' with differing dimensions',
-                                  self._unit_str, other._unit_str)
+                raise TypeError(why + ' with differing dimensions',
+				self._unit_str, other._unit_str)
 
             return other.__scale
 
         except AttributeError:
             if self.__units:
-                raise TypeError, (why + ' between scalar and dimensioned quantity',
-                                  other, self._unit_str)
+                raise TypeError(why + ' between scalar and dimensioned quantity',
+				other, self._unit_str)
 
             return other
 
@@ -375,10 +375,9 @@ class Quantity(Object):
 
     def __pow__(self, what):
         wh, at = self.__unpack_(what)
-        if at: raise TypeError, ('raising to a dimensioned power', what)
+        if at: raise TypeError('raising to a dimensioned power', what)
 
-        return self._quantity(pow(self.__scale, wh),
-                              scaledict(self.__units, wh))
+        return self._quantity(pow(self.__scale, wh), scaledict(self.__units, wh))
 
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
@@ -562,7 +561,10 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.15  2002-02-02 18:36:27  eddy
+ Revision 1.16  2002-02-11 01:38:52  eddy
+ Made TypeError with several args be a call.
+
+ Revision 1.15  2002/02/02 18:36:27  eddy
  fixed bug in variance (missing `self.')
  included non-prial quantifiers among the rest.
  lazified reverse-lookup of __units, eased lookemup default
