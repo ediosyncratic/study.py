@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.1 2003-07-26 22:38:11 eddy Exp $
+$Id: polynomial.py,v 1.2 2003-07-27 14:02:19 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -11,17 +11,47 @@ class invalidCoefficient (TypeError): "Invalid coefficient for polynomial"
 class unNaturalPower (TypeError): "Power of variable in polynomial is not a natural number"
 
 class Polynomial (Lazy):
-    """Model of the mathematical ring of polynomials.
+    """Model of the mathematical ring of polynomials (in one free variable).
 
-    Supports normalisation (to leading term 1.x**rank), addition, subtraction,
-    multiplication, division/remainder, hcf (highest common factor), a coprime
-    test, comparison and evaluation.
+    Supports arithmetic (+, -, *, /, %, divmod, power, negation), comparison
+    (but cmp() will yield zero in some cases where == will say no),
+    representation (as a python lambda expression), evaluation (i.e. calling as
+    a function), repeated integration (as <<) and differentiation (as >>), use
+    as boolean (only the zero polynomial is false) and (lazy) hashing.
 
-    """
+    Lazy attributes:
+    ===============
 
-    # Should allow the power entities to be tuples (to represent polynomials
-    # in many variables).  Coefficients only require the ability to add,
-    # multiply and divmod.
+      rank -- highest power of the free variable with non-zero coefficient
+      normalised -- same polynomial scaled so rank's coefficient is 1
+      derivative -- result of differentiating the polynomial
+      assquares -- decompose as sum of scaled squares and a remainder
+      sign -- like cmp(self, 0) but None when ill-defined or variable
+      isreal -- are all coefficients real ?
+      factors -- tuple of normalised irreducible factors and an optional scalar
+
+    Note that a poly with true isreal considers positive-definite quadratic
+    factors to be irreducible; assigning isreal = None will persuade a poly to
+    believe quadratic factors are reducible.  The value of p.assquares is of
+    form (bok, rem) with rem either zero or of odd degree and p-rem equal to
+    reduce(lambda y, (x, v): y + x*x*v, bok.items(), 0).
+
+    The value of sign may presently sometimes be None when it needn't be; I've
+    yet to find an example, but the computation in use only deals with `easy
+    enough' cases.  Note that cmp() yields zero when the difference's sign is
+    None or zero; but == is true only when sign is zero (actual equality).
+
+    Methods:
+    ========
+
+      coefficient(n) -- yields coefficient of (: x**n &larr;x :) in polynomial
+      hcf([poly, ...]) -- yields highest common factor of arbitrarily many
+      integral([start=0, base=0]) -- integration
+      unafter(poly) -- input to poly yielding self as output
+      seek_root([guess=0, tol=1e-6]) -- find an input mapped to zero
+      seek_factor([guess=None]) -- find a factor, if possible
+
+    See individual methods' docs for details.\n"""
 
     def __init__(self, *args):
         """Constructor.
@@ -48,7 +78,14 @@ class Polynomial (Lazy):
         Polynomial({0:1,1:2,2:3}).  The last, dictionary, form is generally
         preferrable for sparse polynomials (ie, rank >> the number of non-zero
         coefficients): tuple form is better for short and sweet forms like that
-        illustrated. """
+        illustrated.
+
+        Note that setting z = Polynomial(0, 1) provides a `free variable' that
+        can then be used to generate polynomials the way many folk prefer; with
+        this, Polynomial(1,2,3) can simply be written 3*z*z +2*z +1.  If you
+        want a polynomial's representation to use the name z (rather than x),
+        simply set the polynomial's .variablename to 'z' (but note that this
+        only applies to that polynomial, not to ones computed from it).\n"""
 
 	self.__coefs = {}	# dictionary with natural keys
         try:
@@ -63,6 +100,7 @@ class Polynomial (Lazy):
 
         # self.__coefs should now be immutable.
 
+    # Coefficients only require the ability to add, multiply and divmod.
     def _get_coeff(val, oktypes=(types.ComplexType, types.FloatType, types.IntType, types.LongType)):
         if type(val) in oktypes: return val + 0.
         elif hasattr(val, '__add__') and hasattr(val, '__mul__'):
@@ -107,18 +145,29 @@ class Polynomial (Lazy):
 
     def _lazy_get_normalised_(self, ignored):
 	if self.rank < 0: raise ValueError, "Can't normalise zero"
-	return self / self.__coefs[self.rank]
+        scale = self.__coefs[self.rank]
+        if scale == 1: return self
+	return self / scale
 
+    variablename = 'x'
     def __repr__(self):
 	# need to modify this so it can cope with non-scalar coefficients
 	result = ""
 	keys = self.__coefs.keys()
 	keys.sort()
         keys.reverse()
+        name = self.variablename
+
         def fmt(num):
             try:
-                if num.imag == 0: num = num.real
-            except AttributeError: pass
+                if num.imag == 0:
+                    num = num.real
+                    raise AttributeError
+            except AttributeError:
+                try:
+                    if num == int(num): num = int(num)
+                except OverflowError: pass
+
             ans = str(num)
             if ans[0] != '-': return ' +' + ans
             else: return ' ' + ans
@@ -129,14 +178,14 @@ class Polynomial (Lazy):
             else:
                 if val == 1: result = result + " +"
                 elif val == -1: result = result + ' -'
-                else: result = result + fmt(val)
+                else: result = result + fmt(val) + '*'
 
-                if key == 1: result = result + "x"
-                else: result = result + "x**%d" % (key)
+                if key == 1: result = result + name
+                else: result = result + "%s**%d" % (name, key)
 
-        if not result: return "lambda x: 0"
-        elif result[:2] == ' +': return 'lambda x: ' + result[2:]
-        else: return "lambda x:" + result
+        if not result: return "lambda %s: 0" % name
+        elif result[:2] == ' +': return 'lambda %s: %s' % (name, result[2:])
+        else: return "lambda %s:%s" % (name, result)
 
     __str__ = __repr__
 
@@ -289,21 +338,14 @@ class Polynomial (Lazy):
     # assert: self.derivative.integral(x, self(x)) == self, for any x
 
     # non-zero: safe and unambiguous
-    def __nonzero__(self): return self.coefficient(self.rank) != 0.0
+    def __nonzero__(self): return self.rank >= 0
     # Comparison: of debatable value
-    def __cmp__(self, other):
-	answer = cmp(self.rank, other.rank)
-	if answer == 0:
-	    diff = self - other
-	    answer = cmp(diff.coefficient(diff.rank), 0)
-	return answer
+    def __cmp__(self, other): return (self - other).sign or 0
+    # *Stronger* test for equality ...
+    def __eq__(self, other): return (self - other).rank < 0
 
     def __pos__(self): return self
-    def __neg__(self):
-	nega = {}
-	for key in self.__coefs.keys():
-	    nega[key] = - self.__coefs[key]
-	return Polynomial(nega)
+    def __neg__(self): return 0 - self
 
     def __coerce__(self, other, boktyp=types.DictionaryType):
         try:
@@ -357,8 +399,11 @@ class Polynomial (Lazy):
     def unafter(self, other):
         """Returns a polynomial which, if fed other, will yield self.
 
-        Requires rank of self to be a multiple of rank of other, among other things.
-        """
+        The nature of polynomial arithmetic is such that, if f and g are
+        polynomials, their composite (: f(g(x)) &larr;x :) is simply f(g).  This
+        method seeks to express self as other(g) for some g.  Requires rank of
+        self to be a multiple of rank of other, among other things; raises
+        ValueError if the goal can't be met. """
 
         residue, result = self, {}
 
@@ -380,23 +425,24 @@ class Polynomial (Lazy):
         bok is squared and multiplied by the corresponding value, summing the
         results and adding poly will yield self. """
 
-        bok = {}
-        while self.rank % 2 == 0:
-            i = self.rank
-            k, i = self.coefficient(i), i / 2
+        bok, rem = {}, self
+        while rem.rank % 2 == 0:
+            i = rem.rank
+            k, i = rem.coefficient(i), i / 2
             assert k != 0
             z = Polynomial({i: 1})
 
             while i > 0:
                 i = i - 1
-                q = (self - k*z*z) / (2*z*k)
+                q = (rem - k*z*z) / (2*z*k)
                 assert q.rank <= i
                 z = z + Polynomial({i: q.coefficient(i)})
 
-            bok[z], self = k, self - k * z * z
-            #print bok, self
+            bok[z], rem = k, rem - k * z * z
+            #print bok, rem
 
-        return bok, self
+        assert self == rem + reduce(lambda y, (x, k): y + x*x*k, bok.items(), 0)
+        return bok, rem
 
     def __pure_real(self):
         for v in self.__coefs.values():
@@ -409,7 +455,6 @@ class Polynomial (Lazy):
     def _lazy_get_isreal_(self, ignored): return self.__pure_real()
 
     def _lazy_get_sign_(self, ignored):
-        """Sort of cmp(self, 0) but yields None if ill-defined or variable. """
         if self.rank < 0: return 0 # definitely everywhere zero
         if self.rank % 1 or not self.isreal: return None
         if self.rank == 0: return cmp(self.coefficient(0), 0)
@@ -456,18 +501,46 @@ class Polynomial (Lazy):
         # Further work looking at b's keys
         return None
 
-    def __cmp__(self, other): return (self - other).sign or 0
-
     from cardan import cubic
-    def seek_root(self, guess=0, tol=1e-6, cub=cubic):
+    def __cubic_root(self, cub=cubic):
+        # for cubics, we know how to be exact ...
+        ans = apply(cub, map(self.coefficient, (3, 2, 1, 0)))
+
+        # Prefer real answers:
+        nice = filter(lambda x: (x + 0j).imag == 0, ans)
+        if nice:
+            ans = nice
+            # Prefer whole answers:
+            nice = filter(lambda x: x == long(x), ans)
+            if nice: ans = nice
+
+        # Prefer bigger answers:
+        hi, ans = ans[0], ans[1:]
+        for lo in ans:
+            if abs(lo) > abs(hi): hi = lo
+
+        return hi
+    del cubic
+
+    def seek_root(self, guess=0, tol=1e-6):
+        """Find an input which self maps to zero.
+
+        Optional arguments:
+
+          guess -- where to start searching [default: 0]
+          tol -- tolerance [default: 1e-6]; if abs(self(x)) < tol, x is a root
+
+        These are ignored if self is a quadratic or a real cubic; cardan.py's
+        tools then provide for exact solution.  Otherwise, Newton-Raphson is
+        deployed.  If self is everywhere or nowhere zero, ValueError is raised;
+        this can only happen for constant polynomials. """
+
         if self.rank < 1:
             raise ValueError, 'constant function is either nowhere or everywhere zero'
 
-        if self.rank < 4 and self.isreal:
-            ans = apply(cub, map(self.coefficient, (3, 2, 1, 0)))
-            nice = filter(lambda x: x == long(x), ans)
-            if nice: return max(nice)
-            return max(ans)
+        if self.rank < 3 or (self.rank == 3 and self.__pure_real()):
+            # Exploit exact solution:
+            return self.__cubic_root()
 
         if self.normalised.sign and (guess + 0j).imag == 0:
             guess = guess + 1j # a pure real start point won't work
@@ -492,8 +565,6 @@ class Polynomial (Lazy):
 
         return guess
 
-    del cubic
-
     def seek_factor(self, guess=None):
         # do newton-raphson in the vector space of quadratic factors
         # stay within real if all coefficients are real
@@ -505,7 +576,7 @@ class Polynomial (Lazy):
         if guess is None:
             try: root = self.seek_root()
             except ValueError:
-                assert self.rank == 2
+                assert self.rank == 2 and self.isreal
                 return self.normalised
 
             if self.isreal:
@@ -519,15 +590,14 @@ class Polynomial (Lazy):
             if guess is None:
                 guess = Polynomial({1: 1, 0: -root})
 
-        tiny = 1e-6 * min(map(abs, self.__coefs.values()))
+        tiny = 1e-6 * self._bigcoef
         index = range(guess.rank) # not including rank itself;
         # leave guess' 1st coefficient alone; and r's rank is less than that of guess.
         while 1:
             r = self % guess
             if r.rank < 0: return guess # exact factor
-            if max(map(abs, r.__coefs.values())) < tiny: return guess # pretty close
-            small = 1e-3 * min(map(abs,
-                                   r.__coefs.values() + guess.__coefs.values()))
+            if r._bigcoef < tiny: return guess # pretty close
+            small = 1e-3 * min(r._bigcoef, guess._bigcoef)
 
             matrix = []
             for i in index:
@@ -541,22 +611,72 @@ class Polynomial (Lazy):
             raise NotImplementedError, 'Need to divide vector by matrix'
             guess = guess - r / matrix # implement this ...
 
+    def _lazy_get__bigcoef_(self, ignored):
+        return max(map(abs, self.__coefs.values()))
+
+    def __istiny(self, scale=1, maxrank=0):
+        if self.rank > maxrank: return None
+        if self.rank < 0 or self._bigcoef < scale * 1e-6: return 1
+        return None
+
     def _lazy_get_factors_(self, ignored):
         ans = []
         while self.rank > 0:
-            f = self.seek_factor()
-            ans.append(f)
-            self = self / f
+            #print ans, self
 
-        if self != 1:
-            ans.append(self.coefficient(0))
-        return ans
+            bok, rem = self.assquares
+            if rem:
+                if bok:
+                    f = apply(rem.hcf, bok.keys())
+                    if f.rank > 0:
+                        f = f.normalised
+                        ans, self = ans + list(f.factors), self / f
+                        continue
+
+            else:
+                row = bok.keys() # assert: non-empty
+                f = apply(row[0].hcf, row[1:])
+                if f.rank > 0:
+                    f = f.normalised
+                    ans, self = ans + list(2 * f.factors), self / f / f
+                    continue
+
+                if len(bok) == 2:
+                    (X, a), (Y, b) = bok.items()
+                    if b < 0 < a: X, a, Y, b = Y, b, X, a
+                    if a < 0 < b: # difference of two squares
+                        b, a = b**.5, (-a)**.5
+                        # self = (b.Y)**2 -(a.X)**2
+                        X, Y = (b*Y -a*X).normalised, (b*Y +a*X).normalised
+                        ans, self = ans + list(X.factors + Y.factors), self / X / Y
+                        continue
+
+            f = self.seek_factor()
+            while 1:
+                new, rem = divmod(self, f)
+                if not rem.__istiny(self._bigcoef): break
+                ans.append(f)
+                self = new
+
+        if self != 1: ans.append(self.coefficient(0))
+        return tuple(ans)
 
 del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.1  2003-07-26 22:38:11  eddy
-Initial revision
+Revision 1.2  2003-07-27 14:02:19  eddy
+Clean-up.  Many doc enhancements, notably doc'd the class.  Provide for
+repr to use another variable name than x; to express whole numbers as
+such; and to include the *s needed to be a real python lambda
+expression.  Normalising a normal poly now gets itself, not a duplicate.
+Discarded the lousy __cmp__ in favour of the sign-based one; added
+__eq__ to give strict equality; simplified __neg__.  Added assertion
+when computing assquares.  Split out seek_root's exact solution (Cardan,
+quadratic) to a hidden method.  Added lazy _bigcoef to save repeating
+the code for max(map(abs, ...__coefs.values())); plus an __istiny test.
+Made factorisation do opportunistic things so it might work more widely;
+changed its return to a tuple.
 
+Initial Revision 1.1  2003/07/26 22:38:11  eddy
 """
