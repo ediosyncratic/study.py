@@ -1,11 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.1 2005-03-12 13:13:26 eddy Exp $
+$Id: common.py,v 1.2 2005-03-12 13:38:48 eddy Exp $
 """
-
-from basEddy.units import *
 
+from basEddy.units import tophat, arc, pi, Object
+
 class Discovery (Object):
     __upinit = Object.__init__
     def __init__(self, who, year, **what):
@@ -16,6 +16,7 @@ class Discovery (Object):
     __str__ = __repr__
 
 class Spin(Object):
+    __upinit = Object.__init__
     def __init__(self, period, tilt=(tophat + .5) * 180, **what):
         """Initialises a Spin object.
 
@@ -32,17 +33,15 @@ class Spin(Object):
 
         Takes arbitrary keyword arguments after the manner of Object (q.v.).
         """
-        apply(Object.__init__, (self,), what)
+        apply(self.__upinit, (), what)
         self.period, self.tilt = period + 0 * second, tilt
         # need to do arithmetic on period to:
         #  * check it really is a time and
         #  * ensure new object, since we'll do .observe() to it (see Orbit).
         # Creating Earth.orbiter(day) shouldn't give day an error-bar !
 
-    def _lazy_get_inclination_(self, ignored): return self.tilt * arc.degree
-
-    def _lazy_get_omega_(self, ignored):
-        return turn / self.period / radian # should we lose the /radian ?
+    def _lazy_get_inclination_(self, ignored, unit=arc.degree): return self.tilt * unit
+    def _lazy_get_omega_(self, ignored, unit=2*pi): return unit / self.period
 
 class Round (Object): # handy base-class for round things
     __upinit = Object.__init__
@@ -60,22 +59,16 @@ class Round (Object): # handy base-class for round things
 class Orbit (Round):
     __upinit = Round.__init__
     def __init__(self, centre, radius, spin=None, eccentricity=None, tilt=None, **what):
-        row = []
-	try: row.append(radius * turn / radian / what['speed'])
+        times = []
+	try: times.append(what['speed'] / radius)
 	except KeyError: pass
 
 	try: GM = centre._lazy_get_GM_('GM') # compute but don't store ...
 	except AttributeError: pass
-	else: row.append(turn / (GM / radius**3)**.5 / radian)
+	else: times.append((GM / radius**3)**.5)
 
-        if spin is None:
-            if not row: raise ValueError('No spin specified or computeble for orbit', centre, radius, what)
-            if tilt is None: spin = Spin(row[0]) # use Spin's default tilt
-            else: spin = Spin(row[0], tilt)
-            row = row[1:]
-
-        for it in row:
-            spin.period.observe(it)
+        if spin is None and not times: # needed by __spin
+            raise ValueError('No spin specified or computeble for orbit', centre, radius, what)
 
         if eccentricity is None:
             # Invent one based on blur in radius: b = (1+e)/(1-e)
@@ -85,8 +78,21 @@ class Orbit (Round):
             eccentricity.document("""Eccentricity guessed from error bar on radius.  Not to be trusted !""")
             # ideally invent a suitable error bar on that ...
 
-        apply(self.__upinit, (radius, spin), what)
+        apply(self.__upinit, (radius, self.__spin(spin, times)), what)
         self.centre, self.eccentricity = centre, eccentricity
+
+    def __spin(self, maybe, times, tilt, squish=lambda x, tp=2*pi: tp/x):
+        row = map(squish, times)
+        if maybe is None:
+            assert row # tested by constructor
+            if tilt is None: maybe = Spin(row[0]) # use Spin's default tilt
+            else: spin = Spin(row[0], tilt)
+            row = row[1:]
+
+        for it in row:
+            maybe.period.observe(it)
+
+        return maybe
 
     def _lazy_get_iBode_(self, ignored):
         """Generalized Titius-Bode index.
@@ -196,23 +202,26 @@ class Surface (Round, SurfacePart, Spheroid):
         apply(self.__upinit, (radius, spin), what)
         self.gravity = self.g = gravity
 
-    def _lazy_get_area_(self, ignored): return 4 * pi *  self.radius ** 2
+    def _lazy_get_area_(self, ignored, fp=4*pi): return fp *  self.radius ** 2
     def _lazy_get_potential_(self, ignored): return - self.radius * self.g
     def _lazy_get_escape_(self, ignored): return (-2 * self.potential)**.5
     def _lazy_get__GM_(self, ignored): return self.gravity * self.radius**2
 
-    def _lazy_get__sync_(self, ignored):
+    def _lazy_get__sync_(self, ignored, third=1./3):
 	"""Radius for synchronous orbit."""
-	return (self.gravity * (self.radius / self.spin.omega) ** 2)**(1./3)
+	return (self.gravity * (self.radius / self.spin.omega) ** 2)**third
 
 class Ocean (SurfacePart): pass
 class LandMass (SurfacePart): pass
 class Continent (LandMass): pass
 class Island (LandMass): pass # also used for groups of islands
 
+del tophat, arc, pi, Object
+
 _rcs_log = """
 $Log: common.py,v $
-Revision 1.1  2005-03-12 13:13:26  eddy
-Initial revision
+Revision 1.2  2005-03-12 13:38:48  eddy
+Cleaned up import/export fragments.
 
+Initial Revision 1.1  2005/03/12 13:13:26  eddy
 """
