@@ -1,15 +1,16 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.4 2005-03-12 17:28:41 eddy Exp $
+$Id: Kuiper.py,v 1.5 2005-03-13 16:45:01 eddy Exp $
 """
 
-from basEddy.units import *
+from basEddy.units import Sample, Quantity, tophat, \
+     tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
 from space.home import Sun, Earth, AU, KLplanet, KLsurface
 from space.outer import Neptune
 from space.common import Orbit, Spin, Discovery, Spheroid
 from space.rock import NASAmoon, NASAshell
-from space.body import Planet, Body, Ring
+from space.body import Planet, Object, Ring
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -17,7 +18,7 @@ Pluto = KLplanet('Pluto',
                  Orbit(Sun, (5936 + .1 * tophat) * giga * metre,
                        Spin(250 * year, 17.13), .253),
                  .0025, 1.1, atmosphere="trace CH4")
-Pluto.mass.observe(15e21 * kilogramme)
+Pluto.mass.observe(15e21 * kg)
 Pluto.surface.spin.period.observe(6.3867 * day)
 Pluto.surface.radius.observe(mega * (1.195 + .001 * tophat) * metre) # NASA
 Pluto.orbit.spin.period.observe(248.5 * 365.242198781 * day)
@@ -117,7 +118,7 @@ meandering between the realms of our Sun and its nearest peers; but, for my
 coarse purposes, it's useful to have a marker orbit.\n""")
 # it'd be kinda interesting to extrapolate Bode's law out this far ... if I knew it.
 
-Gliese710 = Body(
+Gliese710 = Object(
     'Gliese 710',
     __doc__ = """Gliese 710
 
@@ -131,11 +132,16 @@ years hence) and Alpha Centauri (A/B).\n""",
     mass = 1e5 * Earth.mass,
     closestapproach = 4e4 * AU)
 
-del Orbit, Spin, Discovery, Sun, Earth, KLplanet, KLsurface, Neptune, Spheroid, Planet, Body, Ring
+del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
+    Spheroid, Planet, Object, Ring, Sample, Quantity, tophat, \
+    tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.4  2005-03-12 17:28:41  eddy
+Revision 1.5  2005-03-13 16:45:01  eddy
+Renamed body's exports.  Cleaned up import/export.
+
+Revision 1.4  2005/03/12 17:28:41  eddy
 Also need Ring.  Added comment from ../planets.py about Oort/Kuiper sources.
 
 Revision 1.3  2005/03/12 16:34:30  eddy
