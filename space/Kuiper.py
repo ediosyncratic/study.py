@@ -1,14 +1,15 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.2 2005-03-12 15:35:49 eddy Exp $
+$Id: Kuiper.py,v 1.3 2005-03-12 16:34:30 eddy Exp $
 """
 
 from basEddy.units import *
-from space.home import Sun, KLplanet, KLsurface
+from space.home import Sun, Earth, AU, KLplanet, KLsurface
+from space.outer import Neptune
 from space.common import Orbit, Spin, Discovery, Spheroid
 from space.rock import NASAmoon, NASAshell
-from space.body import Planet
+from space.body import Planet, Body
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -67,11 +68,71 @@ created; she's said to live at the bottom of the Arctic Ocean.\n"""))
 # it in Sun.Bode[9:13]); between 800 and 1100 miles across; may have a moon.
 del ape, peri
 
-del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, Spheroid, Planet
+Kuiper = Ring("The Kuiper Belt", Sun, Neptune.orbit.radius, 50 * AU,
+              #' Guess: Pluto's tilt is ordinary among them
+              2 * Pluto.orbit.spin.tilt,
+              # Let Orbit guess eccentricity, don't use Ring's default, 0.
+              None,
+              __doc__ = """The Kuiper Belt
+
+From the orbit of Neptune out to roughly 100 AU from the Sun, the solar system
+is surrounded by a belt of rocks, of various sizes (some consider Pluto to be
+merely a large one of them), known as the Kuiper Belt.  When these rocks stray
+into the inner solar system, as some of the more eccentric ones sometimes do,
+they are known as comets.
+
+Originally postulated by Gerard Kuiper in 1951, a year after Jan Oort had
+postulated his cloud (much further out).  The first conclusive observation of a
+Kuiper Belt object (unless you count Pluto) was in 1992; in the next decade more
+thatn 500 more were found..  High resolution CCD cameras combined with powerful
+computers are making it much easier to detect such objects.\n""")
+
+Oort = Ring("The Oort Cloud", Sun, 11 * kilo * AU, 100 * kilo * AU,
+            None, # special case tilt: all possible values
+            None, # use Orbit's guess at eccentricity, not Ring's default, 0
+            __doc__ = """The Oort Cloud
+
+The solar system is surrounded by a roughly spherical (except for the hole in
+its middle) cloud of interstellar debris, stretching from roughly 11 kAU out to
+around 100 kAU (that's about 1.6 light-years).
+
+Named after a Dutch astronomer, Jan Oort, who first asserted its existence, back
+in 1950.\n""")
+
+# Notional boundary of the solar system (after Asimov):
+Terminus = Sun.orbiter(Quantity(2 + .2 * Sample.tophat, year.light),
+                       __doc__ = """Nominal outer boundary of the Solar system.
+
+Since the nearest other star is 4.3 light years away, anything within about 2
+light years can be thought of as `within' our Solar system.  Of course, there
+may be `brown dwarf' star(oid)s within that distance, and some in the outer
+reaches might be more sensibly thought of as having their own little systems
+meandering between the realms of our Sun and its nearest peers; but, for my
+coarse purposes, it's useful to have a marker orbit.\n""")
+# it'd be kinda interesting to extrapolate Bode's law out this far ... if I knew it.
+
+Gliese710 = Body(
+    'Gliese 710',
+    __doc__ = """Gliese 710
+
+According to http://www.xs4all.nl/~mke/Gliese710.htm this is a red dwarf headed
+our way at 50,400 km/hr, 50 times the size of Earth, 100,000 times as massive
+and due to arrive in about 1.4 mega years.
+
+Apparently, we're also due (not quite so close, but nearer than Proxima
+Centauri, our current nearest neighbour) visits from Barnard's star (10,000
+years hence) and Alpha Centauri (A/B).\n""",
+    mass = 1e5 * Earth.mass,
+    closestapproach = 4e4 * AU)
+
+del Orbit, Spin, Discovery, Sun, Earth, KLplanet, KLsurface, Neptune, Spheroid, Planet, Body
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.2  2005-03-12 15:35:49  eddy
+Revision 1.3  2005-03-12 16:34:30  eddy
+Add the Kuiper and Oort objects, plus other outer details.
+
+Revision 1.2  2005/03/12 15:35:49  eddy
 Chuck in Charon while we're at it.
 
 Initial Revision 1.1  2005/03/12 15:25:57  eddy
