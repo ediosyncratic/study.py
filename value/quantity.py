@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.1 1999-01-24 15:04:14 eddy Exp $
+$Id: quantity.py,v 1.2 1999-02-21 01:30:23 eddy Exp $
 """
 
 def adddict(this, that):
@@ -74,30 +74,15 @@ deci = .1
 centi= .01
 
 
-from types import FloatType, IntType
-from basEddy.lazy import Lazy
-
-class Value(Lazy):
-    def copy(self): apply(self.__class__, (), self.__dict__)
-    def also(self, **what): self.__dict__.update(what)
-    def __init__(self, *lookups, **what):
-	Lazy.__init__(self)
-	self.__dict__.update(what)
-	row = list(lookups) + [ self._lazy_lookup_ ]
-	self.borrow = lambda where, _row = row: _row.append(where)
-
-	def getit(key, _row = row):
-	    for item in _row:
-		try: return item(key)
-		except AttributeError: pass
-	    raise AttributeError, key
-	self._lazy_lookup_ = getit
-
+from basEddy.value import Value, Sample, Numeric
 import string
 _terse_dict = {}
 
 class Quantity(Value):
-    def __init__(self, scale, units, doc=None, nom=None, fullname=None, *args, **what):
+    def __init__(self, scale, units,
+		 doc=None, nom=None, fullname=None,
+		 tol=None,
+		 *args, **what):
 	"""Initialises an object representing a quantity.
 
 	Arguments:
@@ -109,6 +94,11 @@ class Quantity(Value):
 	  Quantity.  Each key names a unit of measurement: the whole dictionary
 	  represents the product of pow(key, units[key]) over all keys, so
 	  {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the Joule.
+
+	  [tol] -- an estimate of the error in scale.  Should either be of the
+	  same kind as scale, in which case it'll be multiplied by units
+	  (possibly including some scaling), or be of the same kind as the
+	  object we're building, in which case it'll be used unscaled.
 
 	  [doc] -- a documentation string for the quantity (default None).
 	  This may alternatively be set by the .document(doc) method.
@@ -125,11 +115,30 @@ class Quantity(Value):
 
 	if isinstance(units, Quantity):
 	    scale = scale * units._scale
+	    if tol != None: tolscale = units._scale
 	    units = units._units
 
 	if isinstance(scale, Quantity):
+	    if tol != None: oldies = scale._units
 	    units = addict(units, scale._units)
 	    scale = scale._scale
+
+	elif tol != None: oldies = {}
+
+	if tol == None: tol = 0
+	elif isinstance(tol, Quantity):
+	    if tol._units == oldies: tol = tol._scale * tolscale
+	    elif tol._units == units: tol = tol._scale
+	    else:
+		raise TypeError, ('tolerance and value are of different dimensions',
+				  units, tol._unit_repr)
+	elif oldies:
+	    raise TypeError, ('scalar tolerance given for non-scalar quantity',
+			      oldies, tol)
+	else:
+	    tol = tol * tolscale
+
+	scale = Numeric(scale, tol)
 
 	apply(Value.__init__, (self,) + args, what)
 	# tidy around to what used to be:
@@ -142,24 +151,26 @@ class Quantity(Value):
 	if nom: self._short_name_ = nom
 	if fullname: self._long_name_ = fullname
 
+    def __nonzero__(self): return 0 != self._scale
+    def __float__(self): return float(self._scale)
+    def __long__(self): return long(self._scale)
+    def __int__(self): return int(self._scale)
+
     def __cmp__(self, other):
 	try:
 	    if self._units != other._units:
 		raise TypeError, ('comparing quantities of different dimensions',
 				  self._unit_repr, other._unit_repr)
-	    return cmp(self._scale, other._scale)
+
+	    other = other._scale
 
 	except AttributeError:
 	    # other is scalar => dimensionless
 	    if self._units:
 		raise TypeError, ('comparing scalar to dimensioned quantity',
 				  other, self._unit_repr)
-	    return cmp(self._scale, other)
 
-    def __nonzero__(self): return 0 != self._scale
-    def __float__(self): return float(self._scale)
-    def __long__(self): return long(self._scale)
-    def __int__(self): return int(self._scale)
+	return cmp(self._scale, other)
 
     def __neg__(self):
 	return Quantity( - self._scale, self._units)
@@ -237,12 +248,11 @@ class Quantity(Value):
     # multiplicative stuff is easier than additive stuff !
 
     def __mul__(self, other):
-	try: return Quantity(self._scale * other._scale,
-			     adddict(self._units, other._units))
-	except AttributeError:
+	if isinstance(other, Quantity):
+	    return Quantity(self._scale * other._scale,
+			    adddict(self._units, other._units))
+	else:
 	    return Quantity(self._scale * other, self._units)
-	except TypeError:
-	    print 'what is the matter ?', self._units, other._units
 
     def __rmul__(self, other):
 	try: return Quantity(other._scale * self._scale,
@@ -264,9 +274,8 @@ class Quantity(Value):
 			    subdict({}, self._units))
 
     def __pow__(self, what):
-	try: scale = pow(self._scale, what)
-	except OverflowError: scale = pow(float(self._scale), what)
-	return Quantity(scale, scaledict(self._units, what))
+	return Quantity(pow(self._scale, what),
+			scaledict(self._units, what))
 
     def __repr__(self):
 	return self._full_repr
@@ -350,7 +359,7 @@ class Quantity(Value):
 	    # only invoke pow if abs(power) > 1.
 	    p = abs(p)
 	    if p == 1: more = top + bot
-	    elif exp: more = exp(top + bot, p, lang)
+	    elif exp: more = exp(top + bot, p, lang > 1)
 	    else: more = string.joinfields([top] * p, times) + bot * p
 	    result = result + more
 
@@ -364,14 +373,6 @@ class Quantity(Value):
 	return h
 
     def _lazy_get__number_repr_(self, ignored):
-	tip = type(self._scale)
-	if tip == IntType and self._scale == 1: return ''
-	if tip != FloatType:
-	    # have a go at rendering it as an integer
-	    try: iscale = int(self._scale)
-	    except OverflowError: iscale = long(self._scale)
-	    if self._scale == iscale: return `iscale`
-
 	return `self._scale`
 
     def _lazy_get__number_str_(self, ignored):
@@ -380,28 +381,19 @@ class Quantity(Value):
 	This has the bit before the e as a number between .1 and 100.
 
 	"""
-	if type(self._scale) != FloatType: return self._number_repr
+	scale= str(self._scale)
+	try: return { '1': '', '-1': '-' }[scale]
+	except KeyError: pass
 
-	mant, expo = string.splitfields('%e' % self._scale, 'e')
-	hol, par = string.splitfields(mant, '.')
-	pone = string.atoi(expo)
+	try:
+	    mant, expo = string.splitfields(scale, 'e')
+	    pone = string.atoi(expo)
 
-	# make the exponent a multiple of 3:
-	if pone % 3 == 1:
-	    if len(hol) < 3: hol, par, pone = hol + par[:1], par[1:], pone - 1
-	    else: hol, par, pone = hol[:-2], hol[-2:] + par, pone + 2
-	elif pone % 3 == 2:
-	    if len(hol) > 0: hol, par, pone = hol[:-1], hol[-1:] + par, pone + 1
-	    else: hol, par, pone = hol + par[:2], par[2:], pone - 2
-	elif pone % 3:
-	    raise ArithmeticError, 'python remainder glitch: %d %% 3 is %d' % (
-		pone, pone % 3)
+	    if pone == 0: return mant
+	    mul = muldict[pone]
 
-	while par[-1:] == '0': par = par[:-1]
-	mant = hol + '.' + par
-	if pone == 0: return mant
-	try: mul = muldict[pone]
-	except KeyError: return mant + 'e%+d' % pone
+	except (ValueError, KeyError): return scale
+
 	return mant + ' ' + mul
 
 # Some handy constants in SI units
@@ -537,8 +529,9 @@ Atmosphere = Quantity(.101325, mega * Pascal,
 		      """Standard Atmospheric Pressure""")
 
 _rcs_log = """
-$Log: quantity.py,v $
-Revision 1.1  1999-01-24 15:04:14  eddy
-Initial revision
+ $Log: quantity.py,v $
+ Revision 1.2  1999-02-21 01:30:23  eddy
+ Evolution.
 
+ Initial Revision 1.1  1999/01/24 15:04:14  eddy
 """
