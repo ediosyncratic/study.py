@@ -5,10 +5,13 @@ Find a position for each queen (a configuration) such that no queen may be taken
 by any other queen (i.e. such that every row, column, and diagonal contains at
 most one queen).
 
-Consequently, each row contains exactly one queen, as does each column; so
-the mapping from rows to columns is a permutation.
+Consequently, each row contains exactly one queen, as does each column; so the
+mapping from rows to columns is a permutation.  There are twelve essentially
+distinct solutions (once one takes accounts of the symmetries of a chess board,
+allowing black and white squares to swap), one of which is symmetric under a
+half turn of the board: [2, 4, 1, 7, 0, 6, 3, 5].
 
-$Id: queens.py,v 1.1 2002-03-13 00:44:35 eddy Exp $
+$Id: queens.py,v 1.2 2002-03-13 02:07:51 eddy Exp $
 """
 
 import permute
@@ -45,7 +48,7 @@ class Iterator (permute.Iterator):
     def __repr__(self): return show(self.permutation)
 
 def show(it):
-    return '\n'.join(map(lambda n: ' ' * n + '#' + ' ' * (7-n), it)) + '\n'
+    return '\n'.join(map(lambda n: ' ' * n + '#' + ' ' * (7-n), it))
 
 def all():
     q, a = Iterator(), []
@@ -58,29 +61,26 @@ def all():
     return a
 
 def unique():
+    def entwist(r, seq):
+	s = map(lambda i: 7-i, r)
+	if s not in seq: seq.append(s[:]) # copy before reversing !
+	s.reverse()
+	if s not in seq:
+	    seq.append(s)
+	    s = map(lambda i: 7-i, s)
+	    if s not in seq: seq.append(s)
+
     u, a = [], []
     for r in map(list, all()):
 	if r not in a:
 	    u.append(tuple(r))
 	    new = [ r ]
-	    s = map(lambda i: 7-i, r)
-	    if s not in new: new.append(s)
-	    r.reverse()
-	    if r not in new:
-		new.append(r)
-		s = map(lambda i: 7-i, r)
-		if s not in new: new.append(s)
+	    entwist(r, new)
 
 	    r = list(permute.invert(r))
 	    if r not in new:
 		new.append(r)
-		s = map(lambda i: 7-i, r)
-		if s not in new: new.append(s)
-		r.reverse()
-		if r not in new:
-		    new.append(r)
-		    s = map(lambda i: 7-i, r)
-		    if s not in new: new.append(s)
+		entwist(r, new)
 
 	    a = a + new
 
@@ -90,7 +90,9 @@ def unique():
 
 _rcs_log = """
  $Log: queens.py,v $
- Revision 1.1  2002-03-13 00:44:35  eddy
- Initial revision
+ Revision 1.2  2002-03-13 02:07:51  eddy
+ Fixed bugs in unique's isometries, tweaked show() and docs.
 
+ Revision 1.1  2002/03/13 00:44:35  eddy
+ Initial revision
 """
