@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.6 2003-07-26 22:34:05 eddy Exp $
+$Id: cardan.py,v 1.7 2004-04-18 11:38:41 eddy Exp $
 """
 from math import cos, acos, pi
 
@@ -104,6 +104,7 @@ def cubic(cube, square, linear, constant, realonly=None):
     # divide our cubic by (: x - root &larr; x :) and get its roots
     assert root, 'zero root was meant to be dealt with earlier !'
     # u*x*x*x +s*x*x +i*x +c = (x-r)*(u*x*x +(r*u+s)*x -c/r)
+    # assert root*(root*cube+square) +constant/root +linear == 0, "it should at least be close ;^>"
     return ans + quadratic(cube, square + root * cube, -constant / root)
 
 def cardan(u, s, i, c, realonly=1, tol=1e-14):
@@ -119,7 +120,10 @@ def cardan(u, s, i, c, realonly=1, tol=1e-14):
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.6  2003-07-26 22:34:05  eddy
+Revision 1.7  2004-04-18 11:38:41  eddy
+added a comment assertion
+
+Revision 1.6  2003/07/26 22:34:05  eddy
 Separated out degenerate cases and added support for finding complex roots.
 
 Revision 1.5  2003/07/26 15:20:07  eddy
