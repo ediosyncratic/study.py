@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.2 2005-03-13 18:47:23 eddy Exp $
+$Id: inner.py,v 1.3 2005-03-19 17:42:50 eddy Exp $
 """
 
 from basEddy.units import Object, tophat, \
@@ -49,6 +49,9 @@ Venus.orbit.spin.period.observe(224.68 * day)
 
 # Earth goes here ...
 
+def load_martian(): # lazy satellite loader
+    import space.asteroid # for Phobos and Deimos
+
 Mars = KLplanet('Mars',
                 KLsurface(.532, .38, Spin(24 * hour + 37 * minute, 25.2),
                           flattening = .0052, material = "basalt, clays"),
@@ -60,7 +63,11 @@ Mars = KLplanet('Mars',
                                     etymology="""Latin: Mars
 
 The Romans named it after their god of war, thanks to its reddish colour.
-"""))
+"""),
+
+                satelload=load_martian)
+del load_martian
+
 Mars.mass.observe(0.64191e24 * kg)
 Mars.surface.spin.period.observe(1.02595675 * day)
 Mars.surface.radius.observe(3.43 * mega * metre)
@@ -72,7 +79,10 @@ del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
 
 _rcs_log = """
 $Log: inner.py,v $
-Revision 1.2  2005-03-13 18:47:23  eddy
+Revision 1.3  2005-03-19 17:42:50  eddy
+Equipped Mars with a lazy satellite loader.
+
+Revision 1.2  2005/03/13 18:47:23  eddy
 Clean up import/export, include a missing tophat.
 
 Initial Revision 1.1  2005/03/12 15:17:22  eddy
