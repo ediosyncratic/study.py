@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.25 2004-02-15 16:16:00 eddy Exp $
+$Id: sample.py,v 1.26 2004-02-15 16:31:12 eddy Exp $
 """
 
 class _baseWeighted:
@@ -555,7 +555,8 @@ class repWeighted (curveWeighted):
         # a,b = bounds(u, 1-frac, v) with u+v=frac and a,b as close together as possible.
 
         if 0 <= frac < 1:
-            return self.interpolator.split([ frac / 2., 1. - frac, frac / 2. ])
+            gap = .5 * (1 - frac)
+            return self.interpolator.split([ gap, frac, gap ])
         else:
             cut = self.interpolator.cuts
             return cut[0], cut[-1]
@@ -1724,7 +1725,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.25  2004-02-15 16:16:00  eddy
+  Revision 1.26  2004-02-15 16:31:12  eddy
+  Fix stupid bug in repWeighted.bounds() when frac between 0 and 1
+
+  Revision 1.25  2004/02/15 16:16:00  eddy
   Got reach() wrong for case with prior data; fixed.
 
   Revision 1.24  2004/02/15 15:41:48  eddy
