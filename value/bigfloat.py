@@ -6,7 +6,7 @@ ToDo:
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.5 2003-09-22 23:19:35 eddy Exp $
+$Id: bigfloat.py,v 1.6 2003-09-29 23:17:44 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -199,8 +199,18 @@ class BigFloat (Lazy):
         c, v = divmod(self, BigFloat.logcentury)
         return BigFloat(exp(v), c)
 
-    def _lazy_get_log_(self, ignored, log=math.log):
-        return log(self.__scale) + BigFloat.logcentury * BigFloat(self.__century)
+    def _lazy_get_log_(self, ignored, log=math.log, pi=math.pi):
+        if self > 0:
+            return log(self.__scale) + BigFloat.logcentury * BigFloat(self.__century)
+        if self < 0:
+            return BigComplex((-self).log, pi)
+        return log(self.__scale) # raises deserved OverflowError: log(0)
+
+    def arctan(self, other=1, atan=math.atan2):
+        """Return an angle (in radians) whose tan() is self / other."""
+        ans = atan(self.float, float(other)) # between -pi and +pi
+        if ans == 0: return self / other
+        return ans
 
     logcentury = 100 * math.log(10)
     del math
@@ -221,9 +231,81 @@ class BigFloat (Lazy):
 
     del i, x
 
+class BigComplex (Lazy):
+    def __init__(self, r, i, century=0):
+        self.real, self.imag = BigFloat(r, century), BigFloat(i, century)
+
+    def _lazy_get_conjugate_(self, ignored):
+        return BigComplex(self.real, -self.imag)
+
+    def _lazy_get_abs_(self, ignored): return self.__absq()**.5
+    def _lazy_get_phase_(self, ignored): return self.real.arctan(self.imag)
+    def __nonzero__(self): return self.real != 0 or self.imag != 0
+    def _lazy_get__lazy_hash_(self, ignored): return hash(self.real) ^ hash(self.imag)
+    def __neg__(self): return BigComplex(-self.real, -self.imag)
+    def __abs__(self): return self.abs
+
+    def _lazy_get_log_(self, ignored): return BigComplex(self.abs.log, self.phase)
+
+    import cmath
+    def expi(phi, qi=cmath.pi/4, exp=cmath.exp): # an attempt to evade tiny errors
+        i, phase = divmod(phi, qi)
+        i = long(i) % 4
+        return exp(1j * phase) * 1j**i
+    del cmath
+
+    def _lazy_get_exp_(self, ignored, expi=expi):
+        return expi(self.imag) * self.real.exp
+    del expi
+
+    def __absq(self):
+        try: ans = self.__abssquare
+        except AttributeError:
+            self.__abssquare = ans = self.real**2 + self.imag**2
+        return ans
+
+    def extract(other): # local function, not method
+        try: return other.real, other.imag
+        except AttributeError: return other, 0
+
+    def __add__(self, other, get=extract):
+        r, i = get(other)
+        return BigComplex(self.real + r, self.imag + i)
+
+    def __sub__(self, other, get=extract):
+        r, i = get(other)
+        return BigComplex(self.real - r, self.imag - i)
+
+    def __rsub__(self, other, get=extract):
+        r, i = get(other)
+        return BigComplex(r - self.real, i - self.imag)
+
+    def __mul__(self, other, get=extract):
+        r, i = get(other)
+        return BigComplex(self.real * r - self.imag * i,
+                          self.real * i + self.imag * r)
+
+    def __div__(self, other, get=extract):
+        r, i = get(other)
+        a = BigFloat(r)**2 + BigFloat(i)**2
+        return BigComplex((self.real * r + self.imag * i) / a,
+                          (self.imag * r - self.real * i) / a)
+
+    def __rdiv__(self, other, get=extract):
+        r, i = get(other)
+        a = self.__absq()
+        return BigComplex((self.real * r + self.imag * i) / a,
+                          (self.real * i - self.imag * r) / a)
+
+    del extract
+    __rmul__, __radd__ = __mul__, __add__
+
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.5  2003-09-22 23:19:35  eddy
+Revision 1.6  2003-09-29 23:17:44  eddy
+First draft of BigComplex (not yet tested).
+
+Revision 1.5  2003/09/22 23:19:35  eddy
 Fixed bugs in long, add.  Made test against inf/nan only apply to
 floats; a long can appear to be inf otherwise ...
 
