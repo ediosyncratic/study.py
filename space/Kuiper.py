@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.5 2005-03-13 16:45:01 eddy Exp $
+$Id: Kuiper.py,v 1.6 2005-03-16 23:24:35 eddy Exp $
 """
 
 from basEddy.units import Sample, Quantity, tophat, \
@@ -10,7 +10,7 @@ from space.home import Sun, Earth, AU, KLplanet, KLsurface
 from space.outer import Neptune
 from space.common import Orbit, Spin, Discovery, Spheroid
 from space.rock import NASAmoon, NASAshell
-from space.body import Planet, Object, Ring
+from space.body import Planet, Object, Ring, Shell
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -94,9 +94,8 @@ Kuiper Belt object (unless you count Pluto) was in 1992; in the next decade more
 thatn 500 more were found..  High resolution CCD cameras combined with powerful
 computers are making it much easier to detect such objects.\n""")
 
-Oort = Ring("The Oort Cloud", Sun, 11 * kilo * AU, 100 * kilo * AU,
-            None, # special case tilt: all possible values
-            None, # use Orbit's guess at eccentricity, not Ring's default, 0
+Oort = Shell("The Oort Cloud", Sun, (5 + 8 * tophat) * 11 * kilo * AU,
+             # from Bode index 17 to 20
             __doc__ = """The Oort Cloud
 
 The solar system is surrounded by a roughly spherical (except for the hole in
@@ -106,9 +105,35 @@ around 100 kAU (that's about 1.6 light-years).
 Named after a Dutch astronomer, Jan Oort, who first asserted its existence, back
 in 1950.\n""")
 
+Heliosphere = Shell("The Heliosphere", Sun, (.5 + tophat) * 230 * AU,
+                    # Out to Bode index c. 12
+                    Termination = Shell("Sol's Termination Shock", Sun,
+                                        (82.5 + 15 * tophat) * AU, # "75-90"
+                                        # c. Bode index 10
+                                        __doc__ = "Where solar wind falls below sound speed."),
+                    Heliopause = Shell("Heliopause", Sun,
+                                       (11 + tophat) * 10 * AU, # "about 110"
+                                       # c. Bode index 11
+                                       __doc__ = "Where solar wind ions meet galactic ions"),
+                    BowShock = Shell("Sol's Bow Shock", Sun, (23 + tophat) * 10 * AU, # 'near 230'
+                                     # c. Bode index 11.6
+                                     __doc__="The Bow Wave of the Heliosphere"),
+                    __doc__ = """Our Sun's sphere of influence.
+
+The Sun's magnetic field and particles from the solar wind continue outwards
+into space.  The Termination Shock is defined to be where the solar wind's speed
+falls to below the speed of sound (in it).  At the Heliopause, the Sun's ions
+run into ions from those from the rest of our galaxy, the Milky Way.  This
+results in a pressure wave in the interstellar gas, essentially like the bow
+wave of a boat in water; this causes a bow shock.
+
+See also: http://antwrp.gsfc.nasa.gov/apod/ap020624.html
+""")
+
 # Notional boundary of the solar system (after Asimov):
-Terminus = Sun.orbiter(Quantity(2 + .2 * Sample.tophat, year.light),
-                       __doc__ = """Nominal outer boundary of the Solar system.
+Terminus = Shell("Our Solar System's Edge", Sun, Quantity(2 + .2 * Sample.tophat, year.light),
+                 # Roughly Bode index 20.7
+                 __doc__ = """Nominal outer boundary of the Solar system.
 
 Since the nearest other star is 4.3 light years away, anything within about 2
 light years can be thought of as `within' our Solar system.  Of course, there
@@ -116,21 +141,6 @@ may be `brown dwarf' star(oid)s within that distance, and some in the outer
 reaches might be more sensibly thought of as having their own little systems
 meandering between the realms of our Sun and its nearest peers; but, for my
 coarse purposes, it's useful to have a marker orbit.\n""")
-# it'd be kinda interesting to extrapolate Bode's law out this far ... if I knew it.
-
-Gliese710 = Object(
-    'Gliese 710',
-    __doc__ = """Gliese 710
-
-According to http://www.xs4all.nl/~mke/Gliese710.htm this is a red dwarf headed
-our way at 50,400 km/hr, 50 times the size of Earth, 100,000 times as massive
-and due to arrive in about 1.4 mega years.
-
-Apparently, we're also due (not quite so close, but nearer than Proxima
-Centauri, our current nearest neighbour) visits from Barnard's star (10,000
-years hence) and Alpha Centauri (A/B).\n""",
-    mass = 1e5 * Earth.mass,
-    closestapproach = 4e4 * AU)
 
 del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
     Spheroid, Planet, Object, Ring, Sample, Quantity, tophat, \
@@ -138,7 +148,10 @@ del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.5  2005-03-13 16:45:01  eddy
+Revision 1.6  2005-03-16 23:24:35  eddy
+Moved Gliese710 to star, added Heliosphere and its parts, made some things Shell()s.
+
+Revision 1.5  2005/03/13 16:45:01  eddy
 Renamed body's exports.  Cleaned up import/export.
 
 Revision 1.4  2005/03/12 17:28:41  eddy
