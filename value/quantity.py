@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.21 2003-04-20 14:21:55 eddy Exp $
+$Id: quantity.py,v 1.22 2003-04-21 20:14:10 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -53,13 +53,6 @@ import string
 from basEddy.sample import Sample, tophat
 
 class qSample (Sample):
-    def __init__(self, sample=(), *args, **what):
-        if isinstance(sample, Sample):
-            what.update(sample.dir)
-            sample = sample.mirror
-
-        apply(Sample.__init__, (self, sample) + args, what)
-
     def __massage_text_(self, times, _e2q=_exponent_to_quantifier):
         """Computes the representation of qSample.
 
@@ -249,23 +242,18 @@ class Quantity (Object):
 
         # then (check and) massage sample:
         if sample:
-            row = [] # sequence of __scale attributes
+            try: new, row = scale.copy(), ()
+            except (TypeError, AttributeError): row = [ scale ]
 
             for val in sample:
                 if val.__units != units:
                     raise TypeError('Sample of wrong dimensions', val, units)
 
-                row.append(val.__scale)
+                if row: row.append(val.__scale)
+                else: new.update(val.__scale)
 
-            assert row, ('non-empty but no entries !', sample)
-
-            try:
-                new = scale.copy()
-                apply(new.update, (row,))
-            except (TypeError, AttributeError):
-                new = qSample(row + [ scale ])
-
-            scale = new
+            if row: scale = qSample(row)
+            else: scale = new
 
         # initialise self as a Quantity with the thus-massaged arguments
         self.__scale, self.__units, self.__doc__ = scale, units, doc
@@ -596,7 +584,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.21  2003-04-20 14:21:55  eddy
+ Revision 1.22  2003-04-21 20:14:10  eddy
+ Sample now makes qSample's constructor redundant (and it was garbled).
+ Refined processing of sample.
+
+ Revision 1.21  2003/04/20 14:21:55  eddy
  Added Ki, Mi, Gi; the official 1024-based k, M, G.
 
  Revision 1.20  2002/10/07 17:56:19  eddy
