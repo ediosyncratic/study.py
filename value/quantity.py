@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.29 2004-04-03 18:00:34 eddy Exp $
+$Id: quantity.py,v 1.30 2004-04-04 14:36:42 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -153,44 +153,54 @@ del _massage_text
 
 # lazy-evaluators for special attributes of quantities of specific types
 def scalar():
-    from cmath import acos, acosh, asin, asinh, atanh, log
-    from math import atan, cosh, exp, sinh, tanh, pi
+    import cmath, math
     from SI import radian
 
+    def chose(val, s, c):
+        try: return s(val)
+        except ValueError:
+            return c(val)
+
+    def ln(val, lg=math.log, gl=cmath.log, s=chose): return s(val, lg, gl)
+    def arccos(val, ac=math.acos, ca=cmath.acos, s=chose): return s(val, ac, ca)
+    def arcsin(val, as=math.asin, sa=cmath.asin, s=chose): return s(val, as, sa)
+    def arcsec(val, ac=arccos): return ac(1./val)
+    def arccosec(val, as=arcsin): return as(1./val)
+
     def simple(val):
-        if val.imag == 0: return val.real
+        if val.imag + 1 == 1: return val.real
         return val
-    def arccos(val, ac=acos, s=simple): return s(ac(val))
-    def arcsin(val, as=asin, s=simple): return s(as(val))
-    def arcsec(val, ac=acos, s=simple): return s(ac(1./val))
-    def arccosec(val, as=asin, s=simple): return s(as(1./val))
-    def arccosh(val, ac=acosh, s=simple): return s(ac(val))
-    def ln(val, lg=log, s=simple): return s(lg(val))
+
+    def arccosh(val, ac=cmath.acosh, s=simple): return s(ac(val))
+    def arcsinh(val, as=cmath.asinh, s=simple): return s(as(val))
+    def arctanh(val, at=cmath.atanh, s=simple): return s(at(val))
 
     return { 'arcCos': lambda v, a=arccos, r=radian: r * v.evaluate(a),
              'arcSin': lambda v, a=arcsin, r=radian: r * v.evaluate(a),
-             'arcTan': lambda v, a=atan, r=radian: r * v.evaluate(a),
-             'arcCoTan': lambda v, a=atan, r=radian, q=pi / 4: r * (q - v.evaluate(a)),
+             'arcTan': lambda v, a=math.atan, r=radian: r * v.evaluate(a),
+             'arcCoTan': lambda v, a=math.atan, r=radian, q=math.pi / 4: r * (q - v.evaluate(a)),
              'arcSec': lambda v, a=arccos, r=radian: r * (1./v).evaluate(a),
-             'arcCoSec': lambda v, a=asin, r=radian: r * (1./v).evaluate(a),
+             'arcCoSec': lambda v, a=math.asin, r=radian: r * (1./v).evaluate(a),
              'arcCosH': lambda v, a=arccosh: v.evaluate(a),
-             'arcSinH': lambda v, a=asinh: v.evaluate(a),
-             'arcTanH': lambda v, a=atanh: v.evaluate(a),
-             'CosH': lambda v, c=cosh: v.evaluate(c),
-             'SinH': lambda v, s=sinh: v.evaluate(s),
-             'TanH': lambda v, t=tanh: v.evaluate(t),
+             'arcSinH': lambda v, a=arcsinh: v.evaluate(a),
+             'arcTanH': lambda v, a=arctanh: v.evaluate(a),
+             'CosH': lambda v, c=math.cosh: v.evaluate(c),
+             'SinH': lambda v, s=math.sinh: v.evaluate(s),
+             'TanH': lambda v, t=math.tanh: v.evaluate(t),
              'log': lambda v, l=ln: v.evaluate(l),
-             'exp': lambda v, e=exp: v.evaluate(e) }
+             'exp': lambda v, e=math.exp: v.evaluate(e) }
 
 def angle():
     from math import cos, sin, tan, pi
     from SI import radian
-    return { 'Sin': lambda v, s=sin, r=radian: (v / r).evaluate(s),
-             'Cos': lambda v, c=cos, r=radian: (v / r).evaluate(c),
-             'Tan': lambda v, t=tan, r=radian: (v / r).evaluate(t),
+    def angeval(q, f, r=radian): return (q/r).evaluate(f)
+    return { 'Sin': lambda v, s=sin, a=angeval: a(v, s),
+             'Cos': lambda v, c=cos, a=angeval: a(v, c),
+             'Tan': lambda v, t=tan, a=angeval: a(v, t),
              'Sec': lambda v: 1. / v.Cos,
              'CoSec': lambda v: 1. / v.Sin,
-             'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan }
+             'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
+             'iExp': lambda v: v.Cos + 1j * v.Sin }
 
 def mass():
     from SI import second, metre
@@ -683,7 +693,12 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.29  2004-04-03 18:00:34  eddy
+ Revision 1.30  2004-04-04 14:36:42  eddy
+ Use math functions in preference to cmath, where possible; cmath ones
+ tend to throw in random small imaginary parts to real values.  Where no
+ math version is present, discard tiny imaginary parts even if non-zero.
+
+ Revision 1.29  2004/04/03 18:00:34  eddy
  Hook _lazy_late_ to deliver kind-specific attributes.
 
  Revision 1.28  2004/02/15 16:14:56  eddy
