@@ -6,17 +6,24 @@ ToDo:
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.4 2003-09-22 22:15:48 eddy Exp $
+$Id: bigfloat.py,v 1.5 2003-09-22 23:19:35 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
+from types import FloatType
 
 class BigFloat (Lazy):
 
     def __init__(self, val=1, century=0):
-        if century != long(century): raise ValueError, 'century must be whole'
-        if val in (BigFloat.infinity, -BigFloat.infinity): raise ValueError, 'infinite'
-        if 1 == val == 0: raise ValueError, 'not a number'
+        if century != long(century):
+            raise ValueError, 'century must be whole'
+
+        if type(val) == FloatType:
+            if val in (BigFloat.infinity, -BigFloat.infinity):
+                raise ValueError, 'infinite'
+            if 1 == val == 0:
+                raise ValueError, 'not a number'
+        # </checks>
 
         if isinstance(val, BigFloat):
             val, century = val.__scale, century + val.__century
@@ -126,23 +133,17 @@ class BigFloat (Lazy):
         # ah !  messier ... one is huge compared to the other.
         this, that = self.__century * 100 + log(self.__scale), cen * 100  + log(val)
         # Is one number ignorable compared to the other ?
-        if this + 1 < BigFloat.logeps + that: return BigFloat(other)
+        if this + 1 < BigFloat.logeps + that: return BigFloat(val, cen)
         if this + BigFloat.logeps > that + 1: return self
 
         # No, we really have to do this the hard way ...
-        mid = (this + that) / 2
-        val = self.__scale * 10.**(this - mid) + val * 10.**(that - mid)
-        # answer is now val * 10.**mid
-        that = decade(val) # within one of either this or prior that.
-        cen, mid = divmod(mid, 100L)
-        if mid + that < -50: mid, cen = mid + 100, cen - 1 # won't happen
-        if mid + that >  50: mid, cen = mid - 100, cen + 1 # will happen
-
-        return BigFloat(val * 10.**mid, cen)
+        era, mid = divmod((this + that) / 2, 100L)
+        val = self.__scale * 1e100 ** (self.__century - era) + val * 1e100 ** (cen - era)
+        return BigFloat(val, era)
 
     del extract
 
-    def _lazy_get_long_(self, log=decade):
+    def _lazy_get_long_(self, ignored, log=decade):
         val, cen = self.__scale, self.__century
         if cen < 0: return 0L
         if cen == 0:
@@ -151,6 +152,7 @@ class BigFloat (Lazy):
 
         dec = log(val) # >= -50
         gap = BigFloat.loginf + BigFloat.logeps - 50 - dec # < loginf + logeps
+        if gap > 100L * cen: return long(val * 10. ** (100L * cen))
         return long(val * 10. ** gap) * 10L**(100L * cen - gap)
 
     def __pow__(self, other, log=decade):
@@ -190,7 +192,8 @@ class BigFloat (Lazy):
 
     import math
     def _lazy_get_exp_(self, ignored, exp=math.exp):
-        # Obviously, this will get you into trouble if self is big !
+        # Obviously, this will get you into trouble if self is big -
+        # exp(1e308) is OK, but exp(1e308 * 10) will make you wait !
         # exp(self) = expval * 1e100**expcen
         # self = log(expval) + expcen*log(1e100)
         c, v = divmod(self, BigFloat.logcentury)
@@ -220,7 +223,11 @@ class BigFloat (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.4  2003-09-22 22:15:48  eddy
+Revision 1.5  2003-09-22 23:19:35  eddy
+Fixed bugs in long, add.  Made test against inf/nan only apply to
+floats; a long can appear to be inf otherwise ...
+
+Revision 1.4  2003/09/22 22:15:48  eddy
 Fixed bug in add (forgot factors of 100 on centuries !), made lazy;
 implemented float, int, long, divmod, exp, log, hash.
 
