@@ -1,29 +1,36 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.4 1999-12-29 17:52:21 eddy Exp $
+$Id: object.py,v 1.5 2002-10-06 15:33:30 eddy Exp $
 """
 
 def aslookup(whom):
-    try: whom('__call__')
-    except TypeError: pass
-    except AttributeError:
-        # functions don't have __dict__
-        try: whom.__dict__
-        except AttributeError: return whom
+    """Coerces an arbitrary value to a lookup.
 
-        # whom is an instance: if it has a __call__, it's a lookup.
-        try: whom.__call__
-        except AttributeError: pass
+    If the value is callable and accepts string arguments, it *is* a lookup,
+    though strictly it should never raise any error (given a string argument)
+    aside from AttributeError - which isn't checked.  Otherwise, the lookup
+    returned borrows attributes from the value given - i.e. returns the result,
+    when given any name, of looking for an attribute of that name on the given
+    value. """
+
+    # Every lookup is callable:
+    if callable(whom):
+        # If it raises TypeError when given one string arg, it isn't a lookup.
+        try: whom('__class__')
+        # I ask it for a __class__ attribute because returning that shouldn't be
+        # too dangerous ... compared to any other alternative I can think of.
+        except TypeError: pass
+        # of course, a lookup will raise AttributeError unless it provides __class__
+        except AttributeError: return whom
+        # but if it raises any other errors, it's Bad.
         else: return whom
 
-    else: return whom
-
     return lambda k, __w=whom: getattr(__w, k)
+    # which coincides with how an Object behaves as a callable.
 
-from types import FloatType
 from basEddy.lazy import Lazy
 
-class Object(Lazy):
+class Object (Lazy):
     """A primitive object variety.
 
     Provides the following methods:
@@ -37,7 +44,7 @@ class Object(Lazy):
       use as a lookup, it is taken to be an object on which attribute lookup
       should be performed to achieve lookup.
 
-    along with a __call__ method which ensures that a Value is a callable of
+    along with a __call__ method which ensures that a Object is a callable of
     the right kind to be used as a lookup - this method just does attribute
     lookup on the object.
 
@@ -65,8 +72,9 @@ class Object(Lazy):
         for key in what.keys():
             if key not in row: add(key)
 
+    __upinit = Lazy.__init__
     def __init__(self, *lookups, **what):
-        """Initialiser for Value objects.
+        """Initialiser for Object()s.
 
         Arguments in name=value form are used to initialise the new object's
         namespace.  Other arguments (which, if present, should appear before
@@ -75,12 +83,17 @@ class Object(Lazy):
         lookups should be callables, accepting one argument (the attribute name)
         and either returning a value (for the attribute) or raising
         AttributeError.  No attempt is made to coerce them into this form.  Note
-        that any Value object is a lookup. """
+        that any Object is a lookup. """
 
         # Observation: hijacking self's __getattr__ doesn't fool getattr() !
         # i.e., it'll still ask class's attribute lookup, ignoring personal one.
 
-	Lazy.__init__(self)
+        try: aliases = what['lazy_aliases']
+        except KeyError: self.__upinit()
+        else:
+            del what['lazy_aliases']
+            self.__upinit(lazy_aliases=aliases)
+
 	apply(self.also, (), what)
 
         # now we prepare to replace self's lazy lookup method with one which
@@ -105,7 +118,7 @@ class Object(Lazy):
 
         try: del self.__dict__[key]
         except KeyError:
-            raise AttributeError, ('No such attribute to delete', key)
+            raise AttributeError('No such attribute to delete', key)
 
     def __star(self):
         bok = {}
@@ -117,15 +130,19 @@ class Object(Lazy):
     _borrowed_value_ = ()
 
     # make a value be, at the same time, a lookup ...
+    # :^( sadly __call__ = getattr doesn't work )^:
     def __call__(self, key): return getattr(self, key)
     # ... which curries self as getattr's first argument.
     # Then we can borrow from it.
 
-class Value(Object): pass       # Backwards compatibility ...
+class Value (Object): pass       # Backwards compatibility ...
 
-"""
+_rcs_log = """
  $Log: object.py,v $
- Revision 1.4  1999-12-29 17:52:21  eddy
+ Revision 1.5  2002-10-06 15:33:30  eddy
+ Rewrote aslookup(). Added support for lazy_aliases. Various tweaklets.
+
+ Revision 1.4  1999/12/29 17:52:21  eddy
  Removed Sample infrastructure to sample.py; much further change.
 
  Revision 1.3  1999/02/21 01:49:47  eddy
