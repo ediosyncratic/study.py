@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.13 2001-12-12 17:09:23 eddy Exp $
+$Id: quantity.py,v 1.14 2001-12-12 17:10:01 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -117,7 +117,7 @@ class qSample (Sample):
                 exponent = 0
 
         # Ditch trailing '.' if value is exact:
-	if head[-1] == '.' and glue == 'E': head = head[:-1]
+        if head[-1] == '.' and glue == 'E': head = head[:-1]
 
         # Finally, transform 'e[sign]prial' into a name, if we have one for it:
         # e.g. 'e6' -> ' mega'
@@ -145,13 +145,13 @@ def adddict(this, that):
     result = {}
 
     for key in cop:
-	try: it = this[key]
-	except KeyError: it = 0
-	try: at = that[key]
-	except KeyError: at = 0
-	sum = it + at
-	# leave out zero entries.
-	if sum: result[key] = sum
+        try: it = this[key]
+        except KeyError: it = 0
+        try: at = that[key]
+        except KeyError: at = 0
+        sum = it + at
+        # leave out zero entries.
+        if sum: result[key] = sum
 
     return result
 
@@ -162,13 +162,13 @@ def subdict(this, that):
     result = {}
 
     for key in cop:
-	try: it = this[key]
-	except KeyError: it = 0
-	try: at = that[key]
-	except KeyError: at = 0
-	sum = it - at
-	# leave out zero entries.
-	if sum: result[key] = sum
+        try: it = this[key]
+        except KeyError: it = 0
+        try: at = that[key]
+        except KeyError: at = 0
+        sum = it - at
+        # leave out zero entries.
+        if sum: result[key] = sum
 
     return result
 
@@ -181,9 +181,9 @@ def scaledict(dict, scale):
         try: scale = scale.median
         except AttributeError: pass
 
-	for key, val in dict.items():
-	    if val:
-		result[key] = scale * val
+        for key, val in dict.items():
+            if val:
+                result[key] = scale * val
 
     return result
 
@@ -192,50 +192,50 @@ _terse_dict = {}
 
 class Quantity(Object):
     def __init__(self, scale, units={},
-		 doc=None, nom=None, fullname=None,
-		 sample=None,
-		 *args, **what):
-	"""Initialises an object representing a quantity.
+                 doc=None, nom=None, fullname=None,
+                 sample=None,
+                 *args, **what):
+        """Initialises an object representing a quantity.
 
-	Arguments:
+        Arguments:
 
-	  scale -- (a Quantity or) a scalar, e.g. integer, long or float: it
-	  must support addition with and multiplication by at least these types.
+          scale -- (a Quantity or) a scalar, e.g. integer, long or float: it
+          must support addition with and multiplication by at least these types.
 
-	  [units] -- (a Quantity or) a dictionary with string keys and integer
-	  values, or a Quantity.  Each key names a unit of measurement: the
-	  whole dictionary represents the product of pow(key, units[key]) over
-	  all keys, so {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the
-	  Joule.  If omitted, an empty dictionary is used (indicating a
-	  dimensionless quantity).
+          [units] -- (a Quantity or) a dictionary with string keys and integer
+          values, or a Quantity.  Each key names a unit of measurement: the
+          whole dictionary represents the product of pow(key, units[key]) over
+          all keys, so {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the
+          Joule.  If omitted, an empty dictionary is used (indicating a
+          dimensionless quantity).
 
-	  [doc] -- a documentation string for the quantity (default None).
-	  This may alternatively be set by the .document(doc) method.
+          [doc] -- a documentation string for the quantity (default None).
+          This may alternatively be set by the .document(doc) method.
 
-	  [nom] -- a short name by which to refer to the quantity.
-	  This may alternatively be set by the .name(short=nom) method.
+          [nom] -- a short name by which to refer to the quantity.
+          This may alternatively be set by the .name(short=nom) method.
 
-	  [fullname] -- a long name (capitalised, if appropriate) for the
-	  quantity: as for nom, .name(long=fullname) can be used. [These two
-	  arguments act as fall-backs for one another: if you give either of
-	  them, it serves as the default for the other.]
+          [fullname] -- a long name (capitalised, if appropriate) for the
+          quantity: as for nom, .name(long=fullname) can be used. [These two
+          arguments act as fall-backs for one another: if you give either of
+          them, it serves as the default for the other.]
 
-	  [sample] -- a sequence of quantities which should be equal to this
-	  one.
+          [sample] -- a sequence of quantities which should be equal to this
+          one.
 
-	The first two arguments, scale and units, may be Quantity instances: in
-	which case each contributes its scale and units to the new Quantity,
-	effectively multiplicatively. """
+        The first two arguments, scale and units, may be Quantity instances: in
+        which case each contributes its scale and units to the new Quantity,
+        effectively multiplicatively. """
 
         # Initialise self as a Object:
         apply(Object.__init__, (self,) + args, what)
 
         # massage the arguments: first mix scale and units
-	if isinstance(units, Quantity):
-	    scale, units = scale * units.__scale, units.__units
+        if isinstance(units, Quantity):
+            scale, units = scale * units.__scale, units.__units
 
-	if isinstance(scale, Quantity):
-	    units, scale = adddict(units, scale.__units), scale.__scale
+        if isinstance(scale, Quantity):
+            units, scale = adddict(units, scale.__units), scale.__scale
 
         # massaging scale as a sample (so we can trust its str() to work).
         if not isinstance(scale, Sample):
@@ -244,12 +244,12 @@ class Quantity(Object):
             scale = qSample(scale)
 
         # then (check and) massage sample:
-	if sample:
-	    row = [] # sequence of __scale attributes
+        if sample:
+            row = [] # sequence of __scale attributes
 
-	    for val in sample:
-		if val.__units != units:
-		    raise TypeError, ('Sample of wrong dimensions', val, units)
+            for val in sample:
+                if val.__units != units:
+                    raise TypeError, ('Sample of wrong dimensions', val, units)
 
                 row.append(val.__scale)
 
@@ -264,7 +264,7 @@ class Quantity(Object):
             scale = new
 
         # initialise self as a Quantity with the thus-massaged arguments
-	self.__scale, self.__units, self.__doc__ = scale, units, doc
+        self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.name(nom or fullname, fullname or nom)
 
     def _primitive(self):
@@ -280,8 +280,8 @@ class Quantity(Object):
         return Quantity(what, units)
 
     def name(self, nom=None, fullname=None):
-	if nom: self._short_name_ = nom
-	if fullname: self._long_name_ = fullname
+        if nom: self._short_name_ = nom
+        if fullname: self._long_name_ = fullname
 
     def document(self, doc): self.__doc__ = doc
     def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
@@ -289,11 +289,11 @@ class Quantity(Object):
 
     def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
-	h = hash(self.__scale)
-	for k, v in self.__units.items():
-	    h = h ^ v ^ hash(k)
+        h = hash(self.__scale)
+        for k, v in self.__units.items():
+            h = h ^ v ^ hash(k)
 
-	return h
+        return h
 
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
@@ -306,8 +306,8 @@ class Quantity(Object):
     def __nonzero__(self): return 0 != self.__scale
     def __neg__(self): return self._neg
     def __abs__(self):
-	if self.__scale < 0: return self._neg
-	return self
+        if self.__scale < 0: return self._neg
+        return self
 
     def _lazy_get__neg_(self, ignored):
         result = self._quantity( - self.__scale, self.__units)
@@ -328,19 +328,19 @@ class Quantity(Object):
 
         Returns other's scalar aspect or raises a TypeError. """
 
-	try:
-	    if self.__units != other.__units:
-		raise TypeError, (why + ' with differing dimensions',
-				  self._unit_str, other._unit_str)
+        try:
+            if self.__units != other.__units:
+                raise TypeError, (why + ' with differing dimensions',
+                                  self._unit_str, other._unit_str)
 
-	    return other.__scale
+            return other.__scale
 
-	except AttributeError:
-	    if self.__units:
-		raise TypeError, (why + ' between scalar and dimensioned quantity',
-				  other, self._unit_str)
+        except AttributeError:
+            if self.__units:
+                raise TypeError, (why + ' between scalar and dimensioned quantity',
+                                  other, self._unit_str)
 
-	    return other
+            return other
 
     # Addition, subtraction and their reverses.
     def __kin(self,    scale): return self._quantity(scale, self.__units)
@@ -351,42 +351,42 @@ class Quantity(Object):
 
     # multiplicative stuff is easier than additive stuff !
     def __unpack_(self, other):
-	if isinstance(other, Quantity):
-	    return other.__scale, other.__units
-	return other, {}
+        if isinstance(other, Quantity):
+            return other.__scale, other.__units
+        return other, {}
 
     def __mul__(self, other):
-	ot, her = self.__unpack_(other)
-	return self._quantity(self.__scale * ot, adddict(self.__units, her))
+        ot, her = self.__unpack_(other)
+        return self._quantity(self.__scale * ot, adddict(self.__units, her))
 
     def __rmul__(self, other):
-	ot, her = self.__unpack_(other)
-	return self._quantity(ot * self.__scale, adddict(her, self.__units))
+        ot, her = self.__unpack_(other)
+        return self._quantity(ot * self.__scale, adddict(her, self.__units))
 
     def __div__(self, other): 
-	ot, her = self.__unpack_(other)
+        ot, her = self.__unpack_(other)
         if not ot: raise ZeroDivisionError, other
-	return self._quantity(self.__scale / ot, subdict(self.__units, her))
+        return self._quantity(self.__scale / ot, subdict(self.__units, her))
 
     def __rdiv__(self, other):
-	ot, her = self.__unpack_(other)
-	return self._quantity(ot / self.__scale, subdict(her, self.__units))
+        ot, her = self.__unpack_(other)
+        return self._quantity(ot / self.__scale, subdict(her, self.__units))
 
     def __pow__(self, what):
-	wh, at = self.__unpack_(what)
-	if at: raise TypeError, ('raising to a dimensioned power', what)
+        wh, at = self.__unpack_(what)
+        if at: raise TypeError, ('raising to a dimensioned power', what)
 
-	return self._quantity(pow(self.__scale, wh),
+        return self._quantity(pow(self.__scale, wh),
                               scaledict(self.__units, wh))
 
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
         s = self.__scale
-	# maybe use s.bounds ?
+        # maybe use s.bounds ?
         return (s.high - s.low) / s.best
 
     def _lazy_get_best_(self, which):
-	"""generic method for statistics, packaging those for __scale with __units """
+        """generic method for statistics, packaging those for __scale with __units """
         stat = getattr(self.__scale, which) # the statistic (e.g. best estimate) of scale
         return Quantity(stat, self.__units) # with the same units as self.
 
@@ -431,115 +431,115 @@ class Quantity(Object):
 
     def _lazy_get__full_repr_(self, ignored):
 
-	def lookup(row, l=_terse_dict):
-	    out = []
-	    for nom in row:
-		try: out.append(l[nom]._long_name_)
-		except KeyError: out.append(nom)
-	    return out
+        def lookup(row, l=_terse_dict):
+            out = []
+            for nom in row:
+                try: out.append(l[nom]._long_name_)
+                except KeyError: out.append(nom)
+            return out
 
-	return self.unit_string(scale=self._number_repr,
-				times='*', Times=' * ',
-				divide='/', Divide=' / ',
-				lookemup=lookup)
+        return self.unit_string(scale=self._number_repr,
+                                times='*', Times=' * ',
+                                divide='/', Divide=' / ',
+                                lookemup=lookup)
 
     def unit_string(self, scale='',
-		    times='.', divide='/',
-		    Times=None, Divide=None,
-		    lookemup=None):
-	"""Generates representations of a quantity.
+                    times='.', divide='/',
+                    Times=None, Divide=None,
+                    lookemup=None):
+        """Generates representations of a quantity.
 
-	All arguments are optional and should be given by name when given.
+        All arguments are optional and should be given by name when given.
 
-	  scale -- a prefix string to which to join the unit representation
-	  built by this routine: in particular, if given, it will be joined to
-	  this unit representation by a suitable times or divide operator.  If a
-	  non-string is given for scale, its repr() is used.
+          scale -- a prefix string to which to join the unit representation
+          built by this routine: in particular, if given, it will be joined to
+          this unit representation by a suitable times or divide operator.  If a
+          non-string is given for scale, its repr() is used.
 
-	  times, divide -- strings, default '.' and '/', to be used to denote
-	  multiplication and division in compact texts, e.g. kg.m/s.
+          times, divide -- strings, default '.' and '/', to be used to denote
+          multiplication and division in compact texts, e.g. kg.m/s.
 
-	  Times, Divide -- strings, defaulting to times and divide, to be used
-	  to denote multiplication and division in spread-out texts,
-	  e.g. kg.m / s^2^.
+          Times, Divide -- strings, defaulting to times and divide, to be used
+          to denote multiplication and division in spread-out texts,
+          e.g. kg.m / s^2^.
 
-	  lookemup -- a function taking a sequence of strings and returning a
-	  similar sequence in which each string may have been replaced with an
-	  alternative: typically, the strings in the input list will be short
-	  names of units, to be converted to long names where known,
-	  e.g. [ kg ] -> [ kilogramme ].
+          lookemup -- a function taking a sequence of strings and returning a
+          similar sequence in which each string may have been replaced with an
+          alternative: typically, the strings in the input list will be short
+          names of units, to be converted to long names where known,
+          e.g. [ kg ] -> [ kilogramme ].
 
-	I hope to be able to do something smarter when I can see when to say J
-	rather than kg.m.m/s/s, and etc.  But that will probably involve
-	creating a units base-class to replace the present __units dictionary.
-	"""
+        I hope to be able to do something smarter when I can see when to say J
+        rather than kg.m.m/s/s, and etc.  But that will probably involve
+        creating a units base-class to replace the present __units dictionary.
+        """
 
         # Build reverse-lookup for self.__units:
-	pows = {} # ! { power: list of units appearing with this power }
-	for key, val in self.__units.items():
-	    try: pows[val].append(key)
-	    except KeyError: pows[val] = [ key ]
+        pows = {} # ! { power: list of units appearing with this power }
+        for key, val in self.__units.items():
+            try: pows[val].append(key)
+            except KeyError: pows[val] = [ key ]
 
-	# Prepare the list of powers we'll be using (in descending order):
-	vals = pows.keys()
-	vals.sort()
-	vals.reverse()
-	while 0 in vals: vals.remove(0)
+        # Prepare the list of powers we'll be using (in descending order):
+        vals = pows.keys()
+        vals.sort()
+        vals.reverse()
+        while 0 in vals: vals.remove(0)
         # We'll be folding x^-i^ terms in with y^i^ as (y/x)^i^ ...
         # so eliminate -i from vals if i appears in it.
-	for val in vals[:]:
-	    if val < 0: break
-	    while -val in vals: vals.remove(-val)
+        for val in vals[:]:
+            if val < 0: break
+            while -val in vals: vals.remove(-val)
 
-	# Honour Times='' even with times='.'
-	if Times is None: Times = times
-	# but not so for division ...
-	if not Divide: Divide = divide
+        # Honour Times='' even with times='.'
+        if Times is None: Times = times
+        # but not so for division ...
+        if not Divide: Divide = divide
 
         # Default lookup-each-item operation
-	if not lookemup:
-	    def lookemup(row): return row
+        if not lookemup:
+            def lookemup(row): return row
 
         head, tail = str(scale), ''
 
-	for p in vals:
-	    # punctuate
-	    if p > 0:
-		if head or tail: tail = tail + Times
-	    elif p < 0: tail = tail + Divide
-	    else: continue	# never happens - 0 got stripped
+        for p in vals:
+            # punctuate
+            if p > 0:
+                if head or tail: tail = tail + Times
+            elif p < 0: tail = tail + Divide
+            else: continue      # never happens - 0 got stripped
 
             # This might be a better place for the milli * kilogramme bodge ...
-	    row = lookemup(pows[p])
-	    lang, top, bot = len(row), string.joinfields(row, times), ''
+            row = lookemup(pows[p])
+            lang, top, bot = len(row), string.joinfields(row, times), ''
 
-	    # ... do the promised folding:
-	    try: wor = lookemup(pows[-p])
-	    except KeyError: pass
-	    else:
-		if wor:
-		    bot = divide + string.joinfields(wor, divide)
-		    lang = lang + len(wor)
+            # ... do the promised folding:
+            try: wor = lookemup(pows[-p])
+            except KeyError: pass
+            else:
+                if wor:
+                    bot = divide + string.joinfields(wor, divide)
+                    lang = lang + len(wor)
 
-	    if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
-	    else: more = top + bot
+            if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
+            else: more = top + bot
 
-	    p = abs(p)
-	    if p != 1:
-		try:
-		    # if we can represent p as an integer ...
-		    try: ip = int(p)
-		    except OverflowError: ip = long(p)
-		except (AttributeError, ValueError): pass
-		else:
-		    # ... use that by preference !
-		    if ip == p: p = ip
+            p = abs(p)
+            if p != 1:
+                try:
+                    # if we can represent p as an integer ...
+                    try: ip = int(p)
+                    except OverflowError: ip = long(p)
+                except (AttributeError, ValueError): pass
+                else:
+                    # ... use that by preference !
+                    if ip == p: p = ip
 
-		more = '%s**%s' % (more, p)
+                more = '%s**%s' % (more, p)
 
-	    tail = tail + more
+            tail = tail + more
 
-	return head + tail
+        return head + tail
 
     # Methods for use by derived classes and kindred allies:
     def _unit_order(self, unit):
@@ -556,7 +556,10 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.13  2001-12-12 17:09:23  eddy
+ Revision 1.14  2001-12-12 17:10:01  eddy
+ untabified
+
+ Revision 1.13  2001/12/12 17:09:23  eddy
  Pulled back qSample's _str and _repr to work via a shared method with
  alternate multiplier.  Refined the e3 exception to work with exact
  values (which are precise enough).
