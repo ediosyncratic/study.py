@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.6 2003-08-12 22:57:43 eddy Exp $
+$Id: multiangle.py,v 1.7 2003-08-13 22:15:12 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -73,7 +73,7 @@ class seqCos (LazySeq):
     """Sequence of polynomials describing cos(n.t) in terms of cos(t)
 
     C[n](cos(t)) = cos(n.t)\n"""
-    def growto(self, key, kate=4*z*z-3, term=term, z=z):
+    def growto(self, key, kate=4*z*z-3, term=-term, z=z):
         n, r = divmod(key, 2)
         if r: ans = z * K[n](kate)
         else: ans = self[n](term)
@@ -101,7 +101,10 @@ del term, z, Polynomial
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.6  2003-08-12 22:57:43  eddy
+Revision 1.7  2003-08-13 22:15:12  eddy
+Fixed d'oh; wrong sign for the term used by Cos.
+
+Revision 1.6  2003/08/12 22:57:43  eddy
 Eliminated A, B, Q, R in favour of K and halvings through S and C;
 i.e. I have now proved B-Q unification (and renamed T and D to K), along
 with eliminating A and R as mere aspects of C and S (respectively).
