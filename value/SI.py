@@ -4,7 +4,7 @@ See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
 for a definitive source of information about units.
 
-$Id: SI.py,v 1.7 2003-04-17 22:45:50 eddy Exp $
+$Id: SI.py,v 1.8 2003-07-05 15:44:11 eddy Exp $
 """
 from quantity import *
 
@@ -87,23 +87,13 @@ rad = radian = base_unit('rad', 'Radian',
 The angle subtended at the centre of a circle by an arc of the circumference
 equal in length to the radius of the circle.""")
 
+# see trig.py for support for trigonometry using units of angle
+
 sr = steradian = base_unit('sr', 'Steradian',
                           """The SI supplementary unit of solid angle.
 
 The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.""")
-
-# Angle support:
-import math
-def Tan(ang, t=math.tan): return t(ang / radian)
-def Sin(ang, s=math.sin): return s(ang / radian)
-def Cos(ang, c=math.cos): return c(ang / radian)
-def direction2angle(forward, left, a=math.atan2): return a(forward, left) * radian
-arcTan2 = direction2angle
-def arcTan(ratio, a=math.atan): return a(ratio) * radian
-def arcSin(ratio, a=math.asin): return a(ratio) * radian
-def arcCos(ratio, a=math.acos): return a(ratio) * radian
-del math
 
 # Composite SI units
 stere = pow(metre, 3)   # c.f. litre
@@ -129,7 +119,10 @@ T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.7  2003-04-17 22:45:50  eddy
+ Revision 1.8  2003-07-05 15:44:11  eddy
+ Moved trigonometric functions out to trig.py
+
+ Revision 1.7  2003/04/17 22:45:50  eddy
  Put non-SI units of angle back in units.py
 
  Revision 1.6  2003/04/17 22:40:09  eddy
