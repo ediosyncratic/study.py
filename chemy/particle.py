@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.6 2003-02-16 14:28:15 eddy Exp $
+$Id: particle.py,v 1.7 2003-04-12 13:38:17 eddy Exp $
 """
 
 from const import *
@@ -31,8 +31,6 @@ def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
 
     # more sophistication might use a less uniform distribution ...
     return unit * val
-
-class NameSpace: pass
 
 class Particle (Object):
     # needs merged in with units-related toys etc.
@@ -46,6 +44,9 @@ class Particle (Object):
 
         self._store_as_(name, self.__class__)
 	self.__name = name
+
+    _unborrowable_attributes_ = Object._unborrowable_attributes_ + (
+        'name', 'symbol', 'charge', '_charge', 'anti')
 
     def constituents(self, *primitives):
         """Returns self's composition.
@@ -111,7 +112,26 @@ class Particle (Object):
         bok = apply(self.constituents, primitives)
         return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
 
-    def _store_as_(self, name, klaz, root=None):
+    class __ItemCarrier (Lazy):
+        def __init__(self, *args, **what):
+            ali = what.get('lazy_aliases', {})
+            # Only relevant to Quark and its bases:
+            ali.update({'top': 'truth', 'bottom': 'beauty'})
+            what['lazy_aliases'] = ali
+            apply(Lazy.__init__, (self,) + args, what)
+
+        # Only relevant to Lepton and its bases:
+        def _lazy_get_positron_(self, ignored):
+            return self.electron.anti
+
+        class _lazy_get_anti_ (Lazy):
+            def __init__(self, source, ignored):
+                self.__source = source
+
+            def _lazy_lookup_(self, key):
+                return getattr(self.__source, key).anti
+
+    def _store_as_(self, name, klaz, root=None, ItemCarrier=__ItemCarrier):
         """Each sub-class of Particle carries a namespace full of its instances.
 
         That includes indirect instances but only applies to strict sub-classes,
@@ -121,18 +141,21 @@ class Particle (Object):
         up the __bases__ graph towards Particle doing the work.
 
         The namespace carrying the instances of the class is the .item attribute
-        of the class.  Classes which include some particles with common aliases
-        should explicitly set up their own .item object (e.g. as a
-        Lazy(lazy_aliases={...}) to implement the aliasing); otherwise, this
-        method will create a NameSpace(), which is utterly minimal, the first
-        time it needs to store anything on .item. """
+        of the class, which is created the first time a particle of the class is
+        stored.  The .item of a class should not be set otherwise: this method
+        provides a special class for .item objects, which handles particle
+        aliasing and other issues.  The .item object of a class also has a .anti
+        sub-object for ease of reading; .item.anti.electron is effectively a
+        synonym for .item.electron.anti, and likewise for other particles. """
 
         if root is None: root = Particle # can't set as default; not defined yet
         todo, done = [ klaz ], [ Particle ]
         while todo:
             k, todo = todo[0], todo[1:]
             try: i = k.item
-            except AttributeError: i = k.item = NameSpace()
+            except AttributeError:
+                i = k.item = ItemCarrier()
+
             done.append(k)
             try: getattr(i, name)
             except AttributeError:
@@ -141,15 +164,15 @@ class Particle (Object):
                     if b not in done and issubclass(b, root):
                         todo.append(b)
 
-    __obgetat = Object.__getattr__
-    def __getattr__(self, key):
-	if key == 'name': return self.__name
-	return self.__obgetat(key)
+    del __ItemCarrier
+
+    def _lazy_get_name_(self, ignored): return self.__name
 
     __oblook = Object._lazy_lookup_
     def _lazy_lookup_(self, key):
 	ans = self.__oblook(key)
-	try: ans.document('The %s of the %s %s.' % (key, self.name, self.__class__.__name__))
+	try: ans.document('The %s of the %s %s.' %
+                          (key, self.name, self.__class__.__name__))
 	except (AttributeError, TypeError): pass
 	return ans
 
@@ -394,7 +417,7 @@ class Lepton (Fermion):
     """Lepton: primitive fermion. """
 
     _charge = -3
-    item = Lazy(lazy_aliases={'anti-electron': 'positron'})
+
     __upinit = Fermion.__init__
     def __init__(self, *args, **what):
         try: self.__decay = what['decay']
@@ -406,7 +429,6 @@ class Lepton (Fermion):
         return Decay(self, (self.__decay, None, Lepton.item.electron, Neutrino.item.electron, self.family.neutrino.anti))
 
 class Quark (Fermion):
-    item = Lazy(lazy_aliases={'top': 'truth', 'bottom': 'beauty'})
     _namespace = 'Quark.item' # hide u/d distinction.
     def _lazy_get_symbol_(self, ignored): return str(self)[0]
     def _lazy_get_isospin_(self, ignored): return (self._charge -.5) / 3 # times hbar ?
@@ -567,7 +589,13 @@ Rydberg = (light.speed / (1/Lepton.item.electron.mass
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.6  2003-02-16 14:28:15  eddy
+ Revision 1.7  2003-04-12 13:38:17  eddy
+ Made various attributes, notably charge, non-borrowable (fixed problem
+ of positron.charge being negative); made all .item carrier objects cope
+ with name aliasing, also with .anti sub-object; thus made positron be
+ created lazily without session needing to reference electron.anti first.
+
+ Revision 1.6  2003/02/16 14:28:15  eddy
  Made Fermion use a Decay, lazily, as its .decay; added its __init__ to
  cope with that; adjusted to accommodate const.molar's attributes moving
  to the SI unit mol.
