@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.7 2003-04-21 11:24:06 eddy Exp $
+$Id: object.py,v 1.8 2003-04-21 20:02:56 eddy Exp $
 """
 
 def aslookup(whom):
@@ -114,7 +114,8 @@ class Object (Lazy):
             _row.insert(-1, aslookup(where))
 
 	def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
-            if key in _inalien: row = (_row[-1],)
+            if key in _inalien or (key[:1] == '_' and not (key[:2] == '__' == key[-2:])):
+                row = (_row[-1],)
             else: row = _row
 
 	    for item in row:
@@ -153,7 +154,11 @@ class Value (Object): pass       # Backwards compatibility ...
 
 _rcs_log = """
  $Log: object.py,v $
- Revision 1.7  2003-04-21 11:24:06  eddy
+ Revision 1.8  2003-04-21 20:02:56  eddy
+ Make borrowing only apply to magic and `export' attributes (i.e. ones
+ whose names don't begin with _, unless they begin and end with __).
+
+ Revision 1.7  2003/04/21 11:24:06  eddy
  Slightly cleaner handling of _lazy_preserve_.
 
  Revision 1.6  2003/04/12 12:55:05  eddy
