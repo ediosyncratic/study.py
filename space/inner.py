@@ -1,17 +1,18 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.3 2005-03-19 17:42:50 eddy Exp $
+$Id: inner.py,v 1.4 2005-03-22 00:02:08 eddy Exp $
 """
 
 from basEddy.units import Object, tophat, \
-     giga, mega, year, day, hour, minute, metre, kg, bar
+     giga, mega, year, day, hour, minute, metre, kg, bar, Centigrade
 from space.home import Sun, Earth, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery
 
 Mercury = KLplanet('Mercury',
                    KLsurface(.382, .38, Spin(58 * day + 16 * hour, 0),
-                             flattening = 0, material = "silicates"),
+                             flattening = 0, material = "silicates",
+                             temperature=Centigrade(110 + tophat * 580)),
                    Orbit(Sun, (57.91 + .01 * tophat) * giga * metre,
                          Spin(.241 * year, 7.005), .2056),
                    .0553, 5.43, atmosphere="trace Na",
@@ -22,6 +23,15 @@ From Latin, named for the messenger of the goods; so called because it moves so
 fast.  Compare the element hydrargyrum.
 """))
 
+Mercury.surface.temperature.document("""Mercury's wildly varying surface temperature
+
+As Mercury spins only slightly (less than a factor of two) faster than it
+orbits, its surface spends long periods alternately directly exposed to the
+Sun's heat and utterly hidden from it.  Without an atmosphere to re-distribute
+the heat, the surface thus gets un-endurably hot when exposed to the sun -
+rising to 400 Celsius - and unendurably cold - falling to -180 Celsius, below
+100 K.  See http://antwrp.gsfc.nasa.gov/apod/ap020716.html
+""")
 Mercury.mass.observe(0.33022e24 * kg)
 Mercury.surface.spin.period.observe(58.6462 * day)
 Mercury.surface.radius.observe(2.57 * mega * metre)
@@ -79,7 +89,10 @@ del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
 
 _rcs_log = """
 $Log: inner.py,v $
-Revision 1.3  2005-03-19 17:42:50  eddy
+Revision 1.4  2005-03-22 00:02:08  eddy
+Documented Mercury's surface temperature.
+
+Revision 1.3  2005/03/19 17:42:50  eddy
 Equipped Mars with a lazy satellite loader.
 
 Revision 1.2  2005/03/13 18:47:23  eddy
