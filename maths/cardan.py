@@ -2,10 +2,10 @@
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.5 2003-07-26 15:20:07 eddy Exp $
+$Id: cardan.py,v 1.6 2003-07-26 22:34:05 eddy Exp $
 """
-
 from math import cos, acos, pi
+
 def Cardan(cube, square, linear, constant):
     """Solves a cubic polynomial equation.
 
@@ -21,23 +21,8 @@ def Cardan(cube, square, linear, constant):
     will be tiny.  See cardan(), which wraps Cardan and asserts this.
 """
 
+    assert cube, "Cardan solves cubics, use other tools for quadratics"
     #print 'Cardan(%s, %s, %s, %s)' % (cube, square, linear, constant)
-
-    if not cube:
-        # deal with degenerate cases
-        if not square:
-            try: return (-constant * 1. / linear)
-            except ZeroDivisionError:
-                raise ValueError, 'Constant cubic has no roots (or everything)'
-        disc = linear**2 -4. * square * constant
-        if disc < 0:
-            raise ValueError, 'Positive definite quadratic has no real roots'
-        mid, gap = -linear * .5 / square, .5 * disc**.5 / square
-        return mid+gap, mid-gap
-
-    # deal with easy special case:
-    if not constant:
-        return (0,) + Cardan(0, cube, square, linear)
 
     # canonicalise:
     # u*x**3 +s*x**2 +i*x +c == 0 iff
@@ -85,9 +70,45 @@ def Cardan(cube, square, linear, constant):
     F = -E - offset
     return E-offset, F, F
 
-def cardan(u, s, i, c, tol=1e-14):
+def quadratic(square, linear, constant, realonly=None):
+    disc = linear **2 -4. * square * constant
+    try: disc.imag
+    except AttributeError:
+        if disc < 0:
+            if realonly: raise ValueError, 'Positive definite quadratic has no real roots'
+            disc = 1j * (-disc)**.5
+        elif disc > 0: disc = disc**.5
+    else: disc = disc**.5
+    mid, gap = -linear * .5 / square, .5 * disc / square
+    return mid + gap, mid - gap
+
+def cubic(cube, square, linear, constant, realonly=None):
+    if not cube:
+        # deal with degenerate cases
+        if not square:
+            try: return (-constant * 1. / linear)
+            except ZeroDivisionError:
+                raise ValueError, 'Constant cubic has no roots (or everything)'
+        try: return quadratic(square, linear, constant, realonly)
+        except ValueError: return ()
+
+    # deal with easy special case:
+    if not constant:
+        try: ans = quadratic(cube, square, linear, realonly)
+        except ValueError: ans = ()
+        return (0,) + ans
+
+    ans = Cardan(cube, square, linear, constant)
+    if realonly or len(ans) == 3: return ans
+    root, = ans # assert: len(ans) is 1
+    # divide our cubic by (: x - root &larr; x :) and get its roots
+    assert root, 'zero root was meant to be dealt with earlier !'
+    # u*x*x*x +s*x*x +i*x +c = (x-r)*(u*x*x +(r*u+s)*x -c/r)
+    return ans + quadratic(cube, square + root * cube, -constant / root)
+
+def cardan(u, s, i, c, realonly=1, tol=1e-14):
     # debug wrapper on the above, doing the assertion
-    ans = Cardan(u, s, i, c)
+    ans = cubic(u, s, i, c, realonly)
 
     for x, v in map(lambda x, u=u, s=s, i=i, c=c: (x, ((u*x +s)*x +i)*x +c), ans):
         if v:
@@ -98,7 +119,10 @@ def cardan(u, s, i, c, tol=1e-14):
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.5  2003-07-26 15:20:07  eddy
+Revision 1.6  2003-07-26 22:34:05  eddy
+Separated out degenerate cases and added support for finding complex roots.
+
+Revision 1.5  2003/07/26 15:20:07  eddy
 missed out the factor of 1/2 in the quadratic special-case !
 
 Revision 1.4  2003/07/26 13:19:47  eddy
