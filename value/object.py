@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.5 2002-10-06 15:33:30 eddy Exp $
+$Id: object.py,v 1.6 2003-04-12 12:55:05 eddy Exp $
 """
 
 def aslookup(whom):
@@ -72,21 +72,33 @@ class Object (Lazy):
         for key in what.keys():
             if key not in row: add(key)
 
+    _unborrowable_attributes_ = ()
     __upinit = Lazy.__init__
     def __init__(self, *lookups, **what):
         """Initialiser for Object()s.
 
         Arguments in name=value form are used to initialise the new object's
-        namespace.  Other arguments (which, if present, should appear before
-        name=value ones) should be lookups for use when computing attributes of
-        the object.  These will only ever be called once for any key.  These
-        lookups should be callables, accepting one argument (the attribute name)
-        and either returning a value (for the attribute) or raising
-        AttributeError.  No attempt is made to coerce them into this form.  Note
-        that any Object is a lookup. """
+        namespace.  The name 'lazy_aliases', if used, is sacred to Lazy (q.v.).
+        Positional arguments (which, if present, must appear before name=value
+        ones) should be lookups for use when computing attributes of the object.
+        These will only ever be called once for any key; and they will never be
+        called for attributes named in self._unborrowable_attributes_ (evaluated
+        during initialisation, after setting attributes supplied as name=value
+        arguments, but before extending Lazy's attribute mechanisms with
+        Object's borrowing mechanisms).
 
-        # Observation: hijacking self's __getattr__ doesn't fool getattr() !
-        # i.e., it'll still ask class's attribute lookup, ignoring personal one.
+        Positional arguments should be lookups, i.e. callables, accepting one
+        argument (the attribute name) and either returning a value (for the
+        attribute) or raising AttributeError.  No attempt is made to coerce them
+        into this form.  Note that any Object is a lookup.
+
+        The list of lookups may be extended, after initialisation, by passing a
+        lookup to the .borrow() method of the object; the new lookup will be
+        added after all lookups supplied to initialisation, but before self's
+        own lazy infrastructure. """
+
+        # Observation: hijacking self.__getattr__ doesn't fool getattr() !
+        # i.e., it'll still ask class's __getattr__, ignoring self's.
 
         try: aliases = what['lazy_aliases']
         except KeyError: self.__upinit()
@@ -102,13 +114,18 @@ class Object (Lazy):
 
         def borrow(where, _row=row):
             _row.insert(-1, aslookup(where))
-	self.borrow = borrow
 
-	def getit(key, _row=row):
-	    for item in _row:
+	def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
+            if key in _inalien: row = (_row[-1],)
+            else: row = _row
+
+	    for item in row:
 		try: return item(key)
 		except AttributeError: pass
+
 	    raise AttributeError, key
+
+	self.borrow = borrow
 	self._lazy_lookup_ = getit
 
     def __delattr__(self, key):
@@ -139,7 +156,11 @@ class Value (Object): pass       # Backwards compatibility ...
 
 _rcs_log = """
  $Log: object.py,v $
- Revision 1.5  2002-10-06 15:33:30  eddy
+ Revision 1.6  2003-04-12 12:55:05  eddy
+ Provided for unborrowable attributes of Objects (for particle.py's
+ benefit, in the first instance).  Clarified documentation a bit ...
+
+ Revision 1.5  2002/10/06 15:33:30  eddy
  Rewrote aslookup(). Added support for lazy_aliases. Various tweaklets.
 
  Revision 1.4  1999/12/29 17:52:21  eddy
