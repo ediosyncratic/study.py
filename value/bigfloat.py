@@ -1,12 +1,17 @@
 """Representing *very* big floating-point numbers.
 
-ToDo:
-  * make it work with Quantity, i.e. with Sample, i.e. with Weighted
-  * make it work with complex
+No attempt is made to increase the *precision* above that of the native float
+type; only the *range* of values (both towards zero and towards infinity).  Thus
+BigFloat.logeps is the largest number of decimal digits worth attending to in
+any float or BigFloat; but 10**BigFloat.loginf is distinguished from infinity
+and 10**BigFloat.logzero is distinguished from zero.  Much the same applies to
+the BigComplex type; note that (analogous to builtin complex) it holds real and
+imaginary parts as separate BigFloat()s, so doesn't lose a tiny value of one
+when added to a huge value of the other.
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.6 2003-09-29 23:17:44 eddy Exp $
+$Id: bigfloat.py,v 1.7 2003-10-04 10:04:42 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -235,11 +240,19 @@ class BigComplex (Lazy):
     def __init__(self, r, i, century=0):
         self.real, self.imag = BigFloat(r, century), BigFloat(i, century)
 
+    def __str__(self): return self.str
+    __repr__ = __str__
+    # def __repr__(self): return 'BigComplex(%s, %s)' % (`self.real`, `self.imag`)
+    def _lazy_get_str_(self, ignored):
+        if self.imag == 0: return str(self.real)
+        if self.real == 0: return str(self.imag) + 'j'
+        return '(%s+%sj)' % (self.real, self.imag)
+
     def _lazy_get_conjugate_(self, ignored):
         return BigComplex(self.real, -self.imag)
 
     def _lazy_get_abs_(self, ignored): return self.__absq()**.5
-    def _lazy_get_phase_(self, ignored): return self.real.arctan(self.imag)
+    def _lazy_get_phase_(self, ignored): return self.imag.arctan(self.real)
     def __nonzero__(self): return self.real != 0 or self.imag != 0
     def _lazy_get__lazy_hash_(self, ignored): return hash(self.real) ^ hash(self.imag)
     def __neg__(self): return BigComplex(-self.real, -self.imag)
@@ -247,15 +260,25 @@ class BigComplex (Lazy):
 
     def _lazy_get_log_(self, ignored): return BigComplex(self.abs.log, self.phase)
 
+    def __pow__(self, other):
+        return (self.log * other).exp
+
+    def __rpow__(self, other):
+        try: return (self * other.log).exp
+        except AttributeError: pass
+        try: r, i = other.real, other.imag
+        except AttributeError: return (self * BigFloat(other).log).exp
+        return (self * Bigcomplex(r, i).log).exp
+
     import cmath
-    def expi(phi, qi=cmath.pi/4, exp=cmath.exp): # an attempt to evade tiny errors
+    def expi(phi, qi=cmath.pi/2, exp=cmath.exp): # an attempt to evade tiny errors
         i, phase = divmod(phi, qi)
-        i = long(i) % 4
-        return exp(1j * phase) * 1j**i
+        return exp(1j * float(phase)) * 1j**(long(i) % 4)
     del cmath
 
     def _lazy_get_exp_(self, ignored, expi=expi):
-        return expi(self.imag) * self.real.exp
+        phase = expi(self.imag)
+        return BigComplex(phase.real, phase.imag) * self.real.exp
     del expi
 
     def __absq(self):
@@ -302,7 +325,10 @@ class BigComplex (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.6  2003-09-29 23:17:44  eddy
+Revision 1.7  2003-10-04 10:04:42  eddy
+Made complex work.  Corrected phase.  Added str, repr, pow.  Fiddled exp so it works.
+
+Revision 1.6  2003/09/29 23:17:44  eddy
 First draft of BigComplex (not yet tested).
 
 Revision 1.5  2003/09/22 23:19:35  eddy
