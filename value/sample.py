@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.28 2004-12-30 20:42:51 eddy Exp $
+$Id: sample.py,v 1.29 2005-01-28 01:09:17 eddy Exp $
 """
 
 class _baseWeighted:
@@ -640,16 +640,20 @@ class repWeighted (curveWeighted):
 
         return weight, right - left
 
-    def __unit(self, what):
+    def __unit(self, hat):
         """Returns a suitable power of 10 for examining what."""
 
-        if not what: what = 1
+        if hat: what = hat
+        else: what = 1
         decade = 0
 
         while what >= 10: what, decade = what / 10., decade + 1
         while what < 1: what, decade = what * 10, decade - 1
 
-        return pow(10. + what * 0, decade)
+        ans = pow(10. + what * 0, decade)
+        # rounding errors can produce weird effects ...
+        if int(hat / ans) is 10: return 10 * ans
+        return ans
 
     # how far can we get with separating this from the interpolation kit ?
     def round(self, estim=None):
@@ -1736,7 +1740,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.28  2004-12-30 20:42:51  eddy
+  Revision 1.29  2005-01-28 01:09:17  eddy
+  Bodge round a rounding issue.
+
+  Revision 1.28  2004/12/30 20:42:51  eddy
   Bodged Sample division to tolerate distributions that span 0 provided their weights don't ...
 
   Revision 1.27  2004/12/30 14:42:55  eddy
