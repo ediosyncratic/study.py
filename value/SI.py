@@ -1,6 +1,6 @@
 """The SI units.
 
-$Id: SI.py,v 1.1 1999-05-09 14:35:43 eddy Exp $
+$Id: SI.py,v 1.2 1999-08-07 15:20:07 eddy Exp $
 """
 from quantity import *
 
@@ -92,14 +92,6 @@ H = Henry = Weber / Ampere	# Inductance
 T = Tesla = Weber / metre / metre	# Magnetic flux density
 
 # Other units
-minute = 60 * second
-hour = 60 * minute
-day = 24 * hour
-week = 7 * day
-fortnight = 2 * week
-year = (365 + 1/ (4 + 1/(25 + 1/4.))) * day	# Gregorian
-# and my working year has 8 bank holidays + 25 my holidays.
-
 gram = milli * kilogramme
 cm = centi * metre
 cc = pow(cm, 3)
@@ -123,7 +115,11 @@ Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
 Sv = sievert = Gy               # Dose equivalent
 rem = 10 * milli * Sv
 # 10 milli Gray is also called a rad (conflicts with radian)
-Ci = Curie = 37 * giga * Becquerel
-R = Rontgen = .258 * milli * Coulomb / kilogramme       # R&ouml;ntgen
 P = poise = Pascal * second     # dynamic viscosity
 
+"""
+  $Log: SI.py,v $
+  Revision 1.2  1999-08-07 15:20:07  eddy
+  Moved ancillaries, added log.
+
+"""
