@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.7 2003-08-17 16:20:50 eddy Exp $
+$Id: polynomial.py,v 1.8 2003-08-17 18:03:04 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -121,17 +121,10 @@ class Polynomial (Lazy):
             self.__store(i, v)
             i = 1 + i
 
-    def __frombok(self, bok, ok=lambda k, i=types.IntType: type(k) == i):
+    def __frombok(self, bok, ok=lambda k, i=(types.IntType, types.LongType): type(k) in i):
         for key, val in bok.items():
             if not ok(key) or key < 0: raise unNaturalPower
             elif val != 0: self.__store(key, val)
-
-    def coefficient(self, key):
-        val = self.__coefs.get(key, self._zero)
-        try:
-            if val == int(val): return int(val)
-        except (OverflowError, TypeError): pass
-        return val
 
     def _lazy_get_rank_(self, ignored):
 	for key in self.__coefs.keys():
@@ -288,7 +281,12 @@ class Polynomial (Lazy):
 
     def __mod__(self, other): return self.__divmod__(other)[1]
 
-    def __divmod__(self, other):
+    def divide(num, div):
+        rat = num / div
+        if div * rat == num: return rat
+        return num * 1. / div
+
+    def __divmod__(self, other, ratio=divide):
 	"""Solves self = q.other + r for r of rank < other.rank: returns (q, r)
 
 	This depends on our coefficients forming a field.
@@ -312,10 +310,7 @@ class Polynomial (Lazy):
 	while got >= top:
             m = r.coefficient(got)
             while m: # take several slices off, in case of arithmetic error ...
-                rat = m / o
-                if o * rat != m: rat = m * 1. / o
-                scale = Polynomial({ got - top: rat })
-
+                scale = Polynomial({ got - top: ratio(m, o) })
                 q, r = q + scale, r - scale * other
                 n = r.coefficient(got)
                 if abs(n) * 10 > abs(m):
@@ -330,7 +325,45 @@ class Polynomial (Lazy):
         # assert r == self - q * other # tends to fail on small errors
 	return q, r
 
-    def __pow__(self, other, ok=lambda i, t=types.IntType: type(i) == t):
+    def __root(self, num, ratio=divide):
+        # solve self = ans ** num
+        assert num > 0 == self.rank % num
+        ans = self.coefficient(self.rank)
+        assert ans
+        if ans > 0: ans = ans **(1./num)
+        elif num % 2: ans = - ((-ans)**(1./num))
+        else: raise ValueError
+
+        top = self.rank / num
+        ans = Polynomial({top: ans})
+        res = self - ans ** num
+        while top > 0 and res:
+            next = res.rank - (num-1)*ans.rank
+            if next < top: top = next
+            else: raise ValueError
+            ans = ans + Polynomial({top: ratio(res.coefficient(res.rank),
+                                               num*ans.coefficient(ans.rank)**(num-1))})
+            res = self - ans ** num
+
+        if res: raise ValueError
+        return ans
+
+    del divide
+
+    def whole(val):
+        try: return int(val)
+        except OverflowError: return long(val)
+
+    def coefficient(self, key, int=whole):
+        val = self.__coefs.get(key, self._zero)
+        try:
+            i = int(val)
+            if val == i: return i
+        except TypeError: pass
+        return val
+
+    def __pow__(self, other, int=whole,
+                ok=lambda i, t=(types.IntType, types.LongType): type(i) in t):
 	# Require other to be natural
 	result, wer = 1, self
         try:
@@ -343,9 +376,19 @@ class Polynomial (Lazy):
             if other < 0: raise TypeError
             if not ok(other):
                 i = int(other)
-                if i != other: raise TypeError
-                other = i
-        except (AttributeError, OverflowError, TypeError):
+                if i == other: other = i
+                else:
+                    # bad, unless we're very lucky
+                    m = other * self.rank
+                    if m != int(m): raise TypeError
+                    # OK, we *might* be able to get away with this ...
+                    # ... other is n/m; see if we have an m-th root:
+                    m = 1L
+                    while int(m*other) != m*other: m = 1+m
+                    assert m <= self.rank
+                    other, wer = int(other * m), self.__root(m) # will ValueError if not possible
+
+        except (AttributeError, TypeError, ValueError):
             raise unNaturalPower, other
 
 	while other >= 1:
@@ -353,6 +396,8 @@ class Polynomial (Lazy):
 	    wer, other = wer * wer, other / 2
 
 	return result
+
+    del whole
 
     # use << as repeated integration, >> as repeated differentiation
     def __lshift__(self, other):
@@ -695,7 +740,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.7  2003-08-17 16:20:50  eddy
+Revision 1.8  2003-08-17 18:03:04  eddy
+Allow long powers and fractional powers when they work ...
+
+Revision 1.7  2003/08/17 16:20:50  eddy
 Return coefficients as ints if they are (planned but goofed, previously).
 
 Revision 1.6  2003/08/13 22:41:38  eddy
