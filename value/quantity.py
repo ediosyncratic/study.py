@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.9 2001-10-12 16:02:06 eddy Exp $
+$Id: quantity.py,v 1.10 2001-12-10 21:28:11 eddy Exp $
 """
 
 # The multipliers (these are dimensionless)
@@ -11,7 +11,7 @@ _quantifier_dictionary = {
     # from http://www.weburbia.demon.co.uk/physics/notation.html
     24: 'yotta',
     21: 'zetta',
-    18: 'exa',
+    18: 'exa', # Kaye & Laby starts here
     15: 'peta',
     12: 'tera',
     9: 'giga',
@@ -22,7 +22,7 @@ _quantifier_dictionary = {
     -9: 'nano',
     -12: 'pico',
     -15: 'femto',
-    -18: 'atto',
+    -18: 'atto', # Kaye & Laby stops here.
     -21: 'zepto',
     -24: 'yocto',
     # back to quantifiers (suggested by Morgan Burke, probably unratified ;^)
@@ -63,12 +63,12 @@ class qSample(Sample):
         be, for instance, ' mega', meaning the appropriate power of 10, else it
         is explicitly [e[sign]digits], e.g. 'e6', an exponent; in which case the
         exponent is a multiple of three.  The mantissa, digits[.digits], is
-        always in the range .1 to 1000 and only exceeds 100 if, by so doing, we
-        can avoid the need for a [quantifier].  If the exponent is given as
-        [e[sign]digits] and the representation is exact, the e will be an E,
-        e.g. the integer 4000 is 4E3.  Exact numbers will also elide their
-        decimal point if it is the last character of the mantissa, rough ones
-        are less likely to. """
+        always in the range .1 to 1000 and only exceeds 100 if at least three
+        significant digits are available and, by so doing, we can avoid the need
+        for a [quantifier].  If the exponent is given as [e[sign]digits] and the
+        representation is exact, the e will be an E, e.g. the integer 4000 is
+        4E3.  Exact numbers will also elide their decimal point if it is the
+        last character of the mantissa, rough ones are less likely to. """
 
         # Obtain Sample's answer, which uses any integer for the exponent
         # and puts digits.[digits] between 1 and 10.
@@ -103,7 +103,7 @@ class qSample(Sample):
             if up: head = up[:-1] + '.' + up[-1:] + down
             else: head = '.0' + down
 
-        # Now, about the exception for 400 rather than .400e3 (but keep .4e3)
+        # Now, about the exception for 400 rather than .400e3 (but .40e3 is .40 * kilo)
         if exponent == 3 and head[0] == '.' and len(head) > 3:
             # head is '.ddd' or longer with 'e3' to follow
             head = head[1:4] + '.' + head[4:]
@@ -185,15 +185,15 @@ class Quantity(Object):
 
 	Arguments:
 
-	  scale -- a scalar, e.g. integer, long or float: it must support
-	  addition with and multiplication by at least these types.
+	  scale -- (a Quantity or) a scalar, e.g. integer, long or float: it
+	  must support addition with and multiplication by at least these types.
 
-	  [units] -- a dictionary with string keys and integer values, or a
-	  Quantity.  Each key names a unit of measurement: the whole dictionary
-	  represents the product of pow(key, units[key]) over all keys, so
-	  {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the Joule.  If
-	  omitted, an empty dictionary is used (indicating a dimensionless
-	  quantity).
+	  [units] -- (a Quantity or) a dictionary with string keys and integer
+	  values, or a Quantity.  Each key names a unit of measurement: the
+	  whole dictionary represents the product of pow(key, units[key]) over
+	  all keys, so {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the
+	  Joule.  If omitted, an empty dictionary is used (indicating a
+	  dimensionless quantity).
 
 	  [doc] -- a documentation string for the quantity (default None).
 	  This may alternatively be set by the .document(doc) method.
@@ -212,8 +212,6 @@ class Quantity(Object):
 	The first two arguments, scale and units, may be Quantity instances: in
 	which case each contributes its scale and units to the new Quantity,
 	effectively multiplicatively. """
-
-        debug = scale is 0
 
         # Initialise self as a Object:
         apply(Object.__init__, (self,) + args, what)
@@ -280,15 +278,23 @@ class Quantity(Object):
     def __cmp__(self, other):
 	return cmp(self.__scale, self.__addcheck_(other, 'compare'))
 
-    def __nonzero__(self): return 0 != self.__scale
+    def _lazy_get__lazy_hash_(self, ignored):
+	h = hash(self.__scale)
+	for k, v in self.__units.items():
+	    h = h ^ v ^ hash(k)
+
+	return h
+
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
     def __int__(self): return int(self._scalar)
+    def __abs__(self): return abs(self._scalar)
 
-    def _lazy_get__scalar_(self):
+    def _lazy_get__scalar_(self, ignored):
         if self.__units: raise TypeError('not dimensionless', self._unit_str)
         return self.__scale
 
+    def __nonzero__(self): return 0 != self.__scale
     def __neg__(self): return self._neg
 
     def _lazy_get__neg_(self, ignored):
@@ -373,16 +379,19 @@ class Quantity(Object):
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
         s = self.__scale
+	# maybe use s.bounds ?
         return (s.high - s.low) / s.best
 
     def _lazy_get_best_(self, which):
-        stat = getattr(self.__scale, which)
-        return Quantity(stat, self.__units)
+	"""generic method for statistics, packaging those for __scale with __units """
+        stat = getattr(self.__scale, which) # the statistic (e.g. best estimate) of scale
+        return Quantity(stat, self.__units) # with the same units as self.
 
     _lazy_get_low_ = _lazy_get_high_ = _lazy_get_mean_ = _lazy_get_mode_ \
-                     = _lazy_get_median_ = _lazy_get_width_ = _lazy_get_errors_ \
-                     = _lazy_get_best_
+                   = _lazy_get_median_ = _lazy_get_width_ = _lazy_get_errors_ \
+                   = _lazy_get_dispersor_ = _lazy_get_best_
 
+    def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
     def _lazy_get_variance_(self, ignored):
         return Quantity(self.__scale.variance, scaledict(self.__units, 2))
 
@@ -392,7 +401,6 @@ class Quantity(Object):
 
     def _lazy_get__unit_str_(self, ignored):
         # short-form of units, e.g. m/s**2
-
         return self.unit_string()
 
     def _lazy_get__number_str_(self, ignored):
@@ -489,6 +497,7 @@ class Quantity(Object):
 
 	# Honour Times='' even with times='.'
 	if Times is None: Times = times
+	# but not so for division ...
 	if not Divide: Divide = divide
 
         # Default lookup-each-item operation
@@ -500,7 +509,7 @@ class Quantity(Object):
 	for p in vals:
 	    # punctuate
 	    if p > 0:
-		if head: tail = tail + Times
+		if head or tail: tail = tail + Times
 	    elif p < 0: tail = tail + Divide
 	    else: continue	# never happens - 0 got stripped
 
@@ -536,13 +545,6 @@ class Quantity(Object):
 
 	return head + tail
 
-    def _lazy_get__lazy_hash_(self, ignored):
-	h = hash(self.__scale)
-	for k, v in self.__units.items():
-	    h = h ^ v ^ hash(k)
-
-	return h
-
     # Methods for use by derived classes and kindred allies:
     def _quantade_split_(self, power=1):
         raise AssertionError, 'retired functionality'
@@ -561,7 +563,12 @@ def base_unit(nom, fullname, doc, **what):
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.9  2001-10-12 16:02:06  eddy
+ Revision 1.10  2001-12-10 21:28:11  eddy
+ Added abs, dispersor, dispersal to Quantity.  Shuffled hash, nonzero.
+ Enhanced various docs.  Removed bogus debug.  Fixed noddy bugs:
+ punctuating str((m*s)**2*kg); _lazy_get__scalar_'s ignored arg.
+
+ Revision 1.9  2001/10/12 16:02:06  eddy
  Removed milli*kilogramme bodge - was wrong on, e.g., 1e3 *kg*kg = 1 *gram**2
  May try again later ...
 
