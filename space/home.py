@@ -1,10 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.6 2005-03-13 16:33:47 eddy Exp $
+$Id: home.py,v 1.7 2005-03-13 19:28:45 eddy Exp $
 """
 
-from basEddy.units import *
+from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
+     kilo, mega, giga, tera, peta, kg, metre, mile, arc, radian, Kelvin, \
+     year, day, hour, minute, second, litre, bar, Watt, Tesla, Ampere
 from space import body
 from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
 
@@ -33,7 +35,7 @@ Sun = body.Body(
                   # Random factor of 10 to remove discrepancy between period and (2*pi*radius)/speed
                   # but - for all I know - it may be period or radius that needs corrected, not speed.
                   # After all, the reason folk believe in Dark Matter is that the radius and period *don't* match ...
-		  speed=2.15 * mega * m/s / 10),
+		  speed=2.15 * mega * metre / second / 10),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
 
@@ -80,7 +82,7 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
 
     discovery=Discovery("the earliest life-forms", -3e9), # etym ?
 
-    density = 1.409 * kilogramme / litre,
+    density = 1.409 * kg / litre,
     age = Quantity(4.6e9, year, # Peter Francis, age of solar system [missing error bar]
                    lifespan = 1e18 * second, # Nuffield, order of magnitude
                    remain = (5 + tophat) * giga * year), # plus c. 2e9 years as a white dwarf
@@ -275,21 +277,21 @@ ground ... earth.
 """),
 
     magnetic = Object(dipole = 8.1e22 * Ampere * metre * metre),
-    mass = 5.976e24 * kilogramme,
-    density = 5.518 * kilogramme / litre,
+    mass = 5.976e24 * kg,
+    density = 5.518 * kg / litre,
     age = 1e17 * second, # Nuffield, approx
-    Atmosphere = Object(mass = 5.27e18 * kilogramme, pressure = bar,
+    Atmosphere = Object(mass = 5.27e18 * kg, pressure = bar,
                         composition = { "N2": .78, "O2": .21 }),
 
     Core = Object(name = "Earth's core",
                   surface = Object(radius = 3.488e6 * metre,
                                    flattening = 1/390.),
                   mass = 1.88e24 * metre,
-                  density = 10.72 * kilogramme / litre),
+                  density = 10.72 * kg / litre),
     aliases = ('Terra', 'Gaia'))
 
 Earth.surface.radius.observe(6.37814 * mega * metre) # NASA
-Earth.mass.observe(5.9742e24 * kilogramme)
+Earth.mass.observe(5.9742e24 * kg)
 Earth.orbit.radius.observe(Quantity(qSample({},
                                             low = 147.1e9, # perihelion
                                             high = 152.1e9, # aphelion
@@ -312,13 +314,13 @@ Sun.also(
                         radiation = 63.3 * mega * Watt / metre**2,
                         temperature = 5800 * Kelvin))
 Sun.surface.radius.observe(6.96e8 * metre)
-Sun.mass.observe(1.9891e30 * kilogramme) # over 700 times the sum of all the planets' masses
+Sun.mass.observe(1.9891e30 * kg) # over 700 times the sum of all the planets' masses
 # </bootstrap>
 
-def KLplanet(name, surface, orbit, mass, density, P=body.Planet, **what):
+def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **what):
     """As Planet, but with mass scaled by that of the earth and density in g/cc"""
     what['mass'] = Earth.mass * mass
-    what['density'] = density * kilogramme / litre
+    what['density'] = density * d
     return apply(P, (name, surface, orbit), what)
 
 # Kaye & Laby also give, for orbits, synodic periods and longitudes of node and
@@ -342,22 +344,28 @@ Moon = KLplanet('Moon',
                 aliases = ('Luna', 'Selene'))
 # Moon.orbit.radius' derivative and sample are taken from
 # http://news.bbc.co.uk/hi/english/sci/tech/newsid_399000/399468.stm
-Moon.mass.observe(7.3483e22 * kilogramme)
-Moon.mass.observe(7.349e22 * kilogramme) # NASA
+Moon.mass.observe(7.3483e22 * kg)
+Moon.mass.observe(7.349e22 * kg) # NASA
 Moon.surface.radius.observe(1.738e6 * metre)
 Moon.surface.radius.observe(1.7374e6 * metre) # NASA
-Moon.surface.gravity.observe(1.62 * metre / s**2)
+Moon.surface.gravity.observe(1.62 * metre / second**2)
 Moon.orbit.radius.observe(3.844e8 * metre) # agrees with NASA
 Moon.orbit.spin.period.observe(27.32 * day) # NASA
 
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
-del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
+del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
+    Sample, qSample, Quantity, Object, tophat, kilo, mega, giga, tera, peta, \
+    kg, metre, mile, arc, radian, Kelvin, year, day, hour, minute, second, \
+    litre, bar, Watt, Tesla, Ampere
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.6  2005-03-13 16:33:47  eddy
+Revision 1.7  2005-03-13 19:28:45  eddy
+Clean up import/export.
+
+Revision 1.6  2005/03/13 16:33:47  eddy
 Renamed body's exports, used them as body.* to avoid clash over Object.
 Dumped SolarConstant.  Cleaned up a few bits, notably: can now del Surface;
 and moved del IA* earlier.
