@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.2 2002-10-06 18:38:06 eddy Exp $
+$Id: particle.py,v 1.3 2002-10-08 21:30:04 eddy Exp $
 """
 
 from const import *
@@ -38,9 +38,78 @@ class Particle (Object):
     # needs merged in with units-related toys etc.
     __obinit = Object.__init__
     def __init__(self, name, *args, **what):
-        self._store_as_(name, self.__class__)
+        try: self.__bits = what['constituents']
+        except KeyError: pass # self will be deemed primitive
+        else: del what['constituents']
+
 	apply(self.__obinit, args, what)
+
+        self._store_as_(name, self.__class__)
 	self.__name = name
+
+    def constituents(self, *primitives):
+        """Returns self's composition.
+
+        Takes any number of classes (irrelevant unless derived from Particle)
+        and particles (irrelevant unless (possibly indirect) instances of
+        Particle) to be deemed primitive and returns a dictionary mapping
+        primitive particles to their multiplicities within self.  Regardless of
+        any classes supplied as arguments, any particle whose composition wasn't
+        specified when constructing it is deemed primitive.
+
+        To get the composition specified when self was constructed, pass
+        Particle as the sole argument; pass no arguments to get the particle
+        reduced to its most primitive constituents; pass Nucleon to get a
+        nucleus reduced to its nucleons; etc. """
+
+        try: bits = self.__bits
+        except AttributeError: return { self: 1 }
+        bits, ans = bits.copy(), {}
+
+        def carve(obj,
+                  m=filter(lambda x: issubclass(x, Particle), primitives),
+                  p=filter(lambda x: isinstance(x, Particle), primitives)):
+            """Returns None if obj is primitive, else its constituents. """
+
+            try: bok = obj.__bits
+            except AttributeError: return None
+
+            if obj in p: return None
+
+            for k in m:
+                if isinstance(obj, k): return None
+
+            return bok
+
+        while bits:
+            for k in bits.keys():
+                v, b = bits[k], carve(k)
+                del bits[k]
+
+                if b:
+                    for q, r in b.items():
+                        assert q is not k
+                        bits[q] = bits.get(q, 0) + v * r
+                else:
+                    ans[k] = ans.get(k, 0) + v
+
+        return ans
+
+    def __bindener(self, bok):
+        sum = -self.energy
+        for k, v in bok.items():
+            sum = sum + k.energy * abs(v)
+        return sum
+
+    def bindingenergy(self, *primitives):
+        return self.__bindener(apply(self.constituents, primitives))
+
+    def bindingfraction(self, *primitives):
+        return apply(self.bindingenergy, primitives) / self.energy
+
+    def bindingenergyper(self, *primitives):
+        bok = apply(self.constituents, primitives)
+        return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
 
     def _store_as_(self, name, klaz):
         """Each sub-class of Particle carries a namespace full of its instances.
@@ -109,43 +178,38 @@ class Particle (Object):
 
 	try:
 	    bits = {}
-	    for k, v in self.constituents.items():
+	    for k, v in self.__bits.items():
 		bits[k] = -v
 
 	except AttributeError: bits = {self: -1}
 
-	ans = self.__class__(nom, self, charge=-self.charge, constituents=bits)
+	ans = self.__class__(nom, self, _charge=-self._charge, constituents=bits)
         ans.anti = self # NB cyclic reference; ans is about to become self.anti
 
 	return ans
 
-    def _lazy_get_charge_(self, ignored, zero=0*Coulomb):
-	try: bits = self.constituents
-	except AttributeError: return zero
+    def _lazy_get__charge_(self, ignored):
+        """Charge in units of on third the positron's charge.
 
-	q = zero
-	for k, v in bits.items():
-	    q = q + v * k.charge
+        This is an exact integer value, far more suitable for working with than
+        the actual charge, whose error bar grows with each arithmetic operation.
+        """
 
-	return q
+        try: bits = self.__bits
+        except AttributeError: return 0
+
+        q = 0
+        for k, v in bits.items():
+            q = q + v * k._charge
+
+        return q
+
+    def _lazy_get_charge_(self, ignored, unit=Quantum.Millikan/3):
+        return self._charge * unit
 
     def _lazy_get_period_(self, ignored, k=Quantum.h/Vacuum.c**2):
         """de Broglie wave period along world-line: h/c/c/mass"""
         return k / self.restmass
-
-    def _lazy_get_bindingenergy_(self, ignored):
-        sum = -self.energy
-        try:
-            for k, v in self.constituents.items():
-                sum = sum + k.energy * abs(v)
-
-        except AttributeError:
-            return 0 * sum # to get units right
-
-        return sum
-
-    def _lazy_get_bindingfraction_(self, ignored):
-        return self.bindingenergy / self.energy
 
     def _lazy_get_energy_(self, ignored):
 
@@ -191,8 +255,20 @@ class Particle (Object):
     def _lazy_get_restmass_(self, ignored, csqr = Vacuum.c**2):
         return (self.mass**2 - abs(self.momentum)**2 / csqr)**.5
 
-    def __repr__(self): return self.__name
-    __str__ = __repr__
+    def __str__(self): return self.__name
+    def __repr__(self):
+        return '%s.%s' % (self._namespace, self.__name)
+
+    def _lazy_get__namespace_(self, ignored):
+        """Namespace in which to look for self `normally'.
+
+        This should usually be self's class; however, where a class has
+        sub-classes to make distinctions (e.g. that between bosonic and
+        fermionic nuclei, below) one orthodoxly ignores, self may prefer to be
+        sought in the base-class with the nice familiar name rather than in the
+        pedantically more apt derived class. """
+
+        return '%s.item' % self.__class__.__name__
 
     def __hash__(self): return hash(self.__name)
 
@@ -352,9 +428,7 @@ class Neutrino (Fermion):
         # forward modified name to Fermion et al.
         self.__store_as('%s neutrino' % name, Fermion)
 
-    def _lazy_get_charge_(self, ignored, default=0*Coulomb):
-        return default
-
+    _charge = 0
     def _lazy_get_symbol_(self, ignored):
         lep = self.family.lepton
         return '&nu;<sup>%s</sup>' % lep.symbol
@@ -362,13 +436,17 @@ class Neutrino (Fermion):
 class Lepton (Fermion):
     """Lepton: primitive fermion. """
 
+    _charge = -3
     item = Lazy(lazy_aliases={'anti-electron': 'positron'})
-    def _lazy_get_charge_(self, ignored, default=-Quantum.Millikan):
-        return default
 
 class Quark (Fermion):
     item = Lazy(lazy_aliases={'top': 'truth', 'bottom': 'beauty'})
+    _namespace = 'Quark.item' # hide u/d distinction.
     def _lazy_get_symbol_(self, ignored): return str(self)[0]
+    def _lazy_get_isospin_(self, ignored): return (self._charge -.5) / 3 # times hbar ?
+
+class uQuark (Quark): _charge = 2
+class dQuark (Quark): _charge = -1
 
 class Family (Object):
     """A family of the standard model's table of primitive fermions.
@@ -395,7 +473,7 @@ class Family (Object):
 	raise IndexError, 'A quark/lepton family has only four members'
 
 def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm,
-	     q=Quantum.Millikan/3, mev=mega*eV/light.speed**2):
+	     mev=mega*eV/light.speed**2):
 
     """Deciphering Kaye&Laby p449.
 
@@ -418,8 +496,8 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm,
 
     return Family(Neutrino(lnom, mass=Quantity(below(nm), mev)),
                   Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym, decay=Quantity(lrate, Hertz)),
-                  Quark(mnom, mass=mm*kilo*mev, charge=-q),
-                  Quark(pnom, mass=pm*kilo*mev, charge=2*q))
+                  dQuark(mnom, mass=mm*kilo*mev),
+                  uQuark(pnom, mass=pm*kilo*mev))
 
 table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1./6e28),
                    'down', sample(0.35, .005), 'up', sample(0.35, .005)),
@@ -433,115 +511,115 @@ table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1.
 Lepton.item.electron.also(magneticmoment = 928.476362e-26 * Joule / Tesla)
 
 # perhaps I should have a `Hadron' class for this lot ...
+class Nucleon (Fermion):
+    __upinit = Fermion.__init__
+    def __init__(self, u, d, name, mass, doc, **what):
+        what.update({'name': name, 'mass': mass, 'doc': doc,
+                     'constituents': {Quark.item.up: u, Quark.item.down: d}})
+        apply(self.__upinit, (), what)
 
-proton = Fermion('proton',
-                 mass = Quantity(sample(1672.52, .08), harpo * gram),
-                 doc = "charged ingredient in nuclei",
-                 magneticmoment = 1.410606633e-26 * Joule / Tesla, # same units as magneton ...
-                 constituents={Quark.item.up: 2, Quark.item.down: 1})
+    mass = Quantity(1 / mol / molar.Avogadro, gram,
+                    doc="""Atomic Mass Unit, AMU.
 
-neutron = Fermion('neutron',
-                  mass = Quantity(sample(1674.82, .08), harpo * gram),
-                  doc = "uncharged ingredient in nuclei",
-                  magneticmoment = 0.96623640e-26 * Joule / Tesla, # ... namely, current * area
-                  constituents = {Quark.item.up: 1, Quark.item.down: 2},
-                  charge = 0 * Coulomb) # (if unstated, the computed value has an error bar)
-
-nucleon = Fermion('nucleon',
-                  doc="""The `average' of a proton and a neutron.
+This is the nominal mass of a nucleon.
+In reality, both proton and neutron are a fraction of a percent heavier.
 
 The Mole is so defined that a Mole of carbon-12 weighs exactly 12 grams.  The
 carbon-12 nucleus comprises six protons and six neutrons.  Thus dividing one
-gram by the number of items in a Mole thereof yields one twelfth of the mass of
-a carbon-12 atom, nominally (half the mass of an electron plus) the average of
-the masses of neutron and proton, albeit the binding energy of the nucleus
-reduces this value (by more than the electron mass).  The nucleon is the
-mythical average of a neutron and a proton presumed by the foregoing. """,
-                  constituents={Quark.item.up: 1.5, Quark.item.down: 1.5},
-		  mass = Quantity(1 / mol / molar.Avogadro, gram,
-                                  doc="""Atomic Mass Unit, AMU.
+gram by the number of items in a Mole thereof (Avogadro's constant) yields one
+twelfth of the mass of a carbon-12 atom, nominally (half the mass of an electron
+plus) the average of the masses of neutron and proton, albeit the binding energy
+of the nucleus reduces this value (by more than the electron mass).
+""")
 
-This is the nominal mass of a nucleon.  In reality, both proton and neutron are
-a fraction of a percent heavier because the AMU is obtained as a twelfth of the
-carbon-12 atom's mass, which (despite including half the mass of an electron) is
-lower than the proton or neutron mass by carbon's binding energy per nucleon.
-"""))
-
-AMU = AtomicMassUnit = nucleon.mass
-
+AMU = AtomicMassUnit = Nucleon.mass
 Lepton.item.electron.mass.observe(Quantity(sample(548.58026, .0002), micro * AMU))
 Lepton.item.muon.mass.observe(0.1134289168 * AMU)
 
-deuteron = Boson('deuteron',
-		 # roughly the sum of proton and neutron:
-		 mass = 2.01355321271 * AMU,
-                 doc = "Deuterium's nucleus",
-		 constituents={Quark.item.up: 3, Quark.item.down: 3},
-		 # roughly the *difference* between proton and neutron:
-		 magneticmoment = 0.433073457e-26 * Joule / Tesla)
-
-alpha = Boson('alpha', doc="Helium's nucleus", constituents={proton: 2, neutron: 2})
+Nucleon(2, 1, 'proton',
+        Quantity(sample(1672.52, .08), harpo * gram),
+        "charged ingredient in nuclei",
+        magneticmoment = 1.410606633e-26 * Joule / Tesla)
+# magnetic moment has the same units as magneton: namely, current * area
+# c.f. moment of inertia = mass * area
+Nucleon(1, 2, 'neutron',
+        Quantity(sample(1674.82, .08), harpo * gram),
+        "uncharged ingredient in nuclei",
+        magneticmoment = 0.96623640e-26 * Joule / Tesla)
 
-# More atom-scale constants
+class Nucleus (Particle): _namespace = 'Nucleus.item'
+class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
+class fNucleus (Fermion, Nucleus): 'Fermionic nucleus'
+def nucleus(Q, N, name, doc, **what):
+    what.update({'name': name, 'doc': doc,
+                 'constituents': {Nucleon.item.proton: Q, Nucleon.item.neutron: N}})
+
+    try: klaz = {0: bNucleus, 1: fNucleus}[(Q + N) % 2]
+    except KeyError: klaz = Nucleus
+    return apply(klaz, (), what)
+
+class Atom (Particle): _namespace = 'Atom.item'
+class bAtom (Boson, Atom): 'Bosonic atom'
+class fAtom (Fermion, Atom): 'Fermionic atom'
+def atom(Q, N, name, symbol, doc, **what):
+    ndoc = "%s's nucleus" % name
+    try: n = what['nucleus']
+    except KeyError:
+        n = what['nucleus'] = nucleus(Q, N,
+                                      '%s<sup>+%d</sup>' % (symbol, Q),
+                                      ndoc)
+    else:
+        try:
+            if not n.__dict__['__doc__']: raise KeyError
+        except KeyError:
+            n.__doc__ = ndoc
+
+    what.update({'name': name, 'symbol': symbol, 'doc': doc,
+                 'constituents': {n: 1, Lepton.item.electron: Q}})
+    try: klaz = {0: bAtom, 1: fAtom}[N % 2]
+    except KeyError: klaz = Atom
+    return apply(klaz, (), what)
+
+atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
+     mass=Quantity(sample(1673.43, .08), harpo * gram),
+     nucleus=Nucleon.item.proton)
+atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
+     nucleus=nucleus(1, 1, 'deuteron', "Deuterium's nucleus",
+                     # roughly the sum of proton and neutron:
+                     mass = 2.01355321271 * AMU,
+                     # roughly the *difference* between proton and neutron:
+                     magneticmoment = 0.433073457e-26 * Joule / Tesla))
+atom(1, 2, 'Tritium', 'T', 'Radioactive Heavy Hydrogen')
+atom(2, 2, 'Helium', 'He', 'Second most abundant form of matter',
+     nucleus=nucleus(2, 2, 'alpha', "Helium's nucleus"))
+
+# Some atom-scale constants:
 radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / Lepton.item.electron.mass
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
-Rydberg = (light.speed / (1/Lepton.item.electron.mass +1/proton.mass) / 2 / Quantum.h) * Vacuum.alpha**2
-
-class Element (Particle):
-    __upinit = Particle.__init__
-    def __init__(self, Q, N, *args, **what):
-        """Element Constructor.
-
-        Reads first two positional parameters as numbers of protons, Q, and of
-        neutrons, N, in the nucleus; Q is also the number of electrons orbiting
-        that.  Uses these to construct the composition; forwards this and all
-        other args to Particle's constructor. """
-
-        what['constituents'] = { proton: Q, neutron: N, Lepton.item.electron: Q }
-        apply(self.__upinit, args, what)
-
-# Properties of some substances:
-class Substance (Object): pass
-
-hydrogen1 = Substance(
-    element = Element(1, 0, 'Hydrogen 1',
-                      mass=Quantity(sample(1673.43, .08), harpo * gram),
-                      doc = "The simplest atom"))
-deuterium = Substance(
-    element = Element(1, 1, 'Deuterium'))
-
-tritium = Substance(
-    element = Element(1, 2, 'Tritium'))
-
-helium = Substance(
-    element = Element(2, 2, 'Helium', symbol = 'He'))
-
-water = Substance(
-	density = .999973 * kilogramme / litre, # at 277.13K, when density is maximal
-	freezes = 273.150 * Kelvin)
-milk = Substance(
-    density = 10.5 * pound / gallon)
-IcePoint = water.freezes
-mercury = Substance(
-    element = Element(80,
-                      Sample({ 116: .15, 118: 10.02, 119: 16.84,
-                               120: 23.13, 121: 13.22, 122: 29.80,
-                               124: 6.85 }, best=120.59),
-                      'Mercury',
-                      symbol = 'Hg',  etymology = 'hydrargyrum'),
-    # Atmosphere / .76 / metre / Earth.surface.g = density
-    # 135.9 pound / gallon
-    density = 13595.1 * kilogramme / metre**3)
-
-air = Substance(
-	sound = Object(speed = 331.36 * metre / second))
-kerosene = Substance(density = 8 * pound / gallon)
-alcohol = Substance(density = 8 * pound / gallon)
-petrol = Substance(density = 7.5 * pound / gallon)
+Rydberg = (light.speed / (1/Lepton.item.electron.mass
+                          +1/Nucleon.item.proton.mass) / 2 / Quantum.h) * Vacuum.alpha**2
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.2  2002-10-06 18:38:06  eddy
+ Revision 1.3  2002-10-08 21:30:04  eddy
+ Rearranged view of Particle's constituents; now wants them supplied as
+ `highest-level' and provides .constituents([primitives...]) to decompose
+ them to chosen level.  Likewise, scraps previous binding* attributes in
+ favour of binging*([primitives...]) methods measured relative to
+ particular choice of primitives.
+
+ Changed charge to go via integer-valued (so exact) _charge attribute, in
+ units of a third of Millikan's quantum.
+
+ Made repr() produce namespace-qualified name (str() still gives leaf
+ name) and provided for some classes to hide derived classes from the
+ namespacing.  Separated iso+ and iso- quarks.  Added Nucleon class and
+ scrapped nucleon.  Added Nucleus and Atom classes, with boson and
+ fermion subs and nucleus() and atom() functions to access them.
+
+ Removed substances to chemistry.py
+
+ Revision 1.2  2002/10/06 18:38:06  eddy
  Added .item namespace as carrier for all particles of each class, thus
  particles no longer clutter up their class name-space directly (and
  aliasing is easy); this also cleaned up neutrino-naming; and made this
@@ -555,6 +633,8 @@ _rcs_log = """
  Moved below() in from const.py (which didn't use it).  Added Photon,
  Substance and Element classes for relevant things to be instances of.
  Tweaked docs.
+
+ oh - and began sketching out new Decay class.
 
  Initial Revision 1.1  2002/07/07 17:28:44  eddy
 """
