@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.5 2003-01-26 18:30:09 eddy Exp $
+$Id: particle.py,v 1.6 2003-02-16 14:28:15 eddy Exp $
 """
 
 from const import *
@@ -395,6 +395,15 @@ class Lepton (Fermion):
 
     _charge = -3
     item = Lazy(lazy_aliases={'anti-electron': 'positron'})
+    __upinit = Fermion.__init__
+    def __init__(self, *args, **what):
+        try: self.__decay = what['decay']
+        except KeyError: pass
+        else: del what['decay']
+        apply(self.__upinit, args, what)
+
+    def _lazy_get_decay_(self, ignored):
+        return Decay(self, (self.__decay, None, Lepton.item.electron, Neutrino.item.electron, self.family.neutrino.anti))
 
 class Quark (Fermion):
     item = Lazy(lazy_aliases={'top': 'truth', 'bottom': 'beauty'})
@@ -475,7 +484,7 @@ class Nucleon (Fermion):
                      'constituents': {Quark.item.up: u, Quark.item.down: d}})
         apply(self.__upinit, (), what)
 
-    mass = Quantity(1 / mol / molar.Avogadro, gram,
+    mass = Quantity(1 / mol / mol.Avogadro, gram,
                     doc="""Atomic Mass Unit, AMU.
 
 This is the nominal mass of a nucleon.
@@ -558,7 +567,12 @@ Rydberg = (light.speed / (1/Lepton.item.electron.mass
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.5  2003-01-26 18:30:09  eddy
+ Revision 1.6  2003-02-16 14:28:15  eddy
+ Made Fermion use a Decay, lazily, as its .decay; added its __init__ to
+ cope with that; adjusted to accommodate const.molar's attributes moving
+ to the SI unit mol.
+
+ Revision 1.5  2003/01/26 18:30:09  eddy
  Clean-up of light's naming.  Tweaked _store_as_ so that sub-classes can
  reuse the base-class implementation when over-riding it; made Photon do
  like Neutrino and change the name in its bases; stopped name propagation
