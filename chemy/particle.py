@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.10 2003-07-07 23:12:39 eddy Exp $
+$Id: particle.py,v 1.11 2004-02-17 00:14:47 eddy Exp $
 """
 
 from const import *
@@ -501,6 +501,7 @@ table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1.
 # from K&L's truncation of the numbers.
 
 Lepton.item.electron.also(magneticmoment = 928.476362e-26 * Joule / Tesla)
+# the muon's magnetic moment is approximately equal; 2e-6 fractional difference ...
 
 # perhaps I should have a `Hadron' class for this lot ...
 class Nucleon (Fermion):
@@ -524,6 +525,16 @@ plus) the average of the masses of neutron and proton, albeit the binding energy
 of the nucleus reduces this value (by more than the electron mass).
 """)
 
+    amuk = Quantity(mass / Thermal.k,
+                    doc = """AMU scaled down by Boltzmann's constant.
+
+If we look at the ideal gas law, P*V = N*k*T, for N items of a gas with mass m
+per item, we get density = N*m/V = m*P/k/T.  Since m is the relative molecular
+(or atomic) mass, M, times the atomic mass unit, we can write it as M * AMU and
+obtain density = M*amuk*P/T with M a pure number (and, typically, very close to
+an integer).  Thus, at standard temperature (zero Celsius) and pressure (one
+Atmosphere), density is just M times 44.618 grams per cubic metre.\n""")
+
 AMU = AtomicMassUnit = Nucleon.mass
 Lepton.item.electron.mass.observe(Quantity(sample(548.58026, .0002), micro * AMU))
 Lepton.item.muon.mass.observe(0.1134289168 * AMU)
@@ -537,10 +548,14 @@ Nucleon(2, 1, 'proton',
 Nucleon(1, 2, 'neutron',
         Quantity(sample(1674.82, .08), harpo * gram),
         "uncharged ingredient in nuclei",
+        decay=1./(13*minute), # erm ... no, that's the *half life*
         magneticmoment = 0.96623640e-26 * Joule / Tesla)
 
 # Make proton, neutron and electron primary exports:
 proton, neutron, electron = Nucleon.item.proton, Nucleon.item.neutron, Lepton.item.electron
+
+# what of:
+# pion, mass = 273.2 * electron.mass, charges 0, +1, -1.
 
 # Some atom-scale constants:
 radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron.mass
@@ -549,7 +564,11 @@ Rydberg = (light.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vac
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.10  2003-07-07 23:12:39  eddy
+ Revision 1.11  2004-02-17 00:14:47  eddy
+ Noted muon's magnetic dipole, added Nucleon.amuk, AMU/k.
+ Noted neutron's half life, mumbled about pion.
+
+ Revision 1.10  2003/07/07 23:12:39  eddy
  Added .qperm (c.f. const.Cosmos.qperm) as charge-to-mass ratio of particles.
 
  Revision 1.9  2003/06/15 14:50:36  eddy
