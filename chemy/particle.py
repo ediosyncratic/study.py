@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.4 2003-01-26 16:43:30 eddy Exp $
+$Id: particle.py,v 1.5 2003-01-26 18:30:09 eddy Exp $
 """
 
 from const import *
@@ -111,14 +111,14 @@ class Particle (Object):
         bok = apply(self.constituents, primitives)
         return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
 
-    def _store_as_(self, name, klaz):
+    def _store_as_(self, name, klaz, root=None):
         """Each sub-class of Particle carries a namespace full of its instances.
 
         That includes indirect instances but only applies to strict sub-classes,
-        not to Particle itself.  Since Neutrino uses anomalous naming, I let
-        sub-classes over-ride _store_as_, but this base-class implementation
-        should be good enough for most classes - it chases back up the __bases__
-        graph towards Particle doing the work.
+        not to Particle itself.  Since Neutrino and Photon use anomalous naming,
+        I let sub-classes over-ride _store_as_, but this base-class
+        implementation should be good enough for most classes - it chases back
+        up the __bases__ graph towards Particle doing the work.
 
         The namespace carrying the instances of the class is the .item attribute
         of the class.  Classes which include some particles with common aliases
@@ -127,16 +127,19 @@ class Particle (Object):
         method will create a NameSpace(), which is utterly minimal, the first
         time it needs to store anything on .item. """
 
+        if root is None: root = Particle # can't set as default; not defined yet
         todo, done = [ klaz ], [ Particle ]
         while todo:
             k, todo = todo[0], todo[1:]
             try: i = k.item
             except AttributeError: i = k.item = NameSpace()
-            setattr(i, name, self)
             done.append(k)
-            for b in k.__bases__:
-                if b not in done and issubclass(b, Particle):
-                    todo.append(b)
+            try: getattr(i, name)
+            except AttributeError:
+                setattr(i, name, self)
+                for b in k.__bases__:
+                    if b not in done and issubclass(b, root):
+                        todo.append(b)
 
     __obgetat = Object.__getattr__
     def __getattr__(self, key):
@@ -280,18 +283,23 @@ class Photon (Boson):
     speed = Vacuum.c
     speed.document("""The speed of light in vacuum""")
 
-    symbol, name = '&gamma;', 'light'
+    symbol = '&gamma;'
     spin = Quantum.hbar # iirc
 
     __upinit = Boson.__init__
     def __init__(self, *args, **what):
-        try: self.name = what['name']
+        try: what['name']
         except KeyError: args = ('photon',) + args
         apply(self.__upinit, args, what)
 
     def __repr__(self):
-        try: return self.__dict__['name']
-        except KeyError: pass
+        # Use name if it has a personal one:
+        try: nom = self.name
+        except AttributeError: pass
+        else:
+            if nom != 'photon': return nom
+
+        # else use Photon(energy=...) for some suitable energy; but
         # avoid using '(metre/second)**2 * kilogramme' as unit
         try: e = self.energy / eV
         except AttributeError: return 'light'
@@ -324,6 +332,12 @@ class Photon (Boson):
 
         return siz + ' eV'
 
+    __store_as = Boson._store_as_
+    def _store_as_(self, name, klaz):
+        self.__store_as(name, klaz, Photon)
+        if name != 'photon': name = '%s light' % name
+        self.__store_as(name, Boson)
+
     restmass = 0 * kilogramme # inducing a correlation between energy and momentum
     __energy = Particle._lazy_get_energy_
     __momentum = Particle._lazy_get_momentum_
@@ -344,7 +358,7 @@ class Photon (Boson):
 
         return self.energy / Vacuum.c
 
-light = Photon(spectrum = ( # well, hey, all rather approximate; see Nuffield, pp46--47.
+light = Photon(spectrum = ( # all rather approximate; see Nuffield, pp46--47.
     Photon(name='red', wavelength=Quantity(sample(642, 18), nano*metre)),
     Photon(name='orange', wavelength=Quantity(sample(615, 9), nano*metre)), # but see Na orange
     Photon(name='yellow', wavelength=Quantity(sample(598, 8), nano*metre)),
@@ -365,17 +379,8 @@ class Neutrino (Fermion):
     # pass the constructor the corresponding Lepton's name
     __store_as = Fermion._store_as_
     def _store_as_(self, name, klaz):
-        todo, done = [ klaz ], []
         # well, OK, Neutrino is unlikely to have sub-classes, but cope with them anyway ...
-        while todo:
-            k, todo = todo[0], todo[1:]
-            try: i = k.item
-            except AttributeError: i = k.item = NameSpace()
-            setattr(i, name, self)
-            done.append(k)
-            for b in k.__bases__:
-                if b not in done and issubclass(b, Neutrino):
-                    todo.append(b)
+        self.__store_as(name, klaz, Neutrino)
 
         # forward modified name to Fermion et al.
         self.__store_as('%s neutrino' % name, Fermion)
@@ -553,7 +558,13 @@ Rydberg = (light.speed / (1/Lepton.item.electron.mass
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.4  2003-01-26 16:43:30  eddy
+ Revision 1.5  2003-01-26 18:30:09  eddy
+ Clean-up of light's naming.  Tweaked _store_as_ so that sub-classes can
+ reuse the base-class implementation when over-riding it; made Photon do
+ like Neutrino and change the name in its bases; stopped name propagation
+ through bases from over-writing existing attributes.
+
+ Revision 1.4  2003/01/26 16:43:30  eddy
  Removed Decays into its own module, for further mangling.
  Refined definition of eV, repr of Photon.
  Added .spectrum to light, noted sodium orange.
