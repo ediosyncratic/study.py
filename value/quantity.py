@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.22 2003-04-21 20:14:10 eddy Exp $
+$Id: quantity.py,v 1.23 2003-04-21 20:33:47 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -133,6 +133,13 @@ class qSample (Sample):
     # and put digits.[digits] between 1 and 10.
     def _lazy_get__repr_(self, ignored): return self.__massage_text_(' * ')
     def _lazy_get__str_(self, ignored): return self.__massage_text_(' ')
+
+    # Sample's low and high are boundary weights, decidedly *inside* true bounds.
+    def _lazy_get_high_(self, which):
+        self.low, self.high = self.span
+        return self.__dict__[which]
+
+    _lazy_get_low_ = _lazy_get_high_
 
 del _exponent_to_quantifier
 
@@ -584,7 +591,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.22  2003-04-21 20:14:10  eddy
+ Revision 1.23  2003-04-21 20:33:47  eddy
+ Made qSample support the sensible .low and .high attributes Sample no
+ longer provides (it provides extremal weight-points: of debatable value).
+
+ Revision 1.22  2003/04/21 20:14:10  eddy
  Sample now makes qSample's constructor redundant (and it was garbled).
  Refined processing of sample.
 
