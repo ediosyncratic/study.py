@@ -1,12 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.5 2005-03-12 17:56:00 eddy Exp $
+$Id: body.py,v 1.6 2005-03-13 16:01:26 eddy Exp $
 """
 
 from basEddy.units import Object, Quantity, second, metre, turn, pi, tophat
 
-class Body (Object):
+class Object (Object):
     __upinit = Object.__init__
     def __init__(self, name, **what):
         apply(self.__upinit, (), what)
@@ -88,7 +88,7 @@ class Body (Object):
                 else: lo = mid
 
             row.insert(hi, what)
-            if isinstance(what, discreteBody):
+            if isinstance(what, Body):
                 self.__cb()
 
         def append(self, what):
@@ -97,7 +97,7 @@ class Body (Object):
 
 from space.common import Spin, Orbit
 
-class discreteBody (Body):
+class Body (Object):
     def _lazy_get_tidal_(self, ignored, zero = 0 / second**2, Q=Quantity):
         """Returns strength of tidal stresses near self.
 
@@ -177,7 +177,7 @@ class discreteBody (Body):
         else: row.append(GM)
 
 	for sat in self.satellites:
-            if isinstance(sat, discreteBody):
+            if isinstance(sat, Body):
                 try: GM = sat.orbit._GM
                 except AttributeError: pass
                 else: row.append(GM)
@@ -279,12 +279,12 @@ on the surface of %s as it rotates. """ % (name, self.name))
 
 del Spin
 
-del Object, Quantity, second, metre, turn, pi
+del Quantity, second, metre, turn, pi
 from space.common import Round
 
-class Hoop (Body, Round):
+class Hoop (Object, Round):
     # used for gaps and ring arcs, and as base for Ring.
-    __upinit = Body.__init__
+    __upinit = Object.__init__
     def __init__(self, name, centre, radius, tilt=0, eccentricity=0, O=Orbit, **what):
         # Assume rings move circularly, since Saturn's rings look like they do ...
         if tilt: tilt = tilt * tophat
@@ -303,7 +303,7 @@ class Ring (Hoop):
                               eccentricity, tilt),
               what)
 
-class Planetoid (discreteBody):
+class Planetoid (Body):
     # any vaguely spherical object that orbits a star
 
     def _lazy_get_iBode_(self, ignored):
@@ -350,7 +350,10 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.5  2005-03-12 17:56:00  eddy
+Revision 1.6  2005-03-13 16:01:26  eddy
+Renamed Body to Object and discreteBody to Body.
+
+Revision 1.5  2005/03/12 17:56:00  eddy
 Tunnel Spin and Orbit so we can del them.
 
 Revision 1.4  2005/03/12 17:27:53  eddy
