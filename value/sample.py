@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.12 2002-10-06 16:12:45 eddy Exp $
+$Id: sample.py,v 1.13 2002-10-07 17:53:42 eddy Exp $
 """
 
 class _baseWeighted:
@@ -181,12 +181,13 @@ class statWeighted(_baseWeighted):
     def normalise(self):
         """Returns variant on self normalised to have .total() equal to 1."""
         sum = self.total()
-        if sum == 1: return
-        if sum == 0: raise ZeroDivisionError, (
+        if sum == 1: return self
+        if not sum: raise ZeroDivisionError, (
             'Attempted to normalise zero-sum mapping', self)
 
+        # NB: sum *might* itself be a weighted thing
         if 1./sum == 0:
-            # cope with infinity or infinitessimal by going via a half-way house:
+            # cope with infinity by going via a half-way house:
             self = self.copy(scale = 1./max(self.values()))
             sum = self.total()
 
@@ -340,7 +341,7 @@ class joinWeighted(_baseWeighted):
         carving up self's weights according to who's nearest. """
 
         if count is None: count = self.__detail
-        if len(self) <= count: return self.copy()
+        if len(self) <= count: return self
 
         # Carve self up into count-2 interior (count-1)-iles and two half-bands at
         # top and bottom.
@@ -381,7 +382,8 @@ class joinWeighted(_baseWeighted):
             ans.add(dict, val,
                     lambda j, k=key, f=func: f(k,j))
 
-        return ans
+        try: return ans.normalise()
+        except ZeroDivisionError: return ans
 
     def combine(self, dict, func, count=None):
         if count is None:
@@ -1061,7 +1063,8 @@ class _Weighted(Object, _baseWeighted):
         row.sort()
         return tuple(row)
 
-    # dicts don't have their __*__ methods (grr) so we can't borrow them:
+    # dicts don't have their __*__ methods :-( grr - until python 2.2 :-) so we
+    # can't borrow them (yet):
     def __repr__(self): return `self.__weights`
     def __str__(self): return str(self.__weights)
     def __len__(self): return len(self.__weights)
@@ -1100,6 +1103,7 @@ class _Weighted(Object, _baseWeighted):
             except AttributeError: pass
 
     # Override a method of self.__weights
+    __obcopy = Object.copy
     def copy(self, func=None, scale=None):
         """Copies a distribution.
 
@@ -1111,8 +1115,8 @@ class _Weighted(Object, _baseWeighted):
         Optional arguments:
 
           scale -- a scaling to apply to the values in the distribution.
-          Default is 1./self.total(), to produce a unit-total result, provided
-          self's total is positive: otherwise a default of 1 is used.
+          Default is 1./self.total(), to produce a unit-total result, unless
+          self.total() is zero (when there's nothing to copy anyway).
 
           func -- a function to apply to the keys: must accept keys (sample
           points) of the existing distribution, yielding a key for the new
@@ -1123,21 +1127,23 @@ class _Weighted(Object, _baseWeighted):
 
         if scale is None:
             sum = self.total()
-            if sum > 0: scale = 1. / sum
-            else: scale = 1
+            if sum: scale = 1. / sum
 
         bok = {}
         if scale:
             if func:
                 for k, v in self.items():
-                    bok[func(k)] = v * scale
+                    h = func(k)
+                    # watch out - func might not be monic;
+                    # several keys could map to a common value
+                    bok[h] = bok.get(h, 0) + v * scale
 
             elif scale == 1: bok.update(self.__weights)
             else:
                 for k, v in self.items():
                     bok[k] = v * scale
 
-        return Object.copy(self, bok)
+        return self.__obcopy(bok)
 
     # `make something like me'
     def _weighted_(self, *args, **what):
@@ -1187,7 +1193,7 @@ def _divide(this, what):
 
     return this / float(what)
 
-# should, in principle, also provide similar for addition and subtraction
+# should, in principle, also provide similar for +, - and %
 
 class Sample (Object):
     """Models numeric values by distributions. """
@@ -1289,13 +1295,16 @@ class Sample (Object):
     # Binary operators:
     def __add__(self, what, f=lambda x, w: x+w): return self.__bundle_(f, what)
     def __sub__(self, what, f=lambda x, w: x-w): return self.__bundle_(f, what)
+    def __mod__(self, what, f=lambda x, w: x%w): return self.__bundle_(f, what)
     def __mul__(self, what, f=_multiply): return self.__bundle_(f, what)
 
     def __radd__(self, what, f=lambda x, w: w+x): return self.__bundle_(f, what)
     def __rsub__(self, what, f=lambda x, w: w-x): return self.__bundle_(f, what)
+    def __rmod__(self, what, f=lambda x, w: w%x): return self.__bundle_(f, what)
     def __rmul__(self, what,
                  f=lambda x, w, m=_multiply: m(w, x)): return self.__bundle_(f, what)
 
+    # division is slightly messier, thanks to ZeroDivisionError
     def __div__(self, what, f=_divide):
         try: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
         except AttributeError:
@@ -1308,8 +1317,9 @@ class Sample (Object):
         return self.__bundle_(f, what)
 
     def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
-        if cmp(self.low, 0) * cmp(self.high, 0) < 0:
-            raise ZeroDivisionError, ('Dividing by interval about 0', self)
+        lo, hi = cmp(self.low, 0), cmp(self.high, 0)
+        if lo == 0 == hi or lo * hi < 0:
+            raise ZeroDivisionError, ('Dividing by interval about 0', what, self)
 
         return self.__bundle_(f, what)
 
@@ -1452,7 +1462,14 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.12  2002-10-06 16:12:45  eddy
+  Revision 1.13  2002-10-07 17:53:42  eddy
+  Fixed two bugs: normalise() would return None if total() was 1; copy()
+  would discard some weights if func mapped several keys to equal outputs.
+  Also made __combine() normalise its result if possible, added support
+  for % to Sample and made its __rdiv__ complain if both bounds are zero
+  (thus matching what __div__ does).
+
+  Revision 1.12  2002/10/06 16:12:45  eddy
   Added note, _surprise, on how Sample()s can behave strangely.
 
   Revision 1.11  2002/10/06 15:41:52  eddy
