@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.30 2004-04-04 14:36:42 eddy Exp $
+$Id: quantity.py,v 1.31 2005-01-16 16:39:22 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -211,8 +211,15 @@ def time():
     from SI import second, metre
     return { 'light': lambda v, c=299792458 * metre / second: v * c }
 
-kind_prop_lookup = { '': scalar, 'rad': angle, 'kg': mass, 's': time }
-del scalar, angle, mass, time
+def thermal():
+    from SI import Kelvin
+    def C(v, K=Kelvin): return v/K - 273.16
+    def F(v): return v.Celsius * 1.8 + 32
+    return { 'Centigrade': C, 'C': C, 'Celsius': C,
+             'Fahrenheit': F, 'F': F  }
+
+kind_prop_lookup = { '': scalar, 'rad': angle, 'kg': mass, 's': time, 'K': thermal }
+del scalar, angle, mass, time, thermal
 
 def adddict(this, that):
     cop = this.copy()
@@ -693,7 +700,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.30  2004-04-04 14:36:42  eddy
+ Revision 1.31  2005-01-16 16:39:22  eddy
+ Added support for Fahrenheit and Centigrade as attributes of temperatures.
+
+ Revision 1.30  2004/04/04 14:36:42  eddy
  Use math functions in preference to cmath, where possible; cmath ones
  tend to throw in random small imaginary parts to real values.  Where no
  math version is present, discard tiny imaginary parts even if non-zero.
