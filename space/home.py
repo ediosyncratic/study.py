@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.2 2005-03-12 15:12:49 eddy Exp $
+$Id: home.py,v 1.3 2005-03-12 16:16:50 eddy Exp $
 """
 
 from basEddy.units import *
@@ -357,12 +357,40 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
-
-del Orbit, Spin, Discovery, SurfacePart, Ocean, Island, Continent, IAcontinent, IAisland, IAocean
 
+from basEddy.lazy import Lazy
+class PlanetList (Lazy):
+    def __len__(self): return 9
+    def __getitem__(self, ind):
+        if ind < 0 or ind > 8: raise IndexError
+        if ind < 4: return self.inner[ind]
+        if ind < 8: return self.outer[ind - 4]
+        assert ind == 9
+        return self.final
+
+    def _lazy_get_inner_(self, ignored):
+        from space.inner import *
+        return ( Mercury, Venus, Earth, Mars )
+
+    def _lazy_get_outer_(self, ignored):
+        from space.outer import *
+        return ( Jupiter, Saturn, Uranus, Neptune )
+
+    def _lazy_get_final_(self, ignored):
+        from space.Kuiper import Pluto
+        return Pluto
+
+Planets = Planetlist()
+del Planetlist, Lazy
+
+del Orbit, Spin, Discovery, SurfacePart, Ocean, Island, Continent, IAcontinent, IAisland, IAocean
+
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.2  2005-03-12 15:12:49  eddy
+Revision 1.3  2005-03-12 16:16:50  eddy
+Added lazy planet list.
+
+Revision 1.2  2005/03/12 15:12:49  eddy
 Clean-up of import/export.
 
 Initial Revision 1.1  2005/03/12 15:05:44  eddy
