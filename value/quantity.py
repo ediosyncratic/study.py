@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.31 2005-01-16 16:39:22 eddy Exp $
+$Id: quantity.py,v 1.32 2005-01-17 22:46:48 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -41,13 +41,27 @@ for _key, _val in _quantifier_dictionary.items():
 
 deka = deca
 
-Ki = kibi = 1024
-Mi = mebi = Ki * 1024
-Gi = gibi = Mi * 1024
+_pow1024_dictionary = {
+    1: 'kibi',
+    2: 'mebi',
+    3: 'gibi',
+    4: 'tebi',
+    5: 'pebi',
+    6: 'exbi',
+    7: 'zebi',
+    8: 'yobi',
+    # postulated: 9: 'habi', 10: 'grubi'
+    }
+for _key, _val in _pow1024_dictionary.items():
+    exec '%s = 1024 ** %d' % (_val, _key)
 
-# Note: a gramme comes out as a milli * kilogramme, which is only fair, all
-# things considered.  Maybe I'll fix it some day ... but will someone object to
-# mega * gramme not using an SI base unit ?
+Ki, Mi, Gi = kibi, mebi, gibi
+
+# Note: a gram comes out as a milli * kilogramme, which is only fair, all things
+# considered.  Maybe I'll fix it some day ... but will someone object to mega *
+# gramme not using an SI base unit ?  I seem to be obliged to work in kg as base
+# unit but use gramme as base for naming of masses below 1e-3 kg and tonne for
+# naming of masses above 1e3 kg.  How silly is that ?
 
 import string
 def _cleandoc(text, strip=string.strip):
@@ -700,7 +714,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.31  2005-01-16 16:39:22  eddy
+ Revision 1.32  2005-01-17 22:46:48  eddy
+ Expanded the byte-quantifiers list and the sarcasm about the gram.
+
+ Revision 1.31  2005/01/16 16:39:22  eddy
  Added support for Fahrenheit and Centigrade as attributes of temperatures.
 
  Revision 1.30  2004/04/04 14:36:42  eddy
