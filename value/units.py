@@ -1,23 +1,25 @@
 """Assorted units of measurement.
 
-$Id: units.py,v 1.2 2002-02-11 01:37:00 eddy Exp $
+See SI.py for base units.
+
+$Id: units.py,v 1.3 2002-02-15 16:03:51 eddy Exp $
 """
 from SI import *
 
 # some non-SI base units ...
 bit = base_unit('bit', 'bit',
-                 """The definitive unit of binary data.
+		"""The definitive unit of binary data.
 
 A single binary digit is capable of exactly two states, known as 0 and 1.
 A sequence of n binary digits thus has pow(2, n) possible states. """)
 
 Lenat = base_unit('L', 'Lenat',
-                   """The standard unit of bogosity
+		  """The standard unit of bogosity
 
 See the New Hackers' Dictionary, under microLenat.  Also known as the Reid. """)
 
 Helen = base_unit('Helen', 'Helen',
-                   """The standard unit of beauty (trad).
+		  """The standard unit of beauty (trad).
 
 Definitively `beautiful enough to launch a thousand ships', so that launching a
 single ship gains credit for a single milli-Helen.  The origin of this is the
@@ -26,27 +28,6 @@ great army, went to retrieve Helen from Troy, to which Paris had taken her. """)
 
 quid = base_unit('&sterling;', 'Pound Sterling',
 		 """The base unit of British currency.""")
-
-# there has to be a better way to do these ...
-
-# tweak masses to support .force:
-class Mass (Quantity):
-    def _lazy_get_force_(self, ignored, g=9.80665 * metre / second**2):
-	return self * g
-    _lazy_get_weight_ = _lazy_get_force_
-
-    _quantity = Quantity
-
-# and times to support .light:
-class Time (Quantity):
-    def _lazy_get_light_(self, ignored, speed=second.light / second):
-	return self * speed
-
-    _quantity = Quantity
-
-# over-ride base units:
-kilogramme = kilogram = kg = Mass(kilogramme)
-second = sec = s = Time(second)
 
 # dimensionless:
 from math import pi
@@ -76,10 +57,9 @@ hour = Time(60 * minute)
 day = Time(24 * hour)
 week = Time(7 * day)
 fortnight = Time(2 * week)
-year = Time(27 * 773 * (week / 400))	# the Gregorian approximation
+year = Time(27 * 773 * week / 400)	# the Gregorian approximation
 month = Time(year / 12) # on average, at least; c.f. planets.Month, the lunar month
 # factors of 216 seconds abound ...
-# how about lunar months ? how do they relate to all this ? e.g. 216 secs ?
 
 # etc.
 turn = cycle = revolution = 2 * pi * radian
@@ -90,7 +70,8 @@ erg = .1 * micro * Joule
 dyn = 10 * micro * Newton
 
 Ci = Curie = 37 * giga * Becquerel
-R = Rontgen = .258 * milli * Coulomb / kilogramme       # R&ouml;ntgen
+R = Rontgen = .258 * milli * Coulomb / kilogramme
+R.name('R&ouml;ntgen') # also Roentgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi
 eV = 160.21e-21 * Coulomb * Volt # electron-Volt, .16 atto Joules
 
@@ -101,7 +82,6 @@ calorie = 4.1868 * Joule	# the thermodynamic calorie (IT), not any other sort.
 BTU = Btu = BritishThermalUnit = 1.05506 * kilo * Joule
 # calorie * pound * Farenheit / gram / Kelvin
 CHU = 1.8 * BTU         # whatever CHU is ! (KDWB)
-chevalVapeur = 75 * kilogram.force * metre / second
 therm = 1.05506e8 * Joule # US uses 1.054804e8
 clausius = kilo * calorie / Kelvin
 
@@ -114,6 +94,7 @@ sound = Object(speed = Quantity(331.46, metre / second,
                                 (at standard temperature and pressure)"""))
 mach = sound.speed
 torr = mmHg = 133.322 * Pascal
+denier = deci * tex / .9
 
 from lazy import Lazy
 
@@ -395,7 +376,8 @@ carat = Mass(.2, gram)		# metric variant, from /usr/share/misc/units
 jpoint = Mass(.01, carat)	# jeweler's point
 mercantilePound = Mass(15, ounceTroy)
 
-# Imperial force and power:
+# Imperial force, power, etc.:
+psi = pound.force / inch**2
 horsepower = Object(
     550 * foot * pound.force / second,
     metric = 75 * kilogram.force * metre / second,
@@ -403,10 +385,11 @@ horsepower = Object(
     boiler = 9809.50 * Watt,
     water = 746.043 * Watt,
     donkey = 250 * Watt) 
+chevalVapeur = horsepower.metric
 celo = foot / second**2
 jerk = celo / second
 poundal = pound * celo
-reyn = pound.force * second / inch**2
+reyn = psi * second
 slug = Mass(1, pound.force * second**2 / foot)
 slinch = Mass(12, slug)
 duty = foot * pound.force
@@ -511,18 +494,21 @@ bushel = peck * 4       # but Nick thought a peck was half a bushel ...
 # average weights of bushels: barley = 47 lb, oats = 38 lb, wheat = 60 lb; c.f. USbushel
 strike = 2 * bushel
 coomb = bag = 2 * strike
+# Quarter = 2 * coomb = 64 * gallon
 seam = 2 * bag
 wey = load = 5 * seam 	# a `last' is 1 or 2 of these ...
 sack = 3 * bushel
 firlot = sack / 2
 boll = 2 * sack
-# Quarter = 2 * coomb = 64 * gallon
 chaldron = 12 * sack
-cran = 75 * gallon / 2	# measures herring - c. 750 fish
+cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.2  2002-02-11 01:37:00  eddy
+ Revision 1.3  2002-02-15 16:03:51  eddy
+ Moved Mass/Time bodge to SI, various minor tweaks.
+
+ Revision 1.2  2002/02/11 01:37:00  eddy
  Added Mass and Time to implement .force and .light attributes (respectively).
  Added quid and some comments.  Replaced workyear mess with Job etc.
 
