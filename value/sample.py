@@ -24,8 +24,10 @@ any other.
 Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
+"""
 
-$Id: sample.py,v 1.16 2003-04-20 23:54:04 eddy Exp $
+_rcs_id_ = """
+$Id: sample.py,v 1.17 2003-04-21 11:49:19 eddy Exp $
 """
 
 class _baseWeighted:
@@ -65,7 +67,7 @@ class _baseWeighted:
 import math # del at end of this page
 from basEddy import Lazy # likewise
 
-class _curveWeighted (Lazy):
+class curveWeighted (Lazy):
     """Interpretation of the weights dictionary as a curve.
 
     This introduces an implicit curve described by the weight dictionary.  If
@@ -83,9 +85,9 @@ class _curveWeighted (Lazy):
     its inward tail; evenly spaced weights in the ratio 3:2:2:...:2:2:3 will
     yield a true uniform distribution).
 
-    More sophisticated replacements for _curveWeighted may be worth using in its
+    More sophisticated replacements for curveWeighted may be worth using in its
     place when alloying a modified Weighted for use by Sample.  The only thing
-    you need to over-ride is (well, should be) interpolator; _curveWeighted's
+    you need to over-ride is (well, should be) interpolator; curveWeighted's
     cliends *should* assume nothing about the curve (but repWeighted's rounding
     infrastructure may still be entanged).  Your interpolator must support
     .weigh(), .split(), cross() with the same semantics as here and have a .cuts
@@ -275,7 +277,7 @@ class _curveWeighted (Lazy):
 
             return bok
 
-        # The rest of interpolator (and _curveWeighted) is toys; not needed in replacements.
+        # The rest of interpolator (and curveWeighted) is toys; not needed in replacements.
         # dispersal, a.k.a. entropy or information content, computations:
 
         def _lazy_get_entropoid_(self, ignored, log=math.log, add=lambda a, b: a+b,
@@ -474,7 +476,7 @@ del math, Lazy
 # Integration over intervals, etc.; including rounding a `best estimate'.
 # Makes heavy use of baseWeighted's interpolator.
 
-class repWeighted (_curveWeighted):
+class repWeighted (curveWeighted):
     """Base-class for rounding (whence representation) and integration.
     """
 
@@ -757,7 +759,7 @@ class repWeighted (_curveWeighted):
 
 # Combining two (whence several) distributions; adding to a distribution:
 
-class joinWeighted (_curveWeighted):
+class joinWeighted (curveWeighted):
     """Interface-class defining how to stick distributions together.
 
     Provides apparatus for adding data to a distribution, re-sampling a
@@ -812,7 +814,7 @@ class joinWeighted (_curveWeighted):
 
     def cross(self, other):
         """Pointwise product of two distributions: `intersection'."""
-
+        assert len(self) > 1 < len(other), "delta functions aren't nice here"
         return self._weighted_(self.interpolator.cross(other.interpolator),
                                detail=max(self.__detail, other.__detail))
 
@@ -1275,9 +1277,6 @@ def _divide(this, what):
 class Sample (Object):
     """Models numeric values by distributions. """
 
-    try: _lazy_preserve_ = Object._lazy_preserve_
-    except AttributeError: _lazy_preserve_ = ()
-    _lazy_preserve_ = tuple(_lazy_preserve_) + ( 'best', )
     __alias = {'_str': '_repr'}
 
     # Sub-classes can use bolt-in replacements for Weighted ...
@@ -1319,30 +1318,105 @@ class Sample (Object):
         apply(Object.__init__, (self,) + args, what)
         self.__weigh = self._weighted_(weights)
 
-    def update(self, other, **what):
+    def __update(self, weights):
+        """Take note of what looks like a distribution.
+
+        Single argument should be a Weighted (or, at least, curveWeighted)
+        object.  If this has more than one weight, it's interpreted as a
+        distribution describing the value self is meant to represent; otherwise,
+        its weight-points are merely used as candidate best estimate values.
+        Return value is true precisely if the changes made by this call to
+        __update invalidate self.best (and possibly other related values).
+
+        When it *is* read as a distribution: if self has no distribution
+        (e.g. because just removed by update()'s preamble for being merely best
+        estimate), the new distribution is taken on board as self's
+        distribution.  Otherwise, the two distributions are combined via
+        point-wise product (see joinWeighted.cross): each is interpreted as
+        giving someone's information about our value, and if their experiments
+        rule out some values the other's data permitted, it should be ruled out;
+        more generally, the probability that our quantity has some value is the
+        product of the two opinions' probabilities, give-or-take some
+        normalisation of the results. """
+
+        if len(weights) < 2:
+            return apply(self.__better, tuple(weights.keys()))
+        else:
+            try: w = self.__weigh
+            except AttributeError: self.__weigh = weights
+            else: self.__weigh = w.cross(weights)
+            return 1
+
+    def __better(self, *args):
+        """Support for update(): notice some new best estimates.
+
+        Each arg (if any) should be someone's best estimate for self.  Returns a
+        true value if at least one of these values wasn't already in .__best; in
+        that case, caller should del self.best (at some point, possibly after
+        doing assorted other things that might also necessitate this).
+
+        If two sources agree *exactly* on best estimate, sooner suspect that
+        they're both quoting a common source than believe them independent;
+        hence the return value. """
+
+        hit, b = None, self.__best
+        for it in args:
+            if it not in b:
+                b.append(it)
+                hit = 1
+
+        return hit
+
+    def update(self, other):
         """Implements the .observe() functionality of quantity.Quantity (q.v.)"""
-        # used to also accept: weight=1, func=None
+        # used to also accept: weight=1, func=None, **what
         # and perform: self.__weigh.add(other, weight, func)
+        # and: self.__dict__.update(what)
         # but hopefully that's all redundant ...
 
-        if isinstance(other, Sample):
-            self.__weigh = self.__weigh.cross(other.__weigh)
-            self.__best.append(other.best)
-            try: del self.best # maybe redundant; does _lazy_reset_ catch it ?
-            except AttributeError: pass
+        hit = None # have we invalidated stuff computed from __weights ?
 
-        elif isinstance(other, _baseWeighted):
-            self.__weigh = self.__weigh.cross(other)
+        # Is __weigh bogus ?  If so, note anything of interest from it and forget it.
+        if len(self.__weigh) < 2:
+            for k in self.__weigh.keys():
+                if k not in self.__best: self.__best.append(k)
+            del self.__weigh
+            hit = 1
+
+        elif len(self.__weigh) <= len(self.__best):
+            for k, v in self.__weigh.items():
+                if not (k in self.__best and v is 1): break
+            else:
+                # weigh is just bests, as set below when no distribution available
+                del self.__weigh
+                hit = 1
+
+        # Extract useful information from other:
+        if isinstance(other, Sample):
+            if self.__update(other.__weigh): hit = 1
+            if self.__better(other.best): hit = 1
+
+        elif isinstance(other, curveWeighted):
+            if self.__update(other): hit = 1
 
         else:
             # theoretically, if other is a dict or seq, wrap it as a Weighted
-            # and append to .__weigh_seq; but I don't think that happens !
-            self.__best.append(other)
-            try: del self.best # maybe redundant; does _lazy_reset_ catch it ?
+            # and .__update() with it; but I don't think that happens !
+            other / 2.3, other - 1.7 # if non-number, these will error for us
+            if self.__better(other): hit = 1
+
+        # If that's not given us a distribution, use fall-back bogus one:
+        try: self.__weigh
+        except AttributeError:
+            assert hit
+            self.__weigh = self._weighted_(self.__best)
+
+        # If we changed anything, invalidate lazy attributes
+        if hit:
+            try: del self.best # which _lazy_reset_ might not delete
             except AttributeError: pass
 
-        self.simplify()
-        self.__dict__.update(what)
+            self.simplify()
 
     def simplify(self, count=None):
         """Simplifies the distribution describing self.
@@ -1571,9 +1645,17 @@ tophat = Sample(Weighted.tophat, best=0,
 Also known as 0 +/- .5, which can readily be used as
 a simple way to implement a+/-b as a + 2*b*tophat.""")
 
-_rcs_id = """
+_rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.16  2003-04-20 23:54:04  eddy
+  Revision 1.17  2003-04-21 11:49:19  eddy
+  More change to Sample.update(); ensure single-point distributions are
+  interpreted as mere best estimates, so that joinWeighted.cross can work
+  sensibly.  Stopped struggling to tell lazy infrastructure to preserve
+  .best's value - __best handles that for us, now.  Abandonned update's
+  old **what, which I'm now sure was redundant and I don't want.  Renamed
+  curveWeighted without leading _, sanitised _rcs_* variables.
+
+  Revision 1.16  2003/04/20 23:54:04  eddy
   Changed Sample.update() to `intersect' distributions rather than
   `uniting' them; i.e. multiply pointwise, rather than adding.  Did this
   by adding a .cross method to joinWeighted, supported in turn by
