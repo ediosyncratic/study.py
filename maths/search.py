@@ -1,6 +1,6 @@
 """Bits of python having to do with searching.
 
-$Id: search.py,v 1.2 2003-07-21 21:27:28 eddy Exp $
+$Id: search.py,v 1.3 2004-04-25 13:40:47 eddy Exp $
 """
 # I'll use complex numbers as a handy model of two dimensions
 def dot(x, y): return x.real * y.real + x.imag * y.imag
@@ -159,7 +159,7 @@ class Search:
       func() -- packages the eponymous initialisation datum (recorded
       privately): provides for the `yet seen' clause in .best's specification.
 
-      rummage() -- applies refinements (see stepBased and pointBased, above),
+      rummage() -- applies refinements (see Raphson and triangulate, above),
       using a mixture of triangulation and Newton-Raphson, optionally stopping
       early if .score drops below some threshold.
 
@@ -323,7 +323,10 @@ def text_search(sought, text, skip = 0):
 
 """
  $Log: search.py,v $
- Revision 1.2  2003-07-21 21:27:28  eddy
+ Revision 1.3  2004-04-25 13:40:47  eddy
+ Doc fix.
+
+ Revision 1.2  2003/07/21 21:27:28  eddy
  I seem to have made a bunch of changes a while back; broke out Newton and
  triangulate methods as separate tools of Search (renamed from _Search),
  notably for use in rummage(); refined triangulation quite a bit.  Fixed
