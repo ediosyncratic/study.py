@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.19 2003-07-05 15:03:04 eddy Exp $
+$Id: sample.py,v 1.20 2003-09-21 14:17:35 eddy Exp $
 """
 
 class _baseWeighted:
@@ -645,6 +645,8 @@ class repWeighted (curveWeighted):
 
         # Deal with dumb case:
         if len(self) < 1: return `estim`
+        # Deal with infinity:
+        if estim and estim / 10. == estim: return `estim`
 
         # Compute half-weight:
         threshold = .5 * self.total()
@@ -1672,7 +1674,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.19  2003-07-05 15:03:04  eddy
+  Revision 1.20  2003-09-21 14:17:35  eddy
+  Deal with infinity in repWeighted.round()
+
+  Revision 1.19  2003/07/05 15:03:04  eddy
   Renamed Sample.__bundle_ to .join, so other code can use it.
   Documented it in the process.
 
