@@ -2,27 +2,25 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.1 2002-02-11 17:25:40 eddy Exp $
+$Id: ladder.py,v 1.2 2004-04-18 11:50:35 eddy Exp $
 """
 from basEddy.units import *
-from math import exp
+from math import exp, log
 from planets import Earth
 
 def V(S, D):
     v = (Quantity(Sample(S), mega * Pascal) / Quantity(Sample(D), kg/m/m/m)) ** .5
     return v.low, v.high
 
-def sum(seq): return reduce(lambda a, b: a+b, seq, 0)
-
 class Ladder (Object):
     """A ladder out of a gravitational well.
 
-    A Ladder object describes an idealised engineering structure which stretches
-    from the surface of a planet out to beyond its synchronous orbit (i.e. the
-    orbit in which a freely falling body remains directly above a fixed point on
-    the planet's surface).  The bottom will be clamped to the planet's surface;
-    the top will have a counter-weight attached to it somewhere beyond
-    synchronous orbit.
+    A Ladder object describes an idealised structure which stretches from the
+    surface of a planet out to beyond its synchronous orbit (i.e. the orbit in
+    which a freely falling body remains directly above a fixed point on the
+    planet's surface).  The bottom will be clamped to the planet's surface; the
+    top will have a counter-weight attached to it somewhere beyond synchronous
+    orbit.
 
     The ladder is here presumed to be made of a single material, all parts of
     which are under equal stress.  This stress level and the density of the
@@ -35,7 +33,7 @@ class Ladder (Object):
     and usually correspond to the planet's surface, its top should really be
     greater than 1 but will default to 1 unless specified.
 
-    See Ladder.theory, a string attribute, for more details. """
+    Print Ladder.theory for more details. """
 
     theory = """Theory of space escalators.
 
@@ -52,7 +50,7 @@ class Ladder (Object):
       volume = R*integral(: A(u)&larr;u; b<u<B :)
 
     Relationship to attributes of a Ladder():
-      stress, density, v = S, D, v
+      stress, density, v, R = S, D, v, R
       thin = (: A(u)/A(1) &larr;u; b&lt;u&lt;B :)
       shrink = volume / R / A(1)
       load = S.A(b)/g/D/volume = (b/v)**2 * thin(b) / shrink
@@ -66,12 +64,14 @@ class Ladder (Object):
 
 	First two arguments describe mechanical properties of the material of
 	which the ladder is to be built; first is its ultimate tensile stress,
-	second is its density.  Optional third argument, top, is the outer
-	radial coordinate of your ladder; default is 1 but values nearer 1.3
-	would be more realistic.  Optional fourth argument is the planet for
-	which you are building a ladder; default is Earth.  Optional fifth
-	argument, bot, is the inner radial coordinate of the ladder; default
-	uses the planet's surface radius. """
+	second is its density.  Optional third argument, top, specifies the
+	outer radial coordinate of your ladder; default is 1 but values nearer
+	1.3 would be more realistic; top can be given either as the
+	dimensionless radial coordinate or as a length, in which case it'll be
+	divided by the synchronous orbital radius.  Optional fourth argument is
+	the planet for which you are building a ladder; default is Earth.
+	Optional fifth argument, bot, is the inner radial coordinate of the
+	ladder; default uses the planet's surface radius. """
 
 	apply(self.__obinit, (), what)
 	self.stress, self.density = S, D
@@ -79,7 +79,16 @@ class Ladder (Object):
 	self.spin, self.R = surf.spin, sync.radius
 	self.__kk = Quantity(sync.speed**2 / densile)
 	# __kk *must* be a Quantity for thin's use of evaluate ...
+
 	if bot is None: bot = surf.radius / self.R
+        try: top + 1
+        except TypeError:
+            try: top + self.R
+            except TypeError:
+                raise TypeError("Ladder's top should be specified as either a length or a dimensionless radial co-ordinate in units of synchronous orbital radius.",
+                                top)
+            top = top / self.R
+
 	self.__ends = (bot, top)
 
     def thin(self, u):
@@ -91,6 +100,14 @@ class Ladder (Object):
 	b, t = self.__ends
 	return self.R * (t-b)
 
+    def _lazy_get__integrator_(self, ignored, tool=[]):
+        try: return tool[0]
+        except IndexError: pass # 1st call; initialise tool
+        import integrate
+        I = integrate.Integrator
+        tool.append(I)
+        return I
+
     def _lazy_get_shrink_(self, ignored):
 	"""The integral defining volume of a ladder to the stars.
 
@@ -101,17 +118,18 @@ class Ladder (Object):
 	orbital area. """
 
 	b, t = self.__ends
-	edge = (t-b) * (self.thin(b) + self.thin(t)) / 2
-	n, now = 1, edge # no. of sample points, trapezium approximation to integral
+	return self._integrator(self.thin).between(b, t)
 
-	while 1:
-	    n, was = 3 * n, now # use more samples, remember previous approximation
-	    now = (sum(map(lambda i, b=b, t=t, n=n, f=self.thin: f(b+i*(t-b)/n), range(1,n)))
-		   + edge) * (t-b) / n # trapezium approximation with n points
+    def _lazy_get_moment_(self, ignored):
+        """Relative moment of inertia.
 
-	    # did we change by less than how vague we were about the answer ?
-	    if (now - was).best < now.width: return now
-	    # print n, now, (now - was).best, now.width
+        This is the ratio of the actual moment of inertia - of the cable,
+        without its counter-weight - to the moment of inertia it *would* have if
+        its entire mass were at geostationary orbit. """
+
+        b, t = self.__ends
+        return self._integrator(lambda u, f=self.thin: f(u) * u**2
+                                ).between(b, t) / self.shrink
 
     def _lazy_get_ends_(self, ignored):
 	bot, top = self.__ends
@@ -153,7 +171,7 @@ class Ladder (Object):
 	the weight of a mass S.A(1).thin(u)/(w.w.R)/(u-1/u/u).  The total mass
 	of our cable is D.A(1).R.shrink; dividing the former by the latter gives:
 
-	    (S/D/(w.R)**2).thin(u)/(u-1/u/u)/shrink
+	    T(u)/M = (S/D/(w.R)**2).thin(u)/(u-1/u/u)/shrink
 
 	This function returns the result of leaving out shrink from this, which
 	happens to be useful for various purposes (without introducing the
@@ -169,14 +187,16 @@ class Ladder (Object):
     def _lazy_get_load_(self, ignored): return self._load / self.shrink # bot
     def _lazy_get_countermass_(self, ignored): return self._counter / self.shrink # top
 
-    # masses per unit area at orbit
+    # masses per unit `area at orbit'
     def _lazy_get_lift_(self, ignored): return self._load * self.density * self.R # bot
     def _lazy_get_bauble_(self, ignored): return self._counter * self.density * self.R # top
 
 
 _rcs_log = """
  $Log: ladder.py,v $
- Revision 1.1  2002-02-11 17:25:40  eddy
- Initial revision
+ Revision 1.2  2004-04-18 11:50:35  eddy
+ Do integration via integrate.Integrator.  Added moment.
+ Cope with length as top.  Assorted doc tweaks.
 
+ Initial Revision 1.1  2002/02/11 17:25:40  eddy
 """
