@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.1 2005-03-12 15:51:02 eddy Exp $
+$Id: saturnalia.py,v 1.2 2005-03-12 17:46:04 eddy Exp $
 """
 
 from basEddy.units import mega, metre, km, tophat
@@ -74,10 +74,10 @@ Ring("Saturn's B Ring", Saturn, 92 * mega * metre, 117.5 * mega * metre)
 Ring("The Cassini Division", Saturn, 117.5 * mega * metre, 122.2 * mega * metre,
      width = 4.7 * mega * metre,
      note="gap between rings, not actually a ring; and not actually quite empty, either",
-     Huygens=Hoop("Huygens Gap", 117.68 * mega * metre, width=(362.5 + tophat * 77.5) * km)) # width "285-440" km
+     Huygens=Hoop("Huygens Gap", Saturn, 117.68 * mega * metre, width=(362.5 + tophat * 77.5) * km)) # width "285-440" km
 Ring("Saturn's A Ring", Saturn, 122.2 * mega * metre, 136.8 * mega * metre,
-     Encke=Hoop("Encke Division", 133.57 * mega * metre, width=325 * km),
-     Keeler=Hoop("Keeler Gap", 136.53 * mega * metre, width=35 * km))
+     Encke=Hoop("Encke Division", Saturn, 133.57 * mega * metre, width=325 * km),
+     Keeler=Hoop("Keeler Gap", Saturn, 136.53 * mega * metre, width=35 * km))
 Ring("Saturn's F Ring", Saturn, 140.0775 * mega * metre, 140.3425 * mega * metre,
      # radius 140.21 Mm, width 30 to 500 km
      width = (265 + tophat * 235) * km)
@@ -91,7 +91,8 @@ del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav
 
 _rcs_log = """
 $Log: saturnalia.py,v $
-Revision 1.1  2005-03-12 15:51:02  eddy
-Initial revision
+Revision 1.2  2005-03-12 17:46:04  eddy
+Mention the centre of each Hoop !
 
+Initial Revision 1.1  2005/03/12 15:51:02  eddy
 """
