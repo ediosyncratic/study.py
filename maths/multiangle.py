@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.9 2003-09-01 05:25:43 eddy Exp $
+$Id: multiangle.py,v 1.10 2003-09-01 05:32:37 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -76,15 +76,15 @@ class Middle (LazySeq):
 K = Middle()
 del Middle
 
-term = Polynomial(1, 0, -2)
+term = 1-z*z
 
 class seqCos (LazySeq):
     """Sequence of polynomials describing cos(n.t) in terms of cos(t)
 
     C[n](cos(t)) = cos(n.t)\n"""
-    def growto(self, key, kate=4*z*z-3, term=-term, z=z):
+    def growto(self, key, kate=1-4*term, term=-term, x=z):
         n, r = divmod(key, 2)
-        if r: ans = z * K[n](kate)
+        if r: ans = x * K[n](kate)
         else: ans = self[n](term)
 
         assert ans.rank == key
@@ -95,9 +95,9 @@ class seqSin (LazySeq):
 
     sin(t)*S[n](cos(t)) == sin(n.t)\n"""
 
-    def growto(self, key, stem=1-4*z*z, term=term, z=z):
+    def growto(self, key, stem=4*term-3, term=term, x=z):
         n, r = divmod(key, 2)
-        if r: ans = 2 * z * S[n](-term)
+        if r: ans = 2 * x * S[n](-term)
         else: ans = K[n](stem) * {0: 1, 1: -1}[n%2]
 
         assert ans.rank == key
@@ -105,12 +105,16 @@ class seqSin (LazySeq):
 
 # C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin()
-del seqCos, seqSin
+del seqCos, seqSin, LazySeq
 del term, z, Polynomial
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.9  2003-09-01 05:25:43  eddy
+Revision 1.10  2003-09-01 05:32:37  eddy
+Little tweaks.  Defined term more clearly; deployed it more.  Renamed z
+to x when tunnelling it.  Delete LazySeq when used.
+
+Revision 1.9  2003/09/01 05:25:43  eddy
 Changed Middle to use addition-derived formulae.  Refined a check.
 
 Revision 1.8  2003/08/17 20:25:35  eddy
