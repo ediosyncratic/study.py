@@ -1,13 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """The Asteroids, and Mars' two mooons.
 
-$Id: asteroid.py,v 1.1 2005-03-12 16:28:45 eddy Exp $
+$Id: asteroid.py,v 1.2 2005-03-12 17:56:42 eddy Exp $
 """
 
 from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
 from space.home import Sun, AU, Planets
-from space.body import Asteroid
-from space.common import Discovery
+from space.body import Asteroid, Ring, Planetoid
+from space.common import Discovery, Orbit
 from space.rock import NASAmoon, NASAshell
 
 # Mars' moons are just captured asteroids ...
@@ -80,16 +80,17 @@ Amor = IArock('Amor', 1932, 2.67, 10, 12000, 10),
 Apollo = IArock('Apollo', 1932, 1.81, 2, 100, 7),
 Icarus = IArock('Icarus', 1949, 1.12, 1, 12, 4),
 Adonis = IArock('Adonis', 1936, 2.76, 1, 12, 1.5),
-Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2))
+Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
-del Sun, AU, Planets, Asteroid, Discovery, NASAmoon, NASAshell
+del Sun, AU, Planets, Asteroid, Ring, Planetoid, Discovery, Orbit, NASAmoon, NASAshell, IArock
 del Sample, ton, tera, mega, mile, Quantity, year, tophat
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.1  2005-03-12 16:28:45  eddy
-Initial revision
+Revision 1.2  2005-03-12 17:56:42  eddy
+Missed imports and a punctuation glitch.
 
+Initial Revision 1.1  2005/03/12 16:28:45  eddy
 """
