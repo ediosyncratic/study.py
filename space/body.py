@@ -1,21 +1,21 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.6 2005-03-13 16:01:26 eddy Exp $
+$Id: body.py,v 1.7 2005-03-13 16:22:04 eddy Exp $
 """
 
-from basEddy.units import Object, Quantity, second, metre, turn, pi, tophat
+from basEddy import value
 
-class Object (Object):
-    __upinit = Object.__init__
+class Object (value.Object):
+    __space_upinit = value.Object.__init__
     def __init__(self, name, **what):
-        apply(self.__upinit, (), what)
+        apply(self.__space_upinit, (), what)
         self.name = name
 	try: what['orbit'].centre.satellites.insert(None, self)
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
-    _lazy_preserve_ = Object._lazy_preserve_ + ('satellites',)
+    _lazy_preserve_ = value.Object._lazy_preserve_ + ('satellites',)
 
     def __str__(self): return self.name
     __repr__ = __str__
@@ -94,7 +94,10 @@ class Object (Object):
         def append(self, what):
             """Inserts what in self, taking hint that it belongs at end."""
             self.insert(len(self.__carry), what)
+
+del value
 
+from basEddy.units import Quantity, second, metre, turn, pi, tophat
 from space.common import Spin, Orbit
 
 class Body (Object):
@@ -350,7 +353,11 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.6  2005-03-13 16:01:26  eddy
+Revision 1.7  2005-03-13 16:22:04  eddy
+Deal with issues caused by private namespace collision for two classes called Object !
+Also move an import line later, since we now can.
+
+Revision 1.6  2005/03/13 16:01:26  eddy
 Renamed Body to Object and discreteBody to Body.
 
 Revision 1.5  2005/03/12 17:56:00  eddy
