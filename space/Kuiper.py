@@ -1,12 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.1 2005-03-12 15:25:57 eddy Exp $
+$Id: Kuiper.py,v 1.2 2005-03-12 15:35:49 eddy Exp $
 """
 
 from basEddy.units import *
 from space.home import Sun, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery, Spheroid
+from space.rock import NASAmoon, NASAshell
 from space.body import Planet
 
 Pluto = KLplanet('Pluto',
@@ -21,6 +22,8 @@ Pluto.surface.radius.observe(mega * (1.195 + .001 * tophat) * metre) # NASA
 Pluto.orbit.spin.period.observe(248.5 * 365.242198781 * day)
 Pluto.orbit.spin.period.observe(248.02 * year) # NASA
 Pluto.orbit.radius.observe(giga * (5915.80 + .1 * tophat) * metre) # NASA
+
+Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.6, 6.39, NASAshell(593), "ice")
 
 Quaoar = Planet('Quaoar', Spheroid(800 * mile),
                 # I haven't yet found radius ... but its eccentricity is low
@@ -68,7 +71,8 @@ del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, Spheroid, Planet
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.1  2005-03-12 15:25:57  eddy
-Initial revision
+Revision 1.2  2005-03-12 15:35:49  eddy
+Chuck in Charon while we're at it.
 
+Initial Revision 1.1  2005/03/12 15:25:57  eddy
 """
