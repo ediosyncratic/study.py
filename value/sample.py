@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.18 2003-04-21 19:55:25 eddy Exp $
+$Id: sample.py,v 1.19 2003-07-05 15:03:04 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1468,8 +1468,18 @@ class Sample (Object):
         except AttributeError: return { what: 1 }, what
         return bok, what.best
 
-    # now define arithmetic
-    def __bundle_(self, func, what):
+    def join(self, func, what):
+        """Combine with another Sample via a two-parameter function.
+
+        First argument is the function, second is the other sample (or a plain
+        number, which will be handled as if it were a single-point sample).  An
+        intermediate distribution is built: for each point in each distribution
+        (self and the other), the product of their weights gives the weight used
+        for the result of applying the function to the two sample points.  The
+        resulting distribution may then be somewhat simplified.  Its best
+        estimate is obtained by applying the function to self's best estimate
+        and that of the other sample. """
+
         bok, best = self.__extract_(what)
         return self._sampler_(self.__weigh.combine(bok, func),
                               best=func(self.best, best))
@@ -1482,17 +1492,19 @@ class Sample (Object):
 
         # Work-around: say Quantity(sample) * quantity ...
 
-    # Binary operators:
-    def __add__(self, what, f=lambda x, w: x+w): return self.__bundle_(f, what)
-    def __sub__(self, what, f=lambda x, w: x-w): return self.__bundle_(f, what)
-    def __mod__(self, what, f=lambda x, w: x%w): return self.__bundle_(f, what)
-    def __mul__(self, what, f=_multiply): return self.__bundle_(f, what)
+    # now define arithmetic, using join
 
-    def __radd__(self, what, f=lambda x, w: w+x): return self.__bundle_(f, what)
-    def __rsub__(self, what, f=lambda x, w: w-x): return self.__bundle_(f, what)
-    def __rmod__(self, what, f=lambda x, w: w%x): return self.__bundle_(f, what)
+    # Binary operators:
+    def __add__(self, what, f=lambda x, w: x+w): return self.join(f, what)
+    def __sub__(self, what, f=lambda x, w: x-w): return self.join(f, what)
+    def __mod__(self, what, f=lambda x, w: x%w): return self.join(f, what)
+    def __mul__(self, what, f=_multiply): return self.join(f, what)
+
+    def __radd__(self, what, f=lambda x, w: w+x): return self.join(f, what)
+    def __rsub__(self, what, f=lambda x, w: w-x): return self.join(f, what)
+    def __rmod__(self, what, f=lambda x, w: w%x): return self.join(f, what)
     def __rmul__(self, what,
-                 f=lambda x, w, m=_multiply: m(w, x)): return self.__bundle_(f, what)
+                 f=lambda x, w, m=_multiply: m(w, x)): return self.join(f, what)
 
     # division is slightly messier, thanks to ZeroDivisionError
     def __div__(self, what, f=_divide):
@@ -1504,17 +1516,17 @@ class Sample (Object):
             if lo == 0 == hi or lo * hi < 0:
                 raise ZeroDivisionError, ('Dividing by interval about 0', self, what)
 
-        return self.__bundle_(f, what)
+        return self.join(f, what)
 
     def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
         lo, hi = cmp(self.low, 0), cmp(self.high, 0)
         if lo == 0 == hi or lo * hi < 0:
             raise ZeroDivisionError, ('Dividing by interval about 0', what, self)
 
-        return self.__bundle_(f, what)
+        return self.join(f, what)
 
     # For pow, expect simple argument:
-    def __pow__(self, what, f=_power): return self.__bundle_(f, what)
+    def __pow__(self, what, f=_power): return self.join(f, what)
     # officially: (self, what [, modulo ]) ... for ternary pow().
     def __abs__(self): return self.copy(abs)
 
@@ -1660,7 +1672,11 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.18  2003-04-21 19:55:25  eddy
+  Revision 1.19  2003-07-05 15:03:04  eddy
+  Renamed Sample.__bundle_ to .join, so other code can use it.
+  Documented it in the process.
+
+  Revision 1.18  2003/04/21 19:55:25  eddy
   Handle case where a Sample is supplied as the weights when constructing
   a Sample (so quantity.qSample doesn't need a constructor).  Made best a
   non-borrowable attribute, but made what *would* be borrowed serve as a
