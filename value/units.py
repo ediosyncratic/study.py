@@ -30,8 +30,8 @@ units of measurements in all sorts of odd domains.
   between the speed of your vehicle and the rate at which the fuel level in the
   tank is dropping; if your fuel tank's cross-section is one square foot (92,903
   square mm), and your vehicle is managing 17 km/litre, then you're travelling a
-  little over one and a half million (i.e. 17 * 93) times as fast as the level
-  in the fuel tank is dropping.
+  little over one and a half million (i.e. 17 * 92,903) times as fast as the
+  level in the fuel tank is dropping.
 
   In reality, fuel efficiencies of real road vehicles seem to fall in the range
   from around 8 to around 80 mpg (UK), so that a unit of order 20 mpg would be
@@ -66,7 +66,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.10 2003-04-21 20:15:45 eddy Exp $
+$Id: units.py,v 1.11 2003-09-05 00:22:00 eddy Exp $
 """
 from SI import *
 
@@ -108,8 +108,7 @@ pence, each penny was four farthings.  A florin was two shillings; a crown was
 five.  Apparently a pound was also called a sovereign. """)
 
 # dimensionless:
-dozen = 12
-bakersDozen = 13
+dozen = Quantity(12, {}, baker = 13)
 half = .5
 quarter = .25
 pair = 2
@@ -121,34 +120,34 @@ shock = 60
 gross = 144
 greatgross = gross * dozen
 paper = Object(
-    shortquire = 24,
-    quire = 25, # baker's two-dozen ?
-    shortream = 480,
-    ream = 500,
-    perfectream = 516) # 43 * dozen
-paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream)
+    quire = Quantity(25, {}, short = 24), # baker's two-dozen ?
+    ream = Quantity(500, {}, short = 480, perfect = 516)) # 43 * dozen
+paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
+           short = Object(quire = paper.quire.short, ream = paper.ream.short))
 
 # angles
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
 arc = Object(degree = turn / 360)
 arc.minute = arc.degree / 60
-arc.second = arc.minute / 60
+arc.second = second.arc = arc.minute / 60
 
 # time
-minute = Time(60 * second)
-hour = Time(60 * minute)
-day = Time(24 * hour)
-week = Time(7 * day)
-fortnight = Time(2 * week)
-year = Time(27 * 773 * week / 400)	# the Gregorian approximation
+minute = Time(60, second, arc=arc.minute)
+hour = Time(60, minute)
+day = Time(24, hour)
+week = Time(7, day)
+fortnight = Time(2, week)
+year = Time(27 * 773, week / 400)	# the Gregorian approximation
 month = Time(year / 12) # on average, at least; c.f. planets.Month, the lunar month
 # factors of 216 seconds abound ...
 
 # Other SI-compatible units
-gram = Mass(milli * kilogramme)
+gram = Mass(milli, kilogramme)
 km, cm = kilo * metre, centi * metre
 cc = pow(cm, 3)
+tex = gram / km # fineness of textiles
+dtex = deci * tex # see also: units.denier
 
 St = Stokes = pow(cm, 2) / second # kinematic viscosity
 Angstrom = .1 * nano * metre    # &Aring;ngstr&ouml;m, aka &Aring;.
@@ -169,9 +168,6 @@ Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
 Sv = sievert = Gy               # Dose equivalent
 rem = 10 * milli * Sv
 # 10 milli Gray is also called a rad (conflicts with radian)
-
-tex = gram / km # fineness of textiles
-dtex = deci * tex # see also: units.denier
 
 # etc.
 erg = .1 * micro * Joule
@@ -191,12 +187,8 @@ def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def toFahrenheit(T): return 32 + 1.8 * toCentigrade(T)
 
 tonne = Mass(kilo, kilogramme)
-calorie = 4.1868 * Joule	# the thermodynamic calorie (IT), not any other sort.
+calorie = 4.1868 * Joule # the thermodynamic calorie (IT), not any other sort.
 # food talks about `calorie' but means kilo calorie
-BTU = Btu = BritishThermalUnit = 1.05506 * kilo * Joule
-# calorie * pound * Farenheit / gram / Kelvin
-CHU = 1.8 * BTU         # whatever CHU is ! (KDWB)
-therm = 1.05506e8 * Joule # US uses 1.054804e8
 clausius = kilo * calorie / Kelvin
 
 bar = .1 * mega * Pascal
@@ -384,19 +376,6 @@ champagne.also(
     balthazar = 8 * champagne.magnum,
     nebuchadnezzar = 10 * champagne.magnum)
 
-nauticalMile = 1852 * metre     # K&L, given as the definition of this unit.
-# I've met assertions that the nautical mile is 2000 yards.  Alternatively, that
-# it's one minute of arc - i.e. Earth.surface.radius * pi / 180 / 60.  My
-# available figures for the Earth's radius yield figures ranging from 1853 to
-# 1855 metres, aka 2026 to 2029 yards: so Kaye & Laby fits with the minute of
-# arc view (to reasonable accuracy) and I take the 2000 yard figure as being a
-# widely used approximation.  Apparently, the US used some other unit until
-# 1954, the UK until 1970; both catching up with a 1929 international standard.
-USnavyCable = 720 * 1200 / 3937 * metre
-cable = nauticalMile / 10
-marineLeague = 3 * nauticalMile
-knot = nauticalMile * 1. / hour
-
 # Anglophone units of length:
 inch = 2.54e-2 * metre
 caliber = inch / 100
@@ -406,16 +385,13 @@ palmlength = 8 * inch
 span = 9 * inch
 fingerlength = span / 2
 fingerbreadth = 7 * inch / 8
-ell = cubit = 5 * span
-flemishell = 27 * inch
+ell = cubit = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
 ft = foot = 3 * hand
 yard = 3 * foot
 nail = yard / 16
-pace = 5 * foot
-USpace = 30 * inch
+pace = Quantity(5, foot, US = 30 * inch)
 rope = 4 * pace
 fathom = 6 * foot
-UScable = 100 * fathom
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
 rod = pole = perch = chain / 4
 link = pole / 25
@@ -424,20 +400,40 @@ mile = 8 * furlong
 league = 3 * mile
 league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
 marathon = 26 * mile + 385 * yard
-ppoint = inch / 72      # the printer's point
-spoint = inch / 4000    # the silversmith's point (see also jeweler's, under mass !)
+pica = inch / 12
+point = pica / 6      # the printer's point
+point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below)
 shoe = Object( # units of thickness of leather in shoes
     iron = inch / 48, # soles
     ounce = inch / 64)# elsewhere
 railgauge = 4 * foot + 8.5 * inch
-UKnm = 6080 * foot		# until 1970
-seamile = 6000 * foot
+mile.also(sea = 2000 * yard,
+          nautical = Quantity(1852, metre, # K&L, given as the definition of this unit.
+                              """The nautical mile
 
-pied = 4500 * metre / 13853	# pied de roi, French foot
+I've met assertions that the nautical mile is 2000 yards (here given as mile.sea
+since I've seen it called a sea mile).  Alternatively, that it's one minute of
+arc - i.e. Earth.surface.radius * pi / 180 / 60.  My available figures for the
+Earth's radius yield figures ranging from 1853 to 1855 metres, aka 2026 to 2029
+yards: so Kaye & Laby fits with the minute of arc view (to reasonable accuracy)
+and I take the 2000 yard figure as being a widely used approximation.
+Apparently, the US used some other unit until 1954, the UK until 1970; both
+catching up with a 1929 international standard.
+""",
+                              UK = 6080 * foot)) # until 1970
+cable = Quantity(0.1, mile.nautical,
+                 US = Quantity(100, fathom,
+                               navy = 720 * 1200 / 3937 * metre))
+league.marine = 3 * mile.nautical
+knot = mile.nautical * 1. / hour
+
+foot.French = pied = 4500 * metre / 13853	# pied de roi, French foot
+inch.French = pied / 12
+point.French = inch.French / 144
 French = Object(foot = pied,
-                inch = pied / 12,
-                line = pied / 144,
-                point = pied / 12**3,
+                inch = inch.French,
+                line = inch.French / 12,
+                point = point.French,
                 toise = 6 * pied,
                 arpent = (180 * pied)**2)
 
@@ -453,47 +449,53 @@ oz = ounce = Mass(1. / 16, pound)
 dram = Mass(1. / 16, ounce)
 clove = Mass(7, pound)
 stone = Mass(2, clove)
-cwt = hundredweight = Mass(8, stone)
-ton = Mass(20, cwt)
-UScwt = cental = Mass(100, pound)
-USton = Mass(20, UScwt)
-TNT = 4.184e9 * Joule / USton
+cental = Mass(100, pound)
+cwt = hundredweight = Mass(8, stone, US = cental)
+ton = Mass(20, cwt, US = Mass(20, cwt.US))
+TNT = 4.184e9 * Joule / ton.US # (2.15 km/s)**2
+
+# Anglophone units of energy:
+CHU = calorie * pound / gram     # whatever CHU is ! (KDWB)
+BTU = Btu = BritishThermalUnit = CHU * Rankine / Kelvin
+therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
 
 # Anglophone units of area (KDWB):
 acre = chain * furlong          # consensus; mile**2/640.
 rood = acre / 4
-buildingRod = 33 * yard * yard
-bricklayerRod = rod * rod
+rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
 # US names for certain areas:
 section = mile**2
 township = 36 * section
 homestead = 160 * acre # aka section / 4
 
 # `cubic or solid measure' (KDWB):
-timberfoot = foot**3
-woodStack = 108 * timberfoot
-cord = 128 * timberfoot
-housecord = cord / 3
-shipTon = 40 * timberfoot		# aka freight ton
-shipTimberTon = 42 * timberfoot
-displacementTon = 35 * timberfoot
-registerTon = 100 * timberfoot		# internal capacity of ships
+foot.timber = foot**3
+stack = Object(wood = 108 * foot.timber)
+cord = 128 * foot.timber
+cord.house = cord / 3
+ton.ship = 40 * foot.timber
+ton.ship.timber = 42 * foot.timber
+ton.also(displacement = 35 * foot.timber,
+         freight = ton.ship,
+         register = 100 * foot.timber)	# internal capacity of ships
 
 # Other units of mass: KDWB
-butcherStone = Mass(8, pound)
-drachmTroy = Mass(3, scruple)	# aka apothecary's dram
-ounceTroy = Mass(8, drachmTroy)
-denierTroy = Mass(24, grain) # = ounceTroy / 20, the denier (a frankish coin) or pennyweight
-poundTroy = Mass(12, ounceTroy)
-caratTroy = Mass(3.17, grain)	# or 3.163 grain according to u.s.m.u
-carat = Mass(.2, gram)		# metric variant, from /usr/share/misc/units
-jpoint = Mass(.01, carat)	# jeweler's point
-mercantilePound = Mass(15, ounceTroy)
+stone.butcher = Mass(8, pound)
+dram.apothecary = Mass(3, scruple)
+denier.Troy = Mass(24, grain) # = ounce.Troy / 20, the denier (a frankish coin) or pennyweight
+ounce.Troy = Mass(8, dram.apothecary)
+pound.Troy = Mass(12, ounce.Troy)
+carat = Mass(.2, gram, # metric variant, from /usr/share/misc/units
+             Troy=Mass(3.17, grain)) # or 3.163 grain according to u.s.m.u
+Troy = Object(drachm = dram.apothecary, denier = denier.Troy, carat = carat.Troy,
+              ounce = ounce.Troy, pound = pound.Troy)
+point.jeweller = Mass(.01, carat)
+pound.mercantile = Mass(15, Troy.ounce)
 
 # Imperial force, power, etc.:
 psi = pound.force / inch**2
-horsepower = Object(
-    550 * foot * pound.force / second,
+horsepower = Quantity(
+    550, foot * pound.force / second,
     metric = 75 * kilogram.force * metre / second,
     electric = 746 * Watt,
     boiler = 9809.50 * Watt,
@@ -508,104 +510,88 @@ slug = Mass(1, pound.force / celo)
 slinch = Mass(12, slug)
 duty = foot * pound.force
 
-# US units of volume:
-USgallon = 3 * 11 * 7 * pow(inch, 3)   # (aka wine gallon) ancient encyclopaedia, K&L
-USquart = USgallon / 4
-USpint = USquart / 2            # 16.65 UK floz; ? 12, 15, 16 or 20 US ones ?
-USgill = USpint / 4
-USfloz = USgill / 4		# aka a pony; 1.5 USfloz is aka a jigger
-USdram = USfloz / 8
-USminim = USdram / 60
-USbarrelOil = 42 * USgallon
-USfirkin = 9 * USgallon
-UShogshead = 7 * USfirkin
-USbarrel = UShogshead / 2
-USbarrelDry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
-USbushel = Quantity(2150.42, pow(inch, 3),
-                    doc="""The US bushel.
-
-This is the volume of an 8 inch cylinder with 18.5 inch diameter.
-However, the US bushel is also a unit of mass for various types of grain.
-See dir(USbushel) for details.
-""",
-    wheat = Mass(60, pound),
-    soybean = Mass(60, pound),
-    corn = Mass(56, pound), # of course, this means maize, not wheat
-    rye = Mass(56, pound),
-    barley = Mass(48, pound),
-    oat = Mass(32, pound), # Canada uses 34lb
-    rice = Mass(45, pound))
-USpeck = USbushel / 4
-USgallonDry = USpeck / 2
-USquartDry = USgallonDry / 4
-USpintDry = USquartDry / 2
-
 # Imperial units of volume (part 1):
-gallon = 4.54609 * litre        # 10 * pound / water.density
-pint = gallon / 8
-floz = fluidOunce = pint / 20
-waterTon = 224 * gallon
+
+# `fluid measure'
+gallon = Quantity(4.54609, litre, # 10 * pound / water.density
+                  wine = 3 * 11 * 7 * inch**3, # (aka US gallon) ancient encyclopaedia, K&L
+                  beer = 2 * 3 * 47 * inch**3) # 16.65 UK floz; 16 US ones.
+quart = Quantity(1, gallon / 4,
+                 wine = gallon.wine / 4,
+                 beer = gallon.beer / 4)
+pint = Quantity(1, quart / 2,
+                wine = quart.wine / 2,
+                beer = quart.beer / 2)
+gallon.US, quart.US, pint.US = gallon.wine, quart.wine, pint.wine
+ton.water = 224 * gallon
+
+bucket = 4 * gallon
+tierce = Quantity(42, gallon,
+                  wine = gallon.wine * 42)
+puncheon = Quantity(21, bucket,		# or 18 buckets
+                    wine = tierce.wine * 2)
+pottle = gallon / 2             # and a piggin is about 2 gallons
+gill = noggin = Quantity(1, pint / 4, # gill confirmed by Nick
+                         US = pint.US / 4)
+# but gill = pint / 2 in North England, where noggin is used (KDWB)
+cup = pint / 2
+floz = ounce.fluid = Quantity(1, gill / 5, US = gill.US / 4)
+teacup = pint / 3
+spoon = Object(table = floz / 2) # but 20 cc in metric versions
+spoon.desert = spoon.table / 2
+dram.fluid = spoon.tea = Quantity(1, spoon.desert / 2)
+dram.US = floz.US / 8
+minim = drop = Quantity(1, dram / 60, US = dram.US / 60)
+drachm = Object(Troy = Troy.drachm, fluid = dram.fluid)
+fluid = Object(ounce = ounce.fluid, dram = dram.fluid)
 
 # The volumes following are from a publican's handbook Nick (landlord of the
 # Cambridge Blue) showed me.  These names are particularly subject to
 # differences of meaning, both geographic and temporal.
-firkin = 9 * gallon
+firkin = Quantity(9, gallon, US = 9 * gallon.US)
 pin = firkin / 2
 # but I've met these two names with swapped meanings.
 kilderkin = firkin * 2  # aka kil, possibly kill.
-barrel = kilderkin * 2  # NHD agrees on barrel = 4 firkin.
-hogshead = kilderkin * 3
+barrel = Quantity(2, kilderkin,  # NHD agrees on barrel = 4 firkin.
+                  wine = 63 * gallon.wine / 2,
+                  beer = 36 * gallon.beer,
+                  ale = 34 * gallon.beer)
+hogshead = Quantity(3, kilderkin,
+                    US = 7 * firkin.US,
+                    wine = 2 * barrel.wine,
+                    beer = 3 * barrel.beer / 2,
+                    ale = 51 * gallon.beer)
 # Oxford handy dictionary and other sources support a hogshead of 54 gallons.
 # KDWB gives it as 63 gallons and I've met other figures, including a `wine
 # hogshead' of 56 gallons; see also the US variants.
-wine = Object(
-    doc = """Winchester measures, for wine.
+pipe = Quantity(2, hogshead, wine = 2 * hogshead.wine)
+tun = Quantity(2, pipe, # 216 gallons, but I've had 72 suggested.
+               wine = 2 * pipe.wine)
+wine = Object(doc = """Winchester measures, for wine.
 
-(Due to Queen Anne's regime, 1707)""",
-    gallon = 231 * inch**3)
-wine.also(quart = wine.gallon / 4, pint = wine.gallon / 8,
-          rundlet = 18 * wine.gallon, barrel = 63 * wine.gallon / 2,
-          tierce = 42 * wine.gallon)
-wine.also(hogshead = 2 * wine.barrel, puncheon = 2 * wine.tierce)
-wine.also(butt = 2 * wine.hogshead)
-wine.also(pipe = wine.butt, tun = 2 * wine.butt)
-beer = Object(
-    doc = """Archaic measures for beer, pre-1688 and 1803 to 1824.""",
-    gallon = 282 * inch**3)
-beer.also(quart = beer.gallon / 4, barrel = 36 * beer.gallon)
-beer.also(pint = beer.quart / 2, hogshead = 3 * beer.barrel / 2)
-ale = Object(
-    beer,
-    doc = """Archaic measures for ale, 1688 to 1803.""",
-    barrel = 34 * beer.gallon,
-    hogshead = 51 * beer.gallon)
+(Due to Queen Anne's regime, 1707)\n""",
+              gallon = gallon.wine, quart = quart.wine, pint = pint.wine,
+              barrel = barrel.wine, rundlet = 18 * gallon.wine, tierce = tierce.wine,
+              hogshead = hogshead.wine, puncheon = puncheon.wine,
+              butt = pipe.wine, pipe = pipe.wine, tun = tun.wine)
+beer = Object(doc = """Archaic measures for beer, pre-1688 and 1803 to 1824.""",
+              gallon = gallon.beer, quart = quart.beer, pint = pint.beer,
+              barrel = barrel.beer, hogshead = hogshead.beer)
+ale = Object(beer,
+             doc = """Archaic measures for ale, 1688 to 1803.""",
+             barrel = barrel.ale, hogshead = hogshead.ale)
 # and so on *ad nauseam* !
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
-lienSwiss = 5249 * yard
-oncenDutch = Mass(.1, kilogramme)
-okeTurk = Mass(2.8342, pound)
-berriTurk = 1828 * yard
-milDane = 8238 * yard
-verstRussia = 1167 * yard
-poodRussia = Mass(36.11, pound)
+Swiss = Object(lien = 5249 * yard)
+Dutch = Object(oncen = Mass(.1, kilogramme))
+Turk = Object(oke = Mass(2.8342, pound),
+              berri = 1828 * yard)
+mil = Object(Dane = 8238 * yard, Norway = 10 * kilo * metre)
+Russia = Object(verst = 1167 * yard,
+                pood = Mass(36.11, pound))
 
 # Imperial units of volume (part 2):
-
-# `fluid measure'
-bucket = 4 * gallon
-puncheon = 21 * bucket		# or 18 buckets
-pipe = 2 * hogshead
-tun = 2 * pipe                  # 216 gallons, but I've had 72 suggested.
-pottle = gallon / 2             # and a piggin is about 2 gallons
-gill = noggin = pint / 4        # gill confirmed by Nick
-# but gill = pint / 2 in North England, where noggin is used (KDWB)
-cup = pint / 2
-teacup = pint / 3
-tablespoon = floz / 2 # but 20 cc in metric versions
-desertspoon = tablespoon / 2
-dram = teaspoon = fluidDrachm = desertspoon / 2
-minim = drop = dram / 60
 
 # `dry measure'
 peck = gallon * 2
@@ -621,10 +607,43 @@ firlot = sack / 2
 boll = 2 * sack
 chaldron = 12 * sack
 cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
+
+# More US units of volume:
+barrel.US = hogshead.US / 2
+barrel.US.oil = 42 * gallon.US
+barrel.US.dry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
+bushel.US = Quantity(2150.42, pow(inch, 3),
+                    doc="""The US bushel.
+
+This is the volume of an 8 inch cylinder with 18.5 inch diameter.
+However, the US bushel is also a unit of mass for various types of grain.
+See dir(bushel.US) for details.
+""",
+    wheat = Mass(60, pound),
+    soybean = Mass(60, pound),
+    corn = Mass(56, pound), # of course, this means maize, not wheat
+    rye = Mass(56, pound),
+    barley = Mass(48, pound),
+    oat = Mass(32, pound), # Canada uses 34lb
+    rice = Mass(45, pound))
+peck.US = bushel.US / 4
+gallon.US.dry = peck.US / 2
+quart.US.dry = gallon.US.dry / 4
+pint.US.dry = quart.US.dry / 2
+US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
+            gill = gill.US, dram = dram.US, minim = minim.US,
+            floz = floz.US, pony = floz.US, jigger = 3 * floz.US / 2,
+            firkin = firkin.US, hogshead = hogshead.US, barrel = barrel.US,
+            bushel = bushel.US, peck = peck.US, pace = pace.US, cable = cable.US,
+            cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.10  2003-04-21 20:15:45  eddy
+ Revision 1.11  2003-09-05 00:22:00  eddy
+ Packed various things into namespaces, rather than jamming several words
+ together to make their names.  Lots of tidy-up in the process.
+
+ Revision 1.10  2003/04/21 20:15:45  eddy
  Use best, not mean, in qSample constructor (now delegates directly to Sample).
 
  Revision 1.9  2003/04/17 22:46:16  eddy
