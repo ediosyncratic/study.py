@@ -1,6 +1,6 @@
 """Bits of python having to do with searching.
 
-$Id: search.py,v 1.1 1999-10-24 15:27:59 eddy Exp $
+$Id: search.py,v 1.2 2003-07-21 21:27:28 eddy Exp $
 """
 # I'll use complex numbers as a handy model of two dimensions
 def dot(x, y): return x.real * y.real + x.imag * y.imag
@@ -8,14 +8,24 @@ def cross(x, y): return x.real * y.imag - x.imag * y.real
 # aka dot(1j*x, y)
 # Note that cross returns a real, though you can think of it as the z component
 # of a 3-D vector cross product.
-def polar(x):
-    """Express a vector as radius and orientation."""
-    r = abs(x)
-    if r > 0: return r, log(x/r).imag
-    return r, 0
+if 0:
+    # not used, can't remember what I was playing with these for ...
+    from cmath import log, exp
+    def polar(x):   # needs: from cmath import log
+        """Express a vector as radius and orientation."""
+        r = abs(x)
+        if r > 0: return r, log(x/r).imag
+        return r, 0
+    def ampliphase(r, theta):       # needs: from cmath import exp
+        return r * exp(1j * theta)
+    # apply(ampliphase, (polar(x),)) yields x
 
 def debase(v, a, b):
     """Express a vector in terms of a basis.
+
+    Required arguments:
+       v -- a vector
+       a, b -- two linearly independent vectors
 
     Returns reals A, B for which v = A*a + B*b, raising a ZeroDivisionError if A
     and B are parallel (even if v is also parallel to them). """
@@ -26,23 +36,16 @@ def debase(v, a, b):
 def triangulate(f, v, s):
     """Estimates a root of a function by linear interpolation.
 
-    Arguments:
-
-      f -- a function taking one argument (we're looking for an input for which
-      it returns 0).
-
+    Required arguments:
+      f -- a function taking one argument.
       v -- a valid input to f
-
       s -- an estimate at the difference between v and a root of f
 
     Evaluates f at v, v+s and v + 1j*s, then uses triangulation from these three
     to estimate a position at which f might plausibly be zero: returns this
     position. """
 
-    F = f(v)
-    E = f(v + s)
-    G = f(v + s * 1j)
-
+    F, E, G = f(v), f(v + s), f(v + s * 1j)
     e, g = debase(F, E-F, G-F)
     return v - s * (e + 1j * g)
 
@@ -53,8 +56,8 @@ def logrange(a, b=None, c=None):
     elif b: start, stop, step = a, abs(b), .1
     else: start, stop, step = 1, abs(a), .1
 
-    result = []
-    while (stop - abs(start)) * (abs(step) - 1) > 0:
+    result, direction = [], abs(step) - 1
+    while (stop - abs(start)) * direction > 0:
 	result.append(start)
 	start = start * step
 
@@ -62,7 +65,7 @@ def logrange(a, b=None, c=None):
 
 def median(seq, fn=None):
     if not seq: raise IndexError, 'empty sequence has no median'
-    row = seq[:]
+    row = list(seq) # always gets a copy
     if fn: row.sort(fn)
     else: row.sort()
     mid, bit = divmod(len(row), 2)
@@ -88,9 +91,9 @@ def gradient(fn, arg):
     deltas = logrange(1, 1e-16, -.1)
     # i.e. [ 1, -.1, .01, -.001, ... ]
     grads = gradients(fn, arg, deltas)
-    try:
+    try: # does fn cope with complex values ?
 	more = gradients(fn, arg, map(lambda x: 1j*x, deltas))
-	grads = grads + more
+        grads = map(lambda x: x+0j, grads) + more # add 0j to coerce complex
         # return meadian of real parts + 1j * median of imaginary parts:
 	return median(map(lambda x: x.real, grads)) \
 	+ 1j * median(map(lambda x: x.imag, grads))
@@ -112,7 +115,7 @@ def Raphson(f, v):
 
     return v - f(v) / gradient(f, v)
 
-class _Search:
+class Search:
     """Administration of successive searching for values of a complex function.
 
     Initialisation data:
@@ -138,7 +141,7 @@ class _Search:
       goal -- initialisation datum recorded for later use.
 
       best -- a pair, (v, f) with f=func(v) and goal(f) no greater than any
-      other value of goal(func(input)) yet seen.  Initialised using v= start.
+      other value of goal(func(input)) yet seen.  Initialised using v=start.
 
       score -- the value of goal(best[1]), for convenience.
 
@@ -171,6 +174,8 @@ class _Search:
     previous one (e.g. F is only slightly changed).  It may make sense to revise
     stride at each reset(), also. """
 
+    # it might be nice to add some optional verbosity !
+
     def __init__(self, func, start, goal=abs, stride=1.):
 	self.goal, self.__func = goal, func
 	self.stride, self.next = stride, start + stride
@@ -190,13 +195,10 @@ class _Search:
         self.__score = self.goal(F)
 
     def __getattr__(self, key):
-        try: _key = { 'best': '__best',
-                      'score': '__score',
-                      }[key]
-        except KeyError: pass
-        else: return getattr(self, _key)
+	if key == 'best': return self.__best
+	if key == 'score': return self.__score
 
-        raise AttributeError
+        raise AttributeError, key
 
     def func(self, v):
         # Evaluate requested value
@@ -212,6 +214,33 @@ class _Search:
         # Return requested value
 	return F
 
+    def Newton(self):
+        before, best = self.next, self.__score
+        self.next = Raphson(self.func, self.next)
+        if self.__score < best: return self.__best[0] - self.next
+        return self.next - before
+
+    def triangulate(self, step):
+        before, best = self.next, self.__score
+        self.next = triangulate(self.func, self.next, step)
+        new = self.next - before
+
+        # Begin weird heuristic munging for next time's step:
+        rat = new / step
+        art = abs(rat)
+        if rat.imag > rat.real: turn = 1j+1
+        else: turn = 1j-1
+
+        if self.__score < best:
+            # we've seen an improvement
+            if art < .5: return new
+            if art < 2: return new / turn
+
+            if rat.real + rat.imag > 0:
+                return new / (art - 1)
+
+        return turn * new / art
+
     def rummage(self, tries=42, threshold=-1):
 	"""Does a search for a better answer.
 
@@ -224,40 +253,24 @@ class _Search:
 	  value is < threshold, rummage() will return the new best estimate and
 	  its answer, as a tuple, even if it hasn't yet done refine() tries
 	  times.  The default renders this impossible if goal() is never
-	  negative.
+	  negative; however, the default alsomakes ZeroDivisionError quite
+	  likely to arise (in which case self.best is probably quite good).
 
 	Returns the new best value if it beats the threshold, otherwise
 	None. """
 
-	# admin variables
+	# admin variables (good and last are vestigial; thoughts for later play)
 	last, best = 0., self.__score
 	step = good = self.stride
 
 	while tries > 0:
-            # Raphson's refinements suggest steps for use in triangulation
 	    if tries % 3:
-		before = self.next
-                self.next = Raphson(self.func, self.next)
-		gain, step = best - self.__score, self.next - before
-                # If not improving (this might as well say gain == 0), suggest
-                # short step in the other direction for use by the triangulator
-                if gain <= 0: step = -step / 2.
-
+                if tries % 2: step = -1j * step
+                step = self.triangulate(step)
 	    else:
-                self.next = triangulate(self.func, self.next, step)
-                # that's called self.func, so score may have changed
-                gain = best - self.__score
-                if gain > 0:
-                    # When we're being advised to take bigger steps and this
-                    # seems to be yielding bigger improvements, try
-                    # over-stepping so as to straddle the estimated root
-                    # better.  We can always turn back later.
-                    if gain > last and abs(step) > abs(good):
-                        step = step * 2
+                step = self.Newton()
 
-		elif abs(step) > abs(good): step = step / 2
-                else: step = step * 2
-
+            gain = best - self.__score
 	    if gain > 0:
 		if self.__score < threshold:
 		    return self.best
@@ -310,8 +323,15 @@ def text_search(sought, text, skip = 0):
 
 """
  $Log: search.py,v $
- Revision 1.1  1999-10-24 15:27:59  eddy
- Initial revision
+ Revision 1.2  2003-07-21 21:27:28  eddy
+ I seem to have made a bunch of changes a while back; broke out Newton and
+ triangulate methods as separate tools of Search (renamed from _Search),
+ notably for use in rummage(); refined triangulation quite a bit.  Fixed
+ getattr (can't use __... names as strings), tweaked lots of docs.  Made
+ gradient coerce real values to complex when necessary.  Made polar an aside
+ and added its inverse, ampliphase to the aside.
+
+ Initial Revision 1.1  1999/10/24 15:27:59  eddy
 
   Originally written for boat.py's sake in Summer '98
 """
