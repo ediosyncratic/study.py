@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.2 2003-08-05 21:42:34 eddy Exp $
+$Id: multiangle.py,v 1.3 2003-08-10 11:47:33 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -128,8 +128,9 @@ class seqSin (LazySeq):
     def growto(self, key, factor=z):
         n, r = divmod(key-1, 2)
         if r: ans = 2 * factor * R[n](term)
-        elif n: ans = Q[n](term)
-        else: ans = factor # else S[0] is 1, rather than Polynomial(1) !
+        else: ans = Q[n](term)
+        # that'll leave S[1] as 1, not the polynomial
+        if not n and not isinstance(ans, Polynomial): ans = Polynomial(ans)
         if n % 2: return -ans
         return ans
 
@@ -139,7 +140,10 @@ del seqCos, seqSin, z
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.2  2003-08-05 21:42:34  eddy
+Revision 1.3  2003-08-10 11:47:33  eddy
+Fixed the S[1] tweak so it's lambda x: 1, not lambda x: x - d'oh !
+
+Revision 1.2  2003/08/05 21:42:34  eddy
 Tweaked so S[1] is a polynomial, not 1.0; added comments.
 
 Initial Revision 1.1  2003/08/03 23:21:14  eddy
