@@ -4,8 +4,10 @@
 Trying to invent a Titius-Body sort of a sequence for an arbitrary family of
 bodies orbiting a common centre.  Bogus and experimental.
 
-$Id: Bode.py,v 1.1 2005-03-12 14:00:04 eddy Exp $
+$Id: Bode.py,v 1.2 2005-03-12 14:14:42 eddy Exp $
 """
+
+from basEddy.lazy import Lazy
 
 class Bodalizer (Lazy):
     """The Titius-Bode law, a.k.a. Bode's law:
@@ -71,7 +73,8 @@ Ceres Ferdinandea.\n"""
 
     # Auto-detection of zero, unit and base:
 
-    def median(seq, span=1): # tool func
+    from basEddy.quantity import Quantity, tophat, tera
+    def median(seq, span=1, Q=Quantity, unit=tophat): # tool func
         seq.sort()
         i, b = divmod(len(seq), 2)
         if b: best = seq[i].best
@@ -79,13 +82,17 @@ Ceres Ferdinandea.\n"""
         i, b = divmod(len(seq) - span, 2)
         if b: lo, hi = seq[i].best, seq[-1-i].best
         else: lo, hi = seq[i].low, seq[-1-i].high
-        return Quantity(1, .5 * (lo + hi) + tophat * (hi - lo), best=best)
+        return Q(1, .5 * (lo + hi) + unit * (hi - lo), best=best)
+
+    from basEddy.SI import metre
+    Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
+    del Quantity, tophat, tera, metre
 
     import math
-    def _lazy_get_unit_(self, ig, ln=math.log, mid=median):
+    def _lazy_get_unit_(self, ig, ln=math.log, mid=median, AU=Unit):
         row = map(lambda x, z=self.zero: x - z, filter(lambda x, z=self.zero: x > z, self.__seq))
         # That forced computation of zero, making base available ...
-        offs = map(lambda x, log=ln, b=self.__base, u=AU.best: ((x/u).evaluate(log)/b) % 1, row)
+        offs = map(lambda x, log=ln, b=self.__base, u=AU: ((x/u).evaluate(log)/b) % 1, row)
         frac = offs[:]
         frac.sort()
         gaps = [ frac[0] + 1 - frac[-1] ] + map(lambda x, y: y - x, frac[:-1], frac[1:])
@@ -98,7 +105,7 @@ Ceres Ferdinandea.\n"""
             i = i - 1
             r = offs[i]
             if r > dim: r = r - 1
-            n = (row[i] / AU.best).evaluate(ln) / self.__base - r
+            n = (row[i] / AU).evaluate(ln) / self.__base - r
             ind.insert(0, int(n.best))
         # but that leaves an arbitrary offset in ind.
         offs = map(lambda n, i: n - i - 1, ind, range(len(ind)))
@@ -113,7 +120,7 @@ Ceres Ferdinandea.\n"""
         self.zero # force evaluation so we compute __base
         return e(self.__base)
 
-    def __spread(self, z, e=math.exp, ln=math.log):
+    def __spread(self, z, e=math.exp, ln=math.log, AU=Unit):
         # icky complex-to-complex used in hunting good values for zero and base
         zero, b = e(z.imag) * AU, e(z.real)
         # it may be prudent to frob oz ...
@@ -121,7 +128,7 @@ Ceres Ferdinandea.\n"""
 
         row = filter(lambda x, z=zero: x > z, self.__seq)
         if b > 0 and len(row) > 1:
-            row = map(lambda x, log=ln, b=b, u=AU.best: ((x/u).evaluate(log)/b) % 1, row)
+            row = map(lambda x, log=ln, b=b, u=AU: ((x/u).evaluate(log)/b) % 1, row)
             row.sort()
             gap = max([ row[0] + 1 - row[-1] ] + map(lambda x, y: y - x, row[:-1], row[1:]))
             span, oz = ((1 - gap) / len(row)).best, (oz / len(row)).best
@@ -135,7 +142,7 @@ Ceres Ferdinandea.\n"""
 
     from search import Search
 
-    def _lazy_get_zero_(self, ignored, S=Search, ln=math.log, e=math.exp):
+    def _lazy_get_zero_(self, ignored, S=Search, ln=math.log, e=math.exp, AU=Unit):
         # Mercury's orbit as zero:
         z = self.__seq[0]
         # Saturn vs. Venus gives median log(ratio)/(difference in index)
@@ -149,7 +156,7 @@ Ceres Ferdinandea.\n"""
         self.__base = e(z.real)
         return e(z.imag) * AU
 
-    del Search
+    del Search, Unit
 
     def index(self, radius, ln=math.log):
         r = (radius - self.zero) / self.unit
@@ -159,9 +166,13 @@ Ceres Ferdinandea.\n"""
 
     del math
 
+del Lazy
+
 _rcs_log = """
 $Log: Bode.py,v $
-Revision 1.1  2005-03-12 14:00:04  eddy
-Initial revision
+Revision 1.2  2005-03-12 14:14:42  eddy
+Clean-up of import/export and use a nominal AU rather than the real one.
 
+Initial Revision 1.1  2005/03/12 14:00:04  eddy
+Taken from ../planets.py
 """
