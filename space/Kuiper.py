@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.3 2005-03-12 16:34:30 eddy Exp $
+$Id: Kuiper.py,v 1.4 2005-03-12 17:28:41 eddy Exp $
 """
 
 from basEddy.units import *
@@ -9,7 +9,7 @@ from space.home import Sun, Earth, AU, KLplanet, KLsurface
 from space.outer import Neptune
 from space.common import Orbit, Spin, Discovery, Spheroid
 from space.rock import NASAmoon, NASAshell
-from space.body import Planet, Body
+from space.body import Planet, Body, Ring
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -68,6 +68,12 @@ created; she's said to live at the bottom of the Arctic Ocean.\n"""))
 # it in Sun.Bode[9:13]); between 800 and 1100 miles across; may have a moon.
 del ape, peri
 
+# I take Kupier and Oort from a diagram in New Scientist [2004/Dec/25th, p46]
+# using a logarithmic scale for radius.  Like Asteroid, they're rather
+# imprecise.  Separate nasa.gov pages refined the Kuiper orbit: "it has a rather
+# sharp edge at 50 AU" though some of its objects do stray further out.
+# The radius distributions probably shouldn't be uniform ...
+
 Kuiper = Ring("The Kuiper Belt", Sun, Neptune.orbit.radius, 50 * AU,
               #' Guess: Pluto's tilt is ordinary among them
               2 * Pluto.orbit.spin.tilt,
@@ -125,11 +131,14 @@ years hence) and Alpha Centauri (A/B).\n""",
     mass = 1e5 * Earth.mass,
     closestapproach = 4e4 * AU)
 
-del Orbit, Spin, Discovery, Sun, Earth, KLplanet, KLsurface, Neptune, Spheroid, Planet, Body
+del Orbit, Spin, Discovery, Sun, Earth, KLplanet, KLsurface, Neptune, Spheroid, Planet, Body, Ring
 
 _rcs_log = """
 $Log: Kuiper.py,v $
-Revision 1.3  2005-03-12 16:34:30  eddy
+Revision 1.4  2005-03-12 17:28:41  eddy
+Also need Ring.  Added comment from ../planets.py about Oort/Kuiper sources.
+
+Revision 1.3  2005/03/12 16:34:30  eddy
 Add the Kuiper and Oort objects, plus other outer details.
 
 Revision 1.2  2005/03/12 15:35:49  eddy
