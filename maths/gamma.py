@@ -57,8 +57,9 @@ class Gamma (Integrator, Lazy):
 
 	self.__upinit(self.__p, 1/beta)
 	self.__setup(alpha, beta)
+        self.__zero = 0 / beta # zero input to __p
 
-    def __setup(x, alpha, beta, log=math.log, exp=math.exp, lngam=stirling.lngamma):
+    def __setup(self, alpha, beta, log=math.log, exp=math.exp, lngam=stirling.lngamma):
 	"""Fiddly bits of setup dealing with whether alpha, beta are Quantity()s.
 
         Overall goal is to set self.__ep to the function
@@ -96,11 +97,12 @@ class Gamma (Integrator, Lazy):
 
     def __p(self, x, exp=math.exp):
 	"""The probability distribution"""
-	if x == 0:
+	if x == self.__zero:
 	    try: return self.__atzero
 	    except AttributeError:
 		raise OverflowError, 'Gamma, with alpha < 1, is infinite at zero'
-	if x < 0: raise ValueError(x, 'Gamma distribution only defined on positives.')
+	if x < self.__zero:
+            raise ValueError(x, 'Gamma distribution only defined on positives.')
 
 	return self.__ep(x)
 
@@ -188,7 +190,7 @@ class GammaByMeanVar (Gamma):
         This simply infers alpha and beta from the formulae used, above, to
         compute mean and variance lazily from alpha and beta. """
 
-        try: mean + variance**2 # expected value of square of variate
+        try: mean**2 + variance # expected value of square of variate
         except TypeError:
             raise TypeError(mean, variance,
                             "Incompatible quantities for mean and variance of a distribution")
