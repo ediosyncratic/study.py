@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons of Jupiter.
 
-$Id: jovian.py,v 1.1 2005-03-12 15:44:15 eddy Exp $
+$Id: jovian.py,v 1.2 2005-03-12 17:34:28 eddy Exp $
 """
 
 from basEddy.units import metre, km, mega
@@ -173,7 +173,7 @@ Daughter of Achelous, a river god.  Step-daughter of Zeus.
 
 _tmp = Discovery("S.S. Shepard et al.", 2000, # well, they look pretty much like one event ...
                  location="Mauna Kea", date="2000 November, 23 and 25")
-Themisto = NamedOrbit('Themisto', Jupiter, 7507, 130.02, aliases("1975 J1", '2000 J1'),
+Themisto = NamedOrbit('Themisto', Jupiter, 7507, 130.02, aliases=("1975 J1", '2000 J1'),
                       discovery=Discovery("C.T. Kowal, E. Roemer", 1975, date="1975 September 30",
                                           location="Palomar"), rediscovery=_tmp,
                       etymology="""Greek Mythology.
@@ -256,7 +256,8 @@ del Ring, Discovery, SAOmoon, NamedOrbit, NASAmoon, NASAshell, metre, km, mega, 
 
 _rcs_log = """
 $Log: jovian.py,v $
-Revision 1.1  2005-03-12 15:44:15  eddy
-Initial revision
+Revision 1.2  2005-03-12 17:34:28  eddy
+fix dumb typo
 
+Initial Revision 1.1  2005/03/12 15:44:15  eddy
 """
