@@ -21,7 +21,11 @@ chosen n, use these as the keys of a dictionary in which weight[key] is the sum
 of the big bok's values for keys which are closer to this key of weight than to
 any other.
 
-$Id: sample.py,v 1.9 2002-10-05 13:06:45 eddy Exp $
+Various classes with Weighted in their names provide the underlying
+implementation for that; the class Sample packages this functionality up for
+external consumption.
+
+$Id: sample.py,v 1.10 2002-10-06 14:20:00 eddy Exp $
 """
 
 class _baseWeighted:
@@ -40,15 +44,15 @@ class _baseWeighted:
     from one another in this file to allow the possibility of re-use of some of
     the toolset by alloying with some other implementation of other parts of the
     toolset.  Each part's implementation assumes the exported functionality of
-    the other parts, so only such alloys are viable: instances of the component
-    classes won't work.
+    the other parts, so only alloys analogous to Weighted are viable: instances
+    of the component classes won't work.
 
     Sub-classes:
 
       statWeighted -- provides for statistical computations;
       joinWeighted -- provides for combining distributions (and transforming them);
       repWeighted -- integrating and rounding;
-      _Weighted -- Object packaging weights dictionary;
+      _Weighted -- Object packaging a weights dictionary.
 
     These are all alloyed together to build the final class, Weighted, which is
     what Sample actually uses. """
@@ -62,10 +66,7 @@ class statWeighted(_baseWeighted):
 
     Provides standard statistical functionality: presumes that instances behave
     as dictionaries, which must be arranged for by alloying this base with some
-    other base-class providing that functionality.
-
-    Also provides for comparison.
-    """
+    other base-class providing that functionality (see _Weighted). """
 
     def median(self):
         """Takes the median of a distribution.
@@ -249,7 +250,8 @@ class joinWeighted(_baseWeighted):
     distribution, obtaining a canonical distribution (i.e. one whose weights'
     neighbourhoods don't overlap) and for performing `cartesion product'
     operations (i.e. taking two distributions and obtaining the joint
-    distribution for some combinatin of their parameters). """
+    distribution for some combination of their parameters), including
+    comparison. """
 
     def __init__(self, detail):
         self.__detail = detail
@@ -433,6 +435,8 @@ class repWeighted(_baseWeighted):
     More sophisticated replacements for repWeighted may be worth using in its
     place when alloying a modified Weighted for use by Sample.  The replacement
     should be sure to provide between(), weights(), carve() and round(). """
+
+    tophat = {-1./6: 1, 1./6: 1} # produces uniform distribution from -.5 to +.5
 
     # Support tool: interpolator to interpret the dictionary as a curve.
     class _lazy_get_interpolator_ (Lazy):
@@ -1041,9 +1045,10 @@ class _Weighted(Object, _baseWeighted):
     _borrowed_value_ = ('keys', 'values', 'items', 'has_key', 'get', 'update', 'clear'
                         ) + Object._borrowed_value_
 
+    __upinit = Object.__init__
     def __init__(self, weights, scale=1, *args, **what):
         assert not what.has_key('values'), what['values']
-        apply(Object.__init__, (self,) + args, what)
+        apply(self.__upinit, args, what)
         self.__weights = {}
         self.add(weights, scale)
 
@@ -1154,7 +1159,8 @@ class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
         self.__joinit(detail)
 
 # That's built Weighted; now to build Sample, its client.
-# random tools to deal with overflow and kindred hassles ...
+# First, some random tools to deal with overflow and kindred hassles
+# (these get deleted once Sample is defined) ...
 
 def _power(this, what):
     try:
@@ -1283,13 +1289,14 @@ class Sample (Object):
     # Binary operators:
     def __add__(self, what, f=lambda x, w: x+w): return self.__bundle_(f, what)
     def __sub__(self, what, f=lambda x, w: x-w): return self.__bundle_(f, what)
-    def __mul__(self, what): return self.__bundle_(_multiply, what)
+    def __mul__(self, what, f=_multiply): return self.__bundle_(f, what)
 
     def __radd__(self, what, f=lambda x, w: w+x): return self.__bundle_(f, what)
     def __rsub__(self, what, f=lambda x, w: w-x): return self.__bundle_(f, what)
-    def __rmul__(self, what, f=lambda x, w: _multiply(w, x)): return self.__bundle_(f, what)
+    def __rmul__(self, what,
+                 f=lambda x, w, m=_multiply: m(w, x)): return self.__bundle_(f, what)
 
-    def __div__(self, what):
+    def __div__(self, what, f=_divide):
         try: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
         except AttributeError:
             if not what:
@@ -1298,16 +1305,16 @@ class Sample (Object):
             if lo == 0 == hi or lo * hi < 0:
                 raise ZeroDivisionError, ('Dividing by interval about 0', self, what)
 
-        return self.__bundle_(_divide, what)
+        return self.__bundle_(f, what)
 
-    def __rdiv__(self, what, f=lambda x, w: _divide(w, x)):
+    def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
         if cmp(self.low, 0) * cmp(self.high, 0) < 0:
             raise ZeroDivisionError, ('Dividing by interval about 0', self)
 
         return self.__bundle_(f, what)
 
     # For pow, expect simple argument:
-    def __pow__(self, what): return self.__bundle_(_power, what)
+    def __pow__(self, what, f=_power): return self.__bundle_(f, what)
     # officially: (self, what [, modulo ]) ... for ternary pow().
     def __abs__(self): return self.copy(abs)
 
@@ -1367,8 +1374,10 @@ class Sample (Object):
 
     def _lazy_get_mean_(self, ignored): return self.__call_or_best_(self.__weigh.mean)
     def _lazy_get_mode_(self, ignored): return self.__call_or_best_(self.__weigh.mode)
-    def _lazy_get_modes_(self, ignored): return self.__call_or_best_(self.__weigh.modes)
     def _lazy_get_median_(self, ignored): return self.__call_or_best_(self.__weigh.median)
+    def _lazy_get_modes_(self, ignored):
+        try: return self.__weigh.modes()
+        except (ValueError, ZeroDivisionError): return (self.best,)
 
     # lazy lookup of variance (and mean):
     def _lazy_get_variance_(self, ignored):
@@ -1378,7 +1387,7 @@ class Sample (Object):
                                self.__weigh)
         return vary
 
-    def _lazy_get_width_(self, ignored): return self.high - self.low
+    def _lazy_get_width_(self, ignored): return self.span[1] - self.span[0]
     def _lazy_get_mirror_(self, ignored): return self.__weigh.condense()
     def _lazy_get_errors_(self, ignored): return self - self.best
 
@@ -1417,10 +1426,21 @@ class Sample (Object):
 
         return self.__weigh.niles(n, mid)
 
+del _power, _multiply, _divide
+tophat = Sample(Weighted.tophat, best=0,
+                __doc__="""Unit width zero-centred error bar.
+
+                Also known as 0 +/- .5, which can readily be used as a simple
+                way to implement a+/-b as a + 2*b*tophat. """)
 
 _rcs_id = """
   $Log: sample.py,v $
-  Revision 1.9  2002-10-05 13:06:45  eddy
+  Revision 1.10  2002-10-06 14:20:00  eddy
+  Doc tweaks to *Weighted, more lambda tweaks, added tophat implementing +/-.5.
+  Fixed bug in width induced by recent rehabilitation of high and low.
+  Fixed Sample's .modes to always produce a tuple (unlike __call_or_best_).
+
+  Revision 1.9  2002/10/05 13:06:45  eddy
   Use parameter defaults to build various lambda expressions only once.
   Replaced repWeighted's `internal use only' sorted keys params with
   sortedkeys lazy attribute on _Weighted.  Gave Sample a str() and
