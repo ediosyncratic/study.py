@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.9 2005-03-13 21:33:28 eddy Exp $
+$Id: body.py,v 1.10 2005-03-16 22:59:45 eddy Exp $
 """
 
 from basEddy import value
@@ -210,10 +210,14 @@ class Body (Object):
         argument is its eccentricity, defaulting to 0.  Result is a Spin object
         describing the angular velocity of the orbit.
 
-        Present implementation ignores eccentricity, to get: GM/R/R = w.w.R so w
-        = sqrt(GM/R/R/R) and T = 2.pi/w.  """
+        Ignoring eccentricity, we get: GM/R/R = w.w.R so w = sqrt(GM/R/R/R) and
+        T = 2.pi/w.  This actually holds true, for non-zero eccentricity, if R
+        is the semi-major axis of the orbit: but if R is the semi-latus rectum,
+        you should specify a non-zero eccentricity and this will adjust it by
+        the correct factor.\n"""
 
-        return S(pow(radius**3 / self.GM, .5) / tp)
+        if ecce: radius = radius / (1 - ecce**2)
+        return S(tp * (radius**3 / self.GM)**.5)
 
     def __radius(self, given, time=second, length=metre, angle=turn, tp=2*pi):
         try: given + length # radius
@@ -227,6 +231,7 @@ class Body (Object):
         try: given + time # period
         except TypeError: pass
         else: return (self.GM * (given / tp)**2)**(1./3), given
+        # should take account of eccentricity !
 
         raise ValueError('how does that specify an orbit ?', given)
 
@@ -283,7 +288,7 @@ on the surface of %s as it rotates. """ % (name, self.name))
 del Spin
 
 del Quantity, second, metre, turn, pi
-from space.common import Round
+from space.common import Round, Spheroid
 
 class Hoop (Object, Round):
     # used for gaps and ring arcs, and as base for Ring.
@@ -294,16 +299,24 @@ class Hoop (Object, Round):
         o = what['orbit'] = O(centre, radius, None, eccentricity, tilt)
         # It's important that we pass orbit via what ...
         apply(self.__upinit, (name,), what)
-        self.borrow(o)
+        self.borrow(o) # for Round
 
-del Round, Orbit
+del Orbit, Round
+
+class Shell (Object, Spheroid):
+    __obinit, __spinit = Object.__init__, Spheroid.__init__
+    def __init__(self, name, centre, *radii, **what):
+        apply(self.__spinit, radii, what)
+        self.__obinit(name, centre=centre)
+
+del Spheroid
 
 class Ring (Hoop):
     __upinit = Hoop.__init__
     def __init__(self, name, centre, inner, outer, tilt=0, eccentricity=0, **what):
         apply(self.__upinit, (name, centre,
                               (inner.best + outer.best) * .5 + (outer.high - inner.low) * tophat,
-                              eccentricity, tilt),
+                              tilt, eccentricity),
               what)
 
 class Planetoid (Body):
@@ -354,13 +367,14 @@ class Planet (Planetoid):
 class Galaxy (Object): pass
 class Star (Body):
     __upinit = Body.__init__
-    def __init__(self, name, typ, distance, **what):
-        apply(self.__upinit, (name,), what)
-        self.distance, self.type = distance * year.light, typ
+    def __init__(self, name, **what): apply(self.__upinit, (name,), what)
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.9  2005-03-13 21:33:28  eddy
+Revision 1.10  2005-03-16 22:59:45  eddy
+Simplified Star.
+
+Revision 1.9  2005/03/13 21:33:28  eddy
 Require a type parameter for Star.
 
 Revision 1.8  2005/03/13 21:30:51  eddy

@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.8 2005-03-13 21:34:17 eddy Exp $
+$Id: home.py,v 1.9 2005-03-16 23:00:14 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -27,7 +27,7 @@ MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's orbit
 # can't be specified until Sun has been created.
 Sun = body.Star(
-    'Sun', 'G2 V', 0,
+    'Sun', type='G2 V',
     orbit = Orbit(MilkyWay,
 		  3e4 * year.light,
 		  Spin(225e6 * year), # period agrees with that from GM/r**3
@@ -361,7 +361,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.8  2005-03-13 21:34:17  eddy
+Revision 1.9  2005-03-16 23:00:14  eddy
+Simplified Star.
+
+Revision 1.8  2005/03/13 21:34:17  eddy
 Use new Galaxy and Star classes from body.
 
 Revision 1.7  2005/03/13 19:28:45  eddy
