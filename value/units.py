@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.15 2005-01-17 23:57:38 eddy Exp $
+$Id: units.py,v 1.16 2005-02-06 10:46:56 eddy Exp $
 """
 from SI import *
 
@@ -483,15 +483,16 @@ cable = Quantity(0.1, mile.nautical,
 league.marine = 3 * mile.nautical
 knot = mile.nautical * 1. / hour
 
-foot.French = pied = 4500 * metre / 13853	# pied de roi, French foot
-inch.French = pied / 12
+foot.French = 4500 * metre / 13853	# pied de roi, French foot
+inch.French = foot.French / 12
 point.French = inch.French / 144
-French = Object(foot = pied,
+French = Object(pied = foot.French,
+                # what're the right French names for inch, line, point ?
                 inch = inch.French,
                 line = inch.French / 12,
                 point = point.French,
-                toise = 6 * pied,
-                arpent = (180 * pied)**2)
+                toise = 6 * foot.French,
+                arpent = (180 * foot.French)**2)
 
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
@@ -508,7 +509,7 @@ stone = 2 * clove
 cental = 100 * pound # cental is a UK name for the US cwt
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
-TNT = 4.184e9 * Joule / ton.US # (2.15 km/s)**2
+TNT = Quantity(4.184 + .001 * tophat, giga * Joule) / ton.US # (2.15 km/s)**2
 
 # Anglophone units of energy:
 CHU = calorie * pound / gram     # whatever CHU is ! (KDWB)
@@ -710,7 +711,7 @@ some less civilized countries.\n""",
                Svensk = Swedish.mil)
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
-Swiss = Object(lien = 5249 * yard)
+Swiss = Object(lien = 5249 * yard) # c. (land) league
 Dutch = Object(oncen = kilogramme / 10)
 Turk = Object(oke = 2.8342 * pound, berri = 1828 * yard)
 Russia = Object(verst = 1167 * yard, pood = 36.11 * pound)
@@ -763,7 +764,12 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.15  2005-01-17 23:57:38  eddy
+ Revision 1.16  2005-02-06 10:46:56  eddy
+ Conformed French units to name-spacery used for Scandic ones.
+ Noted similarity of Swiss lien to the league.
+ Guessed error bar on TNT from number of sig. figs in given datum.
+
+ Revision 1.15  2005/01/17 23:57:38  eddy
  Added degree Object to carry the various kinds thereof.
  Added gunner's grad = turn / 400.
  Noted similarities between Danish volumes and UK ones.
