@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.4 2005-03-12 17:27:53 eddy Exp $
+$Id: body.py,v 1.5 2005-03-12 17:56:00 eddy Exp $
 """
 
 from basEddy.units import Object, Quantity, second, metre, turn, pi, tophat
@@ -200,7 +200,7 @@ class discreteBody (Body):
 
     del Cosmos
 
-    def orbital(self, radius, ecce=0, tp=2*pi):
+    def orbital(self, radius, ecce=0, tp=2*pi, S=Spin):
         """The spin of the relevant orbit.
 
         Required first argument is the radius of the orbit; optional second
@@ -210,7 +210,7 @@ class discreteBody (Body):
         Present implementation ignores eccentricity, to get: GM/R/R = w.w.R so w
         = sqrt(GM/R/R/R) and T = 2.pi/w.  """
 
-        return Spin(pow(radius**3 / self.GM, .5) / tp)
+        return S(pow(radius**3 / self.GM, .5) / tp)
 
     def __radius(self, given, time=second, length=metre, angle=turn, tp=2*pi):
         try: given + length # radius
@@ -227,19 +227,18 @@ class discreteBody (Body):
 
         raise ValueError('how does that specify an orbit ?', given)
 
-    def orbiter(self, given, **what):
+    def orbiter(self, given, O=Orbit, S=Spin, **what):
         radius, period = self.__radius(given)
         if period is None:
-            return apply(Orbit, (self, radius), what) # accept Orbit's guestimate of spin
+            return apply(O, (self, radius), what) # accept Orbit's guestimate of spin
 
-        return apply(Orbit, (self, radius, Spin(period)), what)
+        return apply(O, (self, radius, S(period)), what)
 
-    def _lazy_get_synchronous_(self, ignored):
+    def _lazy_get_synchronous_(self, ignored, path=Orbit):
 	"""Synchronous orbit. """
 	name = "Synchronous orbit about %s" % self.name
-	return Orbit(self, self.surface._sync, self.surface.spin, 0,
-		     name = name,
-		     __doc__ = """%s
+	return path(self, self.surface._sync, self.surface.spin, 0,
+                    name = name, __doc__ = """%s
 
 This is the orbit in which a satellite remains permanently above the same point
 on the surface of %s as it rotates. """ % (name, self.name))
@@ -286,15 +285,15 @@ from space.common import Round
 class Hoop (Body, Round):
     # used for gaps and ring arcs, and as base for Ring.
     __upinit = Body.__init__
-    def __init__(self, name, centre, radius, tilt=0, eccentricity=0, **what):
+    def __init__(self, name, centre, radius, tilt=0, eccentricity=0, O=Orbit, **what):
         # Assume rings move circularly, since Saturn's rings look like they do ...
         if tilt: tilt = tilt * tophat
-        o = what['orbit'] = Orbit(centre, radius, None, eccentricity, tilt)
+        o = what['orbit'] = O(centre, radius, None, eccentricity, tilt)
         # It's important that we pass orbit via what ...
         apply(self.__upinit, (name,), what)
         self.borrow(o)
 
-del Round
+del Round, Orbit
 
 class Ring (Hoop):
     __upinit = Hoop.__init__
@@ -351,7 +350,10 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.4  2005-03-12 17:27:53  eddy
+Revision 1.5  2005-03-12 17:56:00  eddy
+Tunnel Spin and Orbit so we can del them.
+
+Revision 1.4  2005/03/12 17:27:53  eddy
 Missed tophat, and still need Orbit after load.
 
 Revision 1.3  2005/03/12 17:10:19  eddy
