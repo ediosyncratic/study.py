@@ -4,7 +4,7 @@
 See also: http://www.johnstonsarchive.net/astro/asteroidmoons.html and links
 therefrom.
 
-$Id: asteroid.py,v 1.3 2005-03-13 15:21:30 eddy Exp $
+$Id: asteroid.py,v 1.4 2005-03-13 15:26:57 eddy Exp $
 """
 
 from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
@@ -72,17 +72,17 @@ smaller than they expected and a few more showed up soon enough.\n"""),
                   __doc__="""The first asteroid discovered.
 
 See Ceres.discovery and Sun.Bode for further details.  Piazzi actually named
-this asteroid Ceres Ferdinandea, but it's now called Ceres.\n"""),
+this asteroid Ceres Ferdinandea, but it's now called Ceres.\n""")
 
-Albert = IArock('Albert', 1911, 4 + Sample.tophat, 3, 300, 20),
+Albert = IArock('Albert', 1911, 4 + Sample.tophat, 3, 300, 20)
 Eros = IArock('Eros', Discovery("C.G. Witt", 1898, location="Berlin",
                                 date="1898, August 13",
-                                etymology="Greek: Eros - god of love"), 1.76, 15, 15000, 14),
-Amor = IArock('Amor', 1932, 2.67, 10, 12000, 10),
+                                etymology="Greek: Eros - god of love"), 1.76, 15, 15000, 14)
+Amor = IArock('Amor', 1932, 2.67, 10, 12000, 10)
 # Amor is also the name of a class of Mars-crossers that don't cross Earth's orbit.
-Apollo = IArock('Apollo', 1932, 1.81, 2, 100, 7),
-Icarus = IArock('Icarus', 1949, 1.12, 1, 12, 4),
-Adonis = IArock('Adonis', 1936, 2.76, 1, 12, 1.5),
+Apollo = IArock('Apollo', 1932, 1.81, 2, 100, 7)
+Icarus = IArock('Icarus', 1949, 1.12, 1, 12, 4)
+Adonis = IArock('Adonis', 1936, 2.76, 1, 12, 1.5)
 Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
@@ -92,7 +92,11 @@ del Sample, ton, tera, mega, mile, Quantity, year, tophat
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.3  2005-03-13 15:21:30  eddy
+Revision 1.4  2005-03-13 15:26:57  eddy
+Removed spurious trailing comma from each asteroid, left over from when
+they were assigned in a parameter-list to Asteroids.also().
+
+Revision 1.3  2005/03/13 15:21:30  eddy
 Moved Planets from home to __init__;
 may as well get Sun and AU via D while we're at it.
 
