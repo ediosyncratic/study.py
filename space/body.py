@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.1 2005-03-12 14:52:15 eddy Exp $
+$Id: body.py,v 1.2 2005-03-12 16:50:06 eddy Exp $
 """
 
 from basEddy.units import Object, Quantity, second, metre, turn, pi
@@ -13,7 +13,7 @@ class Body (Object):
         self.name = name
 	try: what['orbit'].centre.satellites.insert(None, self)
 	except (KeyError, AttributeError):
-            print 'Failed to insert', name, "in satellite list of its orbit's centre"
+            pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
     def __str__(self): return self.name
     __repr__ = __str__
@@ -40,9 +40,6 @@ class Body (Object):
             purge could be used."""
 
             self.__cb, self.__carry = centre._lazy_reset_, []
-            # borrow from carry (in so far as lists have owt to borrow)
-            self.borrow(self.__carry)
-            # but override insert and append, block reverse and sort.
 
         def __getitem__(self, ind):
             if ind < 0 or ind >= len(self.__carry): raise IndexError, ind
@@ -94,13 +91,6 @@ class Body (Object):
         def append(self, what):
             """Inserts what in self, taking hint that it belongs at end."""
             self.insert(len(self.__carry), what)
-
-        # Don't let anyone mess with the ordering:
-        def reverse(self):
-            raise ValueError, 'Trying to reverse a rightly-ordered list.'
-
-        def sort(self, func=None):
-            raise ValueError, 'Trying to shuffle a neatly-ordered list.'
 
 from space.common import Spin, Orbit
 
@@ -358,7 +348,8 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.1  2005-03-12 14:52:15  eddy
-Initial revision
+Revision 1.2  2005-03-12 16:50:06  eddy
+Threw out the bits of satellites list that I don't want ...
 
+Initial Revision 1.1  2005/03/12 14:52:15  eddy
 """
