@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.33 2005-01-21 00:03:05 eddy Exp $
+$Id: quantity.py,v 1.34 2005-03-22 00:06:11 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -172,9 +172,10 @@ def scalar():
 
     def chose(val, s, c):
         try: return s(val)
-        except ValueError:
+        except (ValueError, TypeError):
             return c(val)
 
+    def exp(val, xp=math.exp, px=cmath.exp, s=chose): return s(val, xp, px)
     def ln(val, lg=math.log, gl=cmath.log, s=chose): return s(val, lg, gl)
     def arccos(val, ac=math.acos, ca=cmath.acos, s=chose): return s(val, ac, ca)
     def arcsin(val, as=math.asin, sa=cmath.asin, s=chose): return s(val, as, sa)
@@ -193,8 +194,8 @@ def scalar():
              'arcSin': lambda v, a=arcsin, r=radian: r * v.evaluate(a),
              'arcTan': lambda v, a=math.atan, r=radian: r * v.evaluate(a),
              'arcCoTan': lambda v, a=math.atan, r=radian, q=math.pi / 4: r * (q - v.evaluate(a)),
-             'arcSec': lambda v, a=arccos, r=radian: r * (1./v).evaluate(a),
-             'arcCoSec': lambda v, a=math.asin, r=radian: r * (1./v).evaluate(a),
+             'arcSec': lambda v, a=arccos, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
+             'arcCoSec': lambda v, a=math.asin, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
              'arcCosH': lambda v, a=arccosh: v.evaluate(a),
              'arcSinH': lambda v, a=arcsinh: v.evaluate(a),
              'arcTanH': lambda v, a=arctanh: v.evaluate(a),
@@ -202,7 +203,7 @@ def scalar():
              'SinH': lambda v, s=math.sinh: v.evaluate(s),
              'TanH': lambda v, t=math.tanh: v.evaluate(t),
              'log': lambda v, l=ln: v.evaluate(l),
-             'exp': lambda v, e=math.exp: v.evaluate(e) }
+             'exp': lambda v, e=exp: v.evaluate(e) }
 
 def angle():
     from math import cos, sin, tan, pi
@@ -718,7 +719,11 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.33  2005-01-21 00:03:05  eddy
+ Revision 1.34  2005-03-22 00:06:11  eddy
+ Mediate exp via chose, like various others.  Munge the inversion in some
+ others into the lambda; not sure it's sensible, though.
+
+ Revision 1.33  2005/01/21 00:03:05  eddy
  Added Quantity.span
 
  Revision 1.32  2005/01/17 22:46:48  eddy
