@@ -204,6 +204,12 @@ def chose(total, part):
     of choice.  Computed using a cached form of Pascal's triangle. """
 
     return _binomials[total-part, part]
+
+def Pascal(tot):
+    """Returns a row of Pascal's triangle"""
+    row = []
+    for it in range(1+tot): row.append(_binomials[tot-it, it])
+    return tuple(row)
 
 def factorial(num):
 	"""Returns the factorial of any natural number.
@@ -217,22 +223,18 @@ def factorial(num):
 	what to do with invalid input.  For other non-integer values, you'll get
 	a computed positive value which probably isn't far off the Gamma
 	function's value at one more than that non-integer.  For valid input,
-	<I>ie</I> non-negative integers, factorial(num) = Gamma(1+num).
+	i.e. non-negative integers, factorial(num) = Gamma(1+num), wherein
 
 	Gamma(a) = integral(positive reals| t-&gt; exp(-t). power[a-1](t) :)
 
-	for arbitrary a in the complex plane, with a pole at each negative
-	integer (of order, I think, the corresponding positive) and a real
-	humdinger of a singularity at infinity. """
+	for arbitrary a in the complex plane, with a pole (of order 1) at each
+	negative integer and a real humdinger of a singularity at infinity. """
 
 	result = 1
 	while num > 1:
 	    try: result = result * num
 	    except OverflowError: result = long(result) * num
 	    num = num - 1
-
-        # Potentially multiply by Gamma(1+num), which is 1 for num in (0, 1),
-        # but varies between these two
 
 	return result
 
@@ -440,19 +442,21 @@ def sort(row):
     row[:] = sorted(row)
 
 class Iterator:
+    # for a rather elegant application, see queens.py's derived class
     """Iterator over permutations.
 
-    Cycles through all the permutations of [0,...,n-1] for some n; does so in
-    lexicographic order.
+    Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
+    some n; does so in lexicographic order.  Attribute .live will be true until
+    all permutations have been stepped over.
 
-    Method step() advances the iterator; attribute live will be true until all
-    permutations have been stepped over.  The current permutation is available
-    under any name that's an initial chunk of 'permutation', e.g. p, perm or
-    permutation.  Modifying the list obtained as this attribute won't affect the
-    iterator (i.e. you get a copy of the internal permutation).
+    Methods:
 
-    Method permute(sequence) applies the current permutation to a given
-    sequence; method inverse() returns the inverse of the current permutation.
+	.step() advances the iterator, setting .live when appropriate.
+
+	.restart() resets the iterator to its initial condition
+
+	.permute(sequence) returns the result of applying the iterator's current
+	permutation to the given sequence.
 
     Illustrative usage::
 
@@ -461,7 +465,14 @@ class Iterator:
             anagram = ''.join(it.permute(word))
             if dictionary.has_key(anagram): print anagram
             it.step()
-    """
+
+    The current permutation and its inverse are available, as tuples, under any
+    name that's a non-empty initial chunk of 'permutation' or 'inverse', as
+    appropriate; e.g. .p, .perm, .permutation, .i, .inv and .inverse all work.
+    [Note that `permute' is *not* an initial chunk of `permutation'.]  These are
+    re-computed every time they are asked for: if you intend to use either,
+    particularly .inverse, several times in an iteration, you should take a copy
+    of its value to save re-computation. """
 
     def __init__(self, size):
         """Initialise permutation iterator.
@@ -469,15 +480,30 @@ class Iterator:
         Single argument is the size of the permutation, i.e. the length of the
         sequences it'll permute. """
 
-        if size > 0:
+        if size < 0:
+            self.live = None
+	    self.step = self.restart = lambda : None # no-op
+        else:
             self.__row = range(size)
             self.live = 1
-        else:
-            self.live = None
 
     def __getattr__(self, key):
-        if key == 'permutation'[:len(key)]: return self.__row[:]
-        raise AttributeError
+	if key and self.live:
+	    if key == 'permutation'[:len(key)]: return tuple(self.__row)
+	    if key == 'inverse'[:len(key)]: return invert(self.__row)
+
+        raise AttributeError, key
+
+    def permute(self, seq):
+        """Apply current permutation to a sequence."""
+	if not self.live: raise AttributeError('permutation', 'exhausted iterator')
+        return permute(seq, self.__row)
+
+    def restart(self):
+	try: del self.step
+	except AttributeError: pass
+	self.__row = range(len(self.__row))
+	self.live = 1
 
     def step(self):
         """Advances iterator.
@@ -491,6 +517,7 @@ class Iterator:
         if i < 1:
             # row is entirely in decreasing order: that's our last permutation.
             self.live = None
+	    self.step = lambda : None # no-op
             return
 
         i, j = i-1, len(self.__row) -1
@@ -505,16 +532,13 @@ class Iterator:
         while i < j:
             self.__row[j], self.__row[i] = self.__row[i], self.__row[j]
             i, j = 1+i, j-1
-
-    def permute(self, seq):
-        """Apply current permutation to a sequence."""
-        return permute(seq, self.__row)
-
-    def inverse(self): return invert(self.__row)
 
 _rcs_log = """
   $Log: permute.py,v $
-  Revision 1.1  2001-05-07 12:29:47  eddy
-  Initial revision
+  Revision 1.2  2002-03-13 02:13:40  eddy
+  Added Pascal, frobbed docs.  Corrected handling of Iterator(0), made
+  .inverse an attribute like .permutation, xrefed new queens.py, added
+  .restart() and shuffled method order.
 
+  Initial Revision 1.1  2001/05/07 12:29:47  eddy
 """
