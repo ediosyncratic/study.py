@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.4 2005-03-13 14:32:03 eddy Exp $
+$Id: common.py,v 1.5 2005-03-16 21:23:24 eddy Exp $
 """
 
 from basEddy.units import tophat, arc, pi, Object, second
@@ -60,16 +60,16 @@ class Round (Object): # handy base-class for round things
 
 class Orbit (Round):
     __upinit = Round.__init__
-    def __init__(self, centre, radius, spin=None, eccentricity=None, tilt=None, **what):
-        times = []
-	try: times.append(what['speed'] / radius)
+    def __init__(self, centre, radius, spin, eccentricity=None, tilt=None, **what):
+        ws = []
+	try: ws.append(what['speed'] / radius)
 	except KeyError: pass
 
 	try: GM = centre._lazy_get_GM_('GM') # compute but don't store ...
 	except AttributeError: pass
-	else: times.append((GM / radius**3)**.5)
+	else: ws.append((GM / radius**3)**.5)
 
-        if spin is None and not times: # needed by __spin
+        if spin is None and not ws and not os: # needed by __spin
             raise ValueError('No spin specified or computeble for orbit', centre, radius, what)
 
         if eccentricity is None:
@@ -77,21 +77,21 @@ class Orbit (Round):
             # => b*(1-e) = 1+e => b-1 = e*(1+b) => e = (b-1)/(1+b)
             b = radius.high / radius.low
             eccentricity = (b - 1) / (1 + b)
+            # ideally invent a suitable error bar ...
             eccentricity.document("""Eccentricity guessed from error bar on radius.  Not to be trusted !""")
-            # ideally invent a suitable error bar on that ...
 
-        apply(self.__upinit, (radius, self.__spin(spin, times, tilt)), what)
+        apply(self.__upinit, (radius, self.__spin(spin, ws, tilt)), what)
         self.centre, self.eccentricity = centre, eccentricity
 
-    def __spin(self, maybe, times, tilt, squish=lambda x, tp=2*pi: tp/x):
-        row = map(squish, times)
+    def __spin(self, maybe, ws, tilt, squish=lambda x, tp=2*pi: tp/x):
+        periods = map(squish, ws)
         if maybe is None:
-            assert row # tested by constructor
-            if tilt is None: maybe = Spin(row[0]) # use Spin's default tilt
-            else: spin = Spin(row[0], tilt)
-            row = row[1:]
+            assert periods # tested by constructor
+            if tilt is None: maybe = Spin(periods[0]) # use Spin's default tilt
+            else: spin = Spin(periods[0], tilt)
+            periods = periods[1:]
 
-        for it in row:
+        for it in periods:
             maybe.period.observe(it)
 
         return maybe
@@ -222,7 +222,10 @@ del tophat, arc, pi, Object, second
 
 _rcs_log = """
 $Log: common.py,v $
-Revision 1.4  2005-03-13 14:32:03  eddy
+Revision 1.5  2005-03-16 21:23:24  eddy
+Renamed some variables to be more apt.
+
+Revision 1.4  2005/03/13 14:32:03  eddy
 Moved source comment to __init__.py
 
 Revision 1.3  2005/03/12 17:58:56  eddy
