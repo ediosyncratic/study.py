@@ -1,7 +1,7 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
-$Id: root.py,v 1.3 2004-04-25 15:28:08 eddy Exp $
+$Id: root.py,v 1.4 2004-04-25 17:10:42 eddy Exp $
 """
 
 class Search:
@@ -42,28 +42,32 @@ class Search:
             for (s,k) in row[keep:]: del self.__cache[k]
 
     def logrange(scale=1, count=10, step=-.5): # local function, not method
-        row = []
+        row = [ scale ]
         while count > 0:
-            row.append(scale)
             scale, count = scale * step, count - 1
+            row.append(scale)
         return tuple(row)
 
     def gradient(self, val, scale=None, dust=logrange()):
         if not scale: scale = self.stride
-        map(lambda x, v=val, s=scale, f=self.func: f(v + x * s), dust)
-        data = map(lambda (k,v), a=val, b=self.func(val): (v-b) / (k-a),
+        map(lambda x, v=val, s=scale, f=self.func: f(v + x * s), dust) # populate cache
+        data = map(lambda (k,v), a=val, b=self.func(val): ((k-a), (v-b)),
                    filter(lambda (k,v), a=val, s=scale: 0 < abs(k-a) <= abs(s),
                           self.__cache.items()))
-        data.sort(lambda x, y: cmp(abs(x), abs(y)))
-        if filter(None, data):
-            while data and not data[0]: data = data[1:]
 
+        # filter out short base-lines on which rounding is negligible:
+        data.sort(lambda (x,u), (y,v): cmp(abs(x), abs(y)) or cmp(abs(u), abs(v)))
+        if filter(None, data):
+            while data and not data[0][0]: data = data[1:]
+
+        # convert to slopes and find median:
+        data = map(lambda k, v: v/k, data)
+        data.sort()
         mid, bit = divmod(len(data), 2)
         if bit: return data[mid]
         else: return (data[mid] + data[mid-1]) * .5
 
     del logrange
-
     def exact(val): # local function, not method.
         try: zero = val.evaluate(lambda x: 0)
         except AttributeError: zero = val * 0
@@ -99,8 +103,7 @@ class Search:
             k, v = data[-1] # we're doomed if that hits IndexError
             cut.append((self.goal(y), (x,y), (k,v)))
 
-        cut.sort()
-        ig, (x,y), (k,v) = cut[0]
+        ig, (x,y), (k,v) = min(cut)
         rate = hit(v-y)/hit(k-x)
         if rate:
             move = - hit(y / rate)
@@ -112,7 +115,17 @@ class Search:
 
     del exact
 
+    def __broaden(self):
+        while 1:
+            self.func(self.best + self.stride)
+            vals = map(lambda (k,v): (v,k), self.__cache.items())
+            hi, lo = max(vals), min(vals)
+            if hi[0] != lo[0]: break
+            gap = hi[1] - lo[1]
+            self.stride = 10 * gap
+
     def rummage(self, tries=42, threshold=-1):
+        self.__broaden()
         good = self.score
         while tries > 0:
             tries = tries - 1
@@ -134,7 +147,11 @@ class Search:
 
 _rcs_log = """
  $Log: root.py,v $
- Revision 1.3  2004-04-25 15:28:08  eddy
+ Revision 1.4  2004-04-25 17:10:42  eddy
+ Make logrange less wasteful.  Get gradient's chord-filtering right.
+ Use min instead of .sort() and [0].  Added __broaden for when slope is too low.
+
+ Revision 1.3  2004/04/25 15:28:08  eddy
  Use exact values in cache, yield exact values from refiners.
  Also, flush cache after each rummage.
 
