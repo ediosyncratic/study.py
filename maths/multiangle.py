@@ -6,7 +6,7 @@ for theory.
 """
 
 _rcs_id_ = """
-$Id: multiangle.py,v 1.4 2003-08-10 12:45:42 eddy Exp $
+$Id: multiangle.py,v 1.5 2003-08-10 20:45:02 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -148,11 +148,30 @@ class seqSin (LazySeq):
 
 # C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin()
-del seqCos, seqSin, z
+del seqCos, seqSin
+
+class Middle (LazySeq):
+    def growto(self, key, term=2*z+1, Bchk=-(2*z+3), x=z, Cchk=4*z*z-3, Schk=1-4*z*z):
+        # Theoretically, the Q and B uses of .unafter() can be replaced by
+        # passing their self's appropriate polynomials inputs; but the float
+        # arithmetic involved breaks for large enough key; .unafter() is more
+        # robust, albeit at the expense of time ...
+        ans = Q[key].unafter(term)
+        assert ans.rank == key
+        assert ans == (C[2*key+1]/x).unafter(Cchk)
+        assert S[2*key].unafter(Schk) == ans * {0: 1, 1: -1}[key % 2] == B[key].unafter(Bchk)
+        return ans
+
+D = T = Middle()
+del z
 
 _rcs_log_ = """
 $Log: multiangle.py,v $
-Revision 1.4  2003-08-10 12:45:42  eddy
+Revision 1.5  2003-08-10 20:45:02  eddy
+Added implementation of the polynomial that unifies Q and B, albeit I haven't
+yet *proved* it does so.  The assertions make me confident, though ;^>
+
+Revision 1.4  2003/08/10 12:45:42  eddy
 Renumbered S down by 1, so S[n].rank is n.
 Added assorted assertions.
 
