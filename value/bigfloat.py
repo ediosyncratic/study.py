@@ -8,10 +8,19 @@ and 10**BigFloat.logzero is distinguished from zero.  Much the same applies to
 the BigComplex type; note that (analogous to builtin complex) it holds real and
 imaginary parts as separate BigFloat()s, so doesn't lose a tiny value of one
 when added to a huge value of the other.
+
+This approach (using a separate arbitrary-sized int as exponent) begs an
+implementation float which uses an entire word to hold a bit-pattern denoting a
+number between 1 and 2, with the leading '1.' elided (because implicit); then
+all floating point instructions yield their answer in this form along with an
+int register holding the power of two the answer should be scaled by; this int
+is thus made available to the infrastructure tracking the overall powers of two
+encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
+accompanying the fractional value.
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.9 2003-10-04 10:22:14 eddy Exp $
+$Id: bigfloat.py,v 1.10 2003-10-05 14:52:15 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -334,7 +343,10 @@ class BigComplex (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.9  2003-10-04 10:22:14  eddy
+Revision 1.10  2003-10-05 14:52:15  eddy
+Added thoughts on a different approach to implementing floats.
+
+Revision 1.9  2003/10/04 10:22:14  eddy
 Fixed handling of powers of BigFloat(0)
 
 Revision 1.8  2003/10/04 10:12:15  eddy
