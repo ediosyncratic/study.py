@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.14 2005-02-14 08:08:04 eddy Exp $
+$Id: particle.py,v 1.15 2005-03-21 22:49:36 eddy Exp $
 """
 
 from const import *
@@ -403,7 +403,11 @@ visible = photon(380, 700, 'visible',
 
 The visible spectrum ranges from .4 to .7 microns.  See, e.g.,
     http://www.sundog.clara.co.uk/rainbows/primcol.htm
-on the site that persuaded me to broaden the spectrum to 380--700 nm.
+on the site that persuaded me to broaden the spectrum to 380--700 nm;
+but see also (conflicting in details)
+    http://cimss.ssec.wisc.edu/wxwise/bluesky.html
+for which I've widened red but not changed the rest.
+Fundamentally, the boundaries between colours are severely subjective !
 
 In particular, see attribute spectrum, a sequence of colour bands; and/or look
 in visible's name-space for these bands by name; in due course I'll add
@@ -416,8 +420,9 @@ numeral, which appears to denote *one more than* the level to which the atom has
 been ionized; mayhap it's really the index of the electron whose transitions
 we're seeing, counting inwards from the most easily dislodged ones.
 """,
-                 # all rather approximate; see Nuffield, pp46--47:
-                 red=photon(624, 700, 'red',
+                 # All rather approximate; see Nuffield, pp46--47 and sources in doc string.
+                 #' It'd be nice to have a way to use blurry-boundaries ... a chart of the spectrum ?
+                 red=photon(624, 780, 'red',
                             NII=Photon(name='NII', wavelength=6580 * Angstrom, source='Nitrogen')),
                  orange=photon(606, 624, 'orange'), # but see Na orange
                  yellow=photon(590, 606, 'yellow',
@@ -623,7 +628,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.14  2005-02-14 08:08:04  eddy
+ Revision 1.15  2005-03-21 22:49:36  eddy
+ Doc/coment burble, expanded red out to 780 micron.
+
+ Revision 1.14  2005/02/14 08:08:04  eddy
  Made visible into a namespace holding the spectral bands; added some
  spectral lines (from Bad Astronomy) to these bands.
 
