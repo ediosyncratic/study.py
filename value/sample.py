@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.29 2005-01-28 01:09:17 eddy Exp $
+$Id: sample.py,v 1.30 2005-03-13 18:43:42 eddy Exp $
 """
 
 class _baseWeighted:
@@ -161,16 +161,21 @@ class curveWeighted (Lazy, _baseWeighted):
             self.size = tuple(map(lambda k, w=weigher: w[k], weigher.sortedkeys))
             # the curve described has integral size[i] between cut[i] and cut[1+i].
 
-        def __cuts(self, row, mean=lambda a, b: (a+b)/2.):
+        def __cuts(self, row, mean=lambda a, b: .5*(a+b)):
             # computes cut points and ensures they're floats.
             if len(row) < 2:
                 if not row: return ()
                 x = 1. * row[0]
                 return (x, x)
 
-            return ( 2. * row[0] - row[1], ) + \
-                   tuple(map(mean, row[:-1], row[1:])) + \
-                   ( 2. * row[-1] - row[-2], )
+            assert not filter(lambda x: x < 0, map(lambda x, y: y - x, row[:-1], row[1:])), \
+                   ('expected sorted data', row)
+            top, bot = 2. * row[-1] - row[-2], 2. * row[0] - row[1]
+            # if all data-points are one side of zero, don't put a cut the other side ...
+            if top > 0 and row[-1] <= 0: top = 0
+            if bot < 0 and row[0] >= 0: bot = 0
+
+            return ( bot, ) + tuple(map(mean, row[:-1], row[1:])) + ( top, )
 
         def _lazy_get_total_(self, ignored, add=lambda a, b: a+b):
             return reduce(add, self.size, 0)
@@ -306,7 +311,7 @@ class curveWeighted (Lazy, _baseWeighted):
             bok = {}
             if len(bits) > 1:
                 bok[(cuts[0] + 2*cuts[1])/3.] = bits[0]
-                bok[(2*cuts[-2] + cuts[-1])/3] = bits[-1]
+                bok[(2*cuts[-2] + cuts[-1])/3.] = bits[-1]
                 bits = bits[1:-1]
                 for k in map(lambda a, b: .5*(a+b), cuts[1:-2], cuts[2:-1]):
                     bok[k], bits = bits[0], bits[1:]
@@ -1390,7 +1395,7 @@ class Sample (Object):
         Single argument should be a Weighted (or, at least, curveWeighted)
         object.  If this has more than one weight, it's interpreted as a
         distribution describing the value self is meant to represent; otherwise,
-        its weight-points are merely used as candidate best estimate values.
+        its weight-point is merely used as candidate best estimate value.
         Return value is true precisely if the changes made by this call to
         __update invalidate self.best (and possibly other related values).
 
@@ -1482,7 +1487,7 @@ class Sample (Object):
             try: del self.best # which _lazy_reset_ might not delete
             except AttributeError: pass
 
-            self.simplify()
+            self.simplify() # perhaps we should only _lazy_reset_ ?
 
     def simplify(self, count=None):
         """Simplifies the distribution describing self.
@@ -1740,7 +1745,11 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.29  2005-01-28 01:09:17  eddy
+  Revision 1.30  2005-03-13 18:43:42  eddy
+  Made interpolator's cuts honour sign of weight-points if they all have same sign.
+  Prevents certain kinds of spurious zero-spanning.  Also fixed a petty typo.
+
+  Revision 1.29  2005/01/28 01:09:17  eddy
   Bodge round a rounding issue.
 
   Revision 1.28  2004/12/30 20:42:51  eddy
