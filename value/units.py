@@ -66,7 +66,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.7 2003-04-17 22:19:20 eddy Exp $
+$Id: units.py,v 1.8 2003-04-17 22:42:02 eddy Exp $
 """
 from SI import *
 
@@ -114,8 +114,8 @@ bakersDozen = 13
 half = .5
 quarter = .25
 pair = 2
-nest = 3
-dickers = 10
+nest = 3 # also (in card games): prial
+dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks'
 score = 20
 timer = flock = 40
 shock = 60
@@ -123,7 +123,7 @@ gross = 144
 greatgross = gross * dozen
 paper = Object(
     shortquire = 24,
-    quire = 25,
+    quire = 25, # baker's two-dozen ?
     shortream = 480,
     ream = 500,
     perfectream = 516) # 43 * dozen
@@ -139,11 +139,35 @@ year = Time(27 * 773 * week / 400)	# the Gregorian approximation
 month = Time(year / 12) # on average, at least; c.f. planets.Month, the lunar month
 # factors of 216 seconds abound ...
 
+# Other SI-compatible units
+gram = Mass(milli * kilogramme)
+km, cm = kilo * metre, centi * metre
+cc = pow(cm, 3)
+
+St = Stokes = pow(cm, 2) / second # kinematic viscosity
+Angstrom = .1 * nano * metre    # &Aring;ngstr&ouml;m, aka &Aring;.
+micron = micro * metre
+fermi = femto * metre
+litre = milli * stere
+hectare = hecto * are
+barn = femto * hectare
+
+Gs = Gauss = .1 * milli * Tesla
+gamma = nano * Tesla
+Mx = Maxwell = 10 * nano * Weber
+stilb = 10 * kilo * candela / metre / metre
+phot = 10 * kilo * lux
+
+Bq = Becquerel = Hz             # Activity of a radionuclide
+Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
+Sv = sievert = Gy               # Dose equivalent
+rem = 10 * milli * Sv
+# 10 milli Gray is also called a rad (conflicts with radian)
+
+tex = gram / km # fineness of textiles
+dtex = deci * tex # see also: units.denier
+
 # etc.
-turn = cycle = revolution = 2 * pi * radian
-arc = Object(degree = turn / 360)
-arc.minute = arc.degree / 60
-arc.second = arc.minute / 60
 erg = .1 * micro * Joule
 dyn = 10 * micro * Newton
 
@@ -594,7 +618,10 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.7  2003-04-17 22:19:20  eddy
+ Revision 1.8  2003-04-17 22:42:02  eddy
+ moved various SI-compatibles in from SI; moved angles to SI; some comments
+
+ Revision 1.7  2003/04/17 22:19:20  eddy
  Fixed stupid typo in toCentrigrade; enhanced several docs; wrote, into
  doc string, a minor essay on the relevance of choice of unit.
 
