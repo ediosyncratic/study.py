@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.3 2005-03-12 17:10:19 eddy Exp $
+$Id: body.py,v 1.4 2005-03-12 17:27:53 eddy Exp $
 """
 
-from basEddy.units import Object, Quantity, second, metre, turn, pi
+from basEddy.units import Object, Quantity, second, metre, turn, pi, tophat
 
 class Body (Object):
     __upinit = Object.__init__
@@ -294,7 +294,7 @@ class Hoop (Body, Round):
         apply(self.__upinit, (name,), what)
         self.borrow(o)
 
-del Orbit, Round
+del Round
 
 class Ring (Hoop):
     __upinit = Hoop.__init__
@@ -351,7 +351,10 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.3  2005-03-12 17:10:19  eddy
+Revision 1.4  2005-03-12 17:27:53  eddy
+Missed tophat, and still need Orbit after load.
+
+Revision 1.3  2005/03/12 17:10:19  eddy
 Of course, having lazy reset preserve satellites becomes pretty crucial now that it's lazy ...
 
 Revision 1.2  2005/03/12 16:50:06  eddy
