@@ -1,16 +1,105 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.10 2005-03-16 22:59:45 eddy Exp $
+$Id: body.py,v 1.11 2005-03-19 17:24:20 eddy Exp $
 """
-
-from basEddy import value
 
+class Satellites:
+    """Carrier-object for satellites of a heavenly body."""
+
+    def __init__(self, callback, fill):
+        """Construct a new satellite-array.
+
+Arguments:
+
+  callback -- function to call when adding a new entry; should clear any
+  attributes (of the centre this object serves) that depend on what satellites
+  it has.
+
+  fill -- function to call once when it's a good moment to load all members; is
+  actually called the first time any indexing is attempted.
+
+In practice, the central body's lazy reset method is sensible for the former
+(provided we configure it to preserve its lazy satellites attribute, of
+course !), though ideally a more selective purge could be used.\n"""
+
+        self.__cb, self.__carry = callback, []
+        if fill is not None: self.__fill = fill
+
+    def GMs(self):
+        row = []
+        for sat in self.__carry:
+            if isinstance(sat, Body):
+                try: GM = sat.orbit._GM
+                except AttributeError: pass
+                else: row.append(GM)
+
+        return row
+
+    def __getitem__(self, ind):
+        try: fill = self.__fill
+        except AttributeError: pass
+        else:
+            del self.__fill
+            fill()
+
+        if ind < 0 or ind >= len(self.__carry): raise IndexError, ind
+        return self.__carry[ind]
+
+    # things we should be borrowing from __carry, but py 2.1 doesn't let us:
+    def __repr__(self): return `self.__carry`
+    def __str__(self): return str(self.__carry)
+    def __len__(self): return len(self.__carry)
+
+    def insert(self, ind, what):
+        """Inserts what into self: ind is a hint at where to put it.
+
+        Arguments:
+
+          ind -- suggested position for new entry, or None.
+          what -- new entry
+
+        Actual position used will ensure that self's entries are ordered by increasing
+        .orbit.radius; using an ind of None will skip trying to use it as a hint and get
+        straight on with looking for the right place to put it."""
+
+        # Look up much-used stuff once:
+        row, rad = self.__carry, what.orbit.radius
+
+        if not row or row[0].orbit.radius > rad:
+            lo = hi = 0
+        else:
+            # Prepare for binary chop:
+            hi, lo = len(row), 0
+            # what belongs at an index i with lo < i <= hi
+
+            if ind is not None:
+                # Use ind as a hint:
+                if hi > ind > 1 and row[ind-1].orbit.radius < rad: lo = ind - 1
+                if hi > ind >= 0 and row[ind].orbit.radius > rad: hi = ind
+
+        # Use binary chop between positions hi and lo in row:
+        while lo + 1 < hi:
+            mid = (lo + hi) / 2
+            if row[mid].orbit.radius > rad: hi = mid
+            else: lo = mid
+
+        row.insert(hi, what)
+        if isinstance(what, Body):
+            self.__cb()
+
+    def append(self, what):
+        """Inserts what in self, taking hint that it belongs at end."""
+        self.insert(len(self.__carry), what)
+
+from basEddy import value
+
 class Object (value.Object):
     __space_upinit = value.Object.__init__
-    def __init__(self, name, **what):
+    def __init__(self, name, satelload=None, **what):
         apply(self.__space_upinit, (), what)
         self.name = name
+        self.__load_satellites = satelload
 	try: what['orbit'].centre.satellites.insert(None, self)
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
@@ -27,75 +116,15 @@ class Object (value.Object):
             gen = Bodalizer
             cache.append(gen)
 
+        if self.__load_satellites is not None:
+            self.__load_satellites()
+
         return gen(self.satellites)
 
-    class _lazy_get_satellites_:
-        """Carrier-object for satellites of a heavenly body."""
+    def _lazy_get_satellites_(self, ig, S=Satellites):
+        return S(self._lazy_reset_, self.__load_satellites)
 
-        def __init__(self, centre, ignored):
-            """Construct a new satellite-array.
-
-            All it actually remembers of the centre it serves is a call-back
-            method to purge any lazily-computed attributes whose computation
-            depends on the satellites.  In practice, the central body's lazy
-            reset method is sensible for this (provided we configure this to
-            preserve its lazy satellites attribute, of course !), though ideally
-            a more selective purge could be used.\n"""
-
-            self.__cb, self.__carry = centre._lazy_reset_, []
-
-        def __getitem__(self, ind):
-            if ind < 0 or ind >= len(self.__carry): raise IndexError, ind
-            return self.__carry[ind]
-
-        # things we should be borrowing from __carry, but py 2.1 doesn't let us:
-        def __repr__(self): return `self.__carry`
-        def __str__(self): return str(self.__carry)
-        def __len__(self): return len(self.__carry)
-
-        def insert(self, ind, what):
-            """Inserts what into self: ind is a hint at where to put it.
-
-            Arguments:
-
-              ind -- suggested position for new entry, or None.
-              what -- new entry
-
-            Actual position used will ensure that self's entries are ordered by
-            entry.orbit.radius in increasing order.  Using an ind of None will
-            skip trying to use it as a hint and get straight on with looking for
-            the right place to put it."""
-
-            # Look up much-used stuff once:
-            row, rad = self.__carry, what.orbit.radius
-
-            if not row or row[0].orbit.radius > rad:
-                lo = hi = 0
-            else:
-                # Prepare for binary chop:
-                hi, lo = len(row), 0
-                # what belongs at an index i with lo < i <= hi
-
-                if ind is not None:
-                    # Use ind as a hint:
-                    if hi > ind > 1 and row[ind-1].orbit.radius < rad: lo = ind - 1
-                    if hi > ind >= 0 and row[ind].orbit.radius > rad: hi = ind
-
-            # Use binary chop between positions hi and lo in row:
-            while lo + 1 < hi:
-                mid = (lo + hi) / 2
-                if row[mid].orbit.radius > rad: hi = mid
-                else: lo = mid
-
-            row.insert(hi, what)
-            if isinstance(what, Body):
-                self.__cb()
-
-        def append(self, what):
-            """Inserts what in self, taking hint that it belongs at end."""
-            self.insert(len(self.__carry), what)
-
-del value
+del value, Satellites
 
 from basEddy.units import Quantity, second, metre, turn, pi, tophat
 from space.common import Spin, Orbit
@@ -174,16 +203,10 @@ class Body (Object):
         return self.GM / G
 
     def _lazy_get_GM_(self, ignored, G=Cosmos.G, Q=Quantity):
-        row = [] # assorted estimates
-        try: GM = self.surface._GM
-        except AttributeError: pass
-        else: row.append(GM)
+        row = self.satellites.GMs # assorted estimates
 
-	for sat in self.satellites:
-            if isinstance(sat, Body):
-                try: GM = sat.orbit._GM
-                except AttributeError: pass
-                else: row.append(GM)
+        try: row.append(self.surface._GM)
+        except AttributeError: pass
 
         try: mass = self.mass
         except AttributeError: # e.g. thanks to Lazy's recursion detection ...
@@ -306,8 +329,9 @@ del Orbit, Round
 class Shell (Object, Spheroid):
     __obinit, __spinit = Object.__init__, Spheroid.__init__
     def __init__(self, name, centre, *radii, **what):
-        apply(self.__spinit, radii, what)
-        self.__obinit(name, centre=centre)
+        apply(self.__spinit, radii)
+        what['centre'] = centre
+        apply(self.__obinit, (name,), what) # what has to come this way so satelload reaches Object
 
 del Spheroid
 
@@ -365,13 +389,16 @@ class Planet (Planetoid):
         else: g.observe(m/r**2)
 
 class Galaxy (Object): pass
-class Star (Body):
-    __upinit = Body.__init__
-    def __init__(self, name, **what): apply(self.__upinit, (name,), what)
+class Star (Body): pass
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.10  2005-03-16 22:59:45  eddy
+Revision 1.11  2005-03-19 17:24:20  eddy
+Star's __init__ was now just echoing Object's, so removed it.
+Moved Satellites (back) out from being the lazy method and arranged for
+it to be capable of loading primaries on demand.
+
+Revision 1.10  2005/03/16 22:59:45  eddy
 Simplified Star.
 
 Revision 1.9  2005/03/13 21:33:28  eddy
