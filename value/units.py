@@ -2,7 +2,7 @@
 
 See SI.py for base units.
 
-$Id: units.py,v 1.3 2002-02-15 16:03:51 eddy Exp $
+$Id: units.py,v 1.4 2002-03-21 03:06:18 eddy Exp $
 """
 from SI import *
 
@@ -25,6 +25,16 @@ Definitively `beautiful enough to launch a thousand ships', so that launching a
 single ship gains credit for a single milli-Helen.  The origin of this is the
 story of the Trojan war, in which a Greek fleet of a thousand ships, carrying a
 great army, went to retrieve Helen from Troy, to which Paris had taken her. """)
+
+Scoville = base_unit('Scoville', 'Scoville',
+		     """Standard unit of pungency.
+
+Dilution to one part in N (with sugar water) makes the taste undetectable for an
+N Scoville pungency.  Conventional wisdom classes 0 to 500 as mild, 500 to 999
+as medium, 1k to 4.999 k as hot and 5k or above super-hot.  Chile sauces scoring
+93 k Scoville are insane, but some exist as high as 577 k Scoville; Jalapeno
+extract scores about 4.5 k; pure Capsaicin rates over 15,000,000 Scoville Units.
+""")
 
 quid = base_unit('&sterling;', 'Pound Sterling',
 		 """The base unit of British currency.""")
@@ -346,7 +356,7 @@ USton = Mass(20, UScwt)
 TNT = 4.184e9 * Joule / USton
 
 # Anglophone units of area (KDWB):
-acre = chain * furlong          # consensus.
+acre = chain * furlong          # consensus; mile**2/640.
 rood = acre / 4
 buildingRod = 33 * yard * yard
 bricklayerRod = rod * rod
@@ -505,7 +515,10 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.3  2002-02-15 16:03:51  eddy
+ Revision 1.4  2002-03-21 03:06:18  eddy
+ Added Scoville unit of pungency.
+
+ Revision 1.3  2002/02/15 16:03:51  eddy
  Moved Mass/Time bodge to SI, various minor tweaks.
 
  Revision 1.2  2002/02/11 01:37:00  eddy
