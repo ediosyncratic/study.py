@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.7 2005-03-13 19:28:45 eddy Exp $
+$Id: home.py,v 1.8 2005-03-13 21:34:17 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -13,7 +13,7 @@ from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Is
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
                        temperature = 4 * Kelvin)
-MilkyWay = body.Object('Milky Way', mass=1e41 * kg,
+MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
                        # given as 1e21 metre by Nuffield,
                        # 100,000 light years by /apod/ap030103.html
                        radius=(103 + 6 * tophat) * kilo * year.light,
@@ -26,8 +26,8 @@ MilkyWay = body.Object('Milky Way', mass=1e41 * kg,
 
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's orbit
 # can't be specified until Sun has been created.
-Sun = body.Body(
-    'Sun',
+Sun = body.Star(
+    'Sun', 'G2 V', 0,
     orbit = Orbit(MilkyWay,
 		  3e4 * year.light,
 		  Spin(225e6 * year), # period agrees with that from GM/r**3
@@ -86,7 +86,6 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
     age = Quantity(4.6e9, year, # Peter Francis, age of solar system [missing error bar]
                    lifespan = 1e18 * second, # Nuffield, order of magnitude
                    remain = (5 + tophat) * giga * year), # plus c. 2e9 years as a white dwarf
-    type = 'G2 V',
     magnitude = qSample({}, low=4.79, high=4.83), # K&L, Moore
     aliases = ('Sol',))
 
@@ -362,7 +361,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.7  2005-03-13 19:28:45  eddy
+Revision 1.8  2005-03-13 21:34:17  eddy
+Use new Galaxy and Star classes from body.
+
+Revision 1.7  2005/03/13 19:28:45  eddy
 Clean up import/export.
 
 Revision 1.6  2005/03/13 16:33:47  eddy
