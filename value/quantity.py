@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.24 2003-07-05 13:27:51 eddy Exp $
+$Id: quantity.py,v 1.25 2003-09-24 21:29:05 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -395,33 +395,35 @@ class Quantity (Object):
     def __rmod__(self, other): return self.__kin(self.__addcheck_(other, '%') % self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
-    def __unpack_(self, other):
+    def unpack(other):
         if isinstance(other, Quantity):
             return other.__scale, other.__units
         return other, {}
 
-    def __mul__(self, other):
-        ot, her = self.__unpack_(other)
+    def __mul__(self, other, grab=unpack):
+        ot, her = grab(other)
         return self._quantity(self.__scale * ot, adddict(self.__units, her))
 
-    def __rmul__(self, other):
-        ot, her = self.__unpack_(other)
+    def __rmul__(self, other, grab=unpack):
+        ot, her = grab(other)
         return self._quantity(ot * self.__scale, adddict(her, self.__units))
 
-    def __div__(self, other): 
-        ot, her = self.__unpack_(other)
+    def __div__(self, other, grab=unpack): 
+        ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
         return self._quantity(self.__scale / ot, subdict(self.__units, her))
 
-    def __rdiv__(self, other):
-        ot, her = self.__unpack_(other)
+    def __rdiv__(self, other, grab=unpack):
+        ot, her = grab(other)
         return self._quantity(ot / self.__scale, subdict(her, self.__units))
 
-    def __pow__(self, what):
-        wh, at = self.__unpack_(what)
+    def __pow__(self, what, grab=unpack):
+        wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
         return self._quantity(pow(self.__scale, wh), scaledict(self.__units, wh))
+
+    del unpack
 
     # lazy attribute lookups:
     def _lazy_get_accuracy_(self, ignored):
@@ -610,7 +612,11 @@ tophat = Quantity(tophat, doc=tophat.__doc__) # 0 +/- .5: scale and add offset t
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.24  2003-07-05 13:27:51  eddy
+ Revision 1.25  2003-09-24 21:29:05  eddy
+ Made __unpack_ into a function, not a method;
+ tunnel into methods needing it, del once used.
+
+ Revision 1.24  2003/07/05 13:27:51  eddy
  Made qSample's text massager a function, outside the class; added _cleandoc to
  canonicalise Quantity's doc strings; made string module del-able and del-ed it.
 
