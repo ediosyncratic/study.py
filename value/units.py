@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.17 2005-02-13 20:47:09 eddy Exp $
+$Id: units.py,v 1.18 2005-03-20 17:45:11 eddy Exp $
 """
 from SI import *
 
@@ -220,14 +220,23 @@ torr = mmHg = 133.322 * Pascal
 Rankine = degree.Fahrenheit
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 
-calorie = Quantity(4.1868, Joule,
-                   # 3.088 * lb.force * foot
-                   doc="""The thermodynamic calorie (IT).
+calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.force * foot
+                                          doc="The international calorie."),
+                 thermochemical = Quantity(4.184, Joule,
+                                           doc="The thermodynamic calorie."),
+                 doc="""The calorie.
 
-Not to be confused with various other units that claim the same name.  In
-particular, note that dieticians and their ilk talk about `calorie' but means
-kilo calorie (allegedly).
-""")
+This unit is implicated in assorted confusions.  First, there's both an
+international one and a thermochemical one, and I've seen the international one
+described as the 'thermodynamic calorie (IT)'.  Second, I've heard that some
+folk, notably dieticians (allegedly) use 'calorie' to mean kilo calorie.
+
+Values used here are taken from python's Scientific.Physics.PhysicalQuantities
+module.\n""")
+
+calorie.borrow((calorie.international + calorie.thermochemical) * .5 +
+               (calorie.international - calorie.thermochemical) * tophat)
+
 clausius = kilo * calorie / Kelvin
 
 from lazy import Lazy
@@ -790,7 +799,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.17  2005-02-13 20:47:09  eddy
+ Revision 1.18  2005-03-20 17:45:11  eddy
+ Scientific python module contradicted my datum on calorie; adjusted accordingly.
+
+ Revision 1.17  2005/02/13 20:47:09  eddy
  Suggest several et al.
  Added to comments, shuffled order of bits, tidied up a bit.
 
