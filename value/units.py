@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.14 2005-01-16 19:28:09 eddy Exp $
+$Id: units.py,v 1.15 2005-01-17 23:57:38 eddy Exp $
 """
 from SI import *
 
@@ -121,16 +121,12 @@ entity &sterling; for the Pound Sterling.
 
 # dimensionless:
 dozen = Quantity(12, {}, baker = 13)
-half = .5
-quarter = .25
+pair, half, quarter = 2, .5, .25
 percent = .01
-pair = 2
 nest = 3 # also (in card games): prial
 dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks'
-score = 20
+score, shock, gross = 20, 60, 144 # c.f. Danish.{snes, skok, gros}
 timer = flock = 40
-shock = 60
-gross = 144
 greatgross = gross * dozen
 paper = Object(
     quire = Quantity(25, {}, short = 24), # baker's two-dozen ?
@@ -141,9 +137,16 @@ paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
 # angles
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
+grad = turn / 400 # a unit used by gunners, I believe.
 arc = Object(degree = turn / 360)
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
+
+# degrees:
+degree = Object(arc.degree, arc = arc.degree,
+                Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
+                Fahrenheit = Kelvin / 1.8)
+degree.also(F = degree.Fahrenheit)
 
 # time
 minute = Quantity(60, second, arc=arc.minute)
@@ -153,7 +156,7 @@ week = 7 * day
 fortnight = 2 * week
 year = 27 * 773 * week / 400	# the Gregorian approximation
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
-# factors of 216 seconds abound ...
+# factors of 6**3 seconds abound ...
 
 # Other SI-compatible units
 gram = milli * kilogramme
@@ -192,7 +195,7 @@ R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
 Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 # see also particle.py for the electron-Volt, eV
 
-Rankine = Kelvin / 1.8          # steps in the Fahrenheit scale
+Rankine = degree.Fahrenheit
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def Centigrade(number): return Kelvin * (number + 273.16)
 
@@ -390,7 +393,7 @@ champagne.also(
 inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
 caliber = inch / 100
 barleycorn = inch / 3
-line = barleycorn / 4
+pica = line = barleycorn / 4 # inch / 12, c.f. French.line, Norse.linje, Swedish.linje
 hand = 4 * inch
 palmlength = 8 * inch
 span = 9 * inch
@@ -427,7 +430,7 @@ principally survived in use as a maritime measure of vertical distances -
 notably the depths of bodies of water.\n""")
 
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
-chain.engineer = 100 * foot
+chain.engineer = 100 * foot # rather than 100 links; c.f. Swedish.ref
 rod = pole = perch = chain / 4 # rod from German
 link = pole / 25
 furlong = 10 * chain	# from German, `furrow long'
@@ -452,7 +455,6 @@ come.  Contrast mile.nautical and the Scandinavian mil.\n""")
 league = 3 * mile
 league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
 marathon = 26 * mile + 385 * yard
-pica = inch / 12        # c.f. French.line, Swedish.linje
 point = pica / 6        # the printer's point
 point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below - under mass !)
 shoe = Object( # units of thickness of leather in shoes
@@ -505,7 +507,7 @@ clove = 7 * pound
 stone = 2 * clove
 cental = 100 * pound # cental is a UK name for the US cwt
 cwt = hundredweight = Quantity(8, stone, US = cental)
-ton = Quantity(20, cwt, US = 20 * cwt.US)
+ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
 TNT = 4.184e9 * Joule / ton.US # (2.15 km/s)**2
 
 # Anglophone units of energy:
@@ -572,12 +574,12 @@ duty = foot * pound.force
 # `fluid measure'
 gallon = Quantity(4.54609, litre, # 10 * pound / water.density
                   wine = 3 * 11 * 7 * inch**3, # (aka US gallon) ancient encyclopaedia, K&L
-                  beer = 2 * 3 * 47 * inch**3) # 16.65 UK floz; 16 US ones.
+                  beer = 2 * 3 * 47 * inch**3)
 quart = Quantity(1, gallon / 4,
                  wine = gallon.wine / 4,
                  beer = gallon.beer / 4)
 pint = Quantity(1, quart / 2,
-                wine = quart.wine / 2,
+                wine = quart.wine / 2, # 16.65 UK floz; 16 US ones.
                 beer = quart.beer / 2)
 gallon.US, quart.US, pint.US = gallon.wine, quart.wine, pint.wine
 
@@ -657,14 +659,14 @@ Swedish.also(linje = Quantity(1, Swedish.tum / 10, # line (pica)
              rode = Quantity(8, Swedish.aln),
              staang = Quantity(5, Swedish.aln, doc="Svensk stäng"))
 # also: fingerbredd = fot / 15, tv?rhand = fot / 3 (hand-width)
-Swedish.ref = Quantity(10, Swedish.staang)
+Swedish.ref = Quantity(10, Swedish.staang) # 100 fot, c.f. chain.engineer
 Swedish.old = Object(doc = "Swedish units in use prior to 1863",
                      fot = Swedish.fot.old, aln = Swedish.aln.old,
                      tum = Swedish.tum.old, famn = Swedish.famn.old,
                      mil = Swedish.mil.old)
-foot.Swedish, inch.Swedish = Swedish.fot, Swedish.tum
-ell.Swedish, fathom.Swedish = Swedish.aln, Swedish.famn
-rod.Swedish = Swedish.rode
+foot.Svensk, inch.Svensk = Swedish.fot, Swedish.tum
+ell.Svensk, fathom.Svensk = Swedish.aln, Swedish.famn
+# rod.Svensk, line.Svensk = Swedish.rode, Swedish.linje # not in right ratios to foot, &c.
 # and there's also weights, volumes, etc. on that page ....
 
 # Dansk stuff from http://www.sylvaefa.com/svf1.htm
@@ -673,18 +675,24 @@ Danish = Object(alen = .6277 * metre, pot = .9661 * litre,
                 paegl = Quantity(.2242, litre, "Dansk pægl"),
                 tyle=dozen, dusin=dozen, gros=gross, snes=20)
 Danish.also(fod = Danish.alen / 2, favn = 3 * Danish.alen,
-            kande = 2 * Danish.pot, skok = 3 * Danish.snes, ol = 4 * Danish.snes)
+            kande = 2 * Danish.pot, # 3.4 pints
+            skok = 3 * Danish.snes, ol = 4 * Danish.snes)
 Danish.also(tomme = Danish.fod / 12,
-            mil = 4000 * Danish.favn, # but 12000 alen, 7.532 km
-            anker = 20 * Danish.kande)
-Danish.oksehoved = 6 * Danish.anker # plural is ankre
-Danish.fad = 4 * Danish.oksehoved # pl. = oksehoveder
+            mil = 4000 * Danish.favn, # 12000 alen, 7.532 km
+            anker = 20 * Danish.kande) # plural is ankre; 68 pints; c.f. firkin
+Danish.oksehoved = 6 * Danish.anker # pl. = oksehoveder, clealy means Ox-head, .944 hogsheads ...
+Danish.fad = 4 * Danish.oksehoved # c.f. tun
+foot.Dansk, inch.Dansk = Danish.fod, Danish.tomme
+ell.Dansk, fathom.Dansk = Danish.alen, Danish.favn
 
 Norse = Object(fot = .31374 * metre,
                favn = 1.88245 * metre, # 6 * fot
                mil = 11294.6 * metre) # 600 * favn
 Norse.also(alen = 2 * Norse.fot,
-           tom = Norse.fot / 12, linje = Norse.fot / 144)
+           tom = Norse.fot / 12)
+line.Norsk = Norse.linje = Norse.tom / 12
+foot.Norsk, inch.Norsk = Norse.fot, Norse.tom
+ell.Norsk, fathom.Norsk = Norse.alen, Norse.favn
 
 mil = Quantity(10, kilo * metre,
                """The Norwegian mil, 10 km.
@@ -704,10 +712,8 @@ some less civilized countries.\n""",
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 Swiss = Object(lien = 5249 * yard)
 Dutch = Object(oncen = kilogramme / 10)
-Turk = Object(oke = 2.8342 * pound,
-              berri = 1828 * yard)
-Russia = Object(verst = 1167 * yard,
-                pood = 36.11 * pound)
+Turk = Object(oke = 2.8342 * pound, berri = 1828 * yard)
+Russia = Object(verst = 1167 * yard, pood = 36.11 * pound)
 
 # Imperial units of volume (part 2):
 
@@ -757,7 +763,14 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.14  2005-01-16 19:28:09  eddy
+ Revision 1.15  2005-01-17 23:57:38  eddy
+ Added degree Object to carry the various kinds thereof.
+ Added gunner's grad = turn / 400.
+ Noted similarities between Danish volumes and UK ones.
+ Noted Danish and Norse members of foot &c. families.
+ Assorted minor tidy-up.
+
+ Revision 1.14  2005/01/16 19:28:09  eddy
  Merged in lots of data I'd gathered into my copy of this at work.
  Added some documentation.
 
