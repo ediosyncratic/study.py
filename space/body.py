@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.12 2005-03-19 17:34:09 eddy Exp $
+$Id: body.py,v 1.13 2005-04-09 11:20:59 eddy Exp $
 """
 
 class Satellites:
@@ -198,6 +198,19 @@ class Body (Object):
 
         return .6 * self.mass * self.GM / self.surface.radius
 
+    def _lazy_get_centralpressure_(self, ig):
+        """Pressure at centre of body.
+
+        Supposing the body to have uniform density rho and spherical symmetry,
+        the mass inside radius r is (4*pi/3)*rho*r**3 so that the weight per
+        unit area (i.e. contribution to pressure) of a shell of thickness dr at
+        radius r is rho*G*dr/r/r times this, or (4*pi*G/3)* rho**2 * r*dr which
+        we can integrate up from pressure 0 at r=R to a central pressure, at
+        r=0, of (4*pi*G/3)* rho**2 * R*R/2; substituting in for the body's mass,
+        this is G*M*rho/R/2."""
+
+        return .5 * self.GM * self.density / self.surface.radius
+
     from const import Cosmos
     def _lazy_get_mass_(self, ignored, G=Cosmos.G):
         return self.GM / G
@@ -221,7 +234,7 @@ class Body (Object):
 
 	return Q(best, sample=row)
 
-    def _lazy_get_Swarzchild_(self, ignored, S=Cosmos.Swarzchild):
+    def _lazy_get_Schwarzschild_(self, ignored, S=Cosmos.Schwarzschild):
         return self.mass * S
 
     del Cosmos
@@ -393,7 +406,10 @@ class Star (Body): pass
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.12  2005-03-19 17:34:09  eddy
+Revision 1.13  2005-04-09 11:20:59  eddy
+Add centralpressure, spell Schwarzschild correctly.
+
+Revision 1.12  2005/03/19 17:34:09  eddy
 Call GMs, don't try to use it as a list !
 
 Revision 1.11  2005/03/19 17:24:20  eddy
