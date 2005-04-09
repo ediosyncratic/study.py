@@ -15,10 +15,11 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.16 2005-03-21 23:46:03 eddy Exp $
+$Id: particle.py,v 1.17 2005-04-09 09:12:52 eddy Exp $
 """
 
 from const import *
+
 eV = Quantity(Quantum.Millikan, Volt,
               doc='The electron-Volt: a standard unit of energy in particle physics.')
 
@@ -632,7 +633,7 @@ Nucleon(2, 1, 'proton',
 Nucleon(1, 2, 'neutron',
         Quantity(sample(1674.82, .08), harpo * gram),
         "uncharged ingredient in nuclei",
-        decay=1./(13*minute), # erm ... no, that's the *half life*
+        decay=1./(13*minute), #' erm ... no, that's the *half life*
         magneticmoment = 0.96623640e-26 * Joule / Tesla)
 
 # Make proton, neutron and electron primary exports:
@@ -648,7 +649,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.16  2005-03-21 23:46:03  eddy
+ Revision 1.17  2005-04-09 09:12:52  eddy
+ Punctuation.
+
+ Revision 1.16  2005/03/21 23:46:03  eddy
  Added some data on the infra-red.
 
  Revision 1.15  2005/03/21 22:49:36  eddy
