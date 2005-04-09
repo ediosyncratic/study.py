@@ -1,6 +1,6 @@
 """Description of black holes.
 
-$Id: hole.py,v 1.1 2005-04-09 10:05:15 eddy Exp $
+$Id: hole.py,v 1.2 2005-04-09 10:20:09 eddy Exp $
 """
 
 from const import Vacuum, Quantum, Cosmos, Thermal, pi, Object, Quantity
@@ -126,20 +126,22 @@ over a quarter of a million tonnes and radius under 0.4e-18 metres; with N=14
 this will take about 7 years to evaporate.
 
 It seems reasonable to guess that nothing but the neutrinos has less mass than
-the 46 eV (82e-36 kg) upper bound I've seen for this neutrino's mass.  On that
-assumption, N is at most 5 for temperatures below 534 kK, radii above a third of
-a nano metre, masses above a quarter peta tonne.  Even if we (conservatively)
-suppose N jumps to infinity at this threshold, we only eliminate the last 33e27
-years of the time a black hole takes to evaporate; and at least 40% of the
-remainder survives the N-scaling; for just the age of the universe to remain
-requires such small fractional increase in the black hole's size that it is lost
-in the rounding errors when I try to compute it.  Thus any black hole bigger or
-colder than the threshold just described will last essentially for ever.
+the electron.  On that assumption, N is at most 5 for temperatures below 5.9
+giga Kelvin, radii above 31 femto metres (of order the size of nuclei), masses
+above 21 giga tonne.  Even if we (conservatively) suppose N jumps to infinity at
+this threshold, we only eliminate the last 23 peta years of the time a black
+hole takes to evaporate; and at least 40% of the remainder survives the
+N-scaling; for just the age of the universe to remain requires only 22 million
+tonnes of extra mass, about one part in a thousand.  Thus any black hole bigger
+or colder than the threshold just described will last essentially for ever; and
+even an asteroid a couple of kilometres across has more mass than that.
 """)
 
 _rcs_log = """
 $Log: hole.py,v $
-Revision 1.1  2005-04-09 10:05:15  eddy
-Initial revision
+Revision 1.2  2005-04-09 10:20:09  eddy
+Widened the N<6 region up to the electron mass.
 
+Revision 1.1  2005/04/09 10:05:15  eddy
+Initial revision
 """
