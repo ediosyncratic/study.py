@@ -1,10 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """The Asteroids, and Mars' two mooons.
 
-See also: http://www.johnstonsarchive.net/astro/asteroidmoons.html and links
-therefrom.
+See also:
+  http://www.johnstonsarchive.net/astro/asteroidmoons.html
+  http://www.nasm.si.edu/research/ceps/etp/asteroids/
+  http://cfa-www.harvard.edu/iau/lists/InnerPlot.html
+and links therefrom.
 
-$Id: asteroid.py,v 1.6 2005-03-16 21:27:44 eddy Exp $
+$Id: asteroid.py,v 1.7 2005-04-10 17:39:12 eddy Exp $
 """
 
 from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
@@ -19,13 +22,19 @@ tmp = Discovery("A. Hall", 1877, location="Washington", date="""August, 1877
 
 Hall discovered Deimos on August 11th and Phobos on August 17th.
 He named them after the horses that Roman mythology said pull Mars' chariot.
+Kepler predicted their existence (on entirely bogus grounds) in 1610 and
+Jonathan Swift's famous novel Gulliver's Travels discussed them over 150 years
+before their discovery: see http://antwrp.gsfc.nasa.gov/apod/ap010902.html
+
+They're probably captured asteroids.  Note that Phobos is doomed:
+http://antwrp.gsfc.nasa.gov/apod/ap010818.html
 """)
 Phobos = NASAmoon("Phobos", Mars, tmp, 9.38, 0.32,
                   NASAshell(13.4, 11.2, 9.2), "carbonaceous", 1.08e-4, 1.9,
-                  etymology="Greek: Phobos (= English: Flight)")
+                  etymology="Greek: Phobos (= English: Fear)")
 Deimos = NASAmoon("Deimos", Mars, tmp, 23.46, 1.26,
                   NASAshell(7.5, 6.1, 5.2), "carbonaceous", 1.80e-5, 1.76,
-                  etymology="Greek: Deimos (= English: Fear)")
+                  etymology="Greek: Deimos (= English: Flight or Panic)")
 del Mars, tmp
 
 Asteroids = Ring("The Asteroid Belt", D.Sun, D.AU, 5 * D.AU,
@@ -92,7 +101,11 @@ del Sample, ton, tera, mega, mile, Quantity, year, tophat
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.6  2005-03-16 21:27:44  eddy
+Revision 1.7  2005-04-10 17:39:12  eddy
+More links.  More details about Phobos and Deimos.
+Corrected (I think) the etyms' translations.
+
+Revision 1.6  2005/03/16 21:27:44  eddy
 Orbit now has to explicitly give None as spin if unknown.
 
 Revision 1.5  2005/03/13 19:08:26  eddy
