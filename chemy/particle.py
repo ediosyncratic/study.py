@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.17 2005-04-09 09:12:52 eddy Exp $
+$Id: particle.py,v 1.18 2005-04-10 17:41:00 eddy Exp $
 """
 
 from const import *
@@ -311,9 +311,10 @@ class Photon (Boson):
     """Photons are the irreducible corpuscles of light.
 
 Isaac would have been proud.
-See also visible's doc and
+See also visible's doc and:
+http://imagers.gsfc.nasa.gov/ems/ems.html
 http://imagine.gsfc.nasa.gov/docs/science/know_l1/spectrum_chart.html
-from which I took the extra-visible spectrum.
+from the second of which I took the extra-visible spectral data below.
 """
 
     speed = Vacuum.c
@@ -649,7 +650,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.17  2005-04-09 09:12:52  eddy
+ Revision 1.18  2005-04-10 17:41:00  eddy
+ Another spectral href.
+
+ Revision 1.17  2005/04/09 09:12:52  eddy
  Punctuation.
 
  Revision 1.16  2005/03/21 23:46:03  eddy
