@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.18 2005-03-20 17:45:11 eddy Exp $
+$Id: units.py,v 1.19 2005-04-24 14:28:34 eddy Exp $
 """
 from SI import *
 
@@ -437,6 +437,14 @@ fingerbreadth = 7 * inch / 8
 ell = cubit = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
 # but also: cubit = yard / 2, span = cubit / 2 (but ell = 45 in, as here)
 ft = foot = Quantity(3, hand,
+                     """The English foot.
+
+See namespace for other nation's variants on this unit.  All are fairly close to
+the distance (given here as foot.astronomical) that light travels in a nano second:
+those closest to it are the old Swedish foot, just under 1% below, and the
+English foot, just over 1/60 above.
+""",
+                     astronomical = nano * second.light,
                      survey = Quantity(1.2e3 / 3937, metre,
                                        """The (geodetic) survey foot.
 
@@ -683,6 +691,7 @@ Swedish = Object(
     aln = Quantity(.59372, metre, old=.5938097 * metre),
     kvartmil = mile.nautical)
 Swedish.also(fot = Quantity(1, Swedish.aln/2, old=Swedish.aln.old/2), # foot
+             # The fot.old is .9904 nano light seconds
              famn = Quantity(3, Swedish.aln,
                              old = 3 * Swedish.aln.old), # fathom (Norsk: favn)
              sjoemil = Quantity(4, Swedish.kvartmil, doc="Svensk sjømil")) # "sea mile"
@@ -799,7 +808,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.18  2005-03-20 17:45:11  eddy
+ Revision 1.19  2005-04-24 14:28:34  eddy
+ Documented the foot and noted its closeness to light nano-second.
+
+ Revision 1.18  2005/03/20 17:45:11  eddy
  Scientific python module contradicted my datum on calorie; adjusted accordingly.
 
  Revision 1.17  2005/02/13 20:47:09  eddy
