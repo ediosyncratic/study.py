@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.34 2005-03-22 00:06:11 eddy Exp $
+$Id: quantity.py,v 1.35 2005-04-24 15:34:11 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -196,12 +196,12 @@ def scalar():
              'arcCoTan': lambda v, a=math.atan, r=radian, q=math.pi / 4: r * (q - v.evaluate(a)),
              'arcSec': lambda v, a=arccos, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
              'arcCoSec': lambda v, a=math.asin, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
-             'arcCosH': lambda v, a=arccosh: v.evaluate(a),
-             'arcSinH': lambda v, a=arcsinh: v.evaluate(a),
-             'arcTanH': lambda v, a=arctanh: v.evaluate(a),
-             'CosH': lambda v, c=math.cosh: v.evaluate(c),
-             'SinH': lambda v, s=math.sinh: v.evaluate(s),
-             'TanH': lambda v, t=math.tanh: v.evaluate(t),
+             'arccosh': lambda v, a=arccosh: v.evaluate(a),
+             'arcsinh': lambda v, a=arcsinh: v.evaluate(a),
+             'arctanh': lambda v, a=arctanh: v.evaluate(a),
+             'cosh': lambda v, c=math.cosh: v.evaluate(c),
+             'sinh': lambda v, s=math.sinh: v.evaluate(s),
+             'tanh': lambda v, t=math.tanh: v.evaluate(t),
              'log': lambda v, l=ln: v.evaluate(l),
              'exp': lambda v, e=exp: v.evaluate(e) }
 
@@ -216,6 +216,8 @@ def angle():
              'CoSec': lambda v: 1. / v.Sin,
              'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
              'iExp': lambda v: v.Cos + 1j * v.Sin }
+
+# there's also a case for weaving angle and speed together via hyperbolic trig functions
 
 def mass():
     from SI import second, metre
@@ -486,6 +488,34 @@ class Quantity (Object):
 
             return other
 
+    import math
+
+    def arcTan2(self, what, units=[], atan=math.atan2):
+        """Returns the angle whose Cos and Sin are in the same ratio as self and other.
+
+        Combines self, as the adjacent side, with its one argument, as the
+        opposite side, of a right-angle triangle; they must have the same units,
+        but we're not fussy what those are.  Returns the angle (as a Quantity,
+        with units of angle) between the hypotenuse and self.\n"""
+
+        try: radian = units[0]
+        except IndexError:
+            from SI import radian
+            units.append(radian)
+
+        return self._quantity(self.__scale.join(atan, self.__addcheck_(what, 'arcTan2')), radian)
+
+    def __hypot(self, other, h=math.hypot):
+        return self.__kin(self.__scale.join(h, self.__addcheck_(other, 'Hypotenuse')))
+
+    del math
+
+    def Hypotenuse(self, *others):
+        val = self
+        for it in others:
+            val = val.__hypot(it)
+        return val
+
     # Addition, subtraction and their reverses.
     def __kin(self,    scale): return self._quantity(scale, self.__units)
 
@@ -719,7 +749,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.34  2005-03-22 00:06:11  eddy
+ Revision 1.35  2005-04-24 15:34:11  eddy
+ lowercased hyperbolic pseudo-trig, added Hypotenuse and arcTan2.
+
+ Revision 1.34  2005/03/22 00:06:11  eddy
  Mediate exp via chose, like various others.  Munge the inversion in some
  others into the lambda; not sure it's sensible, though.
 
