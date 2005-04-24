@@ -4,11 +4,16 @@ See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
 for a definitive source of information about units.
 
-$Id: SI.py,v 1.9 2004-04-03 18:11:23 eddy Exp $
+Note that Quantity equips certain kinds of quantity with extra attributes:
+time.light, mass.weight or mass.force, trigonometric attributes for angles,
+their inverses and a few relatives for scalars, Centigrade and Fahrenheit
+equivalents for temperatures.  See quantity.py for details.
+
+$Id: SI.py,v 1.10 2005-04-24 15:30:00 eddy Exp $
 """
 from quantity import *
 
-# The base units [kg and s get more sophisticated in units.py]
+# The base units
 second = sec = s = base_unit('s', 'second',
                              """The SI base unit of time.
 
@@ -58,17 +63,15 @@ The luminous intensity, in a given direction, of a source that emits
 monochromatic radiation of frequency 540e12 Hz and that has a radiant intensity
 in that direction of 1/683 W/sr.
 
-The luminous intensity, in the perpendicular direction, of a surface of 1/60
+[The luminous intensity, in the perpendicular direction, of a surface of 1/60
 square centimetere of a black body at the freezing temperature of platinum under
-a pressure of 101325 Pascal (1 atmosphere).""")
+a pressure of 101325 Pascal (1 atmosphere).]""")
 
 rad = radian = base_unit('rad', 'Radian',
                         """The SI supplementary unit of angle.
 
 The angle subtended at the centre of a circle by an arc of the circumference
 equal in length to the radius of the circle.""")
-
-# see trig.py for support for trigonometry using units of angle
 
 sr = steradian = base_unit('sr', 'Steradian',
                           """The SI supplementary unit of solid angle.
@@ -80,7 +83,7 @@ of radius r by a portion of the surface of the sphere having area r*r.""")
 stere = pow(metre, 3)   # c.f. litre
 are = pow(metre, 2)     # c.f. hectare
 lm = lumen = candela * steradian # Luminous flux
-lx = lux = lumen / are          # Illumination
+lx = lux = lumen / are          # Luminance, Illumination
 Hz = Hertz = 1 / second         # Frequency
 C = Coulomb = Ampere * second   # Charge
 
@@ -100,7 +103,10 @@ T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.9  2004-04-03 18:11:23  eddy
+ Revision 1.10  2005-04-24 15:30:00  eddy
+ Doc tweaks.
+
+ Revision 1.9  2004/04/03 18:11:23  eddy
  Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
 
  Revision 1.8  2003/07/05 15:44:11  eddy
