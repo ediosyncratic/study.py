@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.35 2005-04-24 15:34:11 eddy Exp $
+$Id: quantity.py,v 1.36 2005-04-25 07:35:35 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -206,8 +206,8 @@ def scalar():
              'exp': lambda v, e=exp: v.evaluate(e) }
 
 def angle():
-    from math import cos, sin, tan, pi
-    from SI import radian
+    from math import cos, sin, tan, pi, tanh
+    from SI import radian, second
     def angeval(q, f, r=radian): return (q/r).evaluate(f)
     return { 'Sin': lambda v, s=sin, a=angeval: a(v, s),
              'Cos': lambda v, c=cos, a=angeval: a(v, c),
@@ -215,9 +215,13 @@ def angle():
              'Sec': lambda v: 1. / v.Cos,
              'CoSec': lambda v: 1. / v.Sin,
              'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
+             'Lorentz': lambda v, t=tanh, c=second.light / second, a=angeval: c * a(v, t),
              'iExp': lambda v: v.Cos + 1j * v.Sin }
 
-# there's also a case for weaving angle and speed together via hyperbolic trig functions
+def speed():
+    from SI import second, radian
+    # See http://chaos.org.uk/~eddy/physics/Lorentz.html
+    return { 'Lorentz': lambda v, c=second.light / second, rad=radian: rad * (v / c).arctanh }
 
 def mass():
     from SI import second, metre
@@ -235,8 +239,8 @@ def thermal():
     return { 'Centigrade': C, 'C': C, 'Celsius': C,
              'Fahrenheit': F, 'F': F  }
 
-kind_prop_lookup = { '': scalar, 'rad': angle, 'kg': mass, 's': time, 'K': thermal }
-del scalar, angle, mass, time, thermal
+kind_prop_lookup = { '': scalar, 'rad': angle, 'm/s': speed, 'kg': mass, 's': time, 'K': thermal }
+del scalar, angle, speed, mass, time, thermal
 
 def adddict(this, that):
     cop = this.copy()
@@ -749,7 +753,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.35  2005-04-24 15:34:11  eddy
+ Revision 1.36  2005-04-25 07:35:35  eddy
+ Wove angle and speed together via .Lorentz describing hyperbolic rotations.
+
+ Revision 1.35  2005/04/24 15:34:11  eddy
  lowercased hyperbolic pseudo-trig, added Hypotenuse and arcTan2.
 
  Revision 1.34  2005/03/22 00:06:11  eddy
