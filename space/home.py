@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.11 2005-04-28 21:56:21 eddy Exp $
+$Id: home.py,v 1.12 2005-04-28 22:09:15 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -16,11 +16,11 @@ Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metr
                        # some slightly more definite data:
                        age = 1 / Cosmos.Hubble, temperature = Cosmos.temperature,
                        # microwave background, mass density and number density:
-                       photon = Object(mass = 4.68e-34 * gram / cm**3, number = 413 / cm**3))
+                       photon = Object(mass = 4.68e-31 * kg / metre**3, number = 413e6 / metre**3))
 del Cosmos
 
 LocalGroup = body.Group('Local Group',
-                        speed=Quantity(627 + 44 * tophat, km / s,
+                        speed=Quantity(627 + 44 * tophat, kilo * metre / second,
                                        """Speed of Local Group
 
 Our local group of galaxies is moving at somewhere between 600 and 650 km/s
@@ -66,7 +66,7 @@ Sun = body.Star(
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
 
-    velocity = Quantity(371 + tophat, km / s,
+    velocity = Quantity(371 + tophat, kilo * metre / second,
                         """Speed of Solar System.
 
 The solar system's motion relative to Cosmic Microwave Background shows up as a
@@ -411,7 +411,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.11  2005-04-28 21:56:21  eddy
+Revision 1.12  2005-04-28 22:09:15  eddy
+Use units we've actually imported ...
+
+Revision 1.11  2005/04/28 21:56:21  eddy
 Note on magnetic fields.
 Data on cosmic microwave background.
 Local Group.
