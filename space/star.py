@@ -7,15 +7,18 @@ Sources:
   http://www.solstation.com/stars/alp-cent3.htm
   comes with good links, and yas more data I haven't finished plundering ;^)
 
-$Id: star.py,v 1.3 2005-03-16 23:23:05 eddy Exp $
+See also:
+  millisecond pulsar:
+  http://antwrp.gsfc.nasa.gov/apod/ap020220.html
+
+$Id: star.py,v 1.4 2005-04-28 20:56:10 eddy Exp $
 """
 
 from basEddy.units import Quantity, tophat, kilo, mega, giga, micro, year, day
-from space.body import Object, Star
+from space.body import Object, Star, Group
 from space.common import Discovery, Spheroid, Spin, Orbit
 from space.home import Sun, AU
 
-class Group (Object): pass
 class Cluster (Group): pass
 def Stjerne(name, typ, dist, locn, mass, size, lum, spin=None,
             Sp=Spin, Sf=Spheroid, Sol=Sun, ly=year.light, dy=day, S=Star, **what):
@@ -133,7 +136,11 @@ del Stjerne, Discovery, Spin, Orbit, Quantity, tophat, kilo, mega, giga, micro, 
 
 _rcs_log = """
 $Log: star.py,v $
-Revision 1.3  2005-03-16 23:23:05  eddy
+Revision 1.4  2005-04-28 20:56:10  eddy
+Moved Group from star to body (so we can have groups of Galaxies).
+Also added link to NASA APOD about millisecond pulsar.
+
+Revision 1.3  2005/03/16 23:23:05  eddy
 Moved Gliese710 from Kuiper, tidied up by adding Stjerne to package solstation data.
 
 Revision 1.2  2005/03/14 00:01:01  eddy
