@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.10 2005-03-19 17:25:57 eddy Exp $
+$Id: home.py,v 1.11 2005-04-28 21:56:21 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -10,9 +10,30 @@ from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
 from space import body
 from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
 
+from const import Cosmos
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
-                       temperature = 4 * Kelvin)
+                       # some slightly more definite data:
+                       age = 1 / Cosmos.Hubble, temperature = Cosmos.temperature,
+                       # microwave background, mass density and number density:
+                       photon = Object(mass = 4.68e-34 * gram / cm**3, number = 413 / cm**3))
+del Cosmos
+
+LocalGroup = body.Group('Local Group',
+                        speed=Quantity(627 + 44 * tophat, km / s,
+                                       """Speed of Local Group
+
+Our local group of galaxies is moving at somewhere between 600 and 650 km/s
+relative to the cosmic microwave background, in a direction described by
+astronomers as toward a position given in terms of co-ordinates (l,b) whose
+values are given as attributes here.
+
+Most of our uncertainty about this arises from our ignorance of our motion
+relative to the Local Group: we know our own velocity relative to the background
+radiation far more accurately.\n""",
+                                       l = (273 + 6 * tophat) * arc.degree,
+                                       b = (30 + 6 * tophat) * arc.degree))
+
 MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
                        # given as 1e21 metre by Nuffield,
                        # 100,000 light years by /apod/ap030103.html
@@ -24,8 +45,8 @@ MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
 # kilometers per second relative to the primordial (cosmic background)
 # radiation: see http://antwrp.gsfc.nasa.gov/apod/ap030209.html
 
-# <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's orbit
-# can't be specified until Sun has been created.
+# <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
+# orbit can't be specified until Sun has been created.
 def load_planets(): # lazy satellite loader for Sun
     import space.inner, space.outer
 
@@ -35,12 +56,29 @@ Sun = body.Star(
 		  3e4 * year.light,
 		  Spin(225e6 * year), # period agrees with that from GM/r**3
                   None, # I don't know eccentricity, let Orbit guess for us ...
-                  # Random factor of 10 to remove discrepancy between period and (2*pi*radius)/speed
-                  # but - for all I know - it may be period or radius that needs corrected, not speed.
-                  # After all, the reason folk believe in Dark Matter is that the radius and period *don't* match ...
+                  # Random factor of 10 to remove discrepancy between period and
+                  # (2*pi*radius)/speed but - for all I know - it may be period
+                  # or radius that needs corrected, not speed.  After all, the
+                  # reason folk believe in Dark Matter is that the radius and
+                  # period *don't* match ... maybe the fact that our velocity
+                  # relative to local group is only of order .25 Mm/s is a clue ?
 		  speed=2.15 * mega * metre / second / 10),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
+
+    velocity = Quantity(371 + tophat, km / s,
+                        """Speed of Solar System.
+
+The solar system's motion relative to Cosmic Microwave Background shows up as a
+dipole anisotropy, which we can measure fairly accurately.  Its direction is
+given both as (l,b) co-ordinates and as (alpha,delta) which appear to be
+synonyms for (RA,Dec), the first of which is measured in hours and minutes.  All
+four data are here given, as attributes l, b, alpha and delta.
+""",
+                        l = (264.31 + tophat * .34) * arc.degree,
+                        b = (48.05 + tophat * .1) * arc.degree,
+                        alpha = 11.2 + .02 * tophat, # unit is hours ...
+                        delta = (tophat * .16 - 7.22) * arc.degree),
 
     bright = Quantity(1.4 + Sample.tophat * .06,
                       kilo * Watt / metre / metre,
@@ -280,7 +318,14 @@ From ancient Indo-European 'er', whence sprang lots of words for soil, land,
 ground ... earth.
 """),
 
-    magnetic = Object(dipole = 8.1e22 * Ampere * metre * metre),
+    magnetic = Object(dipole = Quantity(8.1e22, Ampere * metre**2,
+                                        doc="""Earth's magnetic dipole.
+
+The magnetic field of the Earth is dominated by its dipole term.  This yields a
+magnetic field strength of order one Gauss (1e-4 Tesla) at the Earth's surface.
+For contrast, magnetars have magnetic fields of order peta-Gauss - see:
+http://antwrp.gsfc.nasa.gov/apod/ap010901.html
+""")),
     mass = 5.976e24 * kg,
     density = 5.518 * kg / litre,
     age = 1e17 * second, # Nuffield, approx
@@ -366,7 +411,12 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.10  2005-03-19 17:25:57  eddy
+Revision 1.11  2005-04-28 21:56:21  eddy
+Note on magnetic fields.
+Data on cosmic microwave background.
+Local Group.
+
+Revision 1.10  2005/03/19 17:25:57  eddy
 Equipped Sun with a lazy satellite loader.
 
 Revision 1.9  2005/03/16 23:00:14  eddy
