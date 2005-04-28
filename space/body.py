@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.13 2005-04-09 11:20:59 eddy Exp $
+$Id: body.py,v 1.14 2005-04-28 20:55:27 eddy Exp $
 """
 
 class Satellites:
@@ -401,12 +401,16 @@ class Planet (Planetoid):
         except AttributeError: pass
         else: g.observe(m/r**2)
 
+class Group (Object): pass
 class Galaxy (Object): pass
 class Star (Body): pass
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.13  2005-04-09 11:20:59  eddy
+Revision 1.14  2005-04-28 20:55:27  eddy
+Moved Group from star to body (so we can have groups of Galaxies).
+
+Revision 1.13  2005/04/09 11:20:59  eddy
 Add centralpressure, spell Schwarzschild correctly.
 
 Revision 1.12  2005/03/19 17:34:09  eddy
