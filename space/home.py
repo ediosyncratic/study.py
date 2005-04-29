@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.12 2005-04-28 22:09:15 eddy Exp $
+$Id: home.py,v 1.13 2005-04-29 07:06:43 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -53,15 +53,15 @@ def load_planets(): # lazy satellite loader for Sun
 Sun = body.Star(
     'Sun', load_planets, type='G2 V',
     orbit = Orbit(MilkyWay,
-		  3e4 * year.light,
-		  Spin(225e6 * year), # period agrees with that from GM/r**3
+		  3e4 * year.light, # GM and period predict 23e3 light year
+		  Spin(225e6 * year), # GM and radius predict 368.6e6 year
                   None, # I don't know eccentricity, let Orbit guess for us ...
-                  # Random factor of 10 to remove discrepancy between period and
+                  # Random factor of 10 to narrow discrepancy between period and
                   # (2*pi*radius)/speed but - for all I know - it may be period
                   # or radius that needs corrected, not speed.  After all, the
                   # reason folk believe in Dark Matter is that the radius and
                   # period *don't* match ... maybe the fact that our velocity
-                  # relative to local group is only of order .25 Mm/s is a clue ?
+                  # relative to local group is only about .25 Mm/s is a clue ?
 		  speed=2.15 * mega * metre / second / 10),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
@@ -411,7 +411,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.12  2005-04-28 22:09:15  eddy
+Revision 1.13  2005-04-29 07:06:43  eddy
+Corrected comments on Sun.orbit
+
+Revision 1.12  2005/04/28 22:09:15  eddy
 Use units we've actually imported ...
 
 Revision 1.11  2005/04/28 21:56:21  eddy
