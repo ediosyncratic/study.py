@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.36 2005-04-25 07:35:35 eddy Exp $
+$Id: quantity.py,v 1.37 2005-05-01 11:26:48 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -168,7 +168,7 @@ del _massage_text
 # lazy-evaluators for special attributes of quantities of specific types
 def scalar():
     import cmath, math
-    from SI import radian
+    from SI import radian, second
 
     def chose(val, s, c):
         try: return s(val)
@@ -196,18 +196,21 @@ def scalar():
              'arcCoTan': lambda v, a=math.atan, r=radian, q=math.pi / 4: r * (q - v.evaluate(a)),
              'arcSec': lambda v, a=arccos, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
              'arcCoSec': lambda v, a=math.asin, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
+             'exp': lambda v, e=exp: v.evaluate(e),
+             'log': lambda v, l=ln: v.evaluate(l),
              'arccosh': lambda v, a=arccosh: v.evaluate(a),
              'arcsinh': lambda v, a=arcsinh: v.evaluate(a),
              'arctanh': lambda v, a=arctanh: v.evaluate(a),
              'cosh': lambda v, c=math.cosh: v.evaluate(c),
              'sinh': lambda v, s=math.sinh: v.evaluate(s),
              'tanh': lambda v, t=math.tanh: v.evaluate(t),
-             'log': lambda v, l=ln: v.evaluate(l),
-             'exp': lambda v, e=exp: v.evaluate(e) }
+             # See http://chaos.org.uk/~eddy/physics/Lorentz.html
+             'Lorentz': lambda v, c=second.light / second: c * v.tanh,
+             'Doppler': lambda v: v.log.Lorentz }
 
 def angle():
-    from math import cos, sin, tan, pi, tanh
-    from SI import radian, second
+    from math import cos, sin, tan, pi
+    from SI import radian
     def angeval(q, f, r=radian): return (q/r).evaluate(f)
     return { 'Sin': lambda v, s=sin, a=angeval: a(v, s),
              'Cos': lambda v, c=cos, a=angeval: a(v, c),
@@ -215,13 +218,13 @@ def angle():
              'Sec': lambda v: 1. / v.Cos,
              'CoSec': lambda v: 1. / v.Sin,
              'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
-             'Lorentz': lambda v, t=tanh, c=second.light / second, a=angeval: c * a(v, t),
              'iExp': lambda v: v.Cos + 1j * v.Sin }
 
 def speed():
     from SI import second, radian
     # See http://chaos.org.uk/~eddy/physics/Lorentz.html
-    return { 'Lorentz': lambda v, c=second.light / second, rad=radian: rad * (v / c).arctanh }
+    return { 'Lorentz': lambda v, c=second.light / second: (v / c).arctanh,
+             'Doppler': lambda v: v.Lorentz.exp }
 
 def mass():
     from SI import second, metre
@@ -753,7 +756,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.36  2005-04-25 07:35:35  eddy
+ Revision 1.37  2005-05-01 11:26:48  eddy
+ Make speed.Lorentz be plain scalar, add matching Doppler shift factors.
+
+ Revision 1.36  2005/04/25 07:35:35  eddy
  Wove angle and speed together via .Lorentz describing hyperbolic rotations.
 
  Revision 1.35  2005/04/24 15:34:11  eddy
