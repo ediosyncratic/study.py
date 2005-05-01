@@ -1,13 +1,14 @@
 """Relativistic constant acceleration.
 
-Theory: see http://www.chaos.org.uk/~eddy/physics/Lorentz.html
+Theory: see http://www.chaos.org.uk/~eddy/physics/Lorentz.html#Zoom
 
-$Id: zoom.py,v 1.5 2005-04-25 07:38:26 eddy Exp $
+$Id: zoom.py,v 1.6 2005-05-01 04:25:29 eddy Exp $
 """
 
 from basEddy.units import Object, year, pound
 import math
 
+# the following is generally wrong !
 class Zoom (Object):
     """Relativistic constant accelerator.
 
@@ -17,12 +18,16 @@ class Zoom (Object):
     fine.  Likewise, the initialiser's acceleration should have appropriate
     units.
 
-    The relationship between proper time, s, and - relative to the initial rest
-    frame - the time, t, and distance, x, travelled is:
+    The relationships between proper time, s, and - relative to the initial rest
+    frame - the time, t, instantaneous velocity v and distance, x, travelled are
+    given in terms of a hyperbolic angle b by:
 
-        exp(a.x/c/c) = cosh(a.t/c) = 1/cos(a.s/c).
+        sinh(b) = a.t/c
+        cosh(b) = 1 +a.x/c/c
+        sinh(2.b) +2.b = 4.a.s/c
+        tanh(b) = v/c
 
-    For derivation, see file documentation. """
+    For derivation, see http://www.chaos.org.uk/~eddy/physics/Lorenz.html#Zoom\n"""
 
     __obinit = Object.__init__
     __c = year.light / year
@@ -38,41 +43,46 @@ class Zoom (Object):
 	self.__rate = a / self.__c
 
     def times(self, distance):
-	"""Returns (proper, external) time twople for given distance.
+	"""Returns (proper, external) time twople for given distance."""
 
-	Note on solving cosh(p) = z, needed in solving for t given cosh(a.t/c):
-	decompose this into solving exp(p) = u, u+1/u = 2.z; the latter is just
-
-            0 = u.u -2.z.u +1 = (u-z)**2 +1 -z.z
-
-	whence u-z = sqrt(z.z -1) and p = log(u) = log(z +sqrt(z.z -1)). """
-
-	try:
-	    z = math.exp(distance * self.__rate / self.__c)
-	    return (math.acos(1/z) / self.__rate,
-		    math.log(z + (z-1)**.5 * (z+1)**.5) / self.__rate)
-	except OverflowError:
-	    # limit as distance tends to infinity:
-	    return (math.pi / 2 / self.__rate,
-		    distance / self.__c + math.log(2) / self.__rate)
+        b = (1 +self.__rate * distance / self.__c).arccosh
+        return ((2*b).sinh +2*b) * .25 / self.__rate, b.sinh / self.__rate
 
     def saturation(self, time):
 	"""Returns speed, as fraction of light, at given proper time."""
-	return math.sin(time * self.__rate)
+	return self.hyperbole(time).tanh
 
     def distance(self, time):
 	"""Returns distance travelled in a given proper time."""
 
-	assert abs(time * self.__rate) <= math.pi / 2, \
-	       'Proper time for uniformly accelerating body exceeds infinite limit !'
+        return (self.hyperbole(time).cosh -1) * self.__c / self.__rate
 
-	return -(self.__c / self.__rate) * math.log(math.cos(time * self.__rate))
+    def hyperbole(self, time):
+        """Computes the hyperbolic angle b as a function of proper time."""
+
+        # First approximation: sinh(2.b) = 2.b = 2.a.s/c
+        b2 = 2 * time * self.__rate
+        # The value sinh(b2) +b2 nees to equal, and a dummy last change:
+        rough, last = 2 * b2, 0
+        # Now apply Newton-Raphson
+        while True:
+            err = b2.sinh +b2 - rough
+            if b2.width == 0:
+                if err * 1e6 < last: break
+                last = err
+            elif err.evaluate(abs) < b2.width: break
+            b2 = b2 - err / (b2.cosh +1)
+
+        return .5 * b2
 
 del Object, year, pound
 
 _rcs_id = """
  $Log: zoom.py,v $
- Revision 1.5  2005-04-25 07:38:26  eddy
+ Revision 1.6  2005-05-01 04:25:29  eddy
+ Replaced methods with correct version, now that I've noticed the mistake I made !
+
+ Revision 1.5  2005/04/25 07:38:26  eddy
  Removed theory section to web page.
 
  Revision 1.4  2003/07/06 17:48:53  eddy
