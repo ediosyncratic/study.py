@@ -1,8 +1,8 @@
 """Relativistic constant acceleration.
 
-Theory: see http://www.chaos.org.uk/~eddy/physics/Lorentz.html#Zoom
+Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.6 2005-05-01 04:25:29 eddy Exp $
+$Id: zoom.py,v 1.7 2005-05-01 14:06:32 eddy Exp $
 """
 
 from basEddy.units import Object, year, pound
@@ -27,7 +27,7 @@ class Zoom (Object):
         sinh(2.b) +2.b = 4.a.s/c
         tanh(b) = v/c
 
-    For derivation, see http://www.chaos.org.uk/~eddy/physics/Lorenz.html#Zoom\n"""
+    For derivation, see http://www.chaos.org.uk/~eddy/physics/Zoom.html\n"""
 
     __obinit = Object.__init__
     __c = year.light / year
@@ -79,7 +79,10 @@ del Object, year, pound
 
 _rcs_id = """
  $Log: zoom.py,v $
- Revision 1.6  2005-05-01 04:25:29  eddy
+ Revision 1.7  2005-05-01 14:06:32  eddy
+ Split constant acceleration part of web page off as separate page.
+
+ Revision 1.6  2005/05/01 04:25:29  eddy
  Replaced methods with correct version, now that I've noticed the mistake I made !
 
  Revision 1.5  2005/04/25 07:38:26  eddy
