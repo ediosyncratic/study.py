@@ -76,7 +76,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.19 2005-04-24 14:28:34 eddy Exp $
+$Id: units.py,v 1.20 2005-05-20 07:08:34 eddy Exp $
 """
 from SI import *
 
@@ -164,6 +164,23 @@ week = 7 * day
 fortnight, year = 2 * week, 27 * 773 * week / 400 # the Gregorian approximation
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 6**3 seconds abound ...
+
+year.also(Gregorian = year,
+          tropical = 365 * day + 5 * hour + 48 * minute + 46 * second,
+          sidereal = 365 * day + 6 * hour + 9 * minute + 9.5 * second)
+year.tropical.document("""The tropical year.
+
+This is the time between successive vernal equinoxes.  It differs from the
+sidereal year because of the precession of the equinoxes: the equinoctial points
+move 50.27 seconds of arc per year westwards round the plane of the ecliptic.
+""")
+
+year.sidereal.document("""The sidereal year: Earth's orbital period.
+
+This is the period of Earth's orbit relative to the fixed stars.  Contrast the
+tropical year (disturbed by the precession of the equinoxes) and the Gregorian
+year (an approximation).
+""")
 
 # Miscelaneous SI-compatible units (c.f. SI.py), notably cm,g,s ones:
 gram, tonne = milli * kilogramme, kilo * kilogramme
@@ -808,7 +825,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.19  2005-04-24 14:28:34  eddy
+ Revision 1.20  2005-05-20 07:08:34  eddy
+ Added tropical and sidereal years.
+
+ Revision 1.19  2005/04/24 14:28:34  eddy
  Documented the foot and noted its closeness to light nano-second.
 
  Revision 1.18  2005/03/20 17:45:11  eddy
