@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.13 2005-04-29 07:06:43 eddy Exp $
+$Id: home.py,v 1.14 2005-05-20 07:13:57 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -227,7 +227,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
 
             kg.force / kg, # by definition, from special property of masses
 
-            Spin(Quantity(day * (1 - day / year),
+            Spin(Quantity(day * (1 - day / year.sidereal),
                           doc="""Rotational period of Earth wrt the fixed stars""",
                           sample = (23 * hour + 56 * minute + 4 * second,),
                           fullname="Sidereal Day"),
@@ -303,7 +303,7 @@ Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
                    sample = [ 8.3 * minute.light,
                               #' Somewhere, I've also seen .155 * tera * metre
                               .149600 * tera * metre ]), # K&L, NASA and some other source ...
-          Spin(year, 0, plane='Ecliptic'),
+          Spin(year.sidereal, 0, plane='Ecliptic'),
           .0167, # eccentricity; c.f. perihelion & apehelion, below.
           __doc__ = """The Earth's orbit about the Sun.
 
@@ -411,7 +411,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.13  2005-04-29 07:06:43  eddy
+Revision 1.14  2005-05-20 07:13:57  eddy
+Deploy year.sidereal where it matters most ...
+
+Revision 1.13  2005/04/29 07:06:43  eddy
 Corrected comments on Sun.orbit
 
 Revision 1.12  2005/04/28 22:09:15  eddy
