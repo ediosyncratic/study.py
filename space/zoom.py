@@ -2,7 +2,7 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.7 2005-05-01 14:06:32 eddy Exp $
+$Id: zoom.py,v 1.8 2005-08-18 03:43:37 eddy Exp $
 """
 
 from basEddy.units import Object, year, pound
@@ -70,7 +70,7 @@ class Zoom (Object):
             if b2.width == 0:
                 if err * 1e6 < last: break
                 last = err
-            elif err.evaluate(abs) < b2.width: break
+            elif err.abs < b2.width: break
             b2 = b2 - err / (b2.cosh +1)
 
         return .5 * b2
@@ -79,7 +79,11 @@ del Object, year, pound
 
 _rcs_id = """
  $Log: zoom.py,v $
- Revision 1.7  2005-05-01 14:06:32  eddy
+ Revision 1.8  2005-08-18 03:43:37  eddy
+ Use abs() rather than .evaluate(abs); it should have been .copy(abs),
+ which is what __abs__ now does ...
+
+ Revision 1.7  2005/05/01 14:06:32  eddy
  Split constant acceleration part of web page off as separate page.
 
  Revision 1.6  2005/05/01 04:25:29  eddy
