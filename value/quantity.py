@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.37 2005-05-01 11:26:48 eddy Exp $
+$Id: quantity.py,v 1.38 2005-08-18 03:48:30 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -182,6 +182,18 @@ def scalar():
     def arcsec(val, ac=arccos): return ac(1./val)
     def arccosec(val, as=arcsin): return as(1./val)
 
+    def sinc(val, s=math.sin, x=cmath.sin, c=chose):
+        try: return c(val, s, c) / val
+        except ZeroDivisionError: return 1 # sinc(0) = 1
+        # and there's a reason why I'm not trying to offer asinc !
+        # min sinc is c. -.217 at pi * 1.43 ~ x = tan(x) ~ 4.5
+
+    def Shannon(val, ln=math.log, ln2=math.log(2)):
+        if val > 0: return val * ln(val) / ln2
+        return 0
+    # NB: for a distribution among N things, information content is sum(Shannon)
+    # and redundancy is 1 - sum(Shannon)/N.
+
     def simple(val):
         if val.imag + 1 == 1: return val.real
         return val
@@ -198,12 +210,14 @@ def scalar():
              'arcCoSec': lambda v, a=math.asin, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
              'exp': lambda v, e=exp: v.evaluate(e),
              'log': lambda v, l=ln: v.evaluate(l),
+             'Shannon': lambda v, s=Shannon: v.evaluate(s),
              'arccosh': lambda v, a=arccosh: v.evaluate(a),
              'arcsinh': lambda v, a=arcsinh: v.evaluate(a),
              'arctanh': lambda v, a=arctanh: v.evaluate(a),
              'cosh': lambda v, c=math.cosh: v.evaluate(c),
              'sinh': lambda v, s=math.sinh: v.evaluate(s),
              'tanh': lambda v, t=math.tanh: v.evaluate(t),
+             'sinc': lambda v, s=sinc: v.evaluate(s),
              # See http://chaos.org.uk/~eddy/physics/Lorentz.html
              'Lorentz': lambda v, c=second.light / second: c * v.tanh,
              'Doppler': lambda v: v.log.Lorentz }
@@ -212,11 +226,16 @@ def angle():
     from math import cos, sin, tan, pi
     from SI import radian
     def angeval(q, f, r=radian): return (q/r).evaluate(f)
+    def sinc(val, r=radian, s=sin):
+        try: return (val/r).evaluate(s) / val
+        except ZeroDivisionError: return 1 / r
+
     return { 'Sin': lambda v, s=sin, a=angeval: a(v, s),
              'Cos': lambda v, c=cos, a=angeval: a(v, c),
              'Tan': lambda v, t=tan, a=angeval: a(v, t),
              'Sec': lambda v: 1. / v.Cos,
              'CoSec': lambda v: 1. / v.Sin,
+             'SinC': lambda v, s=sinc: s(v),
              'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
              'iExp': lambda v: v.Cos + 1j * v.Sin }
 
@@ -234,6 +253,8 @@ def mass():
 def time():
     from SI import second, metre
     return { 'light': lambda v, c=299792458 * metre / second: v * c }
+# It would also be nice to give time a print-format that breaks it up into
+# years, days, hours, minutes, seconds.
 
 def thermal():
     from SI import Kelvin
@@ -457,15 +478,18 @@ class Quantity (Object):
         return self.__scale
 
     def __nonzero__(self): return 0 != self.__scale
-    def __neg__(self): return self._neg
-    def __abs__(self):
-        if self.__scale < 0: return self._neg
-        return self
+    def __neg__(self):
+        try: return self.__neg
+        except AttributeError: pass
+        ans = self.__neg = self.copy(lambda x: -x)
+        ans.__neg = self
+        return ans
 
-    def _lazy_get__neg_(self, ignored):
-        result = self._quantity( - self.__scale, self.__units)
-        result._neg = self
-        return result
+    def __abs__(self):
+        try: return self.__abs
+        except AttributeError: pass
+        ans = self.__abs = self.copy(abs)
+        return ans
 
     # Support for additive functionality:
     def __addcheck_(self, other, why):
@@ -756,7 +780,11 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.37  2005-05-01 11:26:48  eddy
+ Revision 1.38  2005-08-18 03:48:30  eddy
+ Add sinc and Shannon information content.
+ Make __neg__ and __abs__ use .copy(); and fully hidden attributes as cache.
+
+ Revision 1.37  2005/05/01 11:26:48  eddy
  Make speed.Lorentz be plain scalar, add matching Doppler shift factors.
 
  Revision 1.36  2005/04/25 07:35:35  eddy
