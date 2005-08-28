@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.9 2003-08-17 20:21:35 eddy Exp $
+$Id: polynomial.py,v 1.10 2005-08-28 12:18:19 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -91,7 +91,7 @@ class Polynomial (Lazy):
         try:
             arg, = args
             arg[:]
-            raise ValueError # sequence
+            self.__fromseq(arg)
         except ValueError: self.__fromseq(args)
         except (AttributeError, TypeError, KeyError):
             try: arg.items, arg.get(0, None)
@@ -440,10 +440,9 @@ class Polynomial (Lazy):
         """Integrate a polynomial.
 
         Optional arguments, start and base, specify the constant of integration;
-        by default, the integral's value at zero is zero, but if start (whose
-        default is 0) is supplied then the integral's value at start will be
-        base (whose default is also 0).  Note that self.integral(base=h) is
-        equivalent to self.integral()+h. """
+        the integral's value at start (whose default is 0) will be base (whose
+        default is also zero).  Note that self.integral(base=h) is equivalent to
+        self.integral()+h."""
 
         bok = {}
         for k, v in self.__coefs.items():
@@ -755,7 +754,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.9  2003-08-17 20:21:35  eddy
+Revision 1.10  2005-08-28 12:18:19  eddy
+Fixed bug in constructor, refined doc of integral.
+
+Revision 1.9  2003/08/17 20:21:35  eddy
 A bit of tidy-up in __root and __pow__.  The latter now special-cases
 zero**+ve and raises ValueError if fractional power was reasonable but
 didn't work, e.g. the square root of a quadratic that isn't a square.
