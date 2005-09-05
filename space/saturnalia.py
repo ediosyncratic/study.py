@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.3 2005-03-15 21:24:05 eddy Exp $
+$Id: saturnalia.py,v 1.4 2005-09-05 20:27:11 eddy Exp $
 """
 
 from basEddy.units import mega, metre, km, tophat
@@ -22,7 +22,13 @@ Dione = NASAmoon("Dione", Saturn, _tmp, 377.40, 2.74,
                  NASAshell(560), "ice", 10.52, 1.44)
 Rhea = NASAmoon("Rhea", Saturn, Discovery("Cassini", 1672),
                 527.04, 4.52, NASAshell(764), "ice", 23.1, 1.24)
-Titan = NASAmoon("Titan", Saturn, Discovery("Huygens", 1655),
+Titan = NASAmoon("Titan", Saturn, Discovery("Christiaan Huygens", 1655,
+                                            doc="""Discovery of Titan
+
+Huygens initially described this moon as, simply, Luna Saturni.
+See http://antwrp.gsfc.nasa.gov/apod/ap050325.html
+for more details.
+"""),
                  1221.83, 15.94, NASAshell(2575), "cloudy atmosphere", 1345.5, 1.881)
 Hyperion = NASAmoon("Hyperion", Saturn, Discovery("Bond, Lassell", 1848),
                     1481.1, 21.28, NASAshell(180, 140, 113), "dirty ice")
@@ -93,7 +99,10 @@ del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav
 
 _rcs_log = """
 $Log: saturnalia.py,v $
-Revision 1.3  2005-03-15 21:24:05  eddy
+Revision 1.4  2005-09-05 20:27:11  eddy
+Details on Titan's discovery (from April).
+
+Revision 1.3  2005/03/15 21:24:05  eddy
 New source for Telesto/Calypso ordering.
 
 Revision 1.2  2005/03/12 17:46:04  eddy
