@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.10 2005-08-28 12:18:19 eddy Exp $
+$Id: polynomial.py,v 1.11 2005-09-08 22:46:06 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -442,7 +442,8 @@ class Polynomial (Lazy):
         Optional arguments, start and base, specify the constant of integration;
         the integral's value at start (whose default is 0) will be base (whose
         default is also zero).  Note that self.integral(base=h) is equivalent to
-        self.integral()+h."""
+        self.integral()+h; and self.integral(start, 0)(end) is the integral of
+        self from start to end."""
 
         bok = {}
         for k, v in self.__coefs.items():
@@ -532,6 +533,21 @@ class Polynomial (Lazy):
             result[p] = q.coefficient(0)
 
         return Polynomial(result)
+
+    def _lazy_get_Gamma_(self, ignored):
+        """Integrates self * (: exp(-t) &larr;t :{positives}).
+
+        When self is power(n) the result is Gamma(n+1) = n!, so the result is
+        just the sum of self's coefficients, each multiplied by the factorial of
+        its order.  The name is slighly misguided but not unreasonable.\n"""
+
+        n = self.rank
+        ans = self.coefficient(n)
+        while n > 0:
+            ans, n = ans * n, n - 1
+            ans = ans + self.coefficient(n)
+
+        return ans
 
     def _lazy_get_assquares_(self, ignored):
         """Decompose self as a sum of scaled squares, as far as possible.
@@ -754,7 +770,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.10  2005-08-28 12:18:19  eddy
+Revision 1.11  2005-09-08 22:46:06  eddy
+Tweaked integral's doc, added Gamma to integrate with negative exponential.
+
+Revision 1.10  2005/08/28 12:18:19  eddy
 Fixed bug in constructor, refined doc of integral.
 
 Revision 1.9  2003/08/17 20:21:35  eddy
