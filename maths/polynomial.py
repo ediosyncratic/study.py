@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.12 2005-09-18 13:01:48 eddy Exp $
+$Id: polynomial.py,v 1.13 2005-09-18 13:20:13 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -159,39 +159,44 @@ class Polynomial (Lazy):
     __str__ = __repr__
     variablename = 'x'
 
-    def format(num):
-        # it might be nice to also cope with non-scalar coefficients ...
+    def format(num, name):
         try:
             if num.imag == 0:
                 num = num.real
                 raise AttributeError
         except AttributeError: pass
 
-        ans = str(num)
+        try: ans = '(' + num.__represent(name) + ')'
+        except AttributeError: ans = str(num)
         if ans[0] != '-': return ' +' + ans
         else: return ' ' + ans
 
-    def _lazy_get__repr_(self, ig, fmt=format):
-	result, keys, name = '', self._powers, self.variablename
+    def __represent(self, name, fmt=format):
+        if name == 'z': next = 'a'
+        else: next = chr(ord(name[0]) + 1)
+	result, keys = '', self._powers
 
 	for key in keys:
             val = self.coefficient(key)
             if key:
                 if val == 1: result = result + " +"
                 elif val == -1: result = result + ' -'
-                else: result = result + fmt(val) + '*'
+                else: result = result + fmt(val, next) + '*'
 
                 if key == 1: result = result + name
                 else: result = result + "%s**%d" % (name, key)
 
-            else: result = result + fmt(val)
+            else: result = result + fmt(val, next)
 
         lamb = 'lambda %s:' % name
         if not result: return lamb + ' 0'
-        if result[:2] == ' +': return lamb + ' ' + result[2:]
+        elif result[:2] == ' +': return lamb + ' ' + result[2:]
         return lamb + result
 
     del format
+
+    def _lazy_get__repr_(self, ig):
+        return self.__represent(self.variablename)
 
     def __eachattr(self, each):
         bok = {}
@@ -372,7 +377,7 @@ class Polynomial (Lazy):
         try:
             i = int(val)
             if val == i: return i
-        except TypeError: pass
+        except (TypeError, AttributeError): pass
         return val
 
     def __pow__(self, other, int=whole,
@@ -781,7 +786,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.12  2005-09-18 13:01:48  eddy
+Revision 1.13  2005-09-18 13:20:13  eddy
+Restructure __repr__'s implementation to cope half-way decently with poly-of-poly...
+
+Revision 1.12  2005/09/18 13:01:48  eddy
 Tweaks and fixes; mostly doc and comments.
 
 Revision 1.11  2005/09/08 22:46:06  eddy
