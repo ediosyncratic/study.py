@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.13 2005-09-18 13:20:13 eddy Exp $
+$Id: polynomial.py,v 1.14 2005-09-18 15:21:37 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -130,7 +130,7 @@ class Polynomial (Lazy):
     def __frombok(self, bok, ok=lambda k, i=(types.IntType, types.LongType): type(k) in i):
         for key, val in bok.items():
             if not ok(key) or key < 0: raise unNaturalPower
-            elif val != 0: self.__store(key, val)
+            else: self.__store(key, val)
 
     def _lazy_get_rank_(self, ignored):
 	for key in self.__coefs.keys():
@@ -155,53 +155,63 @@ class Polynomial (Lazy):
         if scale == 1: return self
 	return self / scale
 
-    def __repr__(self): return self._repr
-    __str__ = __repr__
-    variablename = 'x'
-
-    def format(num, name):
-        try:
-            if num.imag == 0:
-                num = num.real
-                raise AttributeError
+    def __repr__(self):
+        try: return self.__repr
         except AttributeError: pass
 
-        try: ans = '(' + num.__represent(name) + ')'
-        except AttributeError: ans = str(num)
-        if ans[0] != '-': return ' +' + ans
-        else: return ' ' + ans
+        names = [ self.variablename ]
+        text = self.__represent(names, 0) # may grow names !
 
-    def __represent(self, name, fmt=format):
-        if name == 'z': next = 'a'
-        else: next = chr(ord(name[0]) + 1)
-	result, keys = '', self._powers
+        lamb = 'lambda %s: ' % ', '.join(names)
+        if not text: ans = lamb + '0'
+        else: ans = lamb + text
 
-	for key in keys:
+        self.__repr = ans
+        return ans
+
+    __str__ = __repr__
+    variablename = 'z'
+
+    def format(num, names, depth):
+        try:
+            if num.imag == 0: num = num.real
+        except AttributeError: pass
+
+        try: return num.__represent(names, 1+depth)
+        except AttributeError: return str(num)
+
+    def __represent(self, names, depth, fmt=format):
+        while depth >= len(names):
+            if names[-1][0] == 'a': names.append('Z')
+            else: names.append(chr(ord(names[-1][0]) - 1))
+
+	result, name = '', names[depth]
+	for key in self._powers:
             val = self.coefficient(key)
             if key:
-                if val == 1: result = result + " +"
-                elif val == -1: result = result + ' -'
-                else: result = result + fmt(val, next) + '*'
+                if val == 1: frag = ''
+                elif val == -1: frag = '-'
+                else:
+                    frag = fmt(val, names, depth)
+                    if ' ' in frag: frag = '(' + frag + ')*'
+                    else: frag += '*'
 
-                if key == 1: result = result + name
-                else: result = result + "%s**%d" % (name, key)
+                if key == 1: frag += name
+                else: frag += '%s**%d' % (name, key)
+            else: frag = fmt(val, names, depth)
 
-            else: result = result + fmt(val, next)
+            if frag[:1] == '-': result += ' ' + frag
+            else: result += ' +' + frag
 
-        lamb = 'lambda %s:' % name
-        if not result: return lamb + ' 0'
-        elif result[:2] == ' +': return lamb + ' ' + result[2:]
-        return lamb + result
+        if result[:2] == ' +': return result[2:]
+        elif result[:1] == ' ': return result[1:]
+        return result
 
     del format
 
-    def _lazy_get__repr_(self, ig):
-        return self.__represent(self.variablename)
-
     def __eachattr(self, each):
         bok = {}
-        for k, v in self.__coefs.items():
-            bok[k] = each(v)
+        for k, v in self.__coefs.items(): bok[k] = each(v)
         return Polynomial(bok)
 
     def toreal(val):
@@ -786,7 +796,11 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.13  2005-09-18 13:20:13  eddy
+Revision 1.14  2005-09-18 15:21:37  eddy
+Restructured repr to handle multinomials better.
+Fixed subtle bug in __frombok which broke multinomials.
+
+Revision 1.13  2005/09/18 13:20:13  eddy
 Restructure __repr__'s implementation to cope half-way decently with poly-of-poly...
 
 Revision 1.12  2005/09/18 13:01:48  eddy
