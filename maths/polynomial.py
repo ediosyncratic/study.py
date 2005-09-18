@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.14 2005-09-18 15:21:37 eddy Exp $
+$Id: polynomial.py,v 1.15 2005-09-18 15:26:28 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -118,7 +118,7 @@ class Polynomial (Lazy):
 
     def __store(self, power, coeff, g=_get_coeff):
         if coeff: self.__coefs[power] = g(coeff)
-        else: self._zero = coeff
+        else: self._zero = g(coeff)
     del _get_coeff
 
     def __fromseq(self, seq):
@@ -796,7 +796,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.14  2005-09-18 15:21:37  eddy
+Revision 1.15  2005-09-18 15:26:28  eddy
+Even a zero should go be checked.
+
+Revision 1.14  2005/09/18 15:21:37  eddy
 Restructured repr to handle multinomials better.
 Fixed subtle bug in __frombok which broke multinomials.
 
