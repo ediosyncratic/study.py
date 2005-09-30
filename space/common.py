@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.5 2005-03-16 21:23:24 eddy Exp $
+$Id: common.py,v 1.6 2005-09-30 22:33:11 eddy Exp $
 """
 
 from basEddy.units import tophat, arc, pi, Object, second
@@ -69,7 +69,7 @@ class Orbit (Round):
 	except AttributeError: pass
 	else: ws.append((GM / radius**3)**.5)
 
-        if spin is None and not ws and not os: # needed by __spin
+        if spin is None and not ws: # needed by __spin
             raise ValueError('No spin specified or computeble for orbit', centre, radius, what)
 
         if eccentricity is None:
@@ -192,7 +192,8 @@ class SurfacePart (Object):
     _unborrowable_attributes_ = extensives + pro_rata
     del extensive, nom, pro_rata, extensives
 
-class Surface (Round, SurfacePart, Spheroid):
+class Surface (Spheroid, Round, SurfacePart):
+    # Spheroid before SurfacePart, since we prefer its lazy volume ...
     __upinit = Round.__init__
     __spinit = SurfacePart.__init__
     __blinit = Spheroid.__init__
@@ -222,7 +223,10 @@ del tophat, arc, pi, Object, second
 
 _rcs_log = """
 $Log: common.py,v $
-Revision 1.5  2005-03-16 21:23:24  eddy
+Revision 1.6  2005-09-30 22:33:11  eddy
+Surface base-juggle, removed old mistest from Orbit.
+
+Revision 1.5  2005/03/16 21:23:24  eddy
 Renamed some variables to be more apt.
 
 Revision 1.4  2005/03/13 14:32:03  eddy
