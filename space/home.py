@@ -1,49 +1,39 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.14 2005-05-20 07:13:57 eddy Exp $
+$Id: home.py,v 1.15 2005-09-30 22:34:33 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
-     kilo, mega, giga, tera, peta, kg, metre, mile, arc, radian, Kelvin, \
-     year, day, hour, minute, second, litre, bar, Watt, Tesla, Ampere
+     micro, kilo, mega, giga, tera, peta, arc, radian, \
+     year, day, hour, minute, second, kg, metre, km, mile, \
+     litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
 from space import body
-from space.common import Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass
+from space.common import Orbit, Spin, Discovery, Surface, \
+     SurfacePart, Ocean, Island, Continent, LandMass
 
 from const import Cosmos
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
                        # some slightly more definite data:
-                       age = 1 / Cosmos.Hubble, temperature = Cosmos.temperature,
-                       # microwave background, mass density and number density:
-                       photon = Object(mass = 4.68e-31 * kg / metre**3, number = 413e6 / metre**3))
+                       age = Quantity(13.7 * (1 + .02 * tophat), giga * year,
+                                      """The age of our universe.
+
+Compare with Hubble's constant (q.v.) and note that multiplying the two together
+gives an answer just a little bit less than 1.\n"""),
+                       temperature = Cosmos.temperature,
+                       composition = { 'dark energy': .73,
+                                       'cold dark matter': .23,
+                                       'atoms': .04 },
+                       # microwave background: mass density and number density:
+                       photon = Object(mass = 4.68e-31 * kg / metre**3,
+                                       number = 413e6 / metre**3))
 del Cosmos
 
-LocalGroup = body.Group('Local Group',
-                        speed=Quantity(627 + 44 * tophat, kilo * metre / second,
-                                       """Speed of Local Group
-
-Our local group of galaxies is moving at somewhere between 600 and 650 km/s
-relative to the cosmic microwave background, in a direction described by
-astronomers as toward a position given in terms of co-ordinates (l,b) whose
-values are given as attributes here.
-
-Most of our uncertainty about this arises from our ignorance of our motion
-relative to the Local Group: we know our own velocity relative to the background
-radiation far more accurately.\n""",
-                                       l = (273 + 6 * tophat) * arc.degree,
-                                       b = (30 + 6 * tophat) * arc.degree))
-
-MilkyWay = body.Galaxy('Milky Way', mass=1e41 * kg,
-                       # given as 1e21 metre by Nuffield,
-                       # 100,000 light years by /apod/ap030103.html
-                       radius=(103 + 6 * tophat) * kilo * year.light,
-                       starcount=200 * giga, # same apod, assuming US billion, i.e. giga
-                       # and from an article in el Reg:
-                       age=(13.6 + 0.8 * tophat) * giga * year)
-# which is part of a local group of galaxies, which moves at about 600
-# kilometers per second relative to the primordial (cosmic background)
-# radiation: see http://antwrp.gsfc.nasa.gov/apod/ap030209.html
+MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg)
+# Just the part inwards from the Sun (about 90 giga Sun), given here so that
+# adding the Sun as a satellite of it goes smoothly.  See below for a .also()
+# with more details.
 
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
 # orbit can't be specified until Sun has been created.
@@ -53,16 +43,13 @@ def load_planets(): # lazy satellite loader for Sun
 Sun = body.Star(
     'Sun', load_planets, type='G2 V',
     orbit = Orbit(MilkyWay,
-		  3e4 * year.light, # GM and period predict 23e3 light year
-		  Spin(225e6 * year), # GM and radius predict 368.6e6 year
+		  Quantity(27 + 4 * tophat, kilo * year.light),
+                  # I've seen figures of 28 k ly, 8 k parsec; I used to quote 3e4 ly
+		  Spin(Quantity(230 + 20 * tophat, mega * year)),
+                  # I've seen period figures from 220 to 240 My.
                   None, # I don't know eccentricity, let Orbit guess for us ...
-                  # Random factor of 10 to narrow discrepancy between period and
-                  # (2*pi*radius)/speed but - for all I know - it may be period
-                  # or radius that needs corrected, not speed.  After all, the
-                  # reason folk believe in Dark Matter is that the radius and
-                  # period *don't* match ... maybe the fact that our velocity
-                  # relative to local group is only about .25 Mm/s is a clue ?
-		  speed=2.15 * mega * metre / second / 10),
+                  # I've seen speed quoted as 215 and 220 km/s
+		  speed=Quantity(218 + 4 * tophat, km / second)),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
 
@@ -232,6 +219,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                           sample = (23 * hour + 56 * minute + 4 * second,),
                           fullname="Sidereal Day"),
                  23.4, axis = 'Polaris'),
+            # need to also describe precession; see doc of year.sidereal
 
             # Ocean
             SurfacePart(IAocean('Pacific', 68, 2.6),
@@ -366,6 +354,46 @@ Sun.surface.radius.observe(6.96e8 * metre)
 Sun.mass.observe(1.9891e30 * kg) # over 700 times the sum of all the planets' masses
 # </bootstrap>
 
+# Milky way: reprise
+MilkyWay.also(
+    __doc__="""Our home Galaxy.
+
+Visible in the sky as The Milky Way, our home Galaxy has a long central bar,
+which points roughly at us, of length 27 k ly.  Its disk spans about 100 k ly
+and is of order 20 k ly thick on average.  Orbital speeds of stars drop off on a
+Keplerian curve out to around 10 k ly but then recover and remain roughly
+constant, generally between about 150 and 200 km/s, out to 300 k ly (in so far
+as there are any stars that far out to measure).  This implies far more mass at
+large radii than would be suggested by the visible stars and clouds.
+""",
+    # Span given as 1e21 metre by Nuffield, 100,000 light years by
+    # /apod/ap030103.html and assorted other sources; but it's blurry.
+    radius=(51.5 + 5 * tophat) * kilo * year.light,
+    # same apod gave "200 billion"; David Darling (see URL below) gives 200 to
+    # 400 billion, not counting brown dwarves.
+    starcount=(3 + 2*tophat) * 100 * giga,
+    # and from an article in el Reg:
+    age=(13.6 + 0.8 * tophat) * giga * year,
+    # http://www.daviddarling.info/encyclopedia/G/Galaxy.html offers:
+    density=Quantity(0.1, Sun.mass / parsec**3,
+                     """Mean density of our Galaxy.
+
+About 5 to 10 % of the Galaxy's mass is in gas and dust; its total mass is
+between .2 and .4 tera Sun.mass (the figure given above is its mass closer in
+than the Sun, so that adding the Sun as a satellite goes smoothly).
+"""),
+    mass=Quantity(.3 + .2 * tophat, tera * Sun.mass),
+    thick=Quantity(2.45 + .3 * tophat, kilo * year.light,
+                   "Thickness of the Galactic disk"),
+    bulge=Quantity(16, kilo * year.light,
+                   "Thickness of our Galaxy's central bulge"),
+    luminosity=Quantity(1 + tophat, 10e36 * Watt),
+    magnetic=Quantity(4 + 2 * tophat, micro * Gauss,
+                      """Background magnetic field strength of our Galaxy.
+
+The central bulge has much stronger magnetic fields.
+"""))
+
 def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **what):
     """As Planet, but with mass scaled by that of the earth and density in g/cc"""
     what['mass'] = Earth.mass * mass
@@ -405,13 +433,17 @@ Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
 del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
-    Sample, qSample, Quantity, Object, tophat, kilo, mega, giga, tera, peta, \
+    Sample, qSample, Quantity, Object, tophat, micro, kilo, mega, giga, tera, peta, \
     kg, metre, mile, arc, radian, Kelvin, year, day, hour, minute, second, \
-    litre, bar, Watt, Tesla, Ampere
+    litre, bar, Watt, Tesla, Ampere, Gauss
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.14  2005-05-20 07:13:57  eddy
+Revision 1.15  2005-09-30 22:34:33  eddy
+Moved LocalGroup out to galaxy.py, split MilkyWay into a stub preamble
+and a reprise, now with rather better data.  Tweaks to Universe.
+
+Revision 1.14  2005/05/20 07:13:57  eddy
 Deploy year.sidereal where it matters most ...
 
 Revision 1.13  2005/04/29 07:06:43  eddy
