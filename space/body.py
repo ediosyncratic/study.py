@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.14 2005-04-28 20:55:27 eddy Exp $
+$Id: body.py,v 1.15 2005-09-30 22:32:12 eddy Exp $
 """
 
 class Satellites:
@@ -274,7 +274,7 @@ class Body (Object):
     def orbiter(self, given, O=Orbit, S=Spin, **what):
         radius, period = self.__radius(given)
         if period is None:
-            return apply(O, (self, radius), what) # accept Orbit's guestimate of spin
+            return apply(O, (self, radius, None), what) # accept Orbit's guestimate of spin
 
         return apply(O, (self, radius, S(period)), what)
 
@@ -322,9 +322,13 @@ on the surface of %s as it rotates. """ % (name, self.name))
     del rowbok
 
 del Spin
+class Group (Object): pass # of galaxies
 
 del Quantity, second, metre, turn, pi
 from space.common import Round, Spheroid
+
+class Galaxy (Body, Round): pass
+class Star (Body, Round): pass
 
 class Hoop (Object, Round):
     # used for gaps and ring arcs, and as base for Ring.
@@ -400,14 +404,13 @@ class Planet (Planetoid):
         try: g, r, m = surface.gravity, surface.radius, self.GM
         except AttributeError: pass
         else: g.observe(m/r**2)
-
-class Group (Object): pass
-class Galaxy (Object): pass
-class Star (Body): pass
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.14  2005-04-28 20:55:27  eddy
+Revision 1.15  2005-09-30 22:32:12  eddy
+Shuffling for Star, Galaxy and Group.  Orbit spin-fix.
+
+Revision 1.14  2005/04/28 20:55:27  eddy
 Moved Group from star to body (so we can have groups of Galaxies).
 
 Revision 1.13  2005/04/09 11:20:59  eddy
