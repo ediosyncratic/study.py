@@ -10,6 +10,8 @@ http://www.maritimt.net/arkforsk/svenskem.htm
 http://en.wikipedia.org/wiki/Cgs
 http://home.clara.net/brianp/
 http://www.gnu.org/software/units/units.html
+http://www.unc.edu/~rowlett/units/
+http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
 
 This file documents lots of obscure and/or silly units, may of them derived from
 the /usr/share/misc/units repository of knowledge on the subject (see
@@ -19,6 +21,10 @@ ones relevant to trade in the anglophone world) have several variants - where
 possible, I have tried to find namespace-based ways to manage this mess (e.g.:
 print bushel.US.__doc__), but sometimes (e.g. the chain) I just gave up and left
 a comment here indicating the part of the story that I've left out !
+
+I should probably replace most of this file with a family of XML or RDF
+documents describing all the units, coupled to a deployment of some standard
+parsing tool-kit to access the data they provide.
 
 There are enough units of measurement here to provide for some cutely specific
 units of measurements in all sorts of odd domains.
@@ -76,7 +82,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.20 2005-05-20 07:08:34 eddy Exp $
+$Id: units.py,v 1.21 2005-10-31 02:45:31 eddy Exp $
 """
 from SI import *
 
@@ -150,16 +156,26 @@ arc = Object(degree = turn / 360)
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
 
-# Degrees (of angle and temperature):
-degree = Object(arc.degree, arc = arc.degree,
-                Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
-                Fahrenheit = Kelvin / 1.8)
-degree.also(F = degree.Fahrenheit)
+# Degrees of angle (for temperature, see below):
+degree = Object(arc.degree, arc = arc.degree)
 
 # Time
 minute = Quantity(60, second, arc=arc.minute)
+# bell = 30 * minute # nautical - need to check correctness !
+# Not to be confused with the Bel, a tenth of which is the dB.
 hour = 60 * minute # should this also be the degree of time ?
 day = 24 * hour
+Geldof = Quantity(3e4, 1/day,
+                  """The pre-Geldof poverty-induced infant mortality rate.
+
+As at 2005, the Live8Live organizers report that 30,000 children die every day,
+needlessly, as a result of extreme poverty.  This seemed a reasonable basis on
+which to name a rate-of-death unit.  Since Sir Bob Geldof stands as front-man
+for the Live8Live organization, and has done sterling work in previous kindred
+organizations, he seemed a natural person after whom to name the unit.  It
+should be noted that the 3e4/day figure is merely the infant mortality rate; we
+could as readily use 5e4 if we include adults.\n""")
+
 week = 7 * day
 fortnight, year = 2 * week, 27 * 773 * week / 400 # the Gregorian approximation
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
@@ -195,7 +211,7 @@ Angstrom = .1 * nano * metre    # Ångstrøm, aka Å
 micron, fermi = micro * metre, femto * metre
 litre = milli * stere
 hectare = hecto * are
-barn = femto * hectare
+barn = (10 * femto * metre) ** 2
 
 stilb = candela / cm**2
 phot = 10 * kilo * lux
@@ -222,6 +238,7 @@ R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
                        fullname='Röntgen') # also Roentgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 # see also particle.py for the electron-Volt, eV
+Rydberg = 2.17977 * atto * Joule # 13.605698 eV
 
 # Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(1.01325, bar,
@@ -234,7 +251,9 @@ mach = Quantity(331.46, metre / second,
 
 torr = mmHg = 133.322 * Pascal
 
-Rankine = degree.Fahrenheit
+Rankine = Kelvin / 1.8
+degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
+            Fahrenheit = Rankine, F = Rankine)
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 
 calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.force * foot
@@ -825,7 +844,11 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.20  2005-05-20 07:08:34  eddy
+ Revision 1.21  2005-10-31 02:45:31  eddy
+ Corrected barn, linked to bipm's spec.
+ Juggled handling of degree, noted the nautical bell.
+
+ Revision 1.20  2005/05/20 07:08:34  eddy
  Added tropical and sidereal years.
 
  Revision 1.19  2005/04/24 14:28:34  eddy
