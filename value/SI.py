@@ -2,14 +2,15 @@
 
 See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
-for a definitive source of information about units.
+        http://www.bipm.org/en/si/si_brochure/
+for definitive sources of information about units.
 
 Note that Quantity equips certain kinds of quantity with extra attributes:
 time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.10 2005-04-24 15:30:00 eddy Exp $
+$Id: SI.py,v 1.11 2005-10-31 02:39:10 eddy Exp $
 """
 from quantity import *
 
@@ -81,7 +82,7 @@ of radius r by a portion of the surface of the sphere having area r*r.""")
 
 # Composite SI units
 stere = pow(metre, 3)   # c.f. litre
-are = pow(metre, 2)     # c.f. hectare
+are = (10 * metre) ** 2     # c.f. hectare in units.py
 lm = lumen = candela * steradian # Luminous flux
 lx = lux = lumen / are          # Luminance, Illumination
 Hz = Hertz = 1 / second         # Frequency
@@ -103,7 +104,10 @@ T = Tesla = Weber / are         # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.10  2005-04-24 15:30:00  eddy
+ Revision 1.11  2005-10-31 02:39:10  eddy
+ Corrected are, linked to SI brochure.
+
+ Revision 1.10  2005/04/24 15:30:00  eddy
  Doc tweaks.
 
  Revision 1.9  2004/04/03 18:11:23  eddy
