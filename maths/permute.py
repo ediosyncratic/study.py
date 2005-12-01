@@ -17,7 +17,10 @@ Provides:
    Iterator(n) -- iterator over all n! permutations of a list of length n.
 
 See individual doc strings for further details of these; see module attribute
-Theory for fuller discussion of permutations. """
+Theory for fuller discussion of permutations.
+
+Note that Numeric python's numarray infrastructure provides for quite a lot of
+the same things as the following.\n"""
 
 
 Theory = ( """
@@ -141,77 +144,104 @@ class _biNomial:
     above the diagonal; except on the top line, where a 1 is displayed above the
     last digit of the diagonal entry in each column. """
 
-    _values = {}
+    __values = {}
     def __getitem__(self, key):
 	n, m = key	# keys to this object should be pairs of naturals
-	if n < m: n, m = m, n
-	# assert n >= m
+        try: val = self.__lookup(n, m)
+        except RuntimeError, what:
+            print what
+            if what.args[0] != 'maximum recursion depth exceeded': raise
+            val = factorial(n+m) / factorial(n) / factorial(m)
+            if n < m: n, m = m, n   # exploit symmetry
+            self.__values[n, m] = val
 
+        return val
+
+    def __lookup(self, n, m):
+	if n < m: n, m = m, n   # exploit symmetry
+	assert n >= m
 	if m < 0: return 0 # silly input
-	try: return self._values[n, m] # cached answer
-	except KeyError: pass # ho hum, need to compute it ...
+        if m == 0: return 1 # no sense cacheing
+        if m == 1: return n+1 # likewise
 
-        if m > 0:
-            up, left = self[n-1, m], self[n, m-1]
-	    try: val = left + up
-	    except OverflowError: val = long(left) + up
-	else: val = 1
-        self._values[n, m] = val
+        try: val = self.__values[n, m]
+        except KeyError: # ho hum, need to compute it ...
+            up, left = self.__lookup(n-1, m), self.__lookup(n, m-1)
+            try: val = left + up
+            except OverflowError: val = long(left) + up
+            self.__values[n, m] = val
 
-	return val
+        return val
 
     def __str__(self):
-	keys = self._values.keys()
+	keys = self.__values.keys()
 	if not keys: return '1, 1, ...\n1,'
 	keys.sort()
 	import string
+        # the following may be broken by __getitem__'s RuntimeError fallback ...
 
-	line, row = [], []
-	# presume knowledge of the order of the keys ...
-	for n, m in keys:
-	    # assert: n >= m
-	    value = self._values[n,m]
-	    if m == 0 and line:
-		row.append(string.joinfields(line, ', '))
-		line = []
-	    line.append(`value`)
-	# assert: afterwards, n has the biggest value it's had
+        row = []
+        for n, m in keys:
+            while n > len(row):
+                row.append(['1', `len(row) + 2`])
+            assert len(row[n-1]) == m
+            row[n-1].append(`self.__values[n,m]`)
 
-	if line:
-	    row.append(string.joinfields(line, ', '))
+        # Now turn each line into a single string:
+        n = len(row) + 1
+        while n > 1:
+            n = n - 1
+            here = row[n-1]
+            if len(here) < n + 1: here.append('...')
+            row[n-1] = string.joinfields(here, ', ')
 
 	head = '1, 1'
         # now put a 1 above the last digit of each diagonal entry:
-	off, m = len(head), 1
+	off, m, n = len(head), 1, len(row) + 1
         while m < n:
-	    new = len(row[m])
+            try: new = len(row[m])
+            except IndexError:
+                raise IndexError(row, m, n)
 
 	    gap = new - off - 1
 	    if gap < 2: break # last row brought us to our last column
+	    head, off, m = head + ',%*d' % (gap, 1), new, 1+m
 
-	    fmt = ',%' + '%dd' % gap
-	    head, off, m = head + fmt % 1, new, 1+m
-
-	return head + ', ...\n' + string.joinfields(row, ',\n') + ', ...'
+	return head + ', ...\n' + string.joinfields(row, ',\n') + ',\n...'
 
     __repr__ = __str__
 
-_binomials = _biNomial()
-def chose(total, part):
-    """chose(N,i) -> N! / (N-1)! / i!
+    def check(self):
+        """Uses factorial() to verify results of chose(). """
+        result = []
+        for (n, m), val in self.__values.items():
+            check = factorial(n+m) / factorial(n) / factorial(m)
+            if val != check:
+                result.append('%d, %d ->' % (n,m) + `val` + ' != ' + `check`)
+
+        if result:
+            import string
+            return string.joinfields(result, '\n')
+
+binomials = _biNomial()
+del _biNomial
+def chose(total, part, rack=binomials):
+    """chose(N,i) -> N! / (N-i)! / i!
 
     This is the number of ways of chosing i items from among N, ignoring order
     of choice.  Computed using a cached form of Pascal's triangle. """
 
-    return _binomials[total-part, part]
+    return rack[total-part, part]
 
 def Pascal(tot):
-    """Returns a row of Pascal's triangle"""
-    row = []
-    for it in range(1+tot): row.append(_binomials[tot-it, it])
-    return tuple(row)
+    """A row of Pascal's triangle"""
+    return tuple(map(lambda i, t=tot: chose(t, i), range(1+tot)))
+
+def check(rack=binomials): rack.check()
+
+del binomials
 
-def factorial(num):
+def factorial(num, cache=[1]):
 	"""Returns the factorial of any natural number.
 
 	Equivalent to reduce(lambda a,b:a*(1+b), range(num), 1L), except that it
@@ -230,25 +260,21 @@ def factorial(num):
 	for arbitrary a in the complex plane, with a pole (of order 1) at each
 	negative integer and a real humdinger of a singularity at infinity. """
 
-	result = 1
-	while num > 1:
-	    try: result = result * num
-	    except OverflowError: result = long(result) * num
-	    num = num - 1
+        if num < 0: raise ValueError, "I only do naturals"
+        try: return cache[num]
+        except IndexError: pass
+
+	result, i = cache[-1], len(cache)
+	while num >= i:
+	    try: result = result * i
+	    except OverflowError: result = long(result) * i
+            i = 1 + i
+            if len(cache) < 4000:
+                # lists start mis-behaving if longer than 4000 entries !
+                cache.append(result)
+                assert i == len(cache)
 
 	return result
-
-def _check():
-    """Uses factorial() to verify results of chose(). """
-    result = []
-    for n, m in _binomials._values.keys():
-	check = factorial(n+m) / factorial(n) / factorial(m)
-	if _binomials[n,m] != check:
-	    result.append('%d, %d ->' % (n,m) + `_binomials[n,m]` + ' != ' + `check`)
-
-    if result:
-        import string
-        return string.joinfields(result, '\n')
 
 def unfixed(num):
     """Returns the number of permutations of num without fixed points.
@@ -535,7 +561,10 @@ class Iterator:
 
 _rcs_log = """
   $Log: permute.py,v $
-  Revision 1.2  2002-03-13 02:13:40  eddy
+  Revision 1.3  2005-12-01 00:59:42  eddy
+  Lots of re-mangling (most of it some time ago).
+
+  Revision 1.2  2002/03/13 02:13:40  eddy
   Added Pascal, frobbed docs.  Corrected handling of Iterator(0), made
   .inverse an attribute like .permutation, xrefed new queens.py, added
   .restart() and shuffled method order.
