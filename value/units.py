@@ -82,7 +82,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.21 2005-10-31 02:45:31 eddy Exp $
+$Id: units.py,v 1.22 2006-01-04 12:00:40 eddy Exp $
 """
 from SI import *
 
@@ -152,7 +152,8 @@ paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
 grad = turn / 400 # a unit used by gunners, I believe.
-arc = Object(degree = turn / 360)
+arc = Object(degree = turn / 360,
+             point = turn / 32) # there are 32 points on a compass rose
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
 
@@ -464,7 +465,8 @@ champagne.also(
 inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
 caliber = inch / 100
 barleycorn = inch / 3
-pica = line = barleycorn / 4 # inch / 12, c.f. French.line, Norse.linje, Swedish.linje
+pica = barleycorn / 2 # CSS 2.1 spec
+line = pica / 2 # inch / 12, c.f. French.line, Norse.linje, Swedish.linje
 hand = 4 * inch
 palmlength = 8 * inch
 span = 9 * inch
@@ -534,8 +536,9 @@ come.  Contrast mile.nautical and the Scandinavian mil.\n""")
 league = 3 * mile
 league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
 marathon = 26 * mile + 385 * yard
-point = pica / 6        # the printer's point
+point = pica / 12        # the printer's point
 point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below - under mass !)
+point.arc = arc.point
 shoe = Object( # units of thickness of leather in shoes
     iron = inch / 48, # soles
     ounce = inch / 64)# elsewhere
@@ -844,7 +847,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.21  2005-10-31 02:45:31  eddy
+ Revision 1.22  2006-01-04 12:00:40  eddy
+ Corrected pica.  Added arc.point (c/o Neal Stephenson, Quicksilver).
+
+ Revision 1.21  2005/10/31 02:45:31  eddy
  Corrected barn, linked to bipm's spec.
  Juggled handling of degree, noted the nautical bell.
 
