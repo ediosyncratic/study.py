@@ -1,6 +1,7 @@
+# -*- coding: iso-8859-1 -*-
 """Units and related things related to money and a job.
 
-$Id: job.py,v 1.1 2006-03-24 08:28:37 eddy Exp $
+$Id: job.py,v 1.2 2006-03-24 08:32:10 eddy Exp $
 """
 
 from units import *
@@ -93,14 +94,17 @@ class Job (Lazy):
     def _lazy_get_monthly_(self,   ignored): return self.annual / 12
     def _lazy_get_quarterly_(self, ignored): return self.annual / 4
 
-working = Job(412572 * kroner, year, 26)
-# 2005: 369612 * kroner, year
+working = Job(412572 * krone, year, 26)
+# 2005: 369612 * krone, year
 # 2002: 28000 * quid, year, 7.5, 8, 5
 del Job
 
 _rcs_log = """
  $Log: job.py,v $
- Revision 1.1  2006-03-24 08:28:37  eddy
+ Revision 1.2  2006-03-24 08:32:10  eddy
+ krone not kroner
+
+ Revision 1.1  2006/03/24 08:28:37  eddy
  Initial revision
 
 """
