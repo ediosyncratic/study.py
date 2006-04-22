@@ -15,10 +15,11 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.18 2005-04-10 17:41:00 eddy Exp $
+$Id: particle.py,v 1.19 2006-04-22 15:24:24 eddy Exp $
 """
 
 from const import *
+from basEddy import Lazy
 
 eV = Quantity(Quantum.Millikan, Volt,
               doc='The electron-Volt: a standard unit of energy in particle physics.')
@@ -650,7 +651,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.18  2005-04-10 17:41:00  eddy
+ Revision 1.19  2006-04-22 15:24:24  eddy
+ const no longer exports Lazy !
+
+ Revision 1.18  2005/04/10 17:41:00  eddy
  Another spectral href.
 
  Revision 1.17  2005/04/09 09:12:52  eddy
