@@ -1,21 +1,19 @@
 """Implementing Huffman coding.
 """
 
-_rcs_id = "$Id: Huffman.py,v 1.3 2006-05-18 11:13:20 eddy Exp $"
+_rcs_id = "$Id: Huffman.py,v 1.4 2006-05-18 12:41:30 eddy Exp $"
 from basEddy import Lazy
 
 class Huffman (Lazy):
-    def __init__(self, P, N=1, blank=None, symbols='01'):
+    def __init__(self, P, N=1, blank=None, symbols='01', tail=None):
         """Initialize a Huffman encoder.
 
         First argument, P, is a mapping from symbols to their relative
-        frequencies; if a sequence is supplied instead, it is interpreted as a
-        mapping from the strings naming its indices to its entries.  (FIXME:
-        broken for sequence longer than two-ple; need to support string messages
-        but also sequences of tokens from P's vocabulary).  In principle, P is
-        reduced to a probability distribution: it'll be normalized if
-        appropriate.  Present implementation presumes that P's keys are all
-        strings.
+        frequencies; if a (not too long) sequence is supplied instead, it is
+        interpreted as a mapping from its indices (each represented as a digit,
+        letter or punctuator) to its entries.  (TODO: support non-string keys;
+        encode sequences of keys).  In principle, P is normalized to yield a
+        probability distribution.
 
         Optional arguments:
 
@@ -30,55 +28,63 @@ class Huffman (Lazy):
                    strip up to N-1 of these blanks from each message.
 
           symbols -- the alphabet to use for the encoded message (default: '01').
+
+          tail -- entry in symbols which is apt to be lost from the end of an
+                  encoded text (e.g. because it's the blank of a down-stream
+                  Huffman); when decoding, enough of these shall be appended, if
+                  needed.  Default, None, means to omit such bodging.
         """
 
+        # Block size:
         if N != int(N) or N < 1:
             raise ValueError(N, 'Block size should be a positive integer')
         self.__block_size = N
 
+        # Output symbols:
         if len(symbols) < 2:
             raise ValueError(symbols, 'Need at least two output symbols')
         self.__symbols = symbols
 
+        if tail is not None:
+            if tail not in symbols:
+                raise ValueError(tail,
+                                 'Tail padding must be a valid output symbol',
+                                 symbols)
+            self.__tail = tail
+
         # Check P is a mapping or sequence:
-        try: keys = P.keys()
+        try: P.items() # mapping
         except AttributeError:
-            try: P[:]
+            try: P[:] # sequence
             except: raise ValueError(P,
                                      'Probability distribution must be mapping or sequence')
-            else:
-                keys = map(str, range(len(P)))
-                for i in keys:
-                    P[i] # raises exception if P is not a sequence ...
+            # Concoct representation for P's indices:
+            import string
+            keys = string.digits
+            for more in ( string.lowercase, string.uppercase, string.punctuation, ' ' ):
+                if len(P) > len(keys):
+                    keys = keys + more
+                else: break
 
-        self.__distribution = P
+            if len(P) > len(keys):
+                raise ValueError(P, 'Sequence too long for fall-back handling', keys)
+
+            # Convert P to a mapping:
+            bok = {}
+            for i in range(len(P)):
+                bok[keys[i]] = P[i] # raises exception if P is not a sequence ...
+
+            self.__distribution = bok
+        else: self.__distribution = P
+
+        # Input padding:
         if blank is not None:
-            if blank not in keys:
+            if not self.__distribution.has_key(blank):
                 raise ValueError(blank,
                                  'Invalid blank character specified: not in symbol set')
             self.__blank = blank
 
     def encode(self, message):
-        message = self.__pad(message) # ValueError if trouble
-        txt, n, code = '', self.__block_size, self.mapping
-        while message:
-            message, txt = message[n:], txt + code[message[:n]]
-        return txt
-
-    def decode(self, txt):
-        message, code = '', self.reverse
-        while txt:
-            i = 1
-            while not code.has_key(txt[:i]) and txt[i:]: i = 1 + i
-            txt, message = txt[i:], message + code[txt[:i]] # KeyError if bad txt
-
-        try: pad, n = self.__blank, self.__block_size - 1
-        except AttributeError: pass
-        else: message = message[:-n] + message[-n:].rstrip(pad)
-
-        return message
-
-    def __pad(self, message):
         rem = len(message) %  self.__block_size
         if rem:
             try: pad = self.__blank
@@ -86,6 +92,40 @@ class Huffman (Lazy):
                 raise ValueError(self.__block_size,
                                  'Cannot pad message to multiple of block size: no blank')
             message = message + (self.__block_size - rem) * pad
+
+        txt, n, code = '', self.__block_size, self.mapping
+        try:
+            while message:
+                message, txt = message[n:], txt + code[message[:n]]
+        except KeyError:
+            raise ValueError(message,
+                             'Unable to encode this message',
+                             code)
+        return txt
+
+    def decode(self, txt):
+        message, code = '', self.reverse
+        try:
+            while txt:
+                i = 1
+                while not code.has_key(txt[:i]) and txt[i:]: i = 1 + i
+                if not code.has_key(txt[:i]) and not txt[i:]:
+                    try: pad = self.__tail
+                    except AttributeError: pass
+                    else:
+                        cut = max(map(len, code.keys()))
+                        while i < cut and not code.has_key(txt):
+                            txt, i = txt + tail, i + 1
+
+                txt, message = txt[i:], message + code[txt[:i]] # KeyError if bad txt
+        except KeyError:
+            raise ValueError(txt, 'Unable to decode this message', code)
+
+        assert len(message) % self.__block_size == 0
+
+        try: pad, n = self.__blank, self.__block_size - 1
+        except AttributeError: pass
+        else: message = message[:-n] + message[-n:].rstrip(pad)
 
         return message
 
@@ -185,7 +225,12 @@ class Huffman (Lazy):
 
 _rcs_log = """
  $Log: Huffman.py,v $
- Revision 1.3  2006-05-18 11:13:20  eddy
+ Revision 1.4  2006-05-18 12:41:30  eddy
+ Cope if text to be decoded has lost some dangling padding.
+ Correct handling of: sequence-distributions; errors in encode and decode.
+ Inlined __pad into encode.
+
+ Revision 1.3  2006/05/18 11:13:20  eddy
  Support for more than two output symbols.  Re-purpose .__symbols name.
  Check validity of blank, if supplied, in constructor.
  Strip dangling padding on decode.
