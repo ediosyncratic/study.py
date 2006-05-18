@@ -1,7 +1,7 @@
 """Implementing Huffman coding.
 """
 
-_rcs_id = "$Id: Huffman.py,v 1.4 2006-05-18 12:41:30 eddy Exp $"
+_rcs_id = "$Id: Huffman.py,v 1.5 2006-05-18 18:35:51 eddy Exp $"
 from basEddy import Lazy
 
 class Huffman (Lazy):
@@ -129,6 +129,20 @@ class Huffman (Lazy):
 
         return message
 
+    def __repr__(self):
+        try: ans = self.__repr
+        except AttributeError:
+            its = self.mapping.items()
+            its.sort(lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
+            fmt = map(lambda (k, v): '%%%ds' % max(len(k), len(v)), its)
+            ans = '\n'.join(map(lambda x, f=' | '.join(fmt): f % x,
+                                apply(map, [ lambda *args: args ] + its)))
+            self.__repr = ans
+
+        return ans
+
+    __str__ = __repr__
+
     def _lazy_get__block_map_(self, ig, possible=lambda (k, v): v):
         """Mapping from possible blocks to their probabilities. """
         bok = { '': 1 }
@@ -225,7 +239,10 @@ class Huffman (Lazy):
 
 _rcs_log = """
  $Log: Huffman.py,v $
- Revision 1.4  2006-05-18 12:41:30  eddy
+ Revision 1.5  2006-05-18 18:35:51  eddy
+ Implement str and repr.
+
+ Revision 1.4  2006/05/18 12:41:30  eddy
  Cope if text to be decoded has lost some dangling padding.
  Correct handling of: sequence-distributions; errors in encode and decode.
  Inlined __pad into encode.
