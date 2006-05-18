@@ -1,7 +1,7 @@
 """Implementing Huffman coding.
 """
 
-_rcs_id = "$Id: Huffman.py,v 1.1 2006-05-18 10:13:16 eddy Exp $"
+_rcs_id = "$Id: Huffman.py,v 1.2 2006-05-18 10:20:03 eddy Exp $"
 from basEddy import Lazy
 
 class Huffman (Lazy):
@@ -37,7 +37,7 @@ class Huffman (Lazy):
                     P[i] # raises exception if P not a sequence ...
 
     def encode(self, message):
-        message = self.__pad(message) # raises error if trouble
+        message = self.__pad(message) # ValueError if trouble
         txt, n, code = '', self.__block_size, self.mapping
         while message:
             message, txt = message[n:], txt + code[message[:n]]
@@ -57,7 +57,7 @@ class Huffman (Lazy):
             try: pad = self.__blank
             except AttributeError:
                 raise ValueError(self.__block_size,
-                         'Cannot pad message to multiple of block size: no blank specified')
+                                 'Cannot pad message to multiple of block size: no blank')
             if pad not in self.__symbols:
                 del self.__blank
                 raise ValueError(pad,
@@ -82,6 +82,40 @@ class Huffman (Lazy):
 
         return bok
 
+    def _lazy_get_reverse_(self, ig):
+        bok = {}
+        for k, v in self.mapping.items():
+            bok[v] = k
+        return bok
+
+    def _lazy_get_length_(self, ig):
+        """Expected length per token."""
+        P = self._block_map
+        code = self.mapping
+        all = tot = 0
+        for k, v in P.items():
+            all, tot = all + v * len(code[k]), tot + v
+
+        return all * 1. / tot / self.__block_size
+
+    from math import log
+    def _lazy_get_entropy_(self, ig, ln=log, ln2 = log(2)):
+        """Entropy per symbol.
+
+        In case the weights of our distribution don't add up to exactly 1, we
+        adjust: we're computing sum(: log(k/p).p/k :) for some k we don't know
+        until the end; this is sum(: log(k/p).p/k :) = sum(: log(1/p).p :)/k +
+        log(k).sum(p)/k, with k = sum(p)
+        """
+        all = tot = 0 # sum, k
+        for v in self.__distribution.values():
+            all, tot = all - v * ln(v), tot + v
+
+        return (all / tot + ln(tot)) / ln2
+
+    del log
+
+    # The implementation of mapping:
     class Leaf:
         def __init__(self, key, weight):
             self.key, self.weight = key, weight
@@ -122,43 +156,11 @@ class Huffman (Lazy):
         return code
 
     del Leaf, Tree, weigh
-
-    def _lazy_get_reverse_(self, ig):
-        bok = {}
-        for k, v in self.mapping.items():
-            bok[v] = k
-        return bok
-
-    def _lazy_get_length_(self, ig):
-        """Expected length per token."""
-        P = self._block_map
-        code = self.mapping
-        all = tot = 0
-        for k, v in P.items():
-            all, tot = all + v * len(code[k]), tot + v
-
-        return all * 1. / tot / self.__block_size
-
-    from math import log
-    def _lazy_get_entropy_(self, ig, ln=log, ln2 = log(2)):
-        """Entropy per symbol.
-
-        In case the weights of our distribution don't add up to exactly 1, we
-        adjust: we're computing sum(: log(k/p).p/k :) for some k we don't know
-        until the end; this is sum(: log(k/p).p/k :) = sum(: log(1/p).p :)/k +
-        log(k).sum(p)/k, with k = sum(p)
-        """
-        all = tot = 0 # sum, k
-        for v in self.__distribution.values():
-            all, tot = all - v * ln(v), tot + v
-
-        return (all / tot + ln(tot)) / ln2
-
-    del log
 
 _rcs_log = """
  $Log: Huffman.py,v $
- Revision 1.1  2006-05-18 10:13:16  eddy
- Initial revision
+ Revision 1.2  2006-05-18 10:20:03  eddy
+ Shuffle parts into tidier order.
 
+ Initial Revision 1.1  2006/05/18 10:13:16  eddy
 """
