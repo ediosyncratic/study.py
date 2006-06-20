@@ -79,9 +79,10 @@ class Rational:
 	num, den = self._rational
 	try: p, q = other._rational
 	except AttributeError: p, q = other, 1
-	while 1>0:
+	while True:
 	    try: return Rational(num * q, den * p)
 	    except OverflowError: den, num = long(den), long(num)
+    __truediv__ = __div__
 
     def __rdiv__(self, other):
 	num, den = self._rational
@@ -90,6 +91,7 @@ class Rational:
 	while 1>0:
 	    try: return Rational(p * den, q * num)
 	    except OverflowError: den, num = long(den), long(num)
+    __rtruediv__ = __rdiv__
 
     def __divmod__(self, other):
 	rat = self.__div__(other)

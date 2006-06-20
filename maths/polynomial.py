@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: polynomial.py,v 1.15 2005-09-18 15:26:28 eddy Exp $
+$Id: polynomial.py,v 1.16 2006-06-20 23:20:30 eddy Exp $
 """
 import types
 from basEddy.lazy import Lazy
@@ -299,6 +299,7 @@ class Polynomial (Lazy):
         if r and not r.__istiny(self._bigcoef):
             raise ValueError(self, 'not a multiple of', other, r)
         return q
+    __floordiv__ = __div__
 
     def __mod__(self, other): return self.__divmod__(other)[1]
 
@@ -796,7 +797,10 @@ del types, Lazy
 
 _rcs_log_ = """
 $Log: polynomial.py,v $
-Revision 1.15  2005-09-18 15:26:28  eddy
+Revision 1.16  2006-06-20 23:20:30  eddy
+Support for future extensions: truediv as div.
+
+Revision 1.15  2005/09/18 15:26:28  eddy
 Even a zero should go be checked.
 
 Revision 1.14  2005/09/18 15:21:37  eddy

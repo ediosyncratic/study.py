@@ -20,7 +20,7 @@ accompanying the fractional value.
 """
 
 _rcs_id_ = """
-$Id: bigfloat.py,v 1.10 2003-10-05 14:52:15 eddy Exp $
+$Id: bigfloat.py,v 1.11 2006-06-20 23:16:28 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -113,10 +113,12 @@ class BigFloat (Lazy):
     def __div__(self, other, get=extract):
         val, cen = get(other)
         return BigFloat(self.__scale / val, self.__century - cen)
+    __truediv__ = __div__
 
     def __rdiv__(self, other, get=extract):
         val, cen = get(other)
         return BigFloat(val / self.__scale, cen - self.__century)
+    __rtruediv__ = __rdiv__
 
     def __cmp__(self, other, get=extract):
         val, cen = get(other)
@@ -343,7 +345,10 @@ class BigComplex (Lazy):
 
 _rcs_log_ = """
 $Log: bigfloat.py,v $
-Revision 1.10  2003-10-05 14:52:15  eddy
+Revision 1.11  2006-06-20 23:16:28  eddy
+Support for future extensions: truediv as div.
+
+Revision 1.10  2003/10/05 14:52:15  eddy
 Added thoughts on a different approach to implementing floats.
 
 Revision 1.9  2003/10/04 10:22:14  eddy

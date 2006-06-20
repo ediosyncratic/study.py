@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.30 2005-03-13 18:43:42 eddy Exp $
+$Id: sample.py,v 1.31 2006-06-20 23:11:35 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1552,6 +1552,7 @@ class Sample (Object):
                 raise ZeroDivisionError, ('Dividing by interval about 0', self, what)
 
         return self.join(f, what)
+    __truediv__ = __div__
 
     def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
         w = self.__weigh
@@ -1560,6 +1561,7 @@ class Sample (Object):
             raise ZeroDivisionError, ('Dividing by interval about 0', what, self)
 
         return self.join(f, what)
+    __rtruediv__ = __rdiv__
 
     # For pow, expect simple argument:
     def __pow__(self, what, f=_power): return self.join(f, what)
@@ -1745,7 +1747,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.30  2005-03-13 18:43:42  eddy
+  Revision 1.31  2006-06-20 23:11:35  eddy
+  Support for future extensions: truediv as div.
+
+  Revision 1.30  2005/03/13 18:43:42  eddy
   Made interpolator's cuts honour sign of weight-points if they all have same sign.
   Prevents certain kinds of spurious zero-spanning.  Also fixed a petty typo.
 
