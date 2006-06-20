@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.38 2005-08-18 03:48:30 eddy Exp $
+$Id: quantity.py,v 1.39 2006-06-20 23:10:47 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -576,10 +576,12 @@ class Quantity (Object):
         ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
         return self._quantity(self.__scale / ot, subdict(self.__units, her))
+    __truediv__ = __div__
 
     def __rdiv__(self, other, grab=unpack):
         ot, her = grab(other)
         return self._quantity(ot / self.__scale, subdict(her, self.__units))
+    __rtruediv__ = __rdiv__
 
     def __pow__(self, what, grab=unpack):
         wh, at = grab(what)
@@ -780,7 +782,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.38  2005-08-18 03:48:30  eddy
+ Revision 1.39  2006-06-20 23:10:47  eddy
+ Support for future extensions: truediv as div.
+
+ Revision 1.38  2005/08/18 03:48:30  eddy
  Add sinc and Shannon information content.
  Make __neg__ and __abs__ use .copy(); and fully hidden attributes as cache.
 
