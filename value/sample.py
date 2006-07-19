@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.31 2006-06-20 23:11:35 eddy Exp $
+$Id: sample.py,v 1.32 2006-07-19 07:41:34 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1339,7 +1339,21 @@ class Sample (Object):
     _unborrowable_attributes_ = Object._unborrowable_attributes_ + ('best',)
 
     # Sub-classes can use bolt-in replacements for Weighted ...
-    _weighted_ = Weighted
+    def _weighted_(self, weights, scale=None, klaz=Weighted):
+        if scale is None:
+            try: weights[:]
+            except TypeError:
+                try: tot = sum(weights.values())
+                except AttributeError: tot = weights
+            else: tot = sum(weights)
+
+            if tot < 0: y = -1.
+            else: y = 1.
+            if y * tot <= 1: scale = y
+            else:
+                while y * tot > 1: scale, y = y, y * .5
+
+        return klaz(weights, scale)
 
     __upinit = Object.__init__
     def __init__(self, weights=None, *args, **what):
@@ -1747,7 +1761,13 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.31  2006-06-20 23:11:35  eddy
+  Revision 1.32  2006-07-19 07:41:34  eddy
+  Change Sample._weighted_ to a function instantiating Weighted, so that
+  we can re-scale weights when their total is big (e.g. the binomial
+  distribution represented by { i: chose(N,i) } as weights).  Also ensure
+  weights end up being floats in these cases.
+
+  Revision 1.31  2006/06/20 23:11:35  eddy
   Support for future extensions: truediv as div.
 
   Revision 1.30  2005/03/13 18:43:42  eddy
