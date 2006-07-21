@@ -168,6 +168,7 @@ def approximate(val, toler=None, loquax=1>0, assess=None):
     floor, frac = intsplitfrac(val)
     if toler is None: toler = 1.e-12 * max(abs(val), 1)
 
+    global _previous
     try: best, denom = _previous[val]
     except KeyError: best, denom = Rational(floor), 1
     numer = 1
@@ -200,13 +201,13 @@ def approximate(val, toler=None, loquax=1>0, assess=None):
     else:
         print   # to match printing the exception that might break.
 
-    global _previous
     _previous[val] = best, denom
     return best
 
 def refine(val, offer=None):
     floor, frac = intsplitfrac(val)
 
+    global _previous
     if offer is None:
 	try: best = _previous[val][0]
 	except KeyError:
