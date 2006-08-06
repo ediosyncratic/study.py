@@ -82,7 +82,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.23 2006-03-24 08:23:12 eddy Exp $
+$Id: units.py,v 1.24 2006-08-06 22:40:27 eddy Exp $
 """
 from SI import *
 
@@ -132,12 +132,89 @@ paper = Object(
 paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
            short = Object(quire = paper.quire.short, ream = paper.ream.short))
 
+# Logarithmic:
+from math import log
+bel = Quantity(log(10), {},
+               """Bel
+
+The Bel is a logarithmic unit, originally the reduction in audio level over one
+mile of standard telephone cable but now formalized as a scaling by a factor of
+ten.  This is quite a large ratio, so the deci Bel, dB, is more commonly used.
+Two Bel equals five astronomical magnitudes.\n""")
+magnitude = Quantity(log(.01) / 5, {},
+                     """Astromonical apparent magnitude.
+
+The observed brightness of astronomical objects is described on a logarithmic
+scale, effectively taking logarithms to base .01**.2 ~= 0.398; if one object's
+brightness is one hundred times that of another, then the former's magnitude is
+five lower than that of the latter.  This is a tidied-up form of the ancient
+Hellenistic astronomers' scheme (popularized by Ptolemy, probably originated by
+Hipparchus) for classifying visible stars into six magnitudes; the brightest
+stars were first magnitude and the limit of human vision were sixth magnitude.
+In the tidied-up scheme, Sirius has magnitude -1.46; the Sun and Moon are even
+more negative.
+
+Note that astronomical objects are also assigned 'absolute' magnitudes, which
+relates to its luminosity (of which the lumen is unit).  For solar system
+objects, this is defined as the apparent magnitude the object would have if it
+were 1 AU from each of Earth and Sun (i.e. at one of Earth's stable
+Lagrangians); for a star or galaxy, however, the absolute magnitude is defined
+to be the apparent magnitude it would have at a distance of 10 parsecs.\n""")
+
+del log
+
 # Angles:
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
 grad = turn / 400 # a unit used by gunners, I believe.
 arc = Object(degree = turn / 360,
-             point = turn / 32) # there are 32 points on a compass rose
+             __doc__="""The arc-units of angle.
+
+An angle can be expressed by the portion of a circle, centred on the point at
+which two lines meet in the given angle, that falls between the two lines.  Such
+a portion is known as an 'arc' of the circle.  Its length depends on the radius
+of the circle, but its more important characteristic is the angle it 'subtends'
+at its centre - that is, the angle we first started with.  Thus arcs are
+characterised by angles and a standard family of units of angle is characterised
+by the subdivision of a turn into arcs subtending assorted fractions of the
+whole.
+
+The classical unit of arc, the degree, is one 360th of a turn.
+This arises from the Babylonian approximation of the year as being 360 days
+long - nice numerology but bad astronomy.
+
+The separation of two distant objects, as seen in the sky, may sensibly be
+described by the angle between the rays from the observer to the objects.  If
+we're fussy, we might prefer to replace the observer with the centre of the
+Earth, or of its orbit (i.e. the Sun); but, for sufficiently distant objects,
+this won't make significant difference.  If you can only measure angles to an
+accuracy comparable with the degree, any object outside the solar system and
+visible to the unaided human eye is sufficiently distant, for these purposes.
+
+Once astronomers had half-way-decent telescopes, they could resolve angles
+(between objects they could see) on much finer scales than the degree (and could
+see much fainter objects), so it became meaningful to sub-divide the degree.
+For one reason or another, one sixtieth of a degree was chosen as the next
+smaller unit.  Presumably by some kind of analogy treating the degree as an
+'hour', this unit is known as the 'minute' of arc.
+
+Once telescopes became sufficiently better to enable astronomers to resolve
+angles significantly smaller than the minute of arc, it became necessary to
+sub-divide the minute.  Having once used a factor of sixty to obtain a minute,
+it was natural to further sub-divide the minute by a factor of sixty to obtain a
+second of arc.
+
+If we back-derive the 'hour' of arc, it would be one degree of arc.  The next
+factor of sixty up from the degree is, conveniently, turn/6 - which is the
+internal angle in each corner of an equilateral triangle (i.e. one whose three
+internal angles are equal).  This is the angle a twenty-four hour clock's hour
+hand sweeps across in four hours or a twelve-hour clock's hour hand sweeps
+across in two hours.  If we added, to our clock, a hand which swept one degree
+per hour of time, it would complete a whole turn in 360 hours, which is 360 / 24
+= 15 days; just one day more than a fortnight and almost half an average month.
+One year would then be just slightly over twenty-four and a third turns of this
+hand of our clock.\n""",
+             point = turn / 32) # there are 32 points on a ship's compass rose
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
 
@@ -186,11 +263,11 @@ year (an approximation).
 # Miscelaneous SI-compatible units (c.f. SI.py), notably cm,g,s ones:
 gram, tonne = milli * kilogramme, kilo * kilogramme
 km, cm = kilo * metre, centi * metre
-cc = pow(cm, 3)
+cc = cm ** 3
 tex = gram / km # fineness of textiles
 dtex, denier = deci * tex, deci * tex / .9
 
-St = Stokes = pow(cm, 2) / second # kinematic viscosity
+St = Stokes = cm**2 / second # kinematic viscosity
 Angstrom = .1 * nano * metre    # Ångstrøm, aka Å
 # (but there's a separate Unicode code-point for the unit ...).
 micron, fermi = micro * metre, femto * metre
@@ -226,9 +303,10 @@ Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 Rydberg = 2.17977 * atto * Joule # 13.605698 eV
 
 # Non-SI but (relatively) scientific:
-atm = Atmosphere = Quantity(1.01325, bar,
+atm = Atmosphere = Quantity(101325, Pascal,
                             """Standard Atmospheric Pressure""",
-                            'atm', 'Atmoshpere')
+                            'atm', 'Atmoshpere',
+                            technical = kg.weight / cm**2)
 
 mach = Quantity(331.46, metre / second,
                 doc = """The speed of sound in dry air.
@@ -238,10 +316,25 @@ torr = mmHg = 133.322 * Pascal
 
 Rankine = Kelvin / 1.8
 degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
-            Fahrenheit = Rankine, F = Rankine)
+            Fahrenheit = Rankine, F = Rankine,
+            Reaumur = .8 * Kelvin,
+            __doc__ = """The degree.
+
+Various quantities are measured in 'degrees': the name comes from the Latin for
+a step (de gradus, I think), which makes it sort-of synonymous with 'unit'.
+See arc.__doc__ for the unit of angle with this name.
+
+Several units of temperature share this name, qualified by the originators of
+the respective units.  A Swede called Celsius invented a unit which France (and
+hence SI) adopted; a Frenchman called Réaumur invented one which the Germans
+adopted (until they switched over to SI); and a German called Fahrenheit
+invented (before these others, the thermometer and) a unit which some backwards
+parts of the anglophone world still use to this day.\n""")
+
+degree.__dict__['Réaumur'] = degree.Reaumur
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 
-calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.force * foot
+calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.weight * foot
                                           doc="The international calorie."),
                  thermochemical = Quantity(4.184, Joule,
                                            doc="The thermodynamic calorie."),
@@ -259,6 +352,17 @@ calorie.borrow((calorie.international + calorie.thermochemical) * .5 +
                (calorie.international - calorie.thermochemical) * tophat)
 
 clausius = kilo * calorie / Kelvin
+
+limit = Object(__doc__ = "Various limiting values, usually for humans",
+               # vision ?
+               hearing = Quantity(pico, Watt / m / m,
+                                  """Threshold of human hearing.
+
+This is the sound intensity conventionally used as base-value when describing
+sound intensities in decibels: divide a sound intensity by this and take its log
+to base ten and multiply by ten to get the dB (SIL) value for it.  A sound
+intensity of one Watt per square metre is thus 12 Bel or 120 dB.\n"""))
+
 
 import string
 # Description of bytes, including the kilo = 1024 twist ...
@@ -505,6 +609,7 @@ dram = ounce / 16
 clove = 7 * pound
 stone = 2 * clove
 cental = 100 * pound # cental is a UK name for the US cwt
+quintal = 76 * pound # standard (iron) "flask" of Mercury (originally a Spanish unit)
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
 TNT = Quantity(4.184 + .001 * tophat, giga * Joule) / ton.US # (2.15 km/s)**2
@@ -551,10 +656,10 @@ point.jeweller = carat / 100
 pound.mercantile = 15 * Troy.ounce
 
 # Imperial force, power, etc.:
-psi = pound.force / inch**2
+psi = pound.weight / inch**2
 horsepower = Quantity(
-    550, foot * pound.force / second,
-    metric = 75 * kilogram.force * metre / second,
+    550, foot * pound.weight / second,
+    metric = 75 * kilogram.weight * metre / second,
     electric = 746 * Watt,
     boiler = 9809.50 * Watt,
     water = 746.043 * Watt,
@@ -564,9 +669,10 @@ celo = foot / second**2
 jerk = celo / second
 poundal = pound * celo
 reyn = psi * second
-slug = pound.force / celo
+slug = pound.weight / celo
 slinch = 12 * slug
-duty = foot * pound.force
+duty = foot * pound.weight
+pond = gram.weight
 
 # Imperial units of volume (part 1):
 
@@ -735,7 +841,7 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 # More US units of volume:
 barrel.US = hogshead.US / 2
 barrel.US.oil = 42 * gallon.US
-barrel.US.dry = 7056 * pow(inch, 3) # (7 * 3 * 4)**2 = 7056
+barrel.US.dry = 7056 * inch**3 # (7 * 3 * 4)**2 = 7056
 bushel.US = Quantity(2150.42, inch**3,
                     doc="""The US bushel.
 
@@ -763,7 +869,13 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.23  2006-03-24 08:23:12  eddy
+ Revision 1.24  2006-08-06 22:40:27  eddy
+ Added (some time ago) the logarithmic units bel and atronomical magnitude.
+ Documented the arc units.  Used ** in preference to pow() and .weight in
+ preference to .force.  Added the degree.Réaumur, quintal and pond.
+ Added object limit, initially only bounding human hearing.
+
+ Revision 1.23  2006/03/24 08:23:12  eddy
  Moved quid and Job out to money.py
 
  Revision 1.22  2006/01/04 12:00:40  eddy
