@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.11 2005-10-31 02:39:10 eddy Exp $
+$Id: SI.py,v 1.12 2006-08-06 22:42:22 eddy Exp $
 """
 from quantity import *
 
@@ -64,9 +64,12 @@ The luminous intensity, in a given direction, of a source that emits
 monochromatic radiation of frequency 540e12 Hz and that has a radiant intensity
 in that direction of 1/683 W/sr.
 
-[The luminous intensity, in the perpendicular direction, of a surface of 1/60
-square centimetere of a black body at the freezing temperature of platinum under
-a pressure of 101325 Pascal (1 atmosphere).]""")
+[540 tera Hz light has a wavelength of 555 nm; the human eye's peak response is
+to light with a wavelength of about 550 nm.  An older variant of the definition
+specified the candela as the luminous intensity, in the perpendicular direction,
+of a surface of 1/60 square centimetere of a black body at the freezing (or,
+equivalently, melting) temperature of platinum under a pressure of 101325 Pascal
+(i.e. 1 atmosphere).]""")
 
 rad = radian = base_unit('rad', 'Radian',
                         """The SI supplementary unit of angle.
@@ -84,14 +87,14 @@ of radius r by a portion of the surface of the sphere having area r*r.""")
 stere = pow(metre, 3)   # c.f. litre
 are = (10 * metre) ** 2     # c.f. hectare in units.py
 lm = lumen = candela * steradian # Luminous flux
-lx = lux = lumen / are          # Luminance, Illumination
+lx = lux = lumen / m**2         # Luminance, Illumination
 Hz = Hertz = 1 / second         # Frequency
 C = Coulomb = Ampere * second   # Charge
 
 N = Newton = kilogramme * metre / second / second       # Force
 J = Joule = Newton * metre      # Energy
 W = Watt = Joule / second       # Power
-Pa = Pascal = Newton / are      # Pressure
+Pa = Pascal = Newton / m**2     # Pressure
 P = poise = Pascal * second     # dynamic viscosity
 
 V = Volt = Joule / Coulomb      # Electromagnetic potential
@@ -100,11 +103,14 @@ Ohm = Volt / Ampere             # Electrical resistance
 S = Siemens = 1 / Ohm           # Conductance
 F = Farad = second / Ohm        # Capacitance
 H = Henry = Weber / Ampere      # Inductance
-T = Tesla = Weber / are         # Magnetic flux density
+T = Tesla = Weber / m**2        # Magnetic flux density
 
 """
  $Log: SI.py,v $
- Revision 1.11  2005-10-31 02:39:10  eddy
+ Revision 1.12  2006-08-06 22:42:22  eddy
+ Use m**2 in places where I was using are before I corrected its definition !
+
+ Revision 1.11  2005/10/31 02:39:10  eddy
  Corrected are, linked to SI brochure.
 
  Revision 1.10  2005/04/24 15:30:00  eddy
