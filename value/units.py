@@ -12,6 +12,7 @@ http://home.clara.net/brianp/
 http://www.gnu.org/software/units/units.html
 http://www.unc.edu/~rowlett/units/
 http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
+http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
 
 This file documents lots of obscure and/or silly units, may of them derived from
 the /usr/share/misc/units repository of knowledge on the subject (see
@@ -82,7 +83,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.24 2006-08-06 22:40:27 eddy Exp $
+$Id: units.py,v 1.25 2006-08-08 21:01:47 eddy Exp $
 """
 from SI import *
 
@@ -308,11 +309,20 @@ atm = Atmosphere = Quantity(101325, Pascal,
                             'atm', 'Atmoshpere',
                             technical = kg.weight / cm**2)
 
+torr = mmHg = Quantity(133.322, Pascal,
+                       """Torr, the common laboratory unit of pressure.
+
+Named after Evangelista Torricelli (1608-1647), who succeeded Galileo as court
+mathematician to Grand Duke Ferdinando II of Tuscany.
+
+The unit is defined as the pressure exerted by a depth of one millimetre of
+mercury at zero Celsius under standard gravity.  Actual laboratory observations
+should be corrected for the local ambient gravitational field strength and
+mercury's thermal expansion.""")
+
 mach = Quantity(331.46, metre / second,
                 doc = """The speed of sound in dry air.
 \n(at standard temperature and pressure).\n""")
-
-torr = mmHg = 133.322 * Pascal
 
 Rankine = Kelvin / 1.8
 degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
@@ -333,6 +343,7 @@ parts of the anglophone world still use to this day.\n""")
 
 degree.__dict__['Réaumur'] = degree.Reaumur
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
+def Reaumur(number): return Centigrade(number * .8)
 
 calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.weight * foot
                                           doc="The international calorie."),
@@ -869,7 +880,11 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.24  2006-08-06 22:40:27  eddy
+ Revision 1.25  2006-08-08 21:01:47  eddy
+ Move torr to beside atm and document.
+ Add Reaumur function and wikipedia link.
+
+ Revision 1.24  2006/08/06 22:40:27  eddy
  Added (some time ago) the logarithmic units bel and atronomical magnitude.
  Documented the arc units.  Used ** in preference to pow() and .weight in
  preference to .force.  Added the degree.Réaumur, quintal and pond.
