@@ -3,7 +3,7 @@
 
 Allegedly, Oxygen liquifies at -297 F, i.e. 90 K.
 
-$Id: substance.py,v 1.3 2006-08-08 21:19:49 eddy Exp $
+$Id: substance.py,v 1.4 2006-08-08 21:22:09 eddy Exp $
 
 Ethyl alcohol boils at 78.4°C (173°F), so it would be all right for room
 thermometers, and has been widely used for that purpose for many years.  The
@@ -66,7 +66,7 @@ at 277.13K, when density is maximal.\n"""),
     melt = Quantity(273.150, Kelvin,
                       "Freezing point of water (at one atmosphere)."),
     boil = Quantity(373.150, Kelvin, "Melting point of water (at one atmosphere).")))
-IcePoint = water.freeze
+IcePoint = water.temperature.freeze
 milk = Substance(
     density = 10.5 * pound / gallon)
 mercury = Substance(
@@ -120,7 +120,10 @@ petrol = Substance(density = 7.5 * pound / gallon)
 
 _rcs_log = """
   $Log: substance.py,v $
-  Revision 1.3  2006-08-08 21:19:49  eddy
+  Revision 1.4  2006-08-08 21:22:09  eddy
+  Forgot to reivse IcePoint.
+
+  Revision 1.3  2006/08/08 21:19:49  eddy
   Assorted details from jcalvert at du.edu, mostly about mercury.
   Use mach for sound speed, specify water's boiling, add some error bars,
   introduce classes for heats and temperatures of phase changes, etc.
