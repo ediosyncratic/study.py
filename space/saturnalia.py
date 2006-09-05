@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.4 2005-09-05 20:27:11 eddy Exp $
+$Id: saturnalia.py,v 1.5 2006-09-05 20:49:25 eddy Exp $
 """
 
 from basEddy.units import mega, metre, km, tophat
@@ -15,12 +15,13 @@ Mimas = NASAmoon("Mimas", Saturn, _tmp, 185.52, 0.94,
                  NASAshell(209, 196, 191), "ice", 0.375, 1.14)
 Enceladus = NASAmoon("Enceladus", Saturn, _tmp, 238.02, 1.37,
                      NASAshell(256, 247, 245), "pure ice", 0.73, 1.12)
-_tmp = Discovery("Cassini", 1684)
+_tmp = Discovery("Giovanni Cassini", 1684)
 Tethys = NASAmoon("Tethys", Saturn, _tmp, 294.66, 1.89,
                   NASAshell(536, 528, 526), "ice", 6.22, 1.00)
 Dione = NASAmoon("Dione", Saturn, _tmp, 377.40, 2.74,
-                 NASAshell(560), "ice", 10.52, 1.44)
-Rhea = NASAmoon("Rhea", Saturn, Discovery("Cassini", 1672),
+                 NASAshell(559), "ice", 10.52, 1.44)
+Rhea = NASAmoon("Rhea", Saturn, Discovery("Giovanni Cassini", 1672),
+                # Saturn's Rhea - tidally locked, with G yr old craters
                 527.04, 4.52, NASAshell(764), "ice", 23.1, 1.24)
 Titan = NASAmoon("Titan", Saturn, Discovery("Christiaan Huygens", 1655,
                                             doc="""Discovery of Titan
@@ -32,7 +33,7 @@ for more details.
                  1221.83, 15.94, NASAshell(2575), "cloudy atmosphere", 1345.5, 1.881)
 Hyperion = NASAmoon("Hyperion", Saturn, Discovery("Bond, Lassell", 1848),
                     1481.1, 21.28, NASAshell(180, 140, 113), "dirty ice")
-Iapetus = NASAmoon("Iapetus", Saturn, Discovery("Cassini", 1671), 3561.3, 79.33,
+Iapetus = NASAmoon("Iapetus", Saturn, Discovery("Giovanni Cassini", 1671), 3561.3, 79.33,
                    NASAshell(718), "ice/carbonaceous", 15.9, 1.02)
 Phoebe = NASAmoon("Phoebe", Saturn, Discovery("Pickering", 1898),
                   12952, -550.48, NASAshell(110), "carbonaceous?",
@@ -99,7 +100,10 @@ del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav
 
 _rcs_log = """
 $Log: saturnalia.py,v $
-Revision 1.4  2005-09-05 20:27:11  eddy
+Revision 1.5  2006-09-05 20:49:25  eddy
+Cassini had a first name; and Rhea is tidally locked.
+
+Revision 1.4  2005/09/05 20:27:11  eddy
 Details on Titan's discovery (from April).
 
 Revision 1.3  2005/03/15 21:24:05  eddy
