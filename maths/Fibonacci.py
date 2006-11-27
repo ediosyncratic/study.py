@@ -73,3 +73,40 @@ def fibonacci(what, was=0, result=1):
 		what = what + 1
 
 	return result
+
+def fibtimes((a,b), (c,d)):
+	"""A multiplication with which to speed Fibonacci computation.
+
+	See: http://www.inwap.com/pdp10/hbaker/hakmem/hakmem.html
+
+	Define multiplication on ordered pairs
+
+	(A,B) (C,D) = (A C + A D + B C, A C + B D).
+
+	This is just (A X + B) * (C X + D) mod X^2 - X - 1, and so is
+	associative, etc. We note (A,B) (1,0) = (A + B, A), which is the
+	Fibonacci iteration. Thus, (1,0)^N = (FIB(N), FIB(N-1)), which can be
+	computed in log N steps by repeated squaring, for instance.\n"""
+
+	return a * (c + d) + b * c, a * c + b * d
+
+def fibpow(n, a=1, b=0):
+	c, d = 0, 1 # the identity
+	while n > 0:
+		n, i = divmod(n, 2)
+		if i: c, d = fibtimes((a,b),(c,d))
+		a, b = fibtimes((a,b), (a,b))
+	return c, d
+
+def fastonacci(n, zero, one):
+	"""As for fibonacci, but computed in logarithmic time :-)
+	"""
+
+	return fibtimes((zero, one), fibpow(n))[0]
+
+_rcs_log = """
+$Log: Fibonacci.py,v $
+Revision 1.2  2006-11-27 00:46:56  eddy
+ooh - I haven't checked in since I added the hakmem clever fib-implementation (2006-07-02).
+
+"""
