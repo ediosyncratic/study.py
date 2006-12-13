@@ -83,7 +83,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.25 2006-08-08 21:01:47 eddy Exp $
+$Id: units.py,v 1.26 2006-12-13 22:15:51 eddy Exp $
 """
 from SI import *
 
@@ -269,7 +269,7 @@ tex = gram / km # fineness of textiles
 dtex, denier = deci * tex, deci * tex / .9
 
 St = Stokes = cm**2 / second # kinematic viscosity
-Angstrom = .1 * nano * metre    # Ångstrøm, aka Å
+Angstrom = .1 * nano * metre    # Ångstrøm or Ångström, aka Å
 # (but there's a separate Unicode code-point for the unit ...).
 micron, fermi = micro * metre, femto * metre
 litre = milli * stere
@@ -293,12 +293,13 @@ def Centigrade(number): return Kelvin * (number + 273.16)
 Bq = Becquerel = Hz             # Activity of a radionuclide (events / s)
 Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
 Sv = sievert = Gy               # Dose equivalent
+# rad = Gy/100 # but conflicts with common abbreviation of radian
 rem = 10 * milli * Sv
 # 10 milli Gray is also called a rad (but its name conflicts with radian)
 
 Ci = Curie = 37 * giga * Becquerel
-R = Rontgen = Quantity(.258, milli * Coulomb / kilogramme,
-                       fullname='Röntgen') # also Roentgen ?
+R = Roentgen = Quantity(.258, milli * Coulomb / kilogramme,
+                       fullname='Röentgen') # also Rontgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
 # see also particle.py for the electron-Volt, eV
 Rydberg = 2.17977 * atto * Joule # 13.605698 eV
@@ -880,7 +881,10 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
 
 _rcs_log = """
  $Log: units.py,v $
- Revision 1.25  2006-08-08 21:01:47  eddy
+ Revision 1.26  2006-12-13 22:15:51  eddy
+ NIST gave some different spellings for unit names; and specified the rad.
+
+ Revision 1.25  2006/08/08 21:01:47  eddy
  Move torr to beside atm and document.
  Add Reaumur function and wikipedia link.
 
