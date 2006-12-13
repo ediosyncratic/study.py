@@ -1,9 +1,11 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.39 2006-06-20 23:10:47 eddy Exp $
+$Id: quantity.py,v 1.40 2006-12-13 22:18:43 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
+# http://www.bipm.fr/enus/3_SI/si-prefixes.html
+# http://physics.nist.gov/cuu/Units/prefixes.html
 _quantifier_dictionary = {
     # <q src="New Hackers' Dictionary">
     30: 'grouchi',
@@ -41,6 +43,8 @@ for _key, _val in _quantifier_dictionary.items():
 
 deka = deca
 
+# IEC 60027-2
+# http://physics.nist.gov/cuu/Units/binary.html
 _pow1024_dictionary = {
     1: 'kibi',
     2: 'mebi',
@@ -782,7 +786,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.39  2006-06-20 23:10:47  eddy
+ Revision 1.40  2006-12-13 22:18:43  eddy
+ Links to quantifier specs.
+
+ Revision 1.39  2006/06/20 23:10:47  eddy
  Support for future extensions: truediv as div.
 
  Revision 1.38  2005/08/18 03:48:30  eddy
