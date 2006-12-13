@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.15 2005-09-30 22:34:33 eddy Exp $
+$Id: home.py,v 1.16 2006-12-13 22:18:25 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -73,7 +73,9 @@ four data are here given, as attributes l, b, alpha and delta.
 
 Maximum solar total radiant power outside atmosphere at a distance of 1
 Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
-metre**2, or about 2%.
+metre**2, or about 2%.  This radiant power corresponds to an astronomical
+apparent magnitude of -26.73; it should be possible to work out the zero-point
+of the astronomical magnitude scale from this ...
 
 The Earth's cross-section, the area relevant to this power supply, is a quarter
 of its surface area; multiplying that by the solar constant, Earth is receiving
@@ -119,9 +121,9 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
 
 del load_planets
 
-AU = AstronomicalUnit = Quantity(
+ua = AU = AstronomicalUnit = Quantity(
     93, mega * mile,
-    nom = 'AU',
+    nom = 'ua',
     fullname = 'Astronomical Unit',
     doc = """The typical distance between Earth and Sun.
 
@@ -158,6 +160,18 @@ face of the Sun a couple of times, enabling astronomers to (with huge care and
 much co-operation around the world) perform parallax measurements with decisive
 precision of timing, thereby obtaining a *much* more accurate estimate of the
 Astronomical Unit than had previously been available.
+
+The modern definition of the astronomical unit is given by
+http://physics.nist.gov/cuu/Units/outside.html
+as:
+
+  The astronomical unit is a unit of length. Its value is such that, when used
+  to describe the motion of bodies in the solar system, the heliocentric
+  gravitation constant is (0.017 202 098 95)**2 ua**3 * day**-2.  The value must
+  be obtained by experiment, and is therefore not known exactly.
+
+i.e. it's definition specifies the square root of the numeric value of Sun.GM
+when expressed using the day as unit of time and the ua as unit of length.
 
 See also: parsec.\n""")
 
@@ -297,7 +311,9 @@ Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
 
 The plane of this orbit is known as the ecliptic: all other orbits' inclinations
 are given relative to this.  The mean radius of this orbit is known as the
-astronomical unit; see AU.__doc__ for details. """),
+astronomical unit; see ua.__doc__ for details.  The axis of the orbit's ellipse
+precesses at a rate of about 0.3 degrees per century, due to tidal effects of
+other planets (notably Jupiter)."""),
 
     discovery=Discovery("the earliest life-forms", -3e9,
                         etymology="""Earth
@@ -313,6 +329,10 @@ The magnetic field of the Earth is dominated by its dipole term.  This yields a
 magnetic field strength of order one Gauss (1e-4 Tesla) at the Earth's surface.
 For contrast, magnetars have magnetic fields of order peta-Gauss - see:
 http://antwrp.gsfc.nasa.gov/apod/ap010901.html
+
+The strength of Earth's magnetic field appears to be decreasing at about 5% per
+century at present, though its average over the last 2500 years is more like
+1.6% per century: http://www.spectrum.ieee.org/nov06/4708
 """)),
     mass = 5.976e24 * kg,
     density = 5.518 * kg / litre,
@@ -323,6 +343,9 @@ http://antwrp.gsfc.nasa.gov/apod/ap010901.html
     Core = Object(name = "Earth's core",
                   surface = Object(radius = 3.488e6 * metre,
                                    flattening = 1/390.),
+                  # but http://www.physorg.com/news65368833.html
+                  # says the Core-Mantle boundary is at 1800 miles, 2.9e6 m;
+                  # also indicates temperature of 2000K and pressure of 170 G Pa
                   mass = 1.88e24 * metre,
                   density = 10.72 * kg / litre),
     aliases = ('Terra', 'Gaia'))
@@ -439,7 +462,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.15  2005-09-30 22:34:33  eddy
+Revision 1.16  2006-12-13 22:18:25  eddy
+Accumulated tweaks, mostly to documentation.  NIST calls the AU the ua.
+
+Revision 1.15  2005/09/30 22:34:33  eddy
 Moved LocalGroup out to galaxy.py, split MilkyWay into a stub preamble
 and a reprise, now with rather better data.  Tweaks to Universe.
 
