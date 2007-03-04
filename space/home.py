@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.16 2006-12-13 22:18:25 eddy Exp $
+$Id: home.py,v 1.17 2007-03-04 15:21:48 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -30,7 +30,23 @@ gives an answer just a little bit less than 1.\n"""),
                                        number = 413e6 / metre**3))
 del Cosmos
 
-MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg)
+LocalGroup = body.Group("The Local Group",
+                        velocity = Quantity(600 + 10 * tophat, km / second,
+                                            """Velocity of the Local Group.
+
+The local group of galaxies moves at about 600 km/s relative to the cosmic
+background of microwave radiation.  It's headed towards the Virgo Cluster.
+"""),
+                        # Guess based on: Andromeda being a bit bigger than the
+                        # Milky Way; and the rest of the group not adding up to
+                        # much by comparison:
+                        mass = (4+tophat) * 1e41 * kg)
+
+MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
+                       orbit = Orbit(LocalGroup,
+                                     # guess radius: over half way to Andromeda
+                                     Quantity(1.5 + tophat, mega * year.light),
+                                     None))
 # Just the part inwards from the Sun (about 90 giga Sun), given here so that
 # adding the Sun as a satellite of it goes smoothly.  See below for a .also()
 # with more details.
@@ -462,7 +478,11 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.16  2006-12-13 22:18:25  eddy
+Revision 1.17  2007-03-04 15:21:48  eddy
+Add Local Group, to record its velocity; guess its mass and MilkyWay's
+orbit's radius within it, so MilkyWay can orbit something.
+
+Revision 1.16  2006/12/13 22:18:25  eddy
 Accumulated tweaks, mostly to documentation.  NIST calls the AU the ua.
 
 Revision 1.15  2005/09/30 22:34:33  eddy
