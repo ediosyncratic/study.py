@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.40 2006-12-13 22:18:43 eddy Exp $
+$Id: quantity.py,v 1.41 2007-03-04 14:05:42 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -19,8 +19,8 @@ _quantifier_dictionary = {
     12: 'tera',
     9: 'giga',
     6: 'mega',
-    3: 'kilo',
-    2: 'hecto',
+    3: 'kilo', # k
+    2: 'hecto', # h
     1: 'deca', # a.k.a. deka; see below
     -1: 'deci',
     -2: 'centi',
@@ -35,6 +35,10 @@ _quantifier_dictionary = {
     -27: 'harpo',
     -30: 'groucho' # also: zeppo, gummo, chico ? </q>
     }
+# Aside from kilo and hecto, each positive-power quantifier abbreviates to its
+# upper-case first letter; each negative entry abbreviates to its lower-case
+# first letter.  This rule clearly can't be extended to harpo/harpi and
+# groucho/grouchi, which might militate against their formal adoption !
 
 _exponent_to_quantifier = {} # needed for qSample._repr
 for _key, _val in _quantifier_dictionary.items():
@@ -786,7 +790,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.40  2006-12-13 22:18:43  eddy
+ Revision 1.41  2007-03-04 14:05:42  eddy
+ Note on abbreviation of quantifiers.
+
+ Revision 1.40  2006/12/13 22:18:43  eddy
  Links to quantifier specs.
 
  Revision 1.39  2006/06/20 23:10:47  eddy
