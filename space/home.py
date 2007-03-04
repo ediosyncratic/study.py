@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.17 2007-03-04 15:21:48 eddy Exp $
+$Id: home.py,v 1.18 2007-03-04 15:27:38 eddy Exp $
 """
 
 from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
@@ -31,7 +31,8 @@ gives an answer just a little bit less than 1.\n"""),
 del Cosmos
 
 LocalGroup = body.Group("The Local Group",
-                        velocity = Quantity(600 + 10 * tophat, km / second,
+                        # Error bar is a wild guess, based on MilkyWay.orbit.speed
+                        velocity = Quantity(600 + 50 * tophat, km / second,
                                             """Velocity of the Local Group.
 
 The local group of galaxies moves at about 600 km/s relative to the cosmic
@@ -478,7 +479,10 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
 
 _rcs_log = """
 $Log: home.py,v $
-Revision 1.17  2007-03-04 15:21:48  eddy
+Revision 1.18  2007-03-04 15:27:38  eddy
+Expand error bar on LocalGroup to the scale of MilkyWay.orbit.speed
+
+Revision 1.17  2007/03/04 15:21:48  eddy
 Add Local Group, to record its velocity; guess its mass and MilkyWay's
 orbit's radius within it, so MilkyWay can orbit something.
 
