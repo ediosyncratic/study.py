@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.15 2005-09-30 22:32:12 eddy Exp $
+$Id: body.py,v 1.16 2007-03-04 15:18:12 eddy Exp $
 """
 
 class Satellites:
@@ -124,6 +124,22 @@ class Object (value.Object):
     def _lazy_get_satellites_(self, ig, S=Satellites):
         return S(self._lazy_reset_, self.__load_satellites)
 
+    from const import Cosmos
+    def _lazy_get_GM_(self, ig, G=Cosmos.G):
+        try: mass = self.mass
+        except AttributeError: # e.g. thanks to Lazy's recursion detection ...
+            mass = self.surface.volume * self.density
+            # raising AttributeError if we don't even have those.
+        return mass * G
+
+    def _lazy_get_Schwarzschild_(self, ignored, S=Cosmos.Schwarzschild):
+        return self.mass * S
+
+    def _lazy_get_mass_(self, ignored, G=Cosmos.G):
+        return self.GM / G
+
+    del Cosmos
+
 del value, Satellites
 
 from basEddy.units import Quantity, second, metre, turn, pi, tophat
@@ -211,33 +227,21 @@ class Body (Object):
 
         return .5 * self.GM * self.density / self.surface.radius
 
-    from const import Cosmos
-    def _lazy_get_mass_(self, ignored, G=Cosmos.G):
-        return self.GM / G
-
-    def _lazy_get_GM_(self, ignored, G=Cosmos.G, Q=Quantity):
+    __GM = Object._lazy_get_GM_
+    def _lazy_get_GM_(self, ignored, Q=Quantity):
         row = self.satellites.GMs() # assorted estimates
 
         try: row.append(self.surface._GM)
         except AttributeError: pass
 
-        try: mass = self.mass
-        except AttributeError: # e.g. thanks to Lazy's recursion detection ...
-            try: mass = self.surface.volume * self.density
-            except AttributeError: # ditto
-                from basEddy.sample import Weighted
-                if row: best = Weighted(row).median()
-                else: raise AttributeError(ignored, 'no data available from which to infer')
-                row.remove(best)
-            else: best = mass * G
-        else: best = mass * G
+        try: best = self.__GM(ignored)
+        except AttributeError:
+            from basEddy.sample import Weighted
+            if row: best = Weighted(row).median()
+            else: raise AttributeError(ignored, 'no data available from which to infer')
+            row.remove(best)
 
 	return Q(best, sample=row)
-
-    def _lazy_get_Schwarzschild_(self, ignored, S=Cosmos.Schwarzschild):
-        return self.mass * S
-
-    del Cosmos
 
     def orbital(self, radius, ecce=0, tp=2*pi, S=Spin):
         """The spin of the relevant orbit.
@@ -407,7 +411,10 @@ class Planet (Planetoid):
 
 _rcs_log = """
 $Log: body.py,v $
-Revision 1.15  2005-09-30 22:32:12  eddy
+Revision 1.16  2007-03-04 15:18:12  eddy
+Move the Cosmos.G lazy methods, and part of GM, to the Object class.
+
+Revision 1.15  2005/09/30 22:32:12  eddy
 Shuffling for Star, Galaxy and Group.  Orbit spin-fix.
 
 Revision 1.14  2005/04/28 20:55:27  eddy
