@@ -1,8 +1,9 @@
 """Gamma distributions.
 
 Any time your data are of some kind guaranteed positive (e.g. how tall human
-beings are), a suitable gamma distribution is more apt than a gaussian.  This
-module provides implementations of suitable interfaces.
+beings are), a suitable gamma distribution is more apt than a gaussian - though
+a lognormal distribution may be more apt (see gauss.py).  This module provides
+implementations of suitable interfaces for the gamma distribution.
 
 Gamma distributions have the general form
 
@@ -17,7 +18,13 @@ for which one can show that gamma(1+a) = a*gamma(a), corresponding to
    (1+n)! = gamma(2+n) = (1+n).gamma(1+n) = (1+n).n!
 
 Various tweaks (see stirling.lngamma) are available to enable accurate
-calculation of gamma().
+calculation of gamma().  One might plausibly hope to be able to do a bit of
+trickery with the integrals to determine gamma's derivative; but all this
+actually ends up yielding is what could be inferred from:
+   d((x+1)!)/dx = d(x!.(x+1))/dx = x! +(x+1).d(x!)/dx
+(If I could integrate log(t), log(t)*t**n or exp(-t)*log(t), I could do the
+partial differentiation the other way and maybe something interesting would drop
+out ...)
 
 For alpha < 1, the distribution has a pole at 0; for sufficiently small beta*X,
 
@@ -59,6 +66,22 @@ class Gamma (Integrator, Lazy):
 	self.__setup(alpha, beta)
         self.__zero = 0 / beta # zero input to __p
 
+    import random
+    # random.gamma requires alpha > -1, beta > 0; so its alpha is offset by 1 from mine.
+    def __gen(a, g=random.gamma): return g(a-1, 1) # will be del'd shortly
+    del random
+
+    def sample(self, g=__gen):
+        try: ans = self.alpha.evaluate(g) / self.beta
+        except AttributeError:
+            self.sample = lambda a=self.alpha, b=self.beta, s=g: s(a) / b
+            return self.sample()
+        else:
+            self.sample = lambda a=self.alpha, b=self.beta, s=g: a.evaluate(s) / b
+            return ans
+
+    del __gen
+
     def __setup(self, alpha, beta, log=math.log, exp=math.exp, lngam=stirling.lngamma):
 	"""Fiddly bits of setup dealing with whether alpha, beta are Quantity()s.
 
@@ -67,7 +90,8 @@ class Gamma (Integrator, Lazy):
         i.e. the density function for our Gamma variate.  However, assorted
         complications raise their heads: we only have gamma as log&on;gamma,
         evaluation of which, along with that of log and gamma, should be done
-        via .evaluate() if pertinent values are Quantity()s.
+        via .evaluate() if pertinent values are Quantity()s (in which case we
+        need a scalar to apply .evaluate() to).
 
         Note that self.__ep() should not be used directly, only via self.__p(),
         which performs necessary checks against invalid input. """
