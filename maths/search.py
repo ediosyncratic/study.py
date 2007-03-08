@@ -27,14 +27,26 @@ Regarding cubics (same source):
 
 Same source has endless more, e.g. on quartics, quintics ...
 
-$Id: search.py,v 1.4 2005-01-17 22:24:56 eddy Exp $
+Note that there is an elegant way to compute square roots in binary.  Any number
+exactly representable in binary is a diadic rational hence s = sum(: 2**p
+&larr;p |d) for some finite subset, d, of {integers}.  We want the matching r =
+sum(: 2**p &larr;p |b) for which r*r differs from s by less than some given 2**q
+with q sufficiently negative.  We can construct b as the last B(i) which
+contains no integer <= q with B(0) empty and each B(1+i) obtained from B(i) as
+follows: let S(i) = s -sum(: 2**p &larr;p |B(i))**2 and select the highest
+integer n for which
+
+$Id: search.py,v 1.5 2007-03-08 23:58:23 eddy Exp $
 """
+
 # I'll use complex numbers as a handy model of two dimensions
 def dot(x, y): return x.real * y.real + x.imag * y.imag
 def cross(x, y): return x.real * y.imag - x.imag * y.real
 # aka dot(1j*x, y)
 # Note that cross returns a real, though you can think of it as the z component
 # of a 3-D vector cross product.
+from cmath import exp
+radix = exp(2j)
 if 0:
     # not used, can't remember what I was playing with these for ...
     from cmath import log, exp
@@ -102,7 +114,13 @@ def median(seq, fn=None):
 def gradients(fn, arg, *deltas):
     if len(deltas) == 1 and type(deltas[0]) in (type(()), type([])):
 	deltas = deltas[0]
-    result = map(lambda e, f=fn, a=arg: (f(a+e)-f(a-e))*.5/e, deltas)
+    try: result = map(lambda e, f=fn, a=arg: (f(a+e)-f(a-e))*.5/e, deltas)
+    except (OverflowError, ZeroDivisionError, ValueError):
+        result = []
+        for e in deltas:
+            try: r = (fn(arg + e) - fn(arg - e)) * .5 / e
+            except (OverflowError, ZeroDivisionError, ValueError): pass
+            result.append(e)
 
     # However, if the last few deltas are so small df is lost in rounding, throw
     # them away !
@@ -140,7 +158,9 @@ def Raphson(f, v):
     to the Newton-Raphson method - compute error and gradient, divide error by
     gradient, perturb from v by this ratio. """
 
-    return v - f(v) / gradient(f, v)
+    try: return v - f(v) / gradient(f, v)
+    except ZeroDivisionError:
+        raise ValueError('stationary point', v)
 
 class Search:
     """Administration of successive searching for values of a complex function.
@@ -286,16 +306,22 @@ class Search:
 	Returns the new best value if it beats the threshold, otherwise
 	None. """
 
-	# admin variables (good and last are vestigial; thoughts for later play)
-	last, best = 0., self.__score
-	step = good = self.stride
+	# Admin variables
+	best, step = self.__score, self.stride
 
 	while tries > 0:
-	    if tries % 3:
-                if tries % 2: step = -1j * step
-                step = self.triangulate(step)
-	    else:
-                step = self.Newton()
+	    tries = tries - 1
+            try:
+                if tries % 3:
+                    if tries % 2: step = -1j * step
+                    try: step = self.triangulate(step)
+                    except (ZeroDivisionError, OverflowError):
+                        step = self.Newton()
+                else:
+                    step = self.Newton()
+            except (ZeroDivisionError, OverflowError, ValueError):
+                step = radix * step
+                continue
 
             gain = best - self.__score
 	    if gain > 0:
@@ -303,9 +329,7 @@ class Search:
 		    return self.best
 
                 # Record details of this improvement:
-		best, good, last = self.__score, step, gain
-
-	    tries = tries - 1
+		best = self.__score
 
 # Passing thought: given a search for sought in text, we can do the following:
 def text_search(sought, text, skip = 0):
@@ -350,7 +374,10 @@ def text_search(sought, text, skip = 0):
 
 """
  $Log: search.py,v $
- Revision 1.4  2005-01-17 22:24:56  eddy
+ Revision 1.5  2007-03-08 23:58:23  eddy
+ I seem to have tweaked the algorithm (2006-06-20).
+
+ Revision 1.4  2005/01/17 22:24:56  eddy
  Added comment taken from HAKMEM note
 
  Revision 1.3  2004/04/25 13:40:47  eddy
