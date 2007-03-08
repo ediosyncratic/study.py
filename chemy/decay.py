@@ -20,13 +20,13 @@ on three things colliding, your rate is going to be *much* lower than a reaction
 in which some two of those things can collide, forming an intermediate with a
 modest half-life, during which this intermediate can run into the third party.
 
-Description of reactions/decays is thus quite a subtle problem.
+Description of reactions/decays is thus quite a subtle problem.  Which is my
+excuse for the present implementation being over-simple ...
 
-$Id: decay.py,v 1.1 2003-07-09 21:32:38 eddy Exp $
+$Id: decay.py,v 1.2 2007-03-08 23:32:41 eddy Exp $
 """
 from const import *
-from math import log, exp
-ln2 = log(2)
+import math
 
 def ratedDecay(source, halflife, *procs):
     """As for a Decay, but does some pre-processing for you.
@@ -129,15 +129,18 @@ class Decay (Lazy):
                 bok[bit] = scale * bit.mass
             return bok
 
-    def _lazy_get_halflife_(self, ignored):
+    def _lazy_get_halflife_(self, ignored, ln2=math.log(2)):
         return ln2 / self.rate
 
-    def before(self, when, exp=exp):
+    def before(self, when, exp=math.exp):
         return 1 - exp(self.rate * when)
+
+del math
 
 _rcs_log = """
  $Log: decay.py,v $
- Revision 1.1  2003-07-09 21:32:38  eddy
- Initial revision
+ Revision 1.2  2007-03-08 23:32:41  eddy
+ Better tunnelling.  Wry comment.
 
+ Initial Revision 1.1  2003/07/09 21:32:38  eddy
 """
