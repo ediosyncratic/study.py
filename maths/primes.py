@@ -19,13 +19,10 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.1 2005-01-17 22:36:59 eddy Exp $
+$Id: primes.py,v 1.2 2007-03-08 23:55:06 eddy Exp $
 """
 
 checking = None
-error = __name__ + ' error'
-_error = 'internal ' + error
-
 _aside_plus = """When is pow(2,n)+1 a prime ?
 
 when n is in (1,2,3,4,8,16) and then no more, at least as far as 42.
@@ -73,8 +70,8 @@ else:
 	    bot, top = 0, len(row) - 1	# so bot < top
 	    while bot + 1 < top:
 		at = (bot + top) / 2	# midpoint, erring low
-		assert bot < at < top
-		assert row[bot] < row[at] < row[top]
+		assert bot < at < top, 'arithmetic'
+		assert row[bot] < row[at] < row[top], 'prior order'
 
 		if row[at] < val: bot = at
 		else: top = at
@@ -106,7 +103,7 @@ class lazyTuple(varySeq):
 	try: return varySeq.__getitem__(self, key)
 	except self._entry_error_: pass
 	while self.grow() and key > len(self._item_carrier): pass
-	return varySeq.__getitem__(self, key)	# raising error if grow failed
+	return varySeq.__getitem__(self, key)	# raising IndexError if grow failed
 
     def has_value(self, val):
 	"""Is val in self ?
@@ -160,6 +157,12 @@ class _Prime(lazyTuple):
 	if sparse is None: self._sparse = []
 	else: self._sparse = sparse
 
+    def __repr__(self):
+        return '%s()' % (self.__class__.__name__)
+    def __str__(self):
+        if len(self) > 20: return '(%s, ..., %s)' % (str(self[:20])[1:-1], self[-1])
+        return lazyTuple.__repr__(self)
+
     def known(self):
 	return self._item_carrier + self._sparse
 
@@ -168,11 +171,11 @@ class _Prime(lazyTuple):
 	return self._ask
 
     def has_value(self, num):
-	if num in self._item_carrier or num in self._sparse: return num
-	if num < self._ask: return None
 	seen = 0
-
 	while 1:
+            if num in self._item_carrier[seen:] or num in self._sparse: return num
+            if num < self._ask: return None
+
 	    for p in self._item_carrier[seen:]:
 		if num % p == 0: return None
 		# and p < _ask <= num
@@ -185,11 +188,7 @@ class _Prime(lazyTuple):
 		if num % p == 0: return None
 		if p > num: break
 
-	    if self.get_cache():
-		if num in self._item_carrier[seen:] or num in self._sparse: return num
-		if num < self._ask: return None
-
-	    else: break
+	    if not self.get_cache(): break
 
 	while 1:
 	    p = self.grow()
@@ -243,15 +242,14 @@ class _Prime(lazyTuple):
 	    self._item_carrier.append(self._ask)
 	    if self._ask in self._sparse:
 		assert self._ask == self._sparse[0], \
-		       'found primes array disordered at %d' % self._ask
+		       'sparse primes array disordered at %d' % self._ask
 		self._sparse = self._sparse[1:]
 
 	    other = self._ask	# we're going to return this
 	    self._ask = add_one(other)
 
 	elif not (other in self._item_carrier or other in self._sparse):
-	    if self._ask > other:
-		raise _error, 'missed out a prime, %d, in the search' % other
+            assert self._ask <= other, 'missed out a prime, %d, in the search' % other
 
 	    order_insert(self._sparse, other)
 
@@ -306,7 +304,8 @@ class _Prime(lazyTuple):
 	    num = -num
 
 	# Only accept integers !
-	if num / (1L + num): raise TypeError, ('Trying to factorise a non-integer', num)
+	if num / (1L + abs(num)):
+            raise TypeError, ('Trying to factorise a non-integer', num)
 
 	if num == 0:
             result.clear()
@@ -321,8 +320,9 @@ class _Prime(lazyTuple):
 		for p in self.known()[seen:]:
 		    count, num = self.__reduce(num, p)
 		    if count: result[p] = count
-		    # all primes less than p have already been tried.
-		    if num < p: break	# assert: num == 1
+		    if num < p:
+                        assert num == 1, 'all primes less than p have already been tried'
+                        break
 		else:
 		    seen = len(self)	# ignore sparse
 		    if self.get_cache(): continue
@@ -333,7 +333,7 @@ class _Prime(lazyTuple):
 		p = self.grow()
 		count, num = self.__reduce(num, p)
 		if count: result[p] = count
-		elif long(p) * p > num:
+		if long(p) * p > num:
 		    # num's a prime !
 		    self._know(num)
 		    result[num] = 1
@@ -485,19 +485,17 @@ class cachePrimes(_Prime, Lazy):
 		if checking:
 		    # only check it against what we knew before this _load() ...
 		    for p in self._item_carrier + self._sparse:
-			if item % p == 0: raise error, \
-			'alleged prime, %d, has a factor, %d' % (item, p)
+                        assert item % p, 'alleged prime, %d, has a factor, %d' % (item, p)
 		# add item to _sparse
 		self._know(item)
 
 	except AttributeError, what:
-	    raise error, 'cache-file lacks necessary variable %s: %s' % (
-							str(what), handle)
+            raise AttributeError('cache-file lacks necessary variable', found, what.args)
 
 	if checking:
 	    test = self._item_carrier[found.at:]
-	    if test != found.block[:len(test)]:
-		raise error, "new block of primes doesn't match what I know already"
+            assert test == found.block[:len(test)], \
+                   "new block of primes doesn't match what I know already"
 
 	# Now the actual loading !
 	self._item_carrier[found.at:] = found.block
@@ -507,8 +505,8 @@ class cachePrimes(_Prime, Lazy):
 	while self._sparse and self._sparse[0] in self._item_carrier:
 	    self._sparse = self._sparse[1:]
 
-	if self._sparse and self._sparse[0] < self._item_carrier[-1]:
-	    raise error, 'sparse prime, %d, missed in "full" list' % self._sparse[0]
+	assert not( self._sparse and self._sparse[0] < self._item_carrier[-1] ), \
+               'sparse prime, %d, missed in "full" list' % self._sparse[0]
 
 	return 1
 
@@ -611,8 +609,11 @@ class cachePrimes(_Prime, Lazy):
 	return None
 
 primes = cachePrimes()
-def is_prime(num): return primes.has_value(num)
+def is_prime(num):
+    """is_prime(num) is true precisely if num is a prime"""
+    return primes.has_value(num)
 def factorise(num): return primes.factorise(num)
+factorise.__doc__ = primes.factorise.__doc__
 
 def prodict(dict):
     """Returns the product of a factorisation dictionary.
@@ -628,7 +629,7 @@ def prodict(dict):
 
     This implementation uses reduce() and map().  This might be more efficient
     than doing it as above, but I don't know.  It's only really here to give me
-    a handy way to do the inverse of factorise(), below.
+    a handy way to do the inverse of factorise(), above.
 
     See also, in module basEddy.quantity: adddict, subdict and scaledict.  They
     and this may one day migrate elsewhere to be together.  We get:
@@ -641,7 +642,7 @@ def prodict(dict):
 
 # Packaging.
 from types import TupleType, ListType, FloatType, IntType, LongType
-def Factorise(args=(), gather=None, cache=None):
+def Factorise(args=(), gather=None, cache=True):
 	"""Factorises an integer or each integer in a tuple.
 
 	Optional arguments:
@@ -651,7 +652,7 @@ def Factorise(args=(), gather=None, cache=None):
 	  gather -- dictionary to which to add results, or None (the default) to
 	  use a fresh empty dictionary: this is what Factorise() returns.
 
-          cache -- flag, default is true.  By default, Factorise() will do a
+          cache -- flag, default is True.  By default, Factorise() will do a
 	  primes.persist() when it is finished: this will slow you down when it
 	  happens (writing a cache file can take a while once you know a lot of
 	  primes).  Set cache to some false value to suppress this (and remember
@@ -757,7 +758,10 @@ def factors(num):
 
 _rcs_log = """
 $Log: primes.py,v $
-Revision 1.1  2005-01-17 22:36:59  eddy
+Revision 1.2  2007-03-08 23:55:06  eddy
+Various changes (2006-06-20).
+
+Revision 1.1  2005/01/17 22:36:59  eddy
 Initial revision
 
 """
