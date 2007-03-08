@@ -9,10 +9,12 @@ arrangement of electrons around a nucleus which is a mixture of possible
 variants.  I chose to take the former description seriously and fake the latter.
 
 chemistry.mercury will need tweaked; it references atom.
+
+See also: basEddy.elements !
 """
 
 _rcs_id_ = """
-$Id: element.py,v 1.1 2004-02-17 00:12:43 eddy Exp $
+$Id: element.py,v 1.2 2007-03-08 23:35:42 eddy Exp $
 """
 from particle import *
 
@@ -410,7 +412,8 @@ Thoron.nominate('Thoron', 'Tn')
 
 _rcs_log_ = """
 $Log: element.py,v $
-Revision 1.1  2004-02-17 00:12:43  eddy
-Initial revision
+Revision 1.2  2007-03-08 23:35:42  eddy
+Cross-reference partial duplicate.
 
+Initial Revision 1.1  2004/02/17 00:12:43  eddy
 """
