@@ -1,8 +1,10 @@
 """Cardan's solution of the cubic.
+
+See also HAKMEM note on cubics in search.py
 """
 
 _rcs_id_ = """
-$Id: cardan.py,v 1.7 2004-04-18 11:38:41 eddy Exp $
+$Id: cardan.py,v 1.8 2007-03-08 23:25:18 eddy Exp $
 """
 from math import cos, acos, pi
 
@@ -120,7 +122,10 @@ def cardan(u, s, i, c, realonly=1, tol=1e-14):
 
 _rcs_log_ = """
 $Log: cardan.py,v $
-Revision 1.7  2004-04-18 11:38:41  eddy
+Revision 1.8  2007-03-08 23:25:18  eddy
+comment on HAKMEM
+
+Revision 1.7  2004/04/18 11:38:41  eddy
 added a comment assertion
 
 Revision 1.6  2003/07/26 22:34:05  eddy
