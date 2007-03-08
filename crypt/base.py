@@ -9,7 +9,7 @@ all giving longer initial sequences of 1s for the power of 3.
 All things considered, 3**5 and 2**8 are the pair to use; 8bits is a familiar unit,
 5 signs packed in a byte sounds cool.
 
-$Id: base.py,v 1.1 2001-12-03 19:11:59 eddy Exp $
+$Id: base.py,v 1.2 2007-03-08 23:24:06 eddy Exp $
 """
 
 class Base:
@@ -111,6 +111,12 @@ class Base:
 
 	if sign in self.__minus: return -result
 	return result
+
+    def intlen(self, i):
+        """Number of characters this base needs to represent an integer encoded in i bytes"""
+        return len(self.encode(1L << (8*i)))
+    # Also want to compute good k,n,d for which k + (i * n)/d >= intlen(i) with
+    # the difference growing very slowly; c.f. ratio.{refine,approximate}
 
 binary = Base('01')
 signal = Base('T01', offset=1)
@@ -132,7 +138,8 @@ def Conway13(number, en=Base('0123456789+-.').encode, de=Base(ignore='+-.').deco
 
 _rcs_log = """
  $Log: base.py,v $
- Revision 1.1  2001-12-03 19:11:59  eddy
- Initial revision
+ Revision 1.2  2007-03-08 23:24:06  eddy
+ Added intlen
 
+ Initial Revision 1.1  2001/12/03 19:11:59  eddy
 """
