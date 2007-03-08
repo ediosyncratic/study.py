@@ -15,7 +15,7 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.19 2006-04-22 15:24:24 eddy Exp $
+$Id: particle.py,v 1.20 2007-03-08 23:49:31 eddy Exp $
 """
 
 from const import *
@@ -250,7 +250,7 @@ class Particle (Object):
         else: return Quantum.h * f
         try: f = self.__dict__['nu']
         except KeyError: pass
-        else: return Quantum.hbar * f
+        else: return Quantum.Planck * f
 
         raise AttributeError('energy', 'mass', 'frequency', 'nu')
 
@@ -265,7 +265,9 @@ class Particle (Object):
         return self.energy / Quantum.h
 
     def _lazy_get_nu_(self, ignored):
-        return self.energy / Quantum.hbar
+        try: return self.frequency / turn
+        except AttributeError: pass
+        return self.energy / Quantum.Planck
 
     def _lazy_get_momentum_(self, ignored):
         try: k = self.__dict__['wavevector']
@@ -651,7 +653,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.19  2006-04-22 15:24:24  eddy
+ Revision 1.20  2007-03-08 23:49:31  eddy
+ Replacing hbar with Planck
+
+ Revision 1.19  2006/04/22 15:24:24  eddy
  const no longer exports Lazy !
 
  Revision 1.18  2005/04/10 17:41:00  eddy
