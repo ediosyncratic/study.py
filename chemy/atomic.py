@@ -2,7 +2,7 @@
 """
 
 _rcs_id_ = """
-$Id: atomic.py,v 1.1 2005-09-09 00:07:49 eddy Exp $
+$Id: atomic.py,v 1.2 2007-03-08 23:22:35 eddy Exp $
 """
 from polynomial import Polynomial
 
@@ -27,8 +27,8 @@ class Laguerre (Polynomial):
 
     del hcf, factorial
 
-    def _lazy_get_scale_(self, ig, double=Polynomial(0,2), square=Polynomial(0,0,1)):
-        return ((self**2)(double) * square).Gamma ** .5
+    def _lazy_get_scale_(self, ig, linear=Polynomial(0,1)):
+        return ((self * linear)**2).Gamma ** .5
 
 del Polynomial
 from basEddy.lazy import Lazy
@@ -36,9 +36,13 @@ from basEddy.lazy import Lazy
 class Radial (Lazy):
     def __init__(self, n, b, Z):
         self.__poly, self.__frac = Laguerre(n, b), Z * 1. / n
+        self.degeneracy = 2 * b + 1
 
     def _lazy_get_scale_(self, ig):
         return self.__poly.scale / (2 * self.__frac) ** 1.5
+
+    def _lazy_get_Energy_(self, ig):
+        return - self.__frac**2
 
     def __call__(self, r):
         # r is measured in Bohr radii, and must be a Quantity.
@@ -71,6 +75,11 @@ class Orbit:
         # Let Laguerre and Legendre do all the asserting we need about n, b, j
         self.__radial = Radial(n, b, Z)
         self.__angular = Spherical(b, j)
+        self.n, self.l, self.j, self.Z = n, b, j, Z
+
+    def _lazy_get_Energy_(self, ig):
+        """In units of the Rydberg energy"""
+        return self.__radial.Energy
 
     def __call__(self, r, phi, theta):
         """Returns dimensionless field probability at specified location.
@@ -90,7 +99,8 @@ class Orbit:
 
 _rcs_log_ = """
 $Log: atomic.py,v $
-Revision 1.1  2005-09-09 00:07:49  eddy
-Initial revision
+Revision 1.2  2007-03-08 23:22:35  eddy
+Support Energy and degeneracy, revise scale.
 
+Initial Revision 1.1  2005/09/09 00:07:49  eddy
 """
