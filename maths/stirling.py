@@ -21,7 +21,10 @@ offer
 
 Stirling's formula gives an approximation to factorial:
   log(n!) = (n+.5) * log(n) - n + .5 * log(2*pi) -1/12/n 
-with errors of order 1/n/n.
+with errors of order 1/n/n.  I have another scribble elsewhere which claims
+  n! = n**(n+.5) * exp(-n) * (2*pi)**.5 * (1 +1/12/n +1/288/n/n +...)
+which would appear to be disagreeing about the sign of the 1/12/n term.
+It also suggests the tail will have a factor of 12 for each factor of n.
 
 Lanczos's formula does pretty well too - see lngamma() below.  Note: the gamma
 function attains a local minimum, 0.885603194411, at about 1.4616321 and takes
@@ -38,7 +41,7 @@ For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
 """
 
 _rcs_id_ = """
-$Id: stirling.py,v 1.3 2005-01-17 22:27:48 eddy Exp $
+$Id: stirling.py,v 1.4 2007-03-09 00:01:03 eddy Exp $
 """
 
 import math
@@ -160,7 +163,10 @@ def gerror(x):
 
 _rcs_log_ = """
 $Log: stirling.py,v $
-Revision 1.3  2005-01-17 22:27:48  eddy
+Revision 1.4  2007-03-09 00:01:03  eddy
+Note contrary rumours.
+
+Revision 1.3  2005/01/17 22:27:48  eddy
 Added comment taken from HAKMEM note
 
 Revision 1.2  2003/10/11 15:15:38  eddy
