@@ -15,11 +15,12 @@ The quarks in the last column are also known as bottom and top.  Most matter is
 composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
-$Id: particle.py,v 1.20 2007-03-08 23:49:31 eddy Exp $
+$Id: particle.py,v 1.21 2007-03-17 16:50:59 eddy Exp $
 """
 
 from const import *
 from basEddy import Lazy
+from decay import Decay
 
 eV = Quantity(Quantum.Millikan, Volt,
               doc='The electron-Volt: a standard unit of energy in particle physics.')
@@ -38,9 +39,43 @@ class Particle (Object):
     # needs merged in with units-related toys etc.
     __obinit = Object.__init__
     def __init__(self, name, *args, **what):
+        """Describe a particle's rest-state.
+
+        Required argument, name, is the name of the particle.  Other arguments
+        are handled as for Object (q.v.) except for these keywords:
+
+          constituents -- should be a mapping { particle: number } with self
+                          comprising the given number of instances of each
+                          particle.  Shalln't appear as an attribute: see the
+                          eponymous method.
+
+          decays -- should (if given) be either a Decay object (q.v.) or a
+                    sequence suitable to serve as the second and later args to
+                    Decay's constructor (q.v.), save that (in this latter case),
+                    if you have also specified decay (probability per unit time
+                    of decaying) or halflife, each entry's first entry can be
+                    the proportion of instances of self that decay in the given
+                    way, rather than the actual decay rate for that decay mode.
+                    You can even skip decay or halflife if *some* first entries
+                    are actual (positive) rates.  A suitable Decays object shall
+                    be inferred from the sequence (and any decay or halflife
+                    attribute, if any first entry is a proportion rather than a
+                    rate).
+
+        You can use an Object(particle, kinetic=energy) to specify a particle of
+        the given type with some specified kinetic energy.
+        """
         try: self.__bits = what['constituents']
         except KeyError: pass # self will be deemed primitive
         else: del what['constituents']
+
+        try: decays = what['decays']
+        except KeyError: pass
+        else:
+            if isinstance(decays, Decay): pass
+            else:
+                self.__decays = decays
+                del what['decays']
 
 	apply(self.__obinit, args, what)
 
@@ -85,10 +120,10 @@ class Particle (Object):
             return bok
 
         while bits:
-            for k in bits.keys():
-                v, b = bits[k], carve(k)
+            for k, v in bits.items():
                 del bits[k]
 
+                b = carve(k)
                 if b:
                     for q, r in b.items():
                         assert q is not k
@@ -181,19 +216,75 @@ class Particle (Object):
     def _lazy_get_magneton_(self, ignored):
         return self.charge * self.spin / self.mass
 
-    def _lazy_get_decay_(self, ignored, zero=0/second):
+    def _lazy_get_decays_(self, ig, klaz=Decay, first=lambda it: it[0]):
+        modes = self.__decays # raises AttributeError if we can't succeed
+        del self.__decays # so we fail if we recurse for self.decay, below
+
+        seq, mend = (), []
+        for mode in modes:
+            try: mode[0] + 1
+            except TypeError:
+                try: mode + check
+                except TypeError:
+                    raise TypeError(mode[0], """Bad decay rate or proportion.
+
+Each first item of decays attribute (when not a Decay object) should be either a
+rate (probability per unit time of the relevant decay mode happening) or a
+proportion of the decaying particle type that, on average, decay via the given
+mode.""", mode, modes, self)
+                seq = seq + (mode,)
+            else:
+                mend.append(mode)
+
+        if mend:
+            if seq:
+                # we can work out to total from seq and mend ;-)
+                known = sum(map(first, seq))
+                share = sum(map(first, mend))
+                # known rate accounts for 1-share of all decays
+                # so self.decay should be known/(1-share)
+                assert 0 <= share <= 1, 'bad sum of proportions'
+                total = known / (1 - share)
+                assert (not(self.__dict__.has_key('decay') or
+                            self.__dict__.has_key('halflife')) or
+                        abs(total - self.decay) < total.width + self.decay.width), \
+                        'Estimated and specified total decay rates differ'
+
+            else: total = self.decay # fail if unspecified
+            for mode in mend:
+                seq = seq + ((mode[0] * total,) + tuple(mode[1:]),)
+
+        return apply(klaz, (self,) + seq)
+
+    log2 = Quantity(2).log
+    def _lazy_get_decay_(self, ignored, zero=0/second, ln2=log2):
 	"""Fractional decay rate.
 
 	This is defined by: the probability density for decay of the particle at
 	time t is r*exp(-t*r) with r as the .decay attribute.  Unless otherwise
 	specified, this is presumed to be zero; however, it may be specified
-	when you initialise, e.g. Fermion(decay=32/second).
+	when you initialise - either directly, e.g. Fermion(decay=32/second), or
+	indirectly via attribute halflife or (better) decays; see constructor
+	documentation.
 
 	The defining formula implies that the probability of decay before some
         specified time T is 1-exp(-T*r), making the half-life log(2)/r, and the
         mean time until decay is 1/r. """
 
+        try: halflife = self.__dict__['halflife']
+        except AttributeError: pass
+        else: return ln2/halflife
+
+        try: decays = self.decays
+        except AttributeError: pass
+        else: return decays.rate
+
 	return zero
+
+    def _lazy_get_halflife_(self, ignored, ln2=log2):
+        return ln2 / self.decay
+
+    del log2
 
     def _lazy_get_anti_(self, ignored):
 	"""Returns self's anti-particle."""
@@ -503,7 +594,7 @@ class Neutrino (Fermion):
         return '&nu;<sup>%s</sup>' % lep.symbol
 
 class Lepton (Fermion):
-    """Lepton: primitive fermion. """
+    """Lepton: primitive fermion."""
 
     _charge = -3
     class __item (Lazy):
@@ -511,15 +602,11 @@ class Lepton (Fermion):
     item = __item(lazy_aliases={'anti-electron': 'positron'})
     del __item
 
-    __upinit = Fermion.__init__
-    def __init__(self, *args, **what):
-        try: self.__decay = what['decay']
-        except KeyError: pass
-        else: del what['decay']
-        apply(self.__upinit, args, what)
-
-    def _lazy_get_decay_(self, ignored):
-        return Decay(self, (self.__decay, None, Lepton.item.electron, Neutrino.item.electron, self.family.neutrino.anti))
+    def _lazy_get_decays_(self, ignored):
+        return Decay(self, (self.decay, None,
+                            Lepton.item.electron,
+                            Neutrino.item.electron,
+                            self.family.neutrino.anti))
 
 class Quark (Fermion):
     _namespace = 'Quark.item' # hide u/d distinction.
@@ -552,6 +639,8 @@ class Family (Object):
 	if ind == 1: return self.lepton
 	if ind in (2, 3): return self.quarks[ind-2]
 	raise IndexError, 'A quark/lepton family has only four members'
+
+del Lazy
 
 def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm,
 	     mev=mega*eV/Photon.speed**2):
@@ -630,18 +719,23 @@ Lepton.item.muon.mass.observe(0.1134289168 * AMU)
 
 Nucleon(2, 1, 'proton',
         Quantity(sample(1672.52, .08), harpo * gram),
-        "charged ingredient in nuclei",
+        "The charged ingredient in nuclei",
         magneticmoment = 1.410606633e-26 * Joule / Tesla)
 # magnetic moment has the same units as magneton: namely, current * area
 # c.f. moment of inertia = mass * area
+
+# Make proton and electron primary exports:
+proton, electron = Nucleon.item.proton, Lepton.item.electron
+
 Nucleon(1, 2, 'neutron',
         Quantity(sample(1674.82, .08), harpo * gram),
-        "uncharged ingredient in nuclei",
-        decay=1./(13*minute), #' erm ... no, that's the *half life*
+        "The neutral (uncharged) ingredient in nuclei",
+        halflife=13*minute,
+        decays=((1, None, proton, electron),) # plus neutrino/anti pair ? gamma ?
         magneticmoment = 0.96623640e-26 * Joule / Tesla)
 
-# Make proton, neutron and electron primary exports:
-proton, neutron, electron = Nucleon.item.proton, Nucleon.item.neutron, Lepton.item.electron
+# Also make neutron a primary export:
+neutron = Nucleon.item.neutron
 
 # what of:
 # pion, mass = 273.2 * electron.mass, charges 0, +1, -1.
@@ -653,7 +747,10 @@ Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Va
 
 _rcs_log = """
  $Log: particle.py,v $
- Revision 1.20  2007-03-08 23:49:31  eddy
+ Revision 1.21  2007-03-17 16:50:59  eddy
+ Better handling of decays.
+
+ Revision 1.20  2007/03/08 23:49:31  eddy
  Replacing hbar with Planck
 
  Revision 1.19  2006/04/22 15:24:24  eddy
