@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.41 2007-03-04 14:05:42 eddy Exp $
+$Id: quantity.py,v 1.42 2007-03-17 18:43:12 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -256,7 +256,13 @@ def speed():
 def mass():
     from SI import second, metre
     def weigh(v, g = 9.80665 * metre / second**2): return v * g
-    return { 'weight': weigh, 'force': weigh }
+    def energy(v, cc = (second.light / second)**2): return v * cc
+    return { 'weight': weigh, 'force': weigh, 'energy': energy }
+
+def energy():
+    from SI import second
+    def mass(v, cc = (second.light / second)**2): return v / cc
+    return { 'mass': mass }
 
 def time():
     from SI import second, metre
@@ -790,7 +796,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.41  2007-03-04 14:05:42  eddy
+ Revision 1.42  2007-03-17 18:43:12  eddy
+ Make mass/energy conversions easy.
+
+ Revision 1.41  2007/03/04 14:05:42  eddy
  Note on abbreviation of quantifiers.
 
  Revision 1.40  2006/12/13 22:18:43  eddy
