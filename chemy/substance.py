@@ -1,29 +1,19 @@
 # -*- coding: iso-8859-1 -*-
 """Messing around with chemistry.
 
-Allegedly, Oxygen liquifies at -297 F, i.e. 90 K.
-
-$Id: substance.py,v 1.4 2006-08-08 21:22:09 eddy Exp $
-
-Ethyl alcohol boils at 78.4Â°C (173Â°F), so it would be all right for room
+Ethyl alcohol boils at 78.4°C (173°F), so it would be all right for room
 thermometers, and has been widely used for that purpose for many years.  The
 alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
-(1-pentanol) melts at -78.9Â°C and boils at 138.1Â°C, so it can be used to replace
-mercury in laboratory thermometers that must read to 110Â°C.  Its coefficient of
+(1-pentanol) melts at -78.9°C and boils at 138.1°C, so it can be used to replace
+mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
 
+$Id: substance.py,v 1.5 2007-03-18 15:50:29 eddy Exp $
 """
-
-from elements import *
+from elements import * # q.v.
 from basEddy.quantity import Quantity, tophat
-# should really have
-# Element to carry abundance &c. data, subclass of Substance
-# Atom to describe per-atom data, subclass of Molecule
-# issue: does isotopic data belong to Element or Nucleus ?
-# Ion as peer of Atom and Molecule
 
 # Properties of some substances:
-class Substance (Object): pass
 class Gas (Substance):
     def _lazy_get__amupokt_(self, ignored, amuk=Nucleon.amuk): # AMU*P/k/T
         try: T = self.temperature
@@ -37,25 +27,11 @@ class Gas (Substance):
 
     def _lazy_get_RMM_(self, ignored): # relative molecular mass
         return self.density / self._amupokt
-
-class Heats (Object):
-    # should really deal with molar vs volume vs specific
-    def _lazy_get_fusion_(self,         ig): return  self.melt
-    def _lazy_get_freeze_(self,         ig): return -self.melt
-    def _lazy_get_vaporization_(self,   ig): return  self.boil
-    def _lazy_get_vaporisation_(self,   ig): return  self.boil
-    def _lazy_get_condense_(self,       ig): return -self.boil
-
-class Temperatures (Object):
-    def _lazy_get_fusion_(self,         ig): return self.melt
-    def _lazy_get_freeze_(self,         ig): return self.melt
-    def _lazy_get_vaporization_(self,   ig): return self.boil
-    def _lazy_get_vaporisation_(self,   ig): return self.boil
-    def _lazy_get_condense_(self,       ig): return self.boil
 
 water = Substance(
 	density = Quantity(1 -27e-6 +tophat * micro, kilogramme / litre,
                            """Density of water.
+
 at 277.13K, when density is maximal.\n"""),
         heat = Heats(
     capacity = Quantity(4.2 + tophat * .1, Joule / gram / Kelvin,
@@ -67,51 +43,10 @@ at 277.13K, when density is maximal.\n"""),
                       "Freezing point of water (at one atmosphere)."),
     boil = Quantity(373.150, Kelvin, "Melting point of water (at one atmosphere).")))
 IcePoint = water.temperature.freeze
-milk = Substance(
-    density = 10.5 * pound / gallon)
-mercury = Substance(
-    atom=atom(80,
-              qSample({ 116: .15, 118: 10.02, 119: 16.84,
-                        120: 23.13, 121: 13.22, 122: 29.80,
-                        124: 6.85 }, best=120.592),
-              'Mercury', 'Hg',
-              "Quicksilver's mercurial atom",
-              etymology = 'hydrargyrum'),
-    temperature = Temperatures(freeze = Centigrade(-38.9),
-                               boil = Centigrade(356.58)),
-    heat = Heats(melt = Quantity(2.29 + tophat * .01, kilo * Joule / mol),
-                 boil = Quantity(59.11 + tophat * .01, kilo * Joule / mol),
-                 capacity = Quantity(27.953 + tophat * .001, Joule / mol / Kelvin,
-                                     at = Centigrade(25))),
-    density = Quantity(13595.1 + tophat * .1, kilogramme / metre**3,
-                       """Density of merucry.
+milk = Substance(density = 10.5 * pound / gallon)
 
-This is equivalently Atmosphere / .76 / metre / Earth.surface.g, since a 76 cm
-column of mercury balances one atmosphere's pressure.  (Note that Eart.surface.g
-is equivalently m/m.weight for any mass m.)
-
-I have also seen its value given (using the British gallon) as 136.26 lb /
-gallon, which conflicts with the value given here (135.9 pound / gallon)."""),
-    __doc__ = """Mercury
-
-http://www.du.edu/~jcalvert/phys/mercury.htm
-says:
-
-  The name hydrargyrum, 'water silver', was given by Pliny from Greek roots for
-  the common name, and is the source of its chemical symbol, Hg. In German, it
-  is called Quecksilber, from its usual ancient name, and in French it is
-  mercure, from which the English 'mercury' is derived. This, no doubt, comes
-  from the fancies of late medieval alchemy, where it was represented by the
-  symbol for the god Mercury, ...
-
-and provides lots of further (but, in places, inconsistent) physical data.
-""")
-
-mercury.density.observe(torr * tonne / kg.weight / metre)
-
-air = Gas(
-    RMM = 1.6 * Nitrogen.A + .4 * Oxygen.A, # close enough ...
-    sound = Object(speed = Quantity(mach)))
+air = Gas(RMM = 1.6 * Nitrogen.A + .4 * Oxygen.A, # close enough ...
+          sound = Object(speed = Quantity(mach)))
 air.sound.speed.observe(331.36 * metre / second) # duno where I got this one ...
 
 kerosene = Substance(density = 8 * pound / gallon)
@@ -120,7 +55,10 @@ petrol = Substance(density = 7.5 * pound / gallon)
 
 _rcs_log = """
   $Log: substance.py,v $
-  Revision 1.4  2006-08-08 21:22:09  eddy
+  Revision 1.5  2007-03-18 15:50:29  eddy
+  Moved mercury's data to elements.Mercury, along with assorted classes.
+
+  Revision 1.4  2006/08/08 21:22:09  eddy
   Forgot to reivse IcePoint.
 
   Revision 1.3  2006/08/08 21:19:49  eddy
