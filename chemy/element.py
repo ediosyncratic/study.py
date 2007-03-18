@@ -9,12 +9,10 @@ arrangement of electrons around a nucleus which is a mixture of possible
 variants.  I chose to take the former description seriously and fake the latter.
 
 chemistry.mercury will need tweaked; it references atom.
-
-See also: basEddy.elements !
 """
 
 _rcs_id_ = """
-$Id: element.py,v 1.2 2007-03-08 23:35:42 eddy Exp $
+$Id: element.py,v 1.3 2007-03-18 17:15:00 eddy Exp $
 """
 from particle import *
 
@@ -23,10 +21,10 @@ class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
 class fNucleus (Fermion, Nucleus): 'Fermionic nucleus'
 def nucleus(Q, N, name, **what):
     what.update({'name': name,
-                 'constituents': {Nucleon.item.proton: Q, Nucleon.item.neutron: N}})
+                 'constituents': { proton: Q, neutron: N }})
 
-    try: klaz = {0: bNucleus, 1: fNucleus}[(Q + N) % 2]
-    except KeyError: klaz = Nucleus
+    try: klaz = [ bNucleus, fNucleus ][(Q + N) % 2]
+    except IndexError, TypeError: klaz = Nucleus # e.g. when N is a Sample
     return apply(klaz, (), what)
 
 class Atom (Particle):
@@ -38,31 +36,40 @@ def atom(Q, N, name, symbol, doc, **what):
     try: n = what['nucleus']
     except KeyError: n = what['nucleus'] = nucleus(Q, N, ndoc)
     else:
-        try:
-            if not n.__dict__['__doc__']: raise KeyError
+        try: # i.e. if n's own __doc__ is empty, None or missing, use ndoc
+            if not n.__dict__['__doc__']:
+                raise KeyError
         except KeyError: n.__doc__ = ndoc
 
-    what.update({'name': name, 'symbol': symbol, 'doc': doc,
-                 'constituents': {n: 1, Lepton.item.electron: Q}})
+    what.update({'name': name, 'symbol': symbol, '__doc__': doc,
+                 'constituents': {n: 1, electron: Q}})
     try: klaz = {0: bAtom, 1: fAtom}[N % 2]
     except KeyError: klaz = Atom
     return apply(klaz, (), what)
-
-atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
-     mass=Quantity(sample(1673.43, .08), harpo * gram),
-     nucleus=Nucleon.item.proton)
-atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
-     nucleus=nucleus(1, 1, 'deuteron', doc="Deuterium's nucleus",
-                     # roughly the sum of proton and neutron:
-                     mass = 2.01355321271 * AMU,
-                     # roughly the *difference* between proton and neutron:
-                     magneticmoment = 0.433073457e-26 * Joule / Tesla))
-atom(1, 2, 'Tritium', 'T', 'Radioactive Heavy Hydrogen')
-atom(2, 2, 'Helium', 'He', 'Second most abundant form of matter',
-     nucleus=nucleus(2, 2, 'alpha', doc="Helium's nucleus"))
-
 
-class Isotope (Object):
+class Substance (Object): pass
+# should really have
+# Element to carry abundance &c. data, subclass of Substance
+# Atom to describe per-atom data, subclass of Molecule
+# issue: does isotopic data belong to Element or Nucleus ?
+# Ion as peer of Atom and Molecule
+
+class Heats (Object):
+    # should really deal with molar vs volume vs specific
+    def _lazy_get_fusion_(self,         ig): return  self.melt
+    def _lazy_get_freeze_(self,         ig): return -self.melt
+    def _lazy_get_vaporization_(self,   ig): return  self.boil
+    def _lazy_get_vaporisation_(self,   ig): return  self.boil
+    def _lazy_get_condense_(self,       ig): return -self.boil
+
+class Temperatures (Object):
+    def _lazy_get_fusion_(self,         ig): return self.melt
+    def _lazy_get_freeze_(self,         ig): return self.melt
+    def _lazy_get_vaporization_(self,   ig): return self.boil
+    def _lazy_get_vaporisation_(self,   ig): return self.boil
+    def _lazy_get_condense_(self,       ig): return self.boil
+
+class Isotope (Substance):
     """Single actual isotope.
 
     Well, OK, if constructor's N is a distribution, you get a distribution.
@@ -70,14 +77,14 @@ class Isotope (Object):
     a Nucleus, for the sake of an Element's atom.
     """
 
-    __upinit = Object.__init__
+    __upinit = Substance.__init__
     def __init__(self, Q, N):
         self.__names = () # names displaced by uses of .nominate()
         assert type(Q) is type(1) is type(N)
         self.__upinit(protons=Q, neutrons=N)
 
     def nominate(self, name, symbol):
-        Element.bysymbol[symbol] = Element.byname[name] = self
+        Element.bySymbol[symbol] = Element.byName[name] = self
         # So we record the attempt even if we fail to put it into effect ...
 
         if self.__names: self.__names.append(self.__name)
@@ -88,6 +95,8 @@ class Isotope (Object):
         except AttributeError: pass
         self.__name, self.symbol = name, symbol
 
+        return self # convenience for the places this is used ...
+
     def _lazy_get_name_(self, ignored):
         if self.__names: return '%s (a.k.a. %s)' % (self.__name, ', '.join(self.__names))
         return '%s[%s]' % (self.element.name, self.massnumber)
@@ -96,22 +105,18 @@ class Isotope (Object):
         return '%s[%s]' % (self.element.symbol, self.massnumber)
 
     def _lazy_get_fullsymbol_(self, ignored):
-        return '<sup>%d</sup><sub>%d</sub>%s' % (self.massnumber, self.protons, self.electron.symbol)
+        return '<sup>%d</sup><sub>%d</sub>%s' % (self.massnumber, self.protons, self.symbol)
 
     def _lazy_get__lazy_hash_(self, ignored):
         return hash(self.__class__) ^ hash(self.protons) ^ hash(self.neutrons)
 
-    def _lazy_get_nucleus_(self, ignored):
-        return Nucleus('%s<sup>+%d</sup>' % (self.symbol, self.protons),
-                       doc='Nucleus of the %s atom' % self.name,
-                       constituents={proton: self.protons, neutron: self.neutrons})
-
-    def _lazy_get_constituents_(self, ignored):
-        return Particle(self.name, self, constituents={self.nucleus: 1, electron: self.electrons}).constituents
+    def _lazy_get_atom_(self, ignored):
+        return atom(self.protons, self.neutrons, self.name, self.symbol,
+                    "Atom of isotope %s" % self.fullsymbol)
 
     def _lazy_get_electrons_(self, ignored): return self.protons
     def _lazy_get_massnumber_(self, ignored): return self.protons + self.neutrons
-    def _lazy_get_element_(self, ignored): return Element.bynumber[self.protons]
+    def _lazy_get_element_(self, ignored): return Element.byNumber[self.protons]
 
     def __repr__(self): return self.name
     def __str__(self): return self.symbol
@@ -126,43 +131,47 @@ Isotopes = all.values
 naturalIsotopes = lambda : filter(lambda x: getattr(x, 'abundance', None), Isotopes())
 del all
 
-class Element (Object):
+class Element (Substance):
     """Mixture of isotopes.
     """
 
-    __upinit = Object.__init__
-    def __init__(self, name, symbol, Z, A, **what):
+    __upinit = Substance.__init__
+    def __init__(self, name, symbol, Z, A=None, **what):
         """Initialise an Element.
         """
         self.__isotopes = {}
         what.update({'name': name, 'symbol': symbol,
-                     'atomic number': Z, 'relative atomic mass': A})
+                     'atomic number': Z})
+        if A is not None: what['relative atomic mass'] = A
         apply(self.__upinit, (), what)
-        self.Z, self.A = Z, A
+        self.Z = Z
+        if A is not None: self.A = A
 
         # Handle storage in Element.by* lookups:
-        while len(Element.bynumber) <= Z: Element.bynumber.append(None)
-        Element.bysymbol[symbol] = Element.byname[name] = Element.bynumber[Z] = self
+        while len(Element.byNumber) <= Z: Element.byNumber.append(None)
+        Element.bySymbol[symbol] = Element.byName[name] = Element.byNumber[Z] = self
 
         try: alias = what['alias']
         except KeyError: pass
         else:
             for sym in alias:
-                if len(sym) < 3:
-                    assert not Element.bysymbol.has_key(sym)
-                    Element.bysymbol[sym] = self
+                if len(sym) < 3: # should also handle len == 3 pig latin symbols.
+                    assert not Element.bySymbol.has_key(sym)
+                    Element.bySymbol[sym] = self
                 else:
-                    assert not Element.byname.has_key(sym)
-                    Element.byname[sym] = self
+                    assert not Element.byName.has_key(sym)
+                    Element.byName[sym] = self
 
         try: alias = what['arcanum']
         except KeyError: pass
         else:
-            assert not Element.byname.has_key(alias)
-            Element.byname[alias] = self
+            assert not Element.byName.has_key(alias)
+            Element.byName[alias] = self
 
-    bysymbol, byname = {}, {}
-    bynumber = [ None ] * 104
+        # should also handle the dog latin names for > 103, unnilquadium et al.
+
+    bySymbol, byName = {}, {}
+    byNumber = [ None ] * 104
 
     def __getitem__(self, key):
         try: ans = self.__isotopes[key]
@@ -179,6 +188,7 @@ class Element (Object):
             if value is not old:
                 raise ValueError(key, 'setting the same isotope repeatedly')
 
+    def __len__(self): return len(self.__isotopes)
     def isotopes(self): return self.__isotopes.copy()
     def _lazy_get_composition_(self, ignored):
         bok = {}
@@ -201,18 +211,44 @@ class Element (Object):
 
     def _lazy_get_atom_(self, ignored):
         # aggregate atom of isotopes, unless self has exactly one natural isotope.
-        pass
+        if len(self) == 1: return self.__isotopes.values()[0].atom
+        bok, what, base = {}, {}, ()
+
+        try: A = self.A
+        except AttributeError: pass
+        else:
+            if isinstance(A, Quantity): A = A._scalar
+            base = (A,) # use as weights if no bok; else as a base
+            what['best'] = A
+
+        for iso in self.__isotopes.values():
+            n = iso.neutrons
+            what['high'] = max(what.get('high', n), n)
+            what['low']  = min(what.get('low',  n), n)
+            try:
+                bun = iso.abundance
+                if not bun: raise AttributeError
+            except AttributeError: pass
+            else: bok[n] = bun
+
+        if bok: base = (bok,) + base
+        try: apply(Sample, base, what)
+        except TypeError:
+            raise AttributeError("I don't know enough about myself to describe my atom", self)
+
+        return atom(self.Z, A, self.name, self.symbol, "%s atom" % self.name)
 
-def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
+def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
     """Create an Element based on my Nuffield Advanced Data book's data.
 
     Required arguments:
       name -- string giving the full name of the element.
       symbol -- string giving the (one or two letter) symbol of the element.
       Z -- atomic number.
-      A -- molar mass * mol / g; a.k.a. atomic mass / AMU.
 
     Optional arguments:
+      A -- molar mass * mol / g; a.k.a. atomic mass / AMU (default, None, means
+           unknown).
       isos -- description of isotopes (see below); default is None.
       abundance -- relative terrestrial abundance, scaled to make Si score 100;
       default is None, indicating an artificial element.
@@ -236,30 +272,31 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
     if abundance is None: what['abundance'] = None # artificial elements
     else:
         try: abundance.width
-        except AttributeError: # better give it an error bar
+        except AttributeError: # need an error bar (two decimal places of precision)
             unit = 1
             while unit > abundance: unit = unit * .1
             abundance = abundance + tophat * unit * .1
         # NAS data book gives abundances relative to Silicon = 100, but notes
         # that Silicon's true abundance is believed to be 27.72 %
-        what['abundance'] = abundance * 2.772e-3
+        what['abundance'] = abundance * .2772
 
-    try: A.width
-    except AttributeError: # give it an error bar
-        try: isos[:] # radioactive elements
-        except TypeError: A = A + tophat * .0001 # real ones
-        else: A = A + tophat * max(1, max(isos) - min(isos))
+    if A is not None:
+        try: A.width
+        except AttributeError: # give it an error bar
+            try: isos[:] # radioactive/artificial elements
+            except TypeError: A = A + tophat * .0001 # real ones
+            else: A = A + tophat * max(1, max(isos) - min(isos))
 
     ans = apply(Element, (name, symbol, Z, A), what)
 
     try: isos[:]
     except TypeError:
         try: isos.update
-        except AttributeError: pass
+        except AttributeError: pass # no information
         else:
-            # dictionary
+            # dictionary: { isotope: relative abundance }
             weights = filter(None, isos.values())
-            total = reduce(lambda x,y: x+y, weights, 0.)
+            total = sum(weights)
             # The NAS table has several entries that don't sum accurately to 100.
             if total == 1: fix, scale = None, 1
             else:
@@ -267,7 +304,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
                 if total == 100: fix = None
                 else: # bodge: blur the non-tiny weights to make it all sum right ...
                     fix = 1 + (100 - total) * (tophat + .5) * 2 \
-                          / reduce(lambda x,y: x+y, filter(lambda x: x > 1, weights), 0)
+                          / sum(filter(lambda x: x > 1, weights))
 
             for k, v in isos.items():
                 ans[k] = Isotope(Z, k - Z)
@@ -276,16 +313,29 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
                     if v < 1:
                         while unit > v: unit = unit * .1
                         unit = unit * .1
-                    if fix is not None and v > 1: v = v * fix # bodge
+                    if fix and v > 1: v = v * fix # bodge
                     v = v + unit * tophat * .01
                     ans[k].abundance = v * scale
     else:
-        # sequence
+        # sequence: known isotopes
         for k in isos:
             ans[k] = Isotope(Z, k - Z)
 
     return ans
-
+
+atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
+     mass=Quantity(sample(1673.43, .08), harpo * gram),
+     nucleus=Nucleon.item.proton)
+atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
+     nucleus=nucleus(1, 1, 'deuteron', doc="Deuterium's nucleus",
+                     # roughly the sum of proton and neutron:
+                     mass = 2.01355321271 * AMU,
+                     # roughly the *difference* between proton and neutron:
+                     magneticmoment = 0.433073457e-26 * Joule / Tesla))
+atom(1, 2, 'Tritium', 'T', 'Radioactive Heavy Hydrogen')
+atom(2, 2, 'Helium', 'He', 'Second most abundant form of matter',
+     nucleus=nucleus(2, 2, 'alpha', doc="Helium's nucleus"))
+
 Hydrogen = NASelement('Hydrogen', 'H', 1, 1.0079 + 1e-5 * tophat, {1: 99.985, 2: .015, 3: None}, .57)
 Helium = NASelement('Helium', 'He', 2, 4.0026, {3: 1.3e-4, 4: 100}, 1.3e-6)
 Lithium = NASelement('Lithium', 'Li', 3, 6.939, {6: 7.42, 7: 92.58}, 2.9e-2)
@@ -294,7 +344,9 @@ Boron = NASelement('Boron', 'B', 5, 10.811 + 3e-3 * tophat, {10: 19.7, 11: 80.3}
 Carbon = NASelement('Carbon', 'C', 6, 12.0111 + 5e-5 * tophat, {12: 98.89, 13: 1.11, 14: None},
                     .14, sublime=Centigrade(3700))
 Nitrogen = NASelement('Nitrogen', 'N', 7, 14.0067, {14: 99.63, 15: .37}, 9e-2)
-Oxygen = NASelement('Oxygen', 'O', 8, 15.994 + 1e-4 * tophat, {16: 99.759, 17: .037, 18: .204}, 2.1e-2)
+Oxygen = NASelement('Oxygen', 'O', 8, 15.994 + 1e-4 * tophat,
+                    {16: 99.759, 17: .037, 18: .204}, 2.1e-2,
+                    temperature = Temperatures(boil=90 * Kelvin)) # allegedly
 Fluorine = NASelement('Fluorine', 'F', 9, 18.9984, {19: 1}, .4)
 Neon = NASelement('Neon', 'Ne', 10, 20.183 + 3e-3 * tophat, {20: 90.92, 21: .26, 22: 8.82}, 3.1e-8)
 Sodium = NASelement('Sodium', 'Na', 11, 22.9898, {23: 1}, 12.5, arcanum='Natrium')
@@ -373,7 +425,40 @@ Platinum = NASelement('Platinum', 'Pt', 78, 195.09,
                       {190: .01, 192: .78, 194: 32.9, 195: 33.8, 196: 25.2, 198: 7.2}, # components sum to 99.89, not 100
                       2.2e-6, density = 21.37 * gram / cc)
 Gold = NASelement('Gold', 'Au', 79, 196.967, {197: 1}, 2.2e-6, arcanum='Aurum')
-Mercury = NASelement('Mercury', 'Hg', 80, 200.59, {196: .15, 198: 10.02, 199: 16.84, 200: 23.13, 201: 13.22, 202: 29.80, 204: 6.85}, 2.2e-4, arcanum='Hydrargyrum')
+Mercury = NASelement(
+    'Mercury', 'Hg', 80, 200.592,
+    {196: .15, 198: 10.02, 199: 16.84, 200: 23.13, 201: 13.22, 202: 29.80, 204: 6.85},
+    2.2e-4, arcanum='Hydrargyrum', alias=('Quick-silver', 'Quicksilver'),
+    temperature = Temperatures(freeze = Centigrade(-38.9),
+                               boil = Centigrade(356.58)),
+    heat = Heats(melt = Quantity(2.29 + tophat * .01, kilo * Joule / mol),
+                 boil = Quantity(59.11 + tophat * .01, kilo * Joule / mol),
+                 capacity = Quantity(27.953 + tophat * .001, Joule / mol / Kelvin,
+                                     at = Centigrade(25))),
+    density = Quantity(13595.1 + tophat * .1, kilogramme / metre**3,
+                       """Density of merucry.
+
+This is equivalently Atmosphere / .76 / metre / Earth.surface.g, since a 76 cm
+column of mercury balances one atmosphere's pressure.  (Note that Eart.surface.g
+is equivalently m/m.weight for any mass m.)
+
+I have also seen its value given (using the British gallon) as 136.26 lb /
+gallon, which conflicts with the value given here (135.9 pound / gallon)."""),
+    __doc__ = """Mercury
+
+http://www.du.edu/~jcalvert/phys/mercury.htm
+says:
+
+  The name hydrargyrum, 'water silver', was given by Pliny from Greek roots for
+  the common name, and is the source of its chemical symbol, Hg. In German, it
+  is called Quecksilber, from its usual ancient name, and in French it is
+  mercure, from which the English 'mercury' is derived. This, no doubt, comes
+  from the fancies of late medieval alchemy, where it was represented by the
+  symbol for the god Mercury, ...
+
+and provides lots of further (but, in places, inconsistent) physical data.
+""")
+Mercury.density.observe(torr * tonne / kg.weight / metre)
 Thallium = NASelement('Thallium', 'Tl', 81, 204.37, {203: 29.5, 205: 70.5}, 1.3e-3)
 Lead = NASelement('Lead', 'Pb', 82, 207.19, {202: .5, 204: 1.4, 206: 25.1, 207: 21.7, 208: 52.3},
                   7e-3, arcanum='Plumbum') # components sum to 101, not 100
@@ -398,21 +483,139 @@ Fermium = NASelement('Fermium', 'Fm', 100, 253, [253])
 Mendelevium = NASelement('Mendelevium', 'Md', 101, 256, [256])
 Nobelium = NASelement('Nobelium', 'No', 102, 254, [254])
 Lawrencium = NASelement('Lawrencium', 'Lr', 103, 257, [257])
-# Kurchatovium = NASelement('Kurchatovium', 'Ku', 104, ...)
+Kurchatovium = NASelement('Kurchatovium', 'Ku', 104)
 
 # and a few synonyms ...
-Deuterium = Hydrogen[2]
-Deuterium.nominate('Deuterium', 'D') # abundance 8.5e-5 (relative to Si = 100)
-Tritium = Hydrogen[3]
-Tritium.nominate('Tritium', 'T')
-Ionium = Thorium[230]
-Ionium.nominate('Ionium', 'Io')
-Thoron = Radon[220]
-Thoron.nominate('Thoron', 'Tn')
+protium = Hydrogen[1].nominate('protium')
+Deuterium = Hydrogen[2].nominate('Deuterium', 'D') # abundance 8.5e-5 (relative to Si = 100)
+Tritium = Hydrogen[3].nominate('Tritium', 'T')
+Ionium = Thorium[230].nominate('Ionium', 'Io')
+Thoron = Radon[220].nominate('Thoron', 'Tn')
+
+deuteron = Deuterium.atom.nucleus
+alpha = Helium[4].atom.nucleus
+
+# Decays:
+from basEddy.units import *
+from decay import ratedDecay
+ln2 = Quantity(2).log
+Tritium.decays = ratedDecay(Tritium, 12.35 * year,
+                            (18.62e3 * eV, electron, Helium[3].atom.nucleus))
+
+def decay(what, halflife, *modes):
+    what.decays = apply(ratedDecay, (what, halflife) +
+                        tuple(map(lambda m: (m[0], m[1] * eV) + tuple(m[2:]), modes)))
+
+def photon(erg):
+    return Photon(energy= erg * eV)
+
+decay(Isotope(2, 6), .81 * second, (1, 3.51e6, electron))
+decay(Isotope(2, 8), .122 * second,
+      # 88% beta- 9.7; 12% n; 88% gamma .981 ???
+      (.88, 9.7e6, electron, photon(.981e6), Nucleon(3, 5)),
+      (.12, 0, neutron, Nucleon(2, 7)))
+
+decay(Isotope(3, 8), .844 * second,
+      (1, 13.1e6, electron, Nucleon(4, 4)))
+decay(Isotope(3, 9), .178 * second,
+      # 65% beta- 13.6; 35% n, 2 alpha ??
+      (.65, 13.6e4, electron, Nucleon(4, 5)),
+      (.35, 0, neutron, Nucleon(3, 5)))
+decay(Isotope(3, 11), 8.5e-3 * second,
+      # 39% beta- 20.4; 61% n
+      (.39, 20.4e6, electron, Nucleon(4, 7)),
+      (.61, 0, neutron, Nucleon(3, 10))) # ???
+
+decay(Isotope(4, 7), 53.3 * day,
+      # 100% K; 10% gamma .477 ???
+      (1, 47.7e3, positron, Nucleon(3, 4)))
+decay(Isotope(4, 8), 7e-17 * second, (1, 0, alpha, alpha))
+decay(Isotope(4, 10), 1.6e6 * year, (1, 556e3, electron))
+decay(Isotope(4, 11), 13.8 * second,
+      # 57% beta- 11.5; 33% gamma 2.12; 5% gamma 6.79; 2% gamma 5.85
+      (.57, 11.5e6, electron, Nucleon(5, 6)),
+      (.33, 2.12e6, Nucleon(4, 7)),
+      (.05, 6.79e6, Nucleon(4, 7)),
+      (.02, 5.85e6, Nucleon(4, 7)))
+decay(Isotope(4, 12), .011 * second,
+      (1, 0, electron, neutron, Nucleon(5, 6)))
+
+decay(Isotope(5, 8), .77 * second,
+      # 93% beta+ 13.7; 100% 2 alpha
+      (.93, 13.7, positron, Nucleon(4, 8)))
+decay(Isotope(5, 12), .02 * second,
+      # 97% beta- 13.37; 2% alpha; 1% gamma 4.439
+      (.97, 13.37e6, electron, Nucleon(6, 6)),
+      (.02, 0, alpha, Nucleon(3, 5)),
+      (.01, 4.439e6, Nucleon(5, 7)))
+decay(Isotope(5, 13), 17e-3 * second,
+      # 92% beta- 13.44; 8% gamma 3.68
+      (.92, 13.44e6, electron, Nucleon(6, 7)),
+      (.08, 3.68e6, Nucleon(5, 8)))
+decay(Isotope(5, 14), 16e-3 * second,
+      # 87% beta- 14.5; 90% gamma 6.09; 9% gamma 6.73
+      (.87, 14.5e6, electron, Nucleon(6, 8)),
+      (.9, 6.09e6, Nucleon(5, 9)),
+      (.09, 6.73, Nucleon(5, 9)))
+
+decay(Isotope(6, 9), .127 * second,
+      # beta+; 100% p
+      (1, 0, positron, proton, Nucleon(4, 4)))
+decay(Isotope(6, 10), 19.15 * second,
+      # 99% beta+ 1.87; 99% gamma .718; 1% gamma 1.022
+      (.99, 1.87e6, positron, photon(.718e6), Nucleon(5, 5)),
+      (.01, 1.022e6, Nucleon(6, 4)))
+
+decay(Isotope(6, 11), 20.38 * minute, (1, .96e6, positron, Nucleon(5, 6)))
+decay(Isotope(6, 14), 5730 * year, (1, .156e6, electron, Nucleon(7, 7)))
+decay(Isotope(6, 15), 2.45 * second,
+      # 32% beta- 9.77; 68% beta- 4.47; 68% gamma 5.299
+      (.32, 9.77e6, electron, Nucleon(7, 8)),
+      (.68, 4.47e6, electron, photon(5.299e6), Nucleon(7, 8)))
+decay(Isotope(6, 16), .75 * second,
+      # 84% beta- 5.4; 100% n ???
+      (.84, 5.4e6, electron, neutron, Nucleon(7, 8)),
+      (.16, 0, neutron, Nucleon(6, 9)))
+
+decay(Isotope(7, 12), .011 * second,
+      # 94% beta+ 16.3; 4% alpha; 2% gamma 4.439
+      (.94, 16.3e6, positron, Nucleon(6, 6)),
+      (.04, 0, alpha, Nucleon(5, 3)),
+      (.02, 4.439e6, Nucleon(7, 5)))
+decay(Isotope(7, 13), 9.96 * minute, (1, 1.19e6, positron, Nucleon(6, 7)))
+decay(Isotope(7, 16), 7.1 * second,
+     # 26% beta- 10.42; 68% beta- 4.29; 69% gamma 6.129; 5% gamma 7.115; 1% gamma .871
+      (1, 10.42e6, electron, Nucleon(8, 8)))
+decay(Isotope(7, 17), 4.17 * second,
+      # 2% beta- 8.7; 50% beta- 3.3; 95% n; 3% gamma .871 ???
+      (.02, 8.7e6, electron, Nucleon(8, 9)),
+      (.5, 3.3e6, electron, neutron, Nucleon(8, 8)))
+decay(Isotope(7, 18), .63 * second,
+      # 100% beta- 9.6; 100% 1.982; 72% gamma .82; 72% gamma 1.65
+      (1, 9.6e6, electron, Nucleon(8, 10)))
+
+decay(Isotope(8, 13), 9e-3 * second,
+      # beta+ 16.7; 12% p
+      (.88, 16.7e6, positron, Nucleon(7, 6)),
+      (.12, 16.7e6, positron, proton, Nucleon(6, 6)))
+decay(Isotope(8, 14), 70.6 * second,
+      # 1% beta+ 4.12; 99% beta+ 1.81; 99% gamma 2.313
+      (.01, 4.12e6, positron, Nucleon(7, 7)),
+      (.99, 1.81e6, photon(2.313e6), positron, Nucleon(7, 7)))
+decay(Isotope(8, 15), 122.1 * second, (1, 1.73e6, positron, Nucleon(7, 8)))
 
 _rcs_log_ = """
 $Log: element.py,v $
-Revision 1.2  2007-03-08 23:35:42  eddy
+Revision 1.3  2007-03-18 17:15:00  eddy
+Moved some classes and data about Mercury in from chemistry.
+Moved the decay info in from basEddy.elements (and killed it).
+Renamed the Element.by* variables to camel-case.
+Mediate Isotope's nucleus and constituents via its lazy atom.
+Provide Element with a blurred lazy atom.
+Allow Element without A, for Ku.
+Fixed dumb error in abundance.
+
+Revision 1.2  2007/03/08 23:35:42  eddy
 Cross-reference partial duplicate.
 
 Initial Revision 1.1  2004/02/17 00:12:43  eddy
