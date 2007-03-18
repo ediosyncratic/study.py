@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.32 2006-07-19 07:41:34 eddy Exp $
+$Id: sample.py,v 1.33 2007-03-18 16:44:12 eddy Exp $
 """
 
 class _baseWeighted:
@@ -867,7 +867,7 @@ class joinWeighted (curveWeighted):
 
             if isinstance(key, joinWeighted): self.add(key, val, func)
             else:
-                if func: key = func(key)
+                if func is not None: key = func(key)
                 self[key] = self[key] + val
 
     def cross(self, other):
@@ -1344,8 +1344,8 @@ class Sample (Object):
             try: weights[:]
             except TypeError:
                 try: tot = sum(weights.values())
-                except AttributeError: tot = weights
-            else: tot = sum(weights)
+                except AttributeError: tot = 1
+            else: tot = len(weights)
 
             if tot < 0: y = -1.
             else: y = 1.
@@ -1382,9 +1382,10 @@ class Sample (Object):
         else:
             def flatten(b):
                 """Coerce a Sample or Weighted to a scalar."""
-                while isinstance(b, Sample): b = b.best
-                while isinstance(b, statWeighted): b = b.median()
-                return b
+                while True:
+                    if isinstance(b, Sample): b = b.best
+                    elif isinstance(b, statWeighted): b = b.median()
+                    else: return b
 
             try: best[:]
             except (TypeError, AttributeError):
@@ -1761,7 +1762,12 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.32  2006-07-19 07:41:34  eddy
+  Revision 1.33  2007-03-18 16:44:12  eddy
+  Corrected Sample._weighted_'s calculation of total weight.
+  Test .add's func is not None overtly.
+  Let flatten's loop cope if a Sample shows up inside a statWeighted.
+
+  Revision 1.32  2006/07/19 07:41:34  eddy
   Change Sample._weighted_ to a function instantiating Weighted, so that
   we can re-scale weights when their total is big (e.g. the binomial
   distribution represented by { i: chose(N,i) } as weights).  Also ensure
