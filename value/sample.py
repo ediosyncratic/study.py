@@ -27,7 +27,7 @@ external consumption.
 """
 
 _rcs_id_ = """
-$Id: sample.py,v 1.33 2007-03-18 16:44:12 eddy Exp $
+$Id: sample.py,v 1.34 2007-03-18 17:02:12 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1375,6 +1375,11 @@ class Sample (Object):
             except KeyError: best = apply(Object, args).best
             else: del what['best']
 
+            if not weights:
+                # Maybe what['best'], or someone in args, is a Sample:
+                try: weights = best.mirror
+                except AttributeError: pass
+
         except AttributeError:
             self.__best = []
             if not weights and what.get('low', None) is None and what.get('high', None) is None:
@@ -1762,7 +1767,10 @@ a simple way to implement a+/-b as a + 2*b*tophat.""")
 
 _rcs_log_ = """
   $Log: sample.py,v $
-  Revision 1.33  2007-03-18 16:44:12  eddy
+  Revision 1.34  2007-03-18 17:02:12  eddy
+  If no weights, perhaps crib them off best or a base.
+
+  Revision 1.33  2007/03/18 16:44:12  eddy
   Corrected Sample._weighted_'s calculation of total weight.
   Test .add's func is not None overtly.
   Let flatten's loop cope if a Sample shows up inside a statWeighted.
