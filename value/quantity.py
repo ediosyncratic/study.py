@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.42 2007-03-17 18:43:12 eddy Exp $
+$Id: quantity.py,v 1.43 2007-03-18 16:55:28 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -405,6 +405,7 @@ class Quantity (Object):
         # initialise self as a Quantity with the thus-massaged arguments
         self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.__name(nom or fullname, fullname or nom)
+        # Should __addcheck_() what['best'], what['low'] ... if given.
 
     def _primitive(self):
         """Returns a quantity in a primitive form.
@@ -796,7 +797,10 @@ tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale an
 
 _rcs_log = """
  $Log: quantity.py,v $
- Revision 1.42  2007-03-17 18:43:12  eddy
+ Revision 1.43  2007-03-18 16:55:28  eddy
+ Comment on arg check.
+
+ Revision 1.42  2007/03/17 18:43:12  eddy
  Make mass/energy conversions easy.
 
  Revision 1.41  2007/03/04 14:05:42  eddy
