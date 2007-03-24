@@ -1,11 +1,9 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
-"""
 
-_rcs_id_ = """
-$Id: polynomial.py,v 1.16 2006-06-20 23:20:30 eddy Exp $
+$Id: polynomial.py,v 1.17 2007-03-24 15:45:37 eddy Exp $
 """
 import types
-from basEddy.lazy import Lazy
+from value.lazy import Lazy
 
 class invalidCoefficient (TypeError): "Invalid coefficient for polynomial"
 class unNaturalPower (TypeError): "Power of variable in polynomial is not a natural number"
@@ -794,77 +792,3 @@ class Polynomial (Lazy):
         return tuple(ans)
 
 del types, Lazy
-
-_rcs_log_ = """
-$Log: polynomial.py,v $
-Revision 1.16  2006-06-20 23:20:30  eddy
-Support for future extensions: truediv as div.
-
-Revision 1.15  2005/09/18 15:26:28  eddy
-Even a zero should go be checked.
-
-Revision 1.14  2005/09/18 15:21:37  eddy
-Restructured repr to handle multinomials better.
-Fixed subtle bug in __frombok which broke multinomials.
-
-Revision 1.13  2005/09/18 13:20:13  eddy
-Restructure __repr__'s implementation to cope half-way decently with poly-of-poly...
-
-Revision 1.12  2005/09/18 13:01:48  eddy
-Tweaks and fixes; mostly doc and comments.
-
-Revision 1.11  2005/09/08 22:46:06  eddy
-Tweaked integral's doc, added Gamma to integrate with negative exponential.
-
-Revision 1.10  2005/08/28 12:18:19  eddy
-Fixed bug in constructor, refined doc of integral.
-
-Revision 1.9  2003/08/17 20:21:35  eddy
-A bit of tidy-up in __root and __pow__.  The latter now special-cases
-zero**+ve and raises ValueError if fractional power was reasonable but
-didn't work, e.g. the square root of a quadratic that isn't a square.
-
-Revision 1.8  2003/08/17 18:03:04  eddy
-Allow long powers and fractional powers when they work ...
-
-Revision 1.7  2003/08/17 16:20:50  eddy
-Return coefficients as ints if they are (planned but goofed, previously).
-
-Revision 1.6  2003/08/13 22:41:38  eddy
-Various fixes to make polynomials with whole coefficients not lose track of that
-wholeness (but not report ints with L on the end).  Various refinements to let
-assertions allow tiny difference to be equality, abandoning divmod's assertion
-which even this didn't rescue.  Special-case divmod when other is scalar.  Drain
-a few more dregs of minor imprecision in divmod.  Get __call__ to return `of the
-right kind for its input' even when rank is < 1.  Some minor tweaks to cope with
-division being fussy now.  Special-case detection of zero root.
-
-Revision 1.5  2003/08/10 20:29:37  eddy
-Handle exact whole coeffs as such, via long.  Tweak divmod to cope (and assert
-its post-condition).  Made division fussy; raise ValueError unless exact.
-
-Revision 1.4  2003/08/04 22:28:36  eddy
-Added support for real, imag and conjugate; attributes of a complex
-value, applied to each coefficient of the polynomial separately.
-
-Revision 1.3  2003/07/27 20:07:53  eddy
-A whole bunch of clean-up prompted by stuff noticed while writing
-proof-of-concept draft for multinomial.  Added lazy ._zero as `zero of
-same kind as my outputs'.  Added lazy ._powers, made repr lazy.  Ripped
-out unused __never_zero and spurious repeat of __nonzero__.
-
-Revision 1.2  2003/07/27 14:02:19  eddy
-Clean-up.  Many doc enhancements, notably doc'd the class.  Provide for
-repr to use another variable name than x; to express whole numbers as
-such; and to include the *s needed to be a real python lambda
-expression.  Normalising a normal poly now gets itself, not a duplicate.
-Discarded the lousy __cmp__ in favour of the sign-based one; added
-__eq__ to give strict equality; simplified __neg__.  Added assertion
-when computing assquares.  Split out seek_root's exact solution (Cardan,
-quadratic) to a hidden method.  Added lazy _bigcoef to save repeating
-the code for max(map(abs, ...__coefs.values())); plus an __istiny test.
-Made factorisation do opportunistic things so it might work more widely;
-changed its return to a tuple.
-
-Initial Revision 1.1  2003/07/26 22:38:11  eddy
-"""
