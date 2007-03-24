@@ -1,8 +1,9 @@
 """Description of thermal radiation.
 
-$Id: thermal.py,v 1.1 2007-03-24 14:13:57 eddy Exp $
+$Id: thermal.py,v 1.2 2007-03-24 15:08:24 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
+from value.object import Object
 
 import math # will del later
 
@@ -13,7 +14,7 @@ class Radiator (Object):
         apply(Object.__init__, (self,) + args, what)
         self.__temperature = temperature
 
-    def _lazy_get_total_(self, ignored):
+    def _lazy_get_total_(self, ignored, S=Thermal.Stefan):
         """Computes the power output per unit area of exposed surface.
 
         To compute total power output, allowing (if the body isn't convex) for
@@ -23,14 +24,15 @@ class Radiator (Object):
         due to thermal radiation, of the body. """
 
         # Stefan-Boltzmann law:
-        return self.__temperature**4 * Thermal.Stefan
+        return self.__temperature**4 * S
 
     def _lazy_get__hoverkT_(self, ignored, hoverk=Quantum.h / Thermal.k):
         """Constant needed by spectral: h / (k.T)."""
 
         return hoverk / self.__temperature
 
-    def spectral(self, nu=None, frequency=None, wavelength=None, exp=math.exp):
+    def spectral(self, nu=None, frequency=None, wavelength=None,
+                 exp=math.exp, h=Quantum.h, c=Vacuum.c, pi=math.pi):
         """Returns spectral radiance.
 
         Takes any one of three arguments, in the order nu, frequency,
@@ -47,14 +49,15 @@ class Radiator (Object):
 
         if nu: return self.spectral(frequency = nu * 2 * pi) / 2 / pi
         elif frequency: f = frequency
-        elif wavelength: f = Vacuum.c / wavelength
+        elif wavelength: f = c / wavelength
         else: raise ValueError, 'Either zero input or none given: unphysical.'
 
-        base = 2 * Quantum.h / (exp(self._hoverkT * f) - 1)
-        if frequency: return base * f**3 / Vacuum.c**2
-        else: return base * Vacuum.c**2 / wavelength**5
+        base = 2 * h / (exp(self._hoverkT * f) - 1)
+        if frequency: return base * f**3 / c**2
+        else: return base * c**2 / wavelength**5
 
-del math
+del math, Object, Quantum, Thermal
+from value.units import Kelvin
 
 def radiator(temperature, *args, **what):
     """Wrap Radiator with provision for -ve temperatures (in Centigrade).
