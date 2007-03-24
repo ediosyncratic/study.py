@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
 
-$Id: rock.py,v 1.3 2005-03-13 19:09:59 eddy Exp $
+$Id: rock.py,v 1.4 2007-03-24 16:20:34 eddy Exp $
 """
 
-from basEddy.units import tophat, mega, day, km, metre, kg, litre
+from value.units import tophat, mega, day, km, metre, kg, litre
 from space.body import Planetoid, Planet
 from space.common import Spheroid, Orbit, Spin
 
@@ -55,14 +55,3 @@ def SAOmoon(planet, found, nom, sma, per, name=None, P=Planetoid):
     return P(name, orbit=NASAorbit(planet, sma, per, name=name), discovery=found)
 
 del Planetoid, Planet, Spheroid, Orbit, Spin, tophat, mega, day, km, metre, kg, litre
-
-_rcs_log = """
-$Log: rock.py,v $
-Revision 1.3  2005-03-13 19:09:59  eddy
-Clean up import/export.
-
-Revision 1.2  2005/03/12 17:57:42  eddy
-typo-fix: appply
-
-Initial Revision 1.1  2005/03/12 15:33:57  eddy
-"""

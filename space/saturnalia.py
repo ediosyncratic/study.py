@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.5 2006-09-05 20:49:25 eddy Exp $
+$Id: saturnalia.py,v 1.6 2007-03-24 16:20:58 eddy Exp $
 """
 
-from basEddy.units import mega, metre, km, tophat
+from value.units import mega, metre, km, tophat
 from space.common import Discovery
 from space.body import Ring, Hoop
 from space.rock import NASAmoon, NASAshell, NASAtrojan, SAOmoon
@@ -97,20 +97,3 @@ Ring("Saturn's E Ring", Saturn, 180 * mega * metre, 480 * mega * metre)
 # "unnamed" object in orbit at 118 Mm, shepherding the B ring.
 
 del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav, _tmp, mega, metre, km, tophat
-
-_rcs_log = """
-$Log: saturnalia.py,v $
-Revision 1.5  2006-09-05 20:49:25  eddy
-Cassini had a first name; and Rhea is tidally locked.
-
-Revision 1.4  2005/09/05 20:27:11  eddy
-Details on Titan's discovery (from April).
-
-Revision 1.3  2005/03/15 21:24:05  eddy
-New source for Telesto/Calypso ordering.
-
-Revision 1.2  2005/03/12 17:46:04  eddy
-Mention the centre of each Hoop !
-
-Initial Revision 1.1  2005/03/12 15:51:02  eddy
-"""

@@ -10,10 +10,10 @@ See also:
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.8 2007-03-24 12:14:53 eddy Exp $
+$Id: asteroid.py,v 1.9 2007-03-24 16:05:41 eddy Exp $
 """
 
-from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
+from value.units import Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
 from space import Planets, D
 from space.body import Asteroid, Ring
 from space.common import Discovery, Orbit
@@ -126,33 +126,3 @@ Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
 del Planets, D, Asteroid, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock
 del Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
-
-_rcs_log = """
-$Log: asteroid.py,v $
-Revision 1.8  2007-03-24 12:14:53  eddy
-More data, notably on Ceres.
-
-Revision 1.7  2005/04/10 17:39:12  eddy
-More links.  More details about Phobos and Deimos.
-Corrected (I think) the etyms' translations.
-
-Revision 1.6  2005/03/16 21:27:44  eddy
-Orbit now has to explicitly give None as spin if unknown.
-
-Revision 1.5  2005/03/13 19:08:26  eddy
-Sample*Quantity gotcha hit maxdiam :-( but now I've fixed it :-)
-Also use Quantity for periterrion.
-
-Revision 1.4  2005/03/13 15:26:57  eddy
-Removed spurious trailing comma from each asteroid, left over from when
-they were assigned in a parameter-list to Asteroids.also().
-
-Revision 1.3  2005/03/13 15:21:30  eddy
-Moved Planets from home to __init__;
-may as well get Sun and AU via D while we're at it.
-
-Revision 1.2  2005/03/12 17:56:42  eddy
-Missed imports and a punctuation glitch.
-
-Initial Revision 1.1  2005/03/12 16:28:45  eddy
-"""

@@ -1,8 +1,8 @@
 """Implementing Huffman coding.
-"""
 
-_rcs_id = "$Id: Huffman.py,v 1.5 2006-05-18 18:35:51 eddy Exp $"
-from basEddy import Lazy
+$Id: Huffman.py,v 1.6 2007-03-24 16:01:26 eddy Exp $
+"""
+from value.lazy import Lazy
 
 class Huffman (Lazy):
     def __init__(self, P, N=1, blank=None, symbols='01', tail=None):
@@ -236,24 +236,3 @@ class Huffman (Lazy):
         return code
 
     del Leaf, Tree, weigh
-
-_rcs_log = """
- $Log: Huffman.py,v $
- Revision 1.5  2006-05-18 18:35:51  eddy
- Implement str and repr.
-
- Revision 1.4  2006/05/18 12:41:30  eddy
- Cope if text to be decoded has lost some dangling padding.
- Correct handling of: sequence-distributions; errors in encode and decode.
- Inlined __pad into encode.
-
- Revision 1.3  2006/05/18 11:13:20  eddy
- Support for more than two output symbols.  Re-purpose .__symbols name.
- Check validity of blank, if supplied, in constructor.
- Strip dangling padding on decode.
-
- Revision 1.2  2006/05/18 10:20:03  eddy
- Shuffle parts into tidier order.
-
- Initial Revision 1.1  2006/05/18 10:13:16  eddy
-"""

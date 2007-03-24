@@ -4,10 +4,10 @@
 Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and L5
 (trailing).
 
-$Id: jovian.py,v 1.3 2007-03-24 12:24:20 eddy Exp $
+$Id: jovian.py,v 1.4 2007-03-24 16:16:29 eddy Exp $
 """
 
-from basEddy.units import metre, km, mega, tophat
+from value.units import metre, km, mega, tophat
 from space.rock import NASAmoon, NASAshell, NamedOrbit, SAOmoon
 from space.common import Discovery
 from space.body import Ring
@@ -263,14 +263,3 @@ Ring("Jovian Main Ring", Jupiter, 122.8 * mega * metre, 129.2 * mega * metre, th
 Ring("Jovian Disk Ring", Jupiter, 129.2 * mega * metre, 214.2 * mega * metre)
 
 del Ring, Discovery, SAOmoon, NamedOrbit, NASAmoon, NASAshell, metre, km, mega, _tmp
-
-_rcs_log = """
-$Log: jovian.py,v $
-Revision 1.3  2007-03-24 12:24:20  eddy
-More data on Europa (in comments, for now).
-
-Revision 1.2  2005/03/12 17:34:28  eddy
-fix dumb typo
-
-Initial Revision 1.1  2005/03/12 15:44:15  eddy
-"""

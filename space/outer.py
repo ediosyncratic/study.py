@@ -4,10 +4,10 @@
 Note that each outer planet's system of moons has a total mass of roughly 1e-4
 times the planet's mass: http://www.physorg.com/news69517584.html
 
-$Id: outer.py,v 1.4 2007-03-24 12:25:32 eddy Exp $
+$Id: outer.py,v 1.5 2007-03-24 16:20:15 eddy Exp $
 """
 
-from basEddy.units import tophat, giga, mega, metre, day, hour, minute, year, kg
+from value.units import tophat, giga, mega, metre, day, hour, minute, year, kg
 from space.home import Sun, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery
 tyr = 365.242198781 * day
@@ -120,17 +120,3 @@ Neptune.orbit.radius.observe(giga * (4504.45 + .1 * tophat) * metre) # NASA
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
     tophat, giga, mega, metre, day, hour, minute, year, kg, tyr, gassy
-
-_rcs_log = """
-$Log: outer.py,v $
-Revision 1.4  2007-03-24 12:25:32  eddy
-Note.
-
-Revision 1.3  2005/03/19 17:43:29  eddy
-Equipped gas giants with lazy satellite loaders.
-
-Revision 1.2  2005/03/13 18:52:47  eddy
-Clean up import/export.
-
-Initial Revision 1.1  2005/03/12 15:21:04  eddy
-"""

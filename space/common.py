@@ -1,10 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.6 2005-09-30 22:33:11 eddy Exp $
+$Id: common.py,v 1.7 2007-03-24 16:09:04 eddy Exp $
 """
-
-from basEddy.units import tophat, arc, pi, Object, second
+from value.units import tophat, arc, pi, Object, second
 
 class Discovery (Object):
     __upinit = Object.__init__
@@ -220,24 +219,3 @@ class Continent (LandMass): pass
 class Island (LandMass): pass # also used for groups of islands
 
 del tophat, arc, pi, Object, second
-
-_rcs_log = """
-$Log: common.py,v $
-Revision 1.6  2005-09-30 22:33:11  eddy
-Surface base-juggle, removed old mistest from Orbit.
-
-Revision 1.5  2005/03/16 21:23:24  eddy
-Renamed some variables to be more apt.
-
-Revision 1.4  2005/03/13 14:32:03  eddy
-Moved source comment to __init__.py
-
-Revision 1.3  2005/03/12 17:58:56  eddy
-Needed second, and had to tunnel in order to del.
-Missed param to __spin().
-
-Revision 1.2  2005/03/12 13:38:48  eddy
-Cleaned up import/export fragments.
-
-Initial Revision 1.1  2005/03/12 13:13:26  eddy
-"""

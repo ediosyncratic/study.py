@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.18 2007-03-04 15:27:38 eddy Exp $
+$Id: home.py,v 1.19 2007-03-24 16:14:10 eddy Exp $
 """
 
-from basEddy.units import Sample, qSample, Quantity, Object, tophat, \
+from value.units import Sample, qSample, Quantity, Object, tophat, \
      micro, kilo, mega, giga, tera, peta, arc, radian, \
      year, day, hour, minute, second, kg, metre, km, mile, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
@@ -12,7 +12,7 @@ from space import body
 from space.common import Orbit, Spin, Discovery, Surface, \
      SurfacePart, Ocean, Island, Continent, LandMass
 
-from const import Cosmos
+from chemy.physics import Cosmos
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
                        # some slightly more definite data:
@@ -476,66 +476,3 @@ del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, Land
     Sample, qSample, Quantity, Object, tophat, micro, kilo, mega, giga, tera, peta, \
     kg, metre, mile, arc, radian, Kelvin, year, day, hour, minute, second, \
     litre, bar, Watt, Tesla, Ampere, Gauss
-
-_rcs_log = """
-$Log: home.py,v $
-Revision 1.18  2007-03-04 15:27:38  eddy
-Expand error bar on LocalGroup to the scale of MilkyWay.orbit.speed
-
-Revision 1.17  2007/03/04 15:21:48  eddy
-Add Local Group, to record its velocity; guess its mass and MilkyWay's
-orbit's radius within it, so MilkyWay can orbit something.
-
-Revision 1.16  2006/12/13 22:18:25  eddy
-Accumulated tweaks, mostly to documentation.  NIST calls the AU the ua.
-
-Revision 1.15  2005/09/30 22:34:33  eddy
-Moved LocalGroup out to galaxy.py, split MilkyWay into a stub preamble
-and a reprise, now with rather better data.  Tweaks to Universe.
-
-Revision 1.14  2005/05/20 07:13:57  eddy
-Deploy year.sidereal where it matters most ...
-
-Revision 1.13  2005/04/29 07:06:43  eddy
-Corrected comments on Sun.orbit
-
-Revision 1.12  2005/04/28 22:09:15  eddy
-Use units we've actually imported ...
-
-Revision 1.11  2005/04/28 21:56:21  eddy
-Note on magnetic fields.
-Data on cosmic microwave background.
-Local Group.
-
-Revision 1.10  2005/03/19 17:25:57  eddy
-Equipped Sun with a lazy satellite loader.
-
-Revision 1.9  2005/03/16 23:00:14  eddy
-Simplified Star.
-
-Revision 1.8  2005/03/13 21:34:17  eddy
-Use new Galaxy and Star classes from body.
-
-Revision 1.7  2005/03/13 19:28:45  eddy
-Clean up import/export.
-
-Revision 1.6  2005/03/13 16:33:47  eddy
-Renamed body's exports, used them as body.* to avoid clash over Object.
-Dumped SolarConstant.  Cleaned up a few bits, notably: can now del Surface;
-and moved del IA* earlier.
-
-Revision 1.5  2005/03/13 15:12:27  eddy
-Moved PlanetList and Planets out to __init__.py
-
-Revision 1.4  2005/03/12 17:31:29  eddy
-Fixing: needed LandMass, typo Planetlist, wrong assertion in getitem.
-Added repr and getslice for PlanetList.
-
-Revision 1.3  2005/03/12 16:16:50  eddy
-Added lazy planet list.
-
-Revision 1.2  2005/03/12 15:12:49  eddy
-Clean-up of import/export.
-
-Initial Revision 1.1  2005/03/12 15:05:44  eddy
-"""

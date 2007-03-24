@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """Galaxies
 
-$Id: galaxy.py,v 1.2 2005-09-30 22:31:13 eddy Exp $
+$Id: galaxy.py,v 1.3 2007-03-24 16:10:46 eddy Exp $
 """
 
-from basEddy.units import Quantity, tophat, \
+from value.units import Quantity, tophat, \
      kilo, arc, year, second, metre
 from space.home import MilkyWay
 from space.common import Orbit, Discovery
@@ -94,12 +94,3 @@ See also: http://antwrp.gsfc.nasa.gov/apod/ap030209.html
 
 del Quantity, tophat, kilo, arc, year, second, metre, \
     Orbit, Discovery, Galaxy, Group
-_rcs_log = """
- $Log: galaxy.py,v $
- Revision 1.2  2005-09-30 22:31:13  eddy
- Make it work.
-
- Revision 1.1  2005/09/30 22:13:07  eddy
- Initial revision
-
-"""

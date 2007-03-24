@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.5 2007-03-24 12:22:51 eddy Exp $
+$Id: inner.py,v 1.6 2007-03-24 16:16:00 eddy Exp $
 """
 
-from basEddy.units import Object, tophat, \
+from value.units import Object, tophat, \
      giga, mega, year, day, hour, minute, metre, kg, bar, Centigrade
 from space.home import Sun, Earth, KLplanet, KLsurface
 from space.common import Orbit, Spin, Discovery
@@ -87,20 +87,3 @@ Mars.orbit.spin.period.observe(686.95 * day)
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
     Object, tophat, giga, mega, year, day, hour, minute, metre, kg, bar
-
-_rcs_log = """
-$Log: inner.py,v $
-Revision 1.5  2007-03-24 12:22:51  eddy
-Mercury's orbital precession.
-
-Revision 1.4  2005/03/22 00:02:08  eddy
-Documented Mercury's surface temperature.
-
-Revision 1.3  2005/03/19 17:42:50  eddy
-Equipped Mars with a lazy satellite loader.
-
-Revision 1.2  2005/03/13 18:47:23  eddy
-Clean up import/export, include a missing tophat.
-
-Initial Revision 1.1  2005/03/12 15:17:22  eddy
-"""

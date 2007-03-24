@@ -11,10 +11,10 @@ See also:
   millisecond pulsar:
   http://antwrp.gsfc.nasa.gov/apod/ap020220.html
 
-$Id: star.py,v 1.4 2005-04-28 20:56:10 eddy Exp $
+$Id: star.py,v 1.5 2007-03-24 16:21:20 eddy Exp $
 """
 
-from basEddy.units import Quantity, tophat, kilo, mega, giga, micro, year, day
+from value.units import Quantity, tophat, kilo, mega, giga, micro, year, day
 from space.body import Object, Star, Group
 from space.common import Discovery, Spheroid, Spin, Orbit
 from space.home import Sun, AU
@@ -133,18 +133,3 @@ AlphaCentauri.C.orbit = Orbit(AlphaCentauri,
                               .8 + .42 * tophat)
 
 del Stjerne, Discovery, Spin, Orbit, Quantity, tophat, kilo, mega, giga, micro, year, AU
-
-_rcs_log = """
-$Log: star.py,v $
-Revision 1.4  2005-04-28 20:56:10  eddy
-Moved Group from star to body (so we can have groups of Galaxies).
-Also added link to NASA APOD about millisecond pulsar.
-
-Revision 1.3  2005/03/16 23:23:05  eddy
-Moved Gliese710 from Kuiper, tidied up by adding Stjerne to package solstation data.
-
-Revision 1.2  2005/03/14 00:01:01  eddy
-Import/export clean-up.
-
-Initial Revision 1.1  2005/03/13 23:55:49  eddy
-"""

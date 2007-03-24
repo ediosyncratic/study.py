@@ -2,12 +2,12 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.3 2004-04-18 13:52:58 eddy Exp $
+$Id: ladder.py,v 1.4 2007-03-24 16:18:24 eddy Exp $
 """
 from math import exp
-from planets import Earth
+from home import Earth
 
-from basEddy.units import kg, m, mega, Pascal, Quantity, Sample, Object
+from value.units import kg, m, mega, Pascal, Quantity, Sample, Object
 def V(S, D, MPa=mega * Pascal, rho=kg/m**3, Q=Quantity, W=Sample):
     v = (Q(W(S), MPa) / Q(W(D), rho)) ** .5
     return v.low, v.high
@@ -104,7 +104,7 @@ class Ladder (Object):
     def _lazy_get__integrator_(self, ignored, tool=[]):
         try: return tool[0]
         except IndexError: pass # 1st call; initialise tool
-        import integrate
+        import maths.integrate
         I = integrate.Integrator
         tool.append(I)
         return I
@@ -191,17 +191,5 @@ class Ladder (Object):
     # masses per unit `area at orbit'
     def _lazy_get_lift_(self, ignored): return self._load * self.density * self.R # bot
     def _lazy_get_bauble_(self, ignored): return self._counter * self.density * self.R # top
-
-del exp, Earth, Object, Quantity
 
-_rcs_log = """
- $Log: ladder.py,v $
- Revision 1.3  2004-04-18 13:52:58  eddy
- Being more frugal about namespace-clutter.
-
- Revision 1.2  2004/04/18 11:50:35  eddy
- Do integration via integrate.Integrator.  Added moment.
- Cope with length as top.  Assorted doc tweaks.
-
- Initial Revision 1.1  2002/02/11 17:25:40  eddy
-"""
+del exp, Earth, Object, Quantity

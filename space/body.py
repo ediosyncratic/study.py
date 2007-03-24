@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.16 2007-03-04 15:18:12 eddy Exp $
+$Id: body.py,v 1.17 2007-03-24 16:08:28 eddy Exp $
 """
 
 class Satellites:
@@ -92,10 +92,10 @@ course !), though ideally a more selective purge could be used.\n"""
         """Inserts what in self, taking hint that it belongs at end."""
         self.insert(len(self.__carry), what)
 
-from basEddy import value
+from value import object
 
-class Object (value.Object):
-    __space_upinit = value.Object.__init__
+class Object (object.Object):
+    __space_upinit = object.Object.__init__
     def __init__(self, name, satelload=None, **what):
         apply(self.__space_upinit, (), what)
         self.name = name
@@ -104,7 +104,7 @@ class Object (value.Object):
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
-    _lazy_preserve_ = value.Object._lazy_preserve_ + ('satellites',)
+    _lazy_preserve_ = object.Object._lazy_preserve_ + ('satellites',)
 
     def __str__(self): return self.name
     __repr__ = __str__
@@ -124,7 +124,7 @@ class Object (value.Object):
     def _lazy_get_satellites_(self, ig, S=Satellites):
         return S(self._lazy_reset_, self.__load_satellites)
 
-    from const import Cosmos
+    from chemy.physics import Cosmos
     def _lazy_get_GM_(self, ig, G=Cosmos.G):
         try: mass = self.mass
         except AttributeError: # e.g. thanks to Lazy's recursion detection ...
@@ -140,9 +140,9 @@ class Object (value.Object):
 
     del Cosmos
 
-del value, Satellites
+del object, Satellites
 
-from basEddy.units import Quantity, second, metre, turn, pi, tophat
+from value.units import Quantity, second, metre, turn, pi, tophat
 from space.common import Spin, Orbit
 
 class Body (Object):
@@ -236,7 +236,7 @@ class Body (Object):
 
         try: best = self.__GM(ignored)
         except AttributeError:
-            from basEddy.sample import Weighted
+            from value.sample import Weighted
             if row: best = Weighted(row).median()
             else: raise AttributeError(ignored, 'no data available from which to infer')
             row.remove(best)
@@ -408,56 +408,3 @@ class Planet (Planetoid):
         try: g, r, m = surface.gravity, surface.radius, self.GM
         except AttributeError: pass
         else: g.observe(m/r**2)
-
-_rcs_log = """
-$Log: body.py,v $
-Revision 1.16  2007-03-04 15:18:12  eddy
-Move the Cosmos.G lazy methods, and part of GM, to the Object class.
-
-Revision 1.15  2005/09/30 22:32:12  eddy
-Shuffling for Star, Galaxy and Group.  Orbit spin-fix.
-
-Revision 1.14  2005/04/28 20:55:27  eddy
-Moved Group from star to body (so we can have groups of Galaxies).
-
-Revision 1.13  2005/04/09 11:20:59  eddy
-Add centralpressure, spell Schwarzschild correctly.
-
-Revision 1.12  2005/03/19 17:34:09  eddy
-Call GMs, don't try to use it as a list !
-
-Revision 1.11  2005/03/19 17:24:20  eddy
-Star's __init__ was now just echoing Object's, so removed it.
-Moved Satellites (back) out from being the lazy method and arranged for
-it to be capable of loading primaries on demand.
-
-Revision 1.10  2005/03/16 22:59:45  eddy
-Simplified Star.
-
-Revision 1.9  2005/03/13 21:33:28  eddy
-Require a type parameter for Star.
-
-Revision 1.8  2005/03/13 21:30:51  eddy
-Add Galaxy and Star.
-
-Revision 1.7  2005/03/13 16:22:04  eddy
-Deal with issues caused by private namespace collision for two classes called Object !
-Also move an import line later, since we now can.
-
-Revision 1.6  2005/03/13 16:01:26  eddy
-Renamed Body to Object and discreteBody to Body.
-
-Revision 1.5  2005/03/12 17:56:00  eddy
-Tunnel Spin and Orbit so we can del them.
-
-Revision 1.4  2005/03/12 17:27:53  eddy
-Missed tophat, and still need Orbit after load.
-
-Revision 1.3  2005/03/12 17:10:19  eddy
-Of course, having lazy reset preserve satellites becomes pretty crucial now that it's lazy ...
-
-Revision 1.2  2005/03/12 16:50:06  eddy
-Threw out the bits of satellites list that I don't want ...
-
-Initial Revision 1.1  2005/03/12 14:52:15  eddy
-"""

@@ -6,10 +6,10 @@ http://www.space.com/scienceastronomy/070130_st_neptune_trojans.html
 The ones found to date are at its forward Lagrange point, L4; and the New
 Horizons probe shall pass near its trailing one, L5, en route to Pluto.
 
-$Id: neptunous.py,v 1.2 2007-03-24 12:25:12 eddy Exp $
+$Id: neptunous.py,v 1.3 2007-03-24 16:18:58 eddy Exp $
 """
 
-from basEddy.units import mega, metre, km
+from value.units import mega, metre, km
 from space.common import Discovery
 from space.body import Ring, Hoop
 from space.rock import NASAmoon, NASAshell
@@ -46,11 +46,3 @@ Adams = Ring("Adams", Neptune, 62.7 * mega * metre, 62.86 * mega * metre, id="19
              Courage=Hoop("Courage", Neptune, 62.9 * mega * metre))
 
 del NASAmoon, NASAshell, Ring, Hoop, Discovery, mega, metre, km, _tmp
-
-_rcs_log = """
-$Log: neptunous.py,v $
-Revision 1.2  2007-03-24 12:25:12  eddy
-more details (in comment and string).
-
-Initial Revision 1.1  2005/03/12 15:59:26  eddy
-"""

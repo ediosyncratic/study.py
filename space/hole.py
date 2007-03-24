@@ -1,11 +1,12 @@
 """Description of black holes.
 
-$Id: hole.py,v 1.3 2007-03-12 22:40:41 eddy Exp $
+$Id: hole.py,v 1.4 2007-03-24 16:13:20 eddy Exp $
 """
 
-from const import Vacuum, Quantum, Cosmos, Thermal, pi, Object, Quantity
+from chemy.physics import Vacuum, Quantum, Cosmos, Thermal
+from value.quantity import pi, Object, Quantity
 
-class BlackHole (Object):
+class BlackHole (Object): # should be based on chemy.thermal.Radiator
     # Pass at least one of mass, radius, (surface) gravity, temperature to constructor.
     """A simple Schwarzschild black hole.
 
@@ -146,15 +147,3 @@ tonnes of extra mass, about one part in a thousand.  Thus any black hole bigger
 or colder than the threshold just described will last essentially for ever; and
 even an asteroid a couple of kilometres across has more mass than that.
 """)
-
-_rcs_log = """
-$Log: hole.py,v $
-Revision 1.3  2007-03-12 22:40:41  eddy
-Assorted documentation embellishments.
-
-Revision 1.2  2005/04/09 10:20:09  eddy
-Widened the N<6 region up to the electron mass.
-
-Revision 1.1  2005/04/09 10:05:15  eddy
-Initial revision
-"""

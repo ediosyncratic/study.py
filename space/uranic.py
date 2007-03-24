@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Uranus.
 
-$Id: uranic.py,v 1.1 2005-03-12 15:55:34 eddy Exp $
+$Id: uranic.py,v 1.2 2007-03-24 16:21:40 eddy Exp $
 """
 
-from basEddy.units import mega, metre, km, tophat
+from value.units import mega, metre, km, tophat
 from space.common import Discovery
 from space.body import Ring
 from space.rock import NASAmoon, NASAshell, SAOmoon
@@ -60,10 +60,3 @@ Ring("Uranus' 1986 U1R", Uranus, 50.02 * mega * metre, 50.022 * mega * metre, wi
 Ring("Uranus' epsilon Ring", Uranus, 51 * mega * metre, 51.1 * mega * metre, width=20 * (3 + 4 * tophat) * km)
 
 del Discovery, Ring, NASAmoon, NASAshell, SAOmoon, mega, metre, km, tophat, _tmp
-
-_rcs_log = """
-$Log: uranic.py,v $
-Revision 1.1  2005-03-12 15:55:34  eddy
-Initial revision
-
-"""
