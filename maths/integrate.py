@@ -1,8 +1,7 @@
 """Integration made easy.
 
-$Id: integrate.py,v 1.3 2004-04-25 10:30:48 eddy Exp $
+$Id: integrate.py,v 1.4 2007-03-24 15:19:18 eddy Exp $
 """
-
 class Integrator:
     """Base class for integrators.
 
@@ -108,7 +107,7 @@ class Integrator:
 
     # hairy implementation follows: no further exports.
 
-    from basEddy.quantity import tophat
+    from value.quantity import tophat
     def __blur(mid, spread, H=tophat): return mid + H * spread
     del tophat
     # __blur and __gettest will be del'd shortly ... they're *not* methods
@@ -202,16 +201,3 @@ class Integrator:
 	"""Scale of integrand's values for inputs base + of order scale. """
 	return max(map(lambda x, f=self.integrand, s=scale, b=base: abs(f(b + x*s)), samples))
     del math
-
-_rcs_log = """
- $Log: integrate.py,v $
- Revision 1.3  2004-04-25 10:30:48  eddy
- even when width is zero, a Quantity is not equal to its own .best
-
- Revision 1.2  2002/11/02 19:07:22  eddy
- Added new method, measure.
-
- Revision 1.1  2002/10/06 14:01:04  eddy
- Initial revision
-
-"""

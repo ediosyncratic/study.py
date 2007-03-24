@@ -1,12 +1,10 @@
 """Multinomials - polynomials in several free variables.
 
 c.f. polynomial, using only one free variable.
-"""
 
-_rcs_id_ = """
-$Id: multinomial.py,v 1.2 2003-07-27 19:58:10 eddy Exp $
+$Id: multinomial.py,v 1.3 2007-03-24 15:23:09 eddy Exp $
 """
-from basEddy.lazy import Lazy
+from value.lazy import Lazy
 from polynomial import unNaturalPower
 
 class Multinomial (Lazy):
@@ -251,11 +249,3 @@ class Multinomial (Lazy):
         return tuple(row)
 
     del keyorder
-
-_rcs_log_ = """
-$Log: multinomial.py,v $
-Revision 1.2  2003-07-27 19:58:10  eddy
-Minor glitch in call.
-
-Initial Revision 1.1  2003/07/27 19:52:55  eddy
-"""
