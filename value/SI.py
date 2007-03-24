@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.12 2006-08-06 22:42:22 eddy Exp $
+$Id: SI.py,v 1.13 2007-03-24 14:08:31 eddy Exp $
 """
 from quantity import *
 
@@ -49,13 +49,12 @@ The fraction 1/273.16 (exactly) of the thermodynamic temperature at the triple
 point of water. """)
 
 mol = base_unit('mol', 'Mole',
-               """The SI base unit of `amount of substance'.
+                """The SI base unit of `amount of substance'.
 
 The amount of substance which contains as many elementary units as there are
 atoms in 12e-3 kilogrammes (exactly) of pure carbon-12.  The elementary unit
 must be specified and may be atom, molecule, ion, radical, electron, photon
 <I>etc</I>. or collection of elementary units. """)
-# see also const.py, which adds some attributes, like Avogadro's constant.
 
 cd = candela = base_unit('cd', 'Candela',
                         """The SI base unit of luminous intensity.
@@ -84,14 +83,14 @@ The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.""")
 
 # Composite SI units
-stere = pow(metre, 3)   # c.f. litre
-are = (10 * metre) ** 2     # c.f. hectare in units.py
+stere = metre**3                # c.f. litre
+are = (10 * metre) ** 2         # c.f. hectare in units.py
 lm = lumen = candela * steradian # Luminous flux
 lx = lux = lumen / m**2         # Luminance, Illumination
 Hz = Hertz = 1 / second         # Frequency
 C = Coulomb = Ampere * second   # Charge
 
-N = Newton = kilogramme * metre / second / second       # Force
+N = Newton = kilogramme * metre / second ** 2 # Force
 J = Joule = Newton * metre      # Energy
 W = Watt = Joule / second       # Power
 Pa = Pascal = Newton / m**2     # Pressure
@@ -105,9 +104,41 @@ F = Farad = second / Ohm        # Capacitance
 H = Henry = Weber / Ampere      # Inductance
 T = Tesla = Weber / m**2        # Magnetic flux density
 
+# More properties of the mole:
+mol.also(
+    Avogadro = Quantity(sample(602.2045, .003), zetta / mol, "Avogadro's number"),
+    charge = Quantity(sample(96.48456, .00027),
+                      kilo * Coulomb / mol,
+                      doc="""Faraday's Constant
+
+This is the charge per mole of protons; it is the charge transferred when
+electrolysis liberates some univalent electrolyte, per mole liberated.\n"""),
+    volume = Quantity(sample(22.4136, .003), milli * stere / mol, # .54781 firkin / mol
+                      """Molar volume of an ideal gas at STP.
+
+At standard temperature (zero Centigrade, 273.15 Kelvin) and pressure (one
+atomosphere), one mole of any ideal gas will have a volume of 22.4136 litres.
+Compare particle.Nucleon.amuk and mol.Loschmidt.\n"""))
+
+# (mol.volume / mol.Avogadro)**(1./3) = 3.33879 * nano * metre
+mol.also(
+    Loschmidt = Quantity(1, mol.Avogadro / mol.volume,
+                         """Loschmidt's number (gently rescaled).
+
+Loschmidt's name is normally associated with the number of molecules (or atoms,
+as appropriate) in one cubic centimetre of ideal gas under standard conditions;
+however, since that makes it really a number per unit volume, I've gently
+abridged the standard definition to give the number density of molecules (or
+atoms); multiply this by cm**3 to get the orthodox number. """),
+    Faraday = mol.charge)
+# See also ../chemy/physics.py, which adds the gas constant, R.
+
 """
  $Log: SI.py,v $
- Revision 1.12  2006-08-06 22:42:22  eddy
+ Revision 1.13  2007-03-24 14:08:31  eddy
+ Move most of old const.py's mol.also()s here.
+
+ Revision 1.12  2006/08/06 22:42:22  eddy
  Use m**2 in places where I was using are before I corrected its definition !
 
  Revision 1.11  2005/10/31 02:39:10  eddy
