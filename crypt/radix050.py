@@ -17,14 +17,14 @@ Bill has found that this is the wrong way to approach the decoding, though: it
 is actually done by cutting the int, seen as a sequence of bits, into chunks,
 then decoding each chunk separately.
 
-$Id: radix050.py,v 1.1 2007-03-08 23:56:35 eddy Exp $
+$Id: radix050.py,v 1.2 2007-03-24 22:02:59 eddy Exp $
 """ # ' deconfuse font-lock
 
 _charset = " abcdefghijklmnopqrstuvwxyz$.?0123456789"
 _rootmaxint = 1
 _bigint = 1
 try:
-	while 1:
+	while type(_bigint) is type(1):
 		_rootmaxint = _rootmaxint * 2
 		_bigint = _bigint * 4
 
