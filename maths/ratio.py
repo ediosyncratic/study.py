@@ -3,6 +3,8 @@
 See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
+
+$Id: ratio.py,v 1.5 2007-03-24 15:51:54 eddy Exp $
 """
 
 def _asint(val):
