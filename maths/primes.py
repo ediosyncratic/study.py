@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.2 2007-03-08 23:55:06 eddy Exp $
+$Id: primes.py,v 1.3 2007-03-24 17:24:38 eddy Exp $
 """
 
 checking = None
@@ -82,8 +82,7 @@ else:
 	    # so insert val after bot, before top - ie, at position top
 	    row.insert(top, val)
 
-from basEddy.item.sequence import varySeq
-class lazyTuple(varySeq):
+class lazyTuple:
     """Evaluation on demand of a (possibly infinite) tuple.
 
     Some of what's in this class should be split out into _Prime, below.
@@ -93,17 +92,33 @@ class lazyTuple(varySeq):
 
 	Optional argument, row, should be a sorted list.
 	"""
-	varySeq.__init__(self, row)
+        if row is None: row = []
+	self._item_carrier = row
 
 	try: top = row[-1]
 	except self._entry_error_: top = 0
 	self._ask = add_one(top)
 
+    def __repr__(self):
+	text = `tuple(self._item_carrier)`
+        if len(text) < 3: return text[:-1] + '...' + text[-1:]
+        return text[:-1] + ', ...' + text[-1:]
+
+    def __len__(self):
+	return len(self._item_carrier)
+
     def __getitem__(self, key):
-	try: return varySeq.__getitem__(self, key)
-	except self._entry_error_: pass
-	while self.grow() and key > len(self._item_carrier): pass
-	return varySeq.__getitem__(self, key)	# raising IndexError if grow failed
+        while key > len(self._item_carrier) and self.grow(): pass
+	return self._item_carrier[key]	# raising IndexError if grow failed
+
+    # A list is function from naturals to its entries:
+    __call__ = __getitem__
+
+    def __getslice__(self, i, j):
+	"""self[i:j]"""
+	# len has already been added if relevant.  Don't do that again.
+	if i < 0 or j < 0: raise IndexError
+	return self._item_carrier[i:j]
 
     def has_value(self, val):
 	"""Is val in self ?
@@ -111,7 +126,23 @@ class lazyTuple(varySeq):
 	Override this in base-classes.
 	"""
 	while val >= self._ask and self.grow(): pass
-	return varySeq.has_value(self, val)
+	return val in self._item_carrier
+
+    def count(self, item):
+        if self.has_value(item): return 1
+        return 0
+
+    def index(self, item):
+        if self.has_value(item):
+            return self._item_carrier.index(item)
+
+	return -1
+
+    def min(self):
+	return self._item_carrier[0]
+
+    def max(self):
+	return self._item_carrier[-1]
 
     def grow(self):
 	"""Extend self._item_carrier, return true on success.
@@ -402,7 +433,7 @@ def _tabulate_block(file, block):
 
 	file.write(' ' + `item` + ',')
 
-from basEddy import Lazy
+from value.lazy import Lazy
 class cachePrimes(_Prime, Lazy):
     def __init__(self, row=None, sparse=None,
 		 moduledir='/home/eddy/sys/py',
@@ -755,13 +786,3 @@ def factors(num):
 	    except OverflowError: q = long(q) * key
 
     return result
-
-_rcs_log = """
-$Log: primes.py,v $
-Revision 1.2  2007-03-08 23:55:06  eddy
-Various changes (2006-06-20).
-
-Revision 1.1  2005/01/17 22:36:59  eddy
-Initial revision
-
-"""
