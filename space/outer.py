@@ -1,7 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The Outer Planets of our Solar system
 
-$Id: outer.py,v 1.3 2005-03-19 17:43:29 eddy Exp $
+Note that each outer planet's system of moons has a total mass of roughly 1e-4
+times the planet's mass: http://www.physorg.com/news69517584.html
+
+$Id: outer.py,v 1.4 2007-03-24 12:25:32 eddy Exp $
 """
 
 from basEddy.units import tophat, giga, mega, metre, day, hour, minute, year, kg
@@ -120,7 +123,10 @@ del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
 
 _rcs_log = """
 $Log: outer.py,v $
-Revision 1.3  2005-03-19 17:43:29  eddy
+Revision 1.4  2007-03-24 12:25:32  eddy
+Note.
+
+Revision 1.3  2005/03/19 17:43:29  eddy
 Equipped gas giants with lazy satellite loaders.
 
 Revision 1.2  2005/03/13 18:52:47  eddy
