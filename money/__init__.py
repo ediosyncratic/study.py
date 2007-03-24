@@ -4,7 +4,7 @@ Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
 
-$Id: __init__.py,v 1.1 2007-03-24 16:38:18 eddy Exp $
+$Id: __init__.py,v 1.2 2007-03-24 16:44:30 eddy Exp $
 """
 from value.units import base_unit, tophat
 
@@ -29,4 +29,7 @@ how units of volume got re-defined by assorted legislative acts over the years.
 # them that's approximate.
 krone = quid / (12 + 2 * tophat)
 
-del base_unit
+del base_unit, tophat
+
+from debt import Debt, Mortgage
+from job import Job
