@@ -2,10 +2,10 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.8 2005-08-18 03:43:37 eddy Exp $
+$Id: zoom.py,v 1.9 2007-03-24 16:23:06 eddy Exp $
 """
 
-from basEddy.units import Object, year, pound
+from value.units import Object, year, kg
 import math
 
 # the following is generally wrong !
@@ -31,7 +31,7 @@ class Zoom (Object):
 
     __obinit = Object.__init__
     __c = year.light / year
-    def __init__(self, a=pound.force / pound, *args, **what):
+    def __init__(self, a=kg.force / kg, *args, **what):
 	"""Initialises a Zoom object.
 
 	Takes one optional argument, the body's acceleration; default is
@@ -74,35 +74,5 @@ class Zoom (Object):
             b2 = b2 - err / (b2.cosh +1)
 
         return .5 * b2
-
-del Object, year, pound
 
-_rcs_id = """
- $Log: zoom.py,v $
- Revision 1.8  2005-08-18 03:43:37  eddy
- Use abs() rather than .evaluate(abs); it should have been .copy(abs),
- which is what __abs__ now does ...
-
- Revision 1.7  2005/05/01 14:06:32  eddy
- Split constant acceleration part of web page off as separate page.
-
- Revision 1.6  2005/05/01 04:25:29  eddy
- Replaced methods with correct version, now that I've noticed the mistake I made !
-
- Revision 1.5  2005/04/25 07:38:26  eddy
- Removed theory section to web page.
-
- Revision 1.4  2003/07/06 17:48:53  eddy
- typo fix + minor presentation tweak
-
- Revision 1.3  2003/02/08 12:01:00  eddy
- Added some sub-section headings to the theory doc
-
- Revision 1.2  2002/02/18 17:57:55  eddy
- Tidy-up.  Removed gamma and asymptote remarks; but made .times() support
- asymptotes.  Added v as function of s and discussion of implied unit of
- time; changed saturation to deliver v as function of s.  Import stuff
- from units, rather than const, and del it once finished with it.
-
- Initial Revision 1.1  2002/02/18 17:02:23  eddy
-"""
+del Object, year, kg
