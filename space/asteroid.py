@@ -5,14 +5,17 @@ See also:
   http://www.johnstonsarchive.net/astro/asteroidmoons.html
   http://www.nasm.si.edu/research/ceps/etp/asteroids/
   http://cfa-www.harvard.edu/iau/lists/InnerPlot.html
+  http://seds.lpl.arizona.edu/nineplanets/nineplanets/asteroids.html
+  http://aa.usno.navy.mil/ephemerides/asteroid/astr_alm/asteroid_ephemerides.html
+  http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.7 2005-04-10 17:39:12 eddy Exp $
+$Id: asteroid.py,v 1.8 2007-03-24 12:14:53 eddy Exp $
 """
 
-from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat
+from basEddy.units import Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
 from space import Planets, D
-from space.body import Asteroid, Ring, Planetoid
+from space.body import Asteroid, Ring
 from space.common import Discovery, Orbit
 from space.rock import NASAmoon, NASAshell
 
@@ -66,10 +69,12 @@ See p. 210, table 32.\n"""
                 periterrion=Q(miss * blur, Mmile), # closest approach to Terra
                 discovery=when)
 
-#' When I know Ceres' mass, I can make it an Asteroid() ...
-Ceres = Planetoid('Ceres',
-                  orbit=Orbit(D.Sun, Quantity(2.77 + .01 * tophat, D.AU), None),
-                  discovery=Discovery("Piazzi", 1801,
+Ceres = Asteroid('Ceres',
+                 Orbit(D.Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
+                 Quantity(.87 + .01 * tophat, zetta * kg),
+                 surface = Spheroid(Quantity(466 + tophat, km)),
+                 number = 1,
+                 discovery=Discovery("Piazzi", 1801,
                                       day="January 1st 1801",
                                       __doc__="""The discovery of Ceres.
 
@@ -82,6 +87,29 @@ smaller than they expected and a few more showed up soon enough.\n"""),
 
 See Ceres.discovery and Sun.Bode for further details.  Piazzi actually named
 this asteroid Ceres Ferdinandea, but it's now called Ceres.\n""")
+
+more_data = """
+A few asteroids and comets are listed below for comparison. (distance is the mean distance to the Sun in thousands of kilometers; masses in kilograms). 
+No.  Name     Distance/Mm Radius/Mm Mass/kg  Discoverer   Date
+---- ---------  --------  ------  -------  ----------  -----
+   2 Pallas       414500     261  3.18e20   Olbers      1802
+   3 Juno         399400     123     ?      Harding     1804
+   4 Vesta        353400     265  3.0e20    Olbers      1807
+  10 Hygiea       470300     215  9.3e19    De Gasparis 1849
+  15 Eunomia      395500     136  8.3e18    De Gasparis 1851
+  52 Europa       463300     156     ?      Goldschmidt 1858
+ 243 Ida          428000      35     ?      ?           1880?
+ 433 Eros         172800      33x13x13      Witt        1989
+ 511 Davida       475400     168     ?      Dugan       1903
+ 911 Agamemnon    778100      88     ?      Reinmuth    1919
+ 951 Gaspra       330000       8     ?      Neujmin     1916
+1566 Icarus       161269       0.7   ?      Baade       1949
+1862 Apollo       220061       0.7   ?      Reinmuth    1932
+2060 Chiron      2051900      85     ?      Kowal       1977
+2062 Aten         144514       0.5   ?      Helin       1976
+2212 Hephaistos   323884       4.4   ?      Chernykh    1978
+3554 Amun         145710       ?     ?      Shoemaker   1986
+"""
 
 Albert = IArock('Albert', 1911, 4 + Sample.tophat, 3, 300, 20)
 Eros = IArock('Eros', Discovery("C.G. Witt", 1898, location="Berlin",
@@ -96,12 +124,15 @@ Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
-del Planets, D, Asteroid, Ring, Planetoid, Discovery, Orbit, NASAmoon, NASAshell, IArock
-del Sample, ton, tera, mega, mile, Quantity, year, tophat
+del Planets, D, Asteroid, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock
+del Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
 
 _rcs_log = """
 $Log: asteroid.py,v $
-Revision 1.7  2005-04-10 17:39:12  eddy
+Revision 1.8  2007-03-24 12:14:53  eddy
+More data, notably on Ceres.
+
+Revision 1.7  2005/04/10 17:39:12  eddy
 More links.  More details about Phobos and Deimos.
 Corrected (I think) the etyms' translations.
 
