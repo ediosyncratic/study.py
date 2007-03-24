@@ -44,10 +44,10 @@ starting on the first day of the next year, Piazzi made the first of a series of
 observations of what he soon realised was such a missing planet, which he named
 Ceres Ferdinandea.
 
-$Id: Bode.py,v 1.6 2007-03-24 12:18:04 eddy Exp $
+$Id: Bode.py,v 1.7 2007-03-24 16:06:33 eddy Exp $
 """
 
-from basEddy.lazy import Lazy
+from value.lazy import Lazy
 
 class Bodalizer (Lazy):
     """The auto-Bodalizer.
@@ -94,7 +94,7 @@ Public methods:
 
     # Auto-detection of zero, unit and base:
 
-    from basEddy.quantity import Quantity, tophat, tera
+    from value.quantity import Quantity, tophat, tera
     # NB: Any scalar Quantity has attributes exp and log (among others) we can exploit ;^)
 
     def median(seq, span=1, Q=Quantity, unit=tophat): # tool func
@@ -139,7 +139,7 @@ Public methods:
 
         return map(lambda x: x.orbit.radius, seq)
 
-    from basEddy.SI import metre
+    from value.SI import metre
     Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
     del tophat, tera, metre
 
@@ -216,7 +216,7 @@ Public methods:
 
         return float(span) + 1j * float(oz)
 
-    from search import Search
+    from maths.search import Search
 
     def _lazy_get_zero_(self, ignored, S=Search, e=math.exp, AU=Unit, Q=Quantity):
         # Mercury's orbit as zero:
@@ -237,25 +237,3 @@ Public methods:
     del Quantity, Search, Unit, math
 
 del Lazy
-
-_rcs_log = """
-$Log: Bode.py,v $
-Revision 1.6  2007-03-24 12:18:04  eddy
-More tinkering (some time ago, IIRC).
-
-Revision 1.5  2005/04/17 14:42:57  eddy
-More experimentation.  Reorganized docs.
-Check-in to have a fall-back: I'm about to try trimming arithmetic tail-piece.
-
-Revision 1.4  2005/03/15 21:59:27  eddy
-Revised Bode's constructor to take the one arg it's going to get ...
-
-Revision 1.3  2005/03/13 18:45:49  eddy
-body has renamed its exports; also, include Object as fall-back bodytype.
-
-Revision 1.2  2005/03/12 14:14:42  eddy
-Clean-up of import/export and use a nominal AU rather than the real one.
-
-Initial Revision 1.1  2005/03/12 14:00:04  eddy
-Taken from ../planets.py
-"""
