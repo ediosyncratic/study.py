@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.4 2005-03-22 00:02:08 eddy Exp $
+$Id: inner.py,v 1.5 2007-03-24 12:22:51 eddy Exp $
 """
 
 from basEddy.units import Object, tophat, \
@@ -37,6 +37,7 @@ Mercury.surface.spin.period.observe(58.6462 * day)
 Mercury.surface.radius.observe(2.57 * mega * metre)
 Mercury.surface.radius.observe(mega * (2.4397 + .0001 * tophat) * metre) # NASA
 Mercury.orbit.spin.period.observe(86.96 * day)
+Mercury.orbit.precession = Quantity(.420 + .001 * tophat, arc.second / year)
 
 Venus = KLplanet('Venus',
                  # tilt of 177, i.e. nearly 180, means retrograde rotation ...
@@ -89,7 +90,10 @@ del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
 
 _rcs_log = """
 $Log: inner.py,v $
-Revision 1.4  2005-03-22 00:02:08  eddy
+Revision 1.5  2007-03-24 12:22:51  eddy
+Mercury's orbital precession.
+
+Revision 1.4  2005/03/22 00:02:08  eddy
 Documented Mercury's surface temperature.
 
 Revision 1.3  2005/03/19 17:42:50  eddy
