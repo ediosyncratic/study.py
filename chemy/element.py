@@ -12,9 +12,11 @@ chemistry.mercury will need tweaked; it references atom.
 """
 
 _rcs_id_ = """
-$Id: element.py,v 1.3 2007-03-18 17:15:00 eddy Exp $
+$Id: element.py,v 1.4 2007-03-24 14:39:58 eddy Exp $
 """
-from particle import *
+from value.units import kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
+     gram, kg, tonne, second, minute, day, year, metre, mol, torr
+from particle import eV, Particle, Boson, Fermion, proton, neutron, electron, AMU
 
 class Nucleus (Particle): _namespace = 'Nucleus.item'
 class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
@@ -435,7 +437,7 @@ Mercury = NASelement(
                  boil = Quantity(59.11 + tophat * .01, kilo * Joule / mol),
                  capacity = Quantity(27.953 + tophat * .001, Joule / mol / Kelvin,
                                      at = Centigrade(25))),
-    density = Quantity(13595.1 + tophat * .1, kilogramme / metre**3,
+    density = Quantity(13595.1 + tophat * .1, kg / metre**3,
                        """Density of merucry.
 
 This is equivalently Atmosphere / .76 / metre / Earth.surface.g, since a 76 cm
@@ -496,7 +498,7 @@ deuteron = Deuterium.atom.nucleus
 alpha = Helium[4].atom.nucleus
 
 # Decays:
-from basEddy.units import *
+from value.units import *
 from decay import ratedDecay
 ln2 = Quantity(2).log
 Tritium.decays = ratedDecay(Tritium, 12.35 * year,
@@ -604,19 +606,6 @@ decay(Isotope(8, 14), 70.6 * second,
       (.99, 1.81e6, photon(2.313e6), positron, Nucleon(7, 7)))
 decay(Isotope(8, 15), 122.1 * second, (1, 1.73e6, positron, Nucleon(7, 8)))
 
-_rcs_log_ = """
-$Log: element.py,v $
-Revision 1.3  2007-03-18 17:15:00  eddy
-Moved some classes and data about Mercury in from chemistry.
-Moved the decay info in from basEddy.elements (and killed it).
-Renamed the Element.by* variables to camel-case.
-Mediate Isotope's nucleus and constituents via its lazy atom.
-Provide Element with a blurred lazy atom.
-Allow Element without A, for Ku.
-Fixed dumb error in abundance.
-
-Revision 1.2  2007/03/08 23:35:42  eddy
-Cross-reference partial duplicate.
-
-Initial Revision 1.1  2004/02/17 00:12:43  eddy
-"""
+del kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
+    gram, kg, tonne, second, minute, day, year, metre, mol, torr \
+    eV, Particle, Boson, Fermion, proton, neutron, electron, AMU
