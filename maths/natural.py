@@ -173,3 +173,47 @@ def squareroot(value):
 	# its top bit is 1<<(tib + bit)
 
     raise NotImplementedError
+
+def sqrt(val): # how does this compare with squareroot ?
+    """Returns the highest natural whose square does not exceed val"""
+    if val < 0: # Every natural's square exceeds val.
+        raise ValueError('Negative value has no square root', val)
+
+    v, bit = val, 0
+    while v:
+        v >>= 2
+        bit += 1
+
+    bb = 1L << (2 * bit)
+    while bit:
+        bb >>= 2
+        up = (v << bit) + bb
+        bit -= 1
+        if up <= val:
+            v |= 1L << bit
+            val -= up
+
+    return v
+
+# and now for something python-2.2-specific:
+class Naturals (list):
+    class Suc ({}.__class__):
+        def __init__(self, bok=None):
+            if bok is None: self.clear()
+            else:
+                self.clear()
+                self.update(bok)
+                self[bok] = self
+
+        def suc(self): return self.__class__(self)
+
+    Suc.__hash__ = Suc.__len__
+    def __init__(self, zero=Suc()): self[:] = [zero]
+    del Suc
+    __upget = list.__getitem__
+    def __getitem__(self, ind):
+        while ind >= len(self): self.append(self[-1].suc())
+        return self.__upget(ind)
+
+naturals = Naturals()
+del Naturals
