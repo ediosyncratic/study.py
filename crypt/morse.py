@@ -8,7 +8,7 @@ letter: dot is encoded as '.', dash as '-'.
 Provides two functions, encode and decode, which perform the implied
 conversions. """
 
-_rcs_id = "$Id: morse.py,v 1.1 2005-10-08 16:01:01 eddy Exp $"
+_rcs_id = "$Id: morse.py,v 1.2 2007-03-24 12:10:46 eddy Exp $"
 
 encoding = {
     'A': '.-',
@@ -50,10 +50,28 @@ def decode(message):
     ans = ''.join(map(lambda x, g=decoding.get: g(x, ' '), message.split(' ')))
     return ' '.join(ans.split()) # tidy up spacing
 
+def decipher(message):
+    # like decode, but when there are no spaces.
+    row = [ ( '', message ) ]
+    while filter(lambda x: x[1], row):
+        old = row
+        row = []
+        for it in old:
+            txt, code = it
+            if code:
+                for (t, c) in encoding.items():
+                    if code[:len(c)] == c:
+                        row.append((txt + t, code[len(c):]))
+                # NB we discard it if no initial segment of code matches an encoding.
+            else: row.append(it)
+
+    return map(lambda it: it[0], row)
 
 _rcs_log = """
  $Log: morse.py,v $
- Revision 1.1  2005-10-08 16:01:01  eddy
- Initial revision
+ Revision 1.2  2007-03-24 12:10:46  eddy
+ New function to make (ambiguous) sense of a morse-coded message without pauses between letters.
 
+ Initial Revision 1.1  2005/10/08 16:01:01  eddy
+ Dates back to at least 2002-09, probably older.
 """
