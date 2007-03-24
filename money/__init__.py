@@ -4,9 +4,9 @@ Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
 
-$Id: __init__.py,v 1.2 2007-03-24 16:44:30 eddy Exp $
+$Id: __init__.py,v 1.3 2007-03-24 16:48:54 eddy Exp $
 """
-from value.units import base_unit, tophat
+from value.quantity import base_unit, tophat
 
 quid = base_unit('£', 'Pound Sterling',
 		 """The base unit of British currency.

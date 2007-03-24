@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.43 2007-03-18 16:55:28 eddy Exp $
+$Id: quantity.py,v 1.44 2007-03-24 16:49:19 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -156,7 +156,7 @@ def _massage_text(text, times,
 
 del _exponent_to_quantifier
 
-from basEddy.sample import Sample
+from sample import Sample
 
 class qSample (Sample):
     # Massage Sample's answers, which use any integer for the exponent
@@ -329,7 +329,7 @@ def scaledict(dict, scale):
 
     return result
 
-from basEddy.value import Object
+from value.object import Object
 _terse_dict = {}
 
 class Quantity (Object):
@@ -794,161 +794,3 @@ def base_unit(nom, fullname, doc, **what):
     return result
 
 tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale and add offset to taste
-
-_rcs_log = """
- $Log: quantity.py,v $
- Revision 1.43  2007-03-18 16:55:28  eddy
- Comment on arg check.
-
- Revision 1.42  2007/03/17 18:43:12  eddy
- Make mass/energy conversions easy.
-
- Revision 1.41  2007/03/04 14:05:42  eddy
- Note on abbreviation of quantifiers.
-
- Revision 1.40  2006/12/13 22:18:43  eddy
- Links to quantifier specs.
-
- Revision 1.39  2006/06/20 23:10:47  eddy
- Support for future extensions: truediv as div.
-
- Revision 1.38  2005/08/18 03:48:30  eddy
- Add sinc and Shannon information content.
- Make __neg__ and __abs__ use .copy(); and fully hidden attributes as cache.
-
- Revision 1.37  2005/05/01 11:26:48  eddy
- Make speed.Lorentz be plain scalar, add matching Doppler shift factors.
-
- Revision 1.36  2005/04/25 07:35:35  eddy
- Wove angle and speed together via .Lorentz describing hyperbolic rotations.
-
- Revision 1.35  2005/04/24 15:34:11  eddy
- lowercased hyperbolic pseudo-trig, added Hypotenuse and arcTan2.
-
- Revision 1.34  2005/03/22 00:06:11  eddy
- Mediate exp via chose, like various others.  Munge the inversion in some
- others into the lambda; not sure it's sensible, though.
-
- Revision 1.33  2005/01/21 00:03:05  eddy
- Added Quantity.span
-
- Revision 1.32  2005/01/17 22:46:48  eddy
- Expanded the byte-quantifiers list and the sarcasm about the gram.
-
- Revision 1.31  2005/01/16 16:39:22  eddy
- Added support for Fahrenheit and Centigrade as attributes of temperatures.
-
- Revision 1.30  2004/04/04 14:36:42  eddy
- Use math functions in preference to cmath, where possible; cmath ones
- tend to throw in random small imaginary parts to real values.  Where no
- math version is present, discard tiny imaginary parts even if non-zero.
-
- Revision 1.29  2004/04/03 18:00:34  eddy
- Hook _lazy_late_ to deliver kind-specific attributes.
-
- Revision 1.28  2004/02/15 16:14:56  eddy
- Don't combine low/high for qSample; each might over-write initialized value of the other.
-
- Revision 1.27  2004/02/15 15:47:34  eddy
- Provide for preserving attributes on scale when unit is simple.
- [e.g. a sample with low and high set lost them when multiplied by 1]
-
- Revision 1.26  2004/02/15 15:39:10  eddy
- sample.tophat moved to sample.Sample.tophat
-
- Revision 1.25  2003/09/24 21:29:05  eddy
- Made __unpack_ into a function, not a method;
- tunnel into methods needing it, del once used.
-
- Revision 1.24  2003/07/05 13:27:51  eddy
- Made qSample's text massager a function, outside the class; added _cleandoc to
- canonicalise Quantity's doc strings; made string module del-able and del-ed it.
-
- Revision 1.23  2003/04/21 20:33:47  eddy
- Made qSample support the sensible .low and .high attributes Sample no
- longer provides (it provides extremal weight-points: of debatable value).
-
- Revision 1.22  2003/04/21 20:14:10  eddy
- Sample now makes qSample's constructor redundant (and it was garbled).
- Refined processing of sample.
-
- Revision 1.21  2003/04/20 14:21:55  eddy
- Added Ki, Mi, Gi; the official 1024-based k, M, G.
-
- Revision 1.20  2002/10/07 17:56:19  eddy
- Added support for % to Quantity; shuffled __r forms of +,-,% apart from
- forward forms for ease of reading.
-
- Revision 1.19  2002/10/06 18:07:44  eddy
- Renamed Quantity.name() - bad choice of method name !
- Adjusted .document() to append to existing doc.
-
- Revision 1.18  2002/10/06 15:36:42  eddy
- Added tophat, a zero-centered unit-width error bar.
-
- Revision 1.17  2002/02/15 16:05:45  eddy
- Added Quantity.evaluate, made .copy support optional function on scale.
- Various minor tweaks.
-
- Revision 1.16  2002/02/11 01:38:52  eddy
- Made TypeError with several args be a call.
-
- Revision 1.15  2002/02/02 18:36:27  eddy
- fixed bug in variance (missing `self.')
- included non-prial quantifiers among the rest.
- lazified reverse-lookup of __units, eased lookemup default
- untabified
-
- Revision 1.14  2001/12/12 17:10:01  eddy
- untabified
-
- Revision 1.13  2001/12/12 17:09:23  eddy
- Pulled back qSample's _str and _repr to work via a shared method with
- alternate multiplier.  Refined the e3 exception to work with exact
- values (which are precise enough).
-
- Revision 1.12  2001/12/12 15:23:34  eddy
- buried _exponent_to_quantifier in argument tunnel so I can del it.
- Removed gratuitous punctuation from '2.54 * centi' as _number_str.
- Some minor tidy-up.
-
- Revision 1.11  2001/12/10 21:58:03  eddy
- Made abs work even when non-dimensional, lots of layout changes on
- trivial methods, fully retired _quantade_split.
-
- Revision 1.10  2001/12/10 21:28:11  eddy
- Added abs, dispersor, dispersal to Quantity.  Shuffled hash, nonzero.
- Enhanced various docs.  Removed bogus debug.  Fixed noddy bugs:
- punctuating str((m*s)**2*kg); _lazy_get__scalar_'s ignored arg.
-
- Revision 1.9  2001/10/12 16:02:06  eddy
- Removed milli*kilogramme bodge - was wrong on, e.g., 1e3 *kg*kg = 1 *gram**2
- May try again later ...
-
- Revision 1.8  2001/10/12 15:43:52  eddy
- fixed powered units bug omitting () from, e.g., m**2/(s*kg).
-
- Revision 1.7  2001/09/27 16:12:38  eddy
- Two years of evolution.
-
- Revision 1.6  1999/07/19 21:21:09  eddy
- Dumb typo.
-
- Revision 1.5  1999/07/19 21:17:32  eddy
- Extracted units into other files (units, SI, unit).
- Switched to new Sample class, in peer module sample.
- Mended file after disk-mess.
-
- Revision 1.4  1999/05/07 17:22:13  eddy
- Several things inspired by the New Hackers' Dictionary, some other bits
- and pieces: now I'm going to lug data out of Kaye & Laby ...
-
- Revision 1.3  1999/02/21 13:41:54  eddy
- Ditched tolerance, moved to sample-form, simplified numeric side.
- Tidied up __*__ routines, maintenance.
-
- Revision 1.2  1999/02/21 01:30:23  eddy
- Evolution.
-
- Initial Revision 1.1  1999/01/24 15:04:14  eddy
-"""
