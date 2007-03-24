@@ -1,10 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """The moons of Jupiter.
 
-$Id: jovian.py,v 1.2 2005-03-12 17:34:28 eddy Exp $
+Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and L5
+(trailing).
+
+$Id: jovian.py,v 1.3 2007-03-24 12:24:20 eddy Exp $
 """
 
-from basEddy.units import metre, km, mega
+from basEddy.units import metre, km, mega, tophat
 from space.rock import NASAmoon, NASAshell, NamedOrbit, SAOmoon
 from space.common import Discovery
 from space.body import Ring
@@ -47,8 +50,15 @@ first.
 """)
 Io = NASAmoon("Io", Jupiter, _tmp, 422, 1.77,
               NASAshell(1830, 1819, 1815), "silicates, sulphur, SO2", 893.3, 3.53)
-Europa = NASAmoon("Europa", Jupiter, _tmp, 671, 3.55,
-                  NASAshell(1565), "ice", 479.7, 2.99)
+Europa = NASAmoon("Europa", Jupiter, _tmp, 670.9, 3.551181,
+                  # http://www.solarviews.com/eng/europa.htm
+                  # Mean orbital velocity = 13.74 km / s
+                  # Orbital eccentricity = 0.009
+                  # Orbital inclination = 0.470 degrees
+                  # Escape velocity = 2.02 km / s
+                  # Visual geometric albedo = 0.64
+                  # Magnitude = 5.29 Vo
+                  NASAshell(1569, 1565), "ice", 479.7, 3 + .02 * tophat)
 Ganymede = NASAmoon("Ganymede", Jupiter, _tmp, 1070, 7.15,
                     NASAshell(2634), "dirty ice", 1482, 1.94)
 Callisto = NASAmoon("Callisto", Jupiter, _tmp, 1883, 16.69,
@@ -256,7 +266,10 @@ del Ring, Discovery, SAOmoon, NamedOrbit, NASAmoon, NASAshell, metre, km, mega, 
 
 _rcs_log = """
 $Log: jovian.py,v $
-Revision 1.2  2005-03-12 17:34:28  eddy
+Revision 1.3  2007-03-24 12:24:20  eddy
+More data on Europa (in comments, for now).
+
+Revision 1.2  2005/03/12 17:34:28  eddy
 fix dumb typo
 
 Initial Revision 1.1  2005/03/12 15:44:15  eddy
