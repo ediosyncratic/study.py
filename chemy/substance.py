@@ -8,10 +8,10 @@ alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
 mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
 
-$Id: substance.py,v 1.5 2007-03-18 15:50:29 eddy Exp $
+$Id: substance.py,v 1.6 2007-03-24 15:02:05 eddy Exp $
 """
 from elements import * # q.v.
-from basEddy.quantity import Quantity, tophat
+from value.quantity import Quantity, tophat
 
 # Properties of some substances:
 class Gas (Substance):
@@ -52,22 +52,3 @@ air.sound.speed.observe(331.36 * metre / second) # duno where I got this one ...
 kerosene = Substance(density = 8 * pound / gallon)
 alcohol = Substance(density = 8 * pound / gallon)
 petrol = Substance(density = 7.5 * pound / gallon)
-
-_rcs_log = """
-  $Log: substance.py,v $
-  Revision 1.5  2007-03-18 15:50:29  eddy
-  Moved mercury's data to elements.Mercury, along with assorted classes.
-
-  Revision 1.4  2006/08/08 21:22:09  eddy
-  Forgot to reivse IcePoint.
-
-  Revision 1.3  2006/08/08 21:19:49  eddy
-  Assorted details from jcalvert at du.edu, mostly about mercury.
-  Use mach for sound speed, specify water's boiling, add some error bars,
-  introduce classes for heats and temperatures of phase changes, etc.
-
-  Revision 1.2  2004/02/17 00:12:27  eddy
-  New class, Gas; air is one.  New module elements used in place of particle.
-
-  Initial Revision 1.1  2002/10/08 21:30:18  eddy
-"""
