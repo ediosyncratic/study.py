@@ -129,154 +129,8 @@ thus-amended tail.  This is the .step() method used by the Iterator() class.
 """ )
 
 
-class _biNomial:
-    """A dictionary describing Pascal's triangle.
-
-    Keys are pairs of naturals; value for (n,m) is (n+m)! / n! / m!
-
-    Given the symmetry, no value is acually stored for key (n,m) when m > n.
-    Given the nature of Pascal's triangle, computing the value for a given (n,m)
-    involves computing the values for all (i,j) with i<=n and j<=m.
-
-    Representation depicts Pascal's triangle with one side as the top line, the
-    other as the left column; a `row' of Pascal's triangle is thus a diagonal
-    stripe.  Only values we've actually needed are shown, so there's nothing
-    above the diagonal; except on the top line, where a 1 is displayed above the
-    last digit of the diagonal entry in each column. """
-
-    __values = {}
-    def __getitem__(self, key):
-	n, m = key	# keys to this object should be pairs of naturals
-        try: val = self.__lookup(n, m)
-        except RuntimeError, what:
-            print what
-            if what.args[0] != 'maximum recursion depth exceeded': raise
-            val = factorial(n+m) / factorial(n) / factorial(m)
-            if n < m: n, m = m, n   # exploit symmetry
-            self.__values[n, m] = val
-
-        return val
-
-    def __lookup(self, n, m):
-	if n < m: n, m = m, n   # exploit symmetry
-	assert n >= m
-	if m < 0: return 0 # silly input
-        if m == 0: return 1 # no sense cacheing
-        if m == 1: return n+1 # likewise
-
-        try: val = self.__values[n, m]
-        except KeyError: # ho hum, need to compute it ...
-            up, left = self.__lookup(n-1, m), self.__lookup(n, m-1)
-            try: val = left + up
-            except OverflowError: val = long(left) + up
-            self.__values[n, m] = val
-
-        return val
-
-    def __str__(self):
-	keys = self.__values.keys()
-	if not keys: return '1, 1, ...\n1,'
-	keys.sort()
-	import string
-        # the following may be broken by __getitem__'s RuntimeError fallback ...
-
-        row = []
-        for n, m in keys:
-            while n > len(row):
-                row.append(['1', `len(row) + 2`])
-            assert len(row[n-1]) == m
-            row[n-1].append(`self.__values[n,m]`)
-
-        # Now turn each line into a single string:
-        n = len(row) + 1
-        while n > 1:
-            n = n - 1
-            here = row[n-1]
-            if len(here) < n + 1: here.append('...')
-            row[n-1] = string.joinfields(here, ', ')
-
-	head = '1, 1'
-        # now put a 1 above the last digit of each diagonal entry:
-	off, m, n = len(head), 1, len(row) + 1
-        while m < n:
-            try: new = len(row[m])
-            except IndexError:
-                raise IndexError(row, m, n)
-
-	    gap = new - off - 1
-	    if gap < 2: break # last row brought us to our last column
-	    head, off, m = head + ',%*d' % (gap, 1), new, 1+m
-
-	return head + ', ...\n' + string.joinfields(row, ',\n') + ',\n...'
-
-    __repr__ = __str__
-
-    def check(self):
-        """Uses factorial() to verify results of chose(). """
-        result = []
-        for (n, m), val in self.__values.items():
-            check = factorial(n+m) / factorial(n) / factorial(m)
-            if val != check:
-                result.append('%d, %d ->' % (n,m) + `val` + ' != ' + `check`)
-
-        if result:
-            import string
-            return string.joinfields(result, '\n')
-
-binomials = _biNomial()
-del _biNomial
-def chose(total, part, rack=binomials):
-    """chose(N,i) -> N! / (N-i)! / i!
-
-    This is the number of ways of chosing i items from among N, ignoring order
-    of choice.  Computed using a cached form of Pascal's triangle. """
-
-    return rack[total-part, part]
-
-def Pascal(tot):
-    """A row of Pascal's triangle"""
-    return tuple(map(lambda i, t=tot: chose(t, i), range(1+tot)))
-
-def check(rack=binomials): rack.check()
-
-del binomials
-
-def factorial(num, cache=[1]):
-	"""Returns the factorial of any natural number.
-
-	Equivalent to reduce(lambda a,b:a*(1+b), range(num), 1L), except that it
-	doesn't return a long unless it has to (or num is one) and it degrades
-	gracefully when given invalid input.
-
-	If you give it an argument which is < 1, you'll get the answer 1, as
-	this is correct if your argument is valid and resolves the problem of
-	what to do with invalid input.  For other non-integer values, you'll get
-	a computed positive value which probably isn't far off the Gamma
-	function's value at one more than that non-integer.  For valid input,
-	i.e. non-negative integers, factorial(num) = Gamma(1+num), wherein
-
-	Gamma(a) = integral(positive reals| t-&gt; exp(-t). power[a-1](t) :)
-
-	for arbitrary a in the complex plane, with a pole (of order 1) at each
-	negative integer and a real humdinger of a singularity at infinity. """
-
-        if num < 0: raise ValueError, "I only do naturals"
-        try: return cache[num]
-        except IndexError: pass
-
-	result, i = cache[-1], len(cache)
-	while num >= i:
-	    try: result = result * i
-	    except OverflowError: result = long(result) * i
-            i = 1 + i
-            if len(cache) < 4000:
-                # lists start mis-behaving if longer than 4000 entries !
-                cache.append(result)
-                assert i == len(cache)
-
-	return result
-
-def unfixed(num):
+def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
+    # The identity permutation on empty (i.e. 0) has 0 fixed points, so qualifies ...
     """Returns the number of permutations of num without fixed points.
 
     Subtracting from num!, we get the sum over 0 < i <= num of: the number of
@@ -322,29 +176,26 @@ def unfixed(num):
     # Deal with boundary case
     if num < 0: return 0
     # Avoid computation when we can
-    try: return _nd_perms[num]
+    try: return cache[num]
     except IndexError: pass
 
     # can't just look it up: initialise for loop
-    N, last = len(_nd_perms), _nd_perms[-1]
+    N, last = len(cache), cache[-1]
     if N % 2: sign = -1
     else: sign = 1
 
-    # grow _nd_perms until it's long enough
+    # grow cache until it's long enough
     while num >= N:
 	#    u(N) = N * u(N-1) + pow(-1,N)
 	try: next = N * last + sign
 	except OverflowError:
 	    next = long(N) * last + sign
 
-	_nd_perms.append(next) # method invocation: doesn't require global declaration
+	cache.append(next) # method invocation: doesn't require global declaration
 	N, sign, last = N+1, -sign, next
 
     # we should now be happy.
-    return _nd_perms[num]
-
-_nd_perms = [1]	# need a value here to seed the iteration.
-# The identity permutation on empty (i.e. 0) has 0 fixed points, so qualifies ...
+    return cache[num]
 
 # well, that was pretty much number theory.
 # now for some permutations, per se.
@@ -558,16 +409,3 @@ class Iterator:
         while i < j:
             self.__row[j], self.__row[i] = self.__row[i], self.__row[j]
             i, j = 1+i, j-1
-
-_rcs_log = """
-  $Log: permute.py,v $
-  Revision 1.3  2005-12-01 00:59:42  eddy
-  Lots of re-mangling (most of it some time ago).
-
-  Revision 1.2  2002/03/13 02:13:40  eddy
-  Added Pascal, frobbed docs.  Corrected handling of Iterator(0), made
-  .inverse an attribute like .permutation, xrefed new queens.py, added
-  .restart() and shuffled method order.
-
-  Initial Revision 1.1  2001/05/07 12:29:47  eddy
-"""
