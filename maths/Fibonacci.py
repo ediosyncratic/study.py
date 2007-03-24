@@ -104,9 +104,31 @@ def fastonacci(n, zero, one):
 
 	return fibtimes((zero, one), fibpow(n))[0]
 
-_rcs_log = """
-$Log: Fibonacci.py,v $
-Revision 1.2  2006-11-27 00:46:56  eddy
-ooh - I haven't checked in since I added the hakmem clever fib-implementation (2006-07-02).
+# or ...
+class Fibonacci:
+    def __init__(self, zero=0, one=1):
+	self.__natural, self.__negative = [ zero, one ], []
 
-"""
+    def __up(self, n):
+	assert n >= 0
+	row = self.__natural
+	left = n + 1 - len(row)
+	while left > 0:
+	    row.append(row[-1] + row[-2])
+	    left = left - 1
+
+	return self.__natural[n]
+
+    def __down(self, n):
+	assert n > 0
+	row = self.__negative
+	left = n - len(row)
+	while left > 0:
+	    row.append(row[-2] - row[-1])
+	    left = left - 1
+
+	return row[n-1]
+
+    def __getitem__(self, n):
+	if n < 0: return self.__down(-n)
+	return self.__up(n)
