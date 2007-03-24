@@ -41,11 +41,11 @@ our integral of p up to X pretty close to
 
  (beta*X)**alpha / alpha / gamma(alpha)
 
-$Id: gamma.py,v 1.4 2007-03-24 15:14:20 eddy Exp $
+$Id: gamma.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 
 from integrate import Integrator
-from value.lazy import Lazy
+from study.value.lazy import Lazy
 import math, stirling
 
 class Gamma (Integrator, Lazy):
@@ -68,18 +68,13 @@ class Gamma (Integrator, Lazy):
         self.__zero = 0 / beta # zero input to __p
 
     import random
-    # random.gamma requires alpha > -1, beta > 0; so its alpha is offset by 1 from mine.
-    def __gen(a, g=random.gamma): return g(a-1, 1) # will be del'd shortly
+    # gammavariate requires alpha > -1, beta > 0; so its alpha is offset by 1 from mine.
+    def __gen(a, g=random.gammavariate): return g(a-1, 1) # will be del'd shortly
     del random
 
     def sample(self, g=__gen):
-        try: ans = self.alpha.evaluate(g) / self.beta
-        except AttributeError:
-            self.sample = lambda a=self.alpha, b=self.beta, s=g: s(a) / b
-            return self.sample()
-        else:
-            self.sample = lambda a=self.alpha, b=self.beta, s=g: a.evaluate(s) / b
-            return ans
+        return g(self.alpha) / self.beta
+        # prior efforts to alpha.evaluate(g) were clearly demented !
 
     del __gen
 

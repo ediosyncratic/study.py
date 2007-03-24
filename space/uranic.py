@@ -1,14 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Uranus.
 
-$Id: uranic.py,v 1.2 2007-03-24 16:21:40 eddy Exp $
+$Id: uranic.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import mega, metre, km, tophat
-from space.common import Discovery
-from space.body import Ring
-from space.rock import NASAmoon, NASAshell, SAOmoon
-from space.outer import Uranus
+from study.value.units import mega, metre, km, tophat
+from common import Discovery
+from body import Ring
+from rock import NASAmoon, NASAshell, SAOmoon
+from outer import Uranus
 
 _tmp = Discovery("Lassell", 1851)
 Ariel = NASAmoon("Ariel", Uranus, _tmp, 191.02, 2.52,

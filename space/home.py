@@ -1,18 +1,18 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.19 2007-03-24 16:14:10 eddy Exp $
+$Id: home.py,v 1.20 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Sample, qSample, Quantity, Object, tophat, \
+from study.value.units import Sample, qSample, Quantity, Object, tophat, \
      micro, kilo, mega, giga, tera, peta, arc, radian, \
      year, day, hour, minute, second, kg, metre, km, mile, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
-from space import body
-from space.common import Orbit, Spin, Discovery, Surface, \
+import body
+from common import Orbit, Spin, Discovery, Surface, \
      SurfacePart, Ocean, Island, Continent, LandMass
 
-from chemy.physics import Cosmos
+from study.chemy.physics import Cosmos
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
                        # some slightly more definite data:
@@ -55,7 +55,7 @@ MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
 # orbit can't be specified until Sun has been created.
 def load_planets(): # lazy satellite loader for Sun
-    import space.inner, space.outer
+    import inner, outer
 
 Sun = body.Star(
     'Sun', load_planets, type='G2 V',

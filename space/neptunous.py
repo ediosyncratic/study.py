@@ -6,14 +6,14 @@ http://www.space.com/scienceastronomy/070130_st_neptune_trojans.html
 The ones found to date are at its forward Lagrange point, L4; and the New
 Horizons probe shall pass near its trailing one, L5, en route to Pluto.
 
-$Id: neptunous.py,v 1.3 2007-03-24 16:18:58 eddy Exp $
+$Id: neptunous.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import mega, metre, km
-from space.common import Discovery
-from space.body import Ring, Hoop
-from space.rock import NASAmoon, NASAshell
-from space.outer import Neptune
+from study.value.units import mega, metre, km
+from common import Discovery
+from body import Ring, Hoop
+from rock import NASAmoon, NASAshell
+from outer import Neptune
 
 Triton = NASAmoon("Triton", Neptune, Discovery("Lassell", 1846),
                   354.76, -5.88, NASAshell(1353), "methane ice",

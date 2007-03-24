@@ -1,9 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.7 2007-03-24 16:09:04 eddy Exp $
+$Id: common.py,v 1.8 2007-03-24 22:42:21 eddy Exp $
 """
-from value.units import tophat, arc, pi, Object, second
+from study.value.units import tophat, arc, pi, Object, second
 
 class Discovery (Object):
     __upinit = Object.__init__

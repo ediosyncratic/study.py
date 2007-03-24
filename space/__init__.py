@@ -46,371 +46,371 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.4 2007-03-24 16:15:20 eddy Exp $
+$Id: __init__.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.lazy import Lazy
+from study.value.lazy import Lazy
 class NameSpace (Lazy):
     # Home:
     def _lazy_get_Earth_(self, ig):
-        from space.home import Earth
+        from home import Earth
         return Earth
     def _lazy_get_Moon_(self, ig):
-        from space.home import Moon
+        from home import Moon
         return Moon
 
     # The Big Picture:
     def _lazy_get_Universe_(self, ig):
-        from space.home import Universe
+        from home import Universe
         return Universe
     def _lazy_get_MilkyWay_(self, ig):
-        from space.home import MilkyWay
+        from home import MilkyWay
         return MilkyWay
     def _lazy_get_Sun_(self, ig):
-        from space.home import Sun
+        from home import Sun
         return Sun
 
     # Some units of measurement:
     def _lazy_get_AU_(self, ig):
-        from space.home import AU
+        from home import AU
         return AU
     def _lazy_get_parsec_(self, ig):
-        from space.home import parsec
+        from home import parsec
         return parsec
     def _lazy_get_Month_(self, ig):
-        from space.home import Month
+        from home import Month
         return Month
 
     # The Earthoid Planets:
     def _lazy_get_Mercury_(self, ig):
-        from space.inner import Mercury
+        from inner import Mercury
         return Mercury
     def _lazy_get_Venus_(self, ig):
-        from space.inner import Venus
+        from inner import Venus
         return Venus
     def _lazy_get_Mars_(self, ig):
-        from space.inner import Mars
+        from inner import Mars
         return Mars
 
     # The Gas Giants
     def _lazy_get_Jupiter_(self, ig):
-        from space.outer import Jupiter
+        from outer import Jupiter
         return Jupiter
     def _lazy_get_Saturn_(self, ig):
-        from space.outer import Saturn
+        from outer import Saturn
         return Saturn
     def _lazy_get_Uranus_(self, ig):
-        from space.outer import Uranus
+        from outer import Uranus
         return Uranus
     def _lazy_get_Neptune_(self, ig):
-        from space.outer import Neptune
+        from outer import Neptune
         return Neptune
 
     # Jupiter's satellites:
     def _lazy_get_Io_(self, ig):
-        from space.jovian import Io
+        from jovian import Io
         return Io
     def _lazy_get_Europa_(self, ig):
-        from space.jovian import Europa
+        from jovian import Europa
         return Europa
     def _lazy_get_Ganymede_(self, ig):
-        from space.jovian import Ganymede
+        from jovian import Ganymede
         return Ganymede
     def _lazy_get_Callisto_(self, ig):
-        from space.jovian import Callisto
+        from jovian import Callisto
         return Callisto
     def _lazy_get_Amalthea_(self, ig):
-        from space.jovian import Amalthea
+        from jovian import Amalthea
         return Amalthea
     def _lazy_get_Himalia_(self, ig):
-        from space.jovian import Himalia
+        from jovian import Himalia
         return Himalia
     def _lazy_get_Elara_(self, ig):
-        from space.jovian import Elara
+        from jovian import Elara
         return Elara
     def _lazy_get_Pasiphae_(self, ig):
-        from space.jovian import Pasiphae
+        from jovian import Pasiphae
         return Pasiphae
     def _lazy_get_Sinope_(self, ig):
-        from space.jovian import Sinope
+        from jovian import Sinope
         return Sinope
     def _lazy_get_Lysithea_(self, ig):
-        from space.jovian import Lysithea
+        from jovian import Lysithea
         return Lysithea
     def _lazy_get_Carme_(self, ig):
-        from space.jovian import Carme
+        from jovian import Carme
         return Carme
     def _lazy_get_Ananke_(self, ig):
-        from space.jovian import Ananke
+        from jovian import Ananke
         return Ananke
     def _lazy_get_Leda_(self, ig):
-        from space.jovian import Leda
+        from jovian import Leda
         return Leda
     def _lazy_get_Thebe_(self, ig):
-        from space.jovian import Thebe
+        from jovian import Thebe
         return Thebe
     def _lazy_get_Adrastea_(self, ig):
-        from space.jovian import Adrastea
+        from jovian import Adrastea
         return Adrastea
     def _lazy_get_Metis_(self, ig):
-        from space.jovian import Metis
+        from jovian import Metis
         return Metis
     def _lazy_get_Callirrhoe_(self, ig):
-        from space.jovian import Callirrhoe
+        from jovian import Callirrhoe
         return Callirrhoe
     def _lazy_get_Themisto_(self, ig):
-        from space.jovian import Themisto
+        from jovian import Themisto
         return Themisto
     def _lazy_get_Kalyke_(self, ig):
-        from space.jovian import Kalyke
+        from jovian import Kalyke
         return Kalyke
     def _lazy_get_Iocaste_(self, ig):
-        from space.jovian import Iocaste
+        from jovian import Iocaste
         return Iocaste
     def _lazy_get_Erinome_(self, ig):
-        from space.jovian import Erinome
+        from jovian import Erinome
         return Erinome
     def _lazy_get_Harpalyke_(self, ig):
-        from space.jovian import Harpalyke
+        from jovian import Harpalyke
         return Harpalyke
     def _lazy_get_Isonoe_(self, ig):
-        from space.jovian import Isonoe
+        from jovian import Isonoe
         return Isonoe
     def _lazy_get_Praxidike_(self, ig):
-        from space.jovian import Praxidike
+        from jovian import Praxidike
         return Praxidike
     def _lazy_get_Megaclite_(self, ig):
-        from space.jovian import Megaclite
+        from jovian import Megaclite
         return Megaclite
     def _lazy_get_Taygete_(self, ig):
-        from space.jovian import Taygete
+        from jovian import Taygete
         return Taygete
     def _lazy_get_Chaldene_(self, ig):
-        from space.jovian import Chaldene
+        from jovian import Chaldene
         return Chaldene
 
     # Saturn's satellites:
     def _lazy_get_Mimas_(self, ig):
-        from space.saturnalia import Mimas
+        from saturnalia import Mimas
         return Mimas
     def _lazy_get_Enceladus_(self, ig):
-        from space.saturnalia import Enceladus
+        from saturnalia import Enceladus
         return Enceladus
     def _lazy_get_Tethys_(self, ig):
-        from space.saturnalia import Tethys
+        from saturnalia import Tethys
         return Tethys
     def _lazy_get_Dione_(self, ig):
-        from space.saturnalia import Dione
+        from saturnalia import Dione
         return Dione
     def _lazy_get_Rhea_(self, ig):
-        from space.saturnalia import Rhea
+        from saturnalia import Rhea
         return Rhea
     def _lazy_get_Titan_(self, ig):
-        from space.saturnalia import Titan
+        from saturnalia import Titan
         return Titan
     def _lazy_get_Hyperion_(self, ig):
-        from space.saturnalia import Hyperion
+        from saturnalia import Hyperion
         return Hyperion
     def _lazy_get_Iapetus_(self, ig):
-        from space.saturnalia import Iapetus
+        from saturnalia import Iapetus
         return Iapetus
     def _lazy_get_Phoebe_(self, ig):
-        from space.saturnalia import Phoebe
+        from saturnalia import Phoebe
         return Phoebe
     def _lazy_get_Janus_(self, ig):
-        from space.saturnalia import Janus
+        from saturnalia import Janus
         return Janus
     def _lazy_get_Epimetheus_(self, ig):
-        from space.saturnalia import Epimetheus
+        from saturnalia import Epimetheus
         return Epimetheus
     def _lazy_get_Helene_(self, ig):
-        from space.saturnalia import Helene
+        from saturnalia import Helene
         return Helene
     def _lazy_get_Telesto_(self, ig):
-        from space.saturnalia import Telesto
+        from saturnalia import Telesto
         return Telesto
     def _lazy_get_Calypso_(self, ig):
-        from space.saturnalia import Calypso
+        from saturnalia import Calypso
         return Calypso
     def _lazy_get_Atlas_(self, ig):
-        from space.saturnalia import Atlas
+        from saturnalia import Atlas
         return Atlas
     def _lazy_get_Prometheus_(self, ig):
-        from space.saturnalia import Prometheus
+        from saturnalia import Prometheus
         return Prometheus
     def _lazy_get_Pandora_(self, ig):
-        from space.saturnalia import Pandora
+        from saturnalia import Pandora
         return Pandora
     def _lazy_get_Pan_(self, ig):
-        from space.saturnalia import Pan
+        from saturnalia import Pan
         return Pan
 
     # Uranus' satellites
     def _lazy_get_Ariel_(self, ig):
-        from space.uranic import Ariel
+        from uranic import Ariel
         return Ariel
     def _lazy_get_Umbriel_(self, ig):
-        from space.uranic import Umbriel
+        from uranic import Umbriel
         return Umbriel
     def _lazy_get_Titania_(self, ig):
-        from space.uranic import Titania
+        from uranic import Titania
         return Titania
     def _lazy_get_Oberon_(self, ig):
-        from space.uranic import Oberon
+        from uranic import Oberon
         return Oberon
     def _lazy_get_Miranda_(self, ig):
-        from space.uranic import Miranda
+        from uranic import Miranda
         return Miranda
     def _lazy_get_Cordelia_(self, ig):
-        from space.uranic import Cordelia
+        from uranic import Cordelia
         return Cordelia
     def _lazy_get_Ophelia_(self, ig):
-        from space.uranic import Ophelia
+        from uranic import Ophelia
         return Ophelia
     def _lazy_get_Bianca_(self, ig):
-        from space.uranic import Bianca
+        from uranic import Bianca
         return Bianca
     def _lazy_get_Cressida_(self, ig):
-        from space.uranic import Cressida
+        from uranic import Cressida
         return Cressida
     def _lazy_get_Desdemona_(self, ig):
-        from space.uranic import Desdemona
+        from uranic import Desdemona
         return Desdemona
     def _lazy_get_Juliet_(self, ig):
-        from space.uranic import Juliet
+        from uranic import Juliet
         return Juliet
     def _lazy_get_Portia_(self, ig):
-        from space.uranic import Portia
+        from uranic import Portia
         return Portia
     def _lazy_get_Rosalind_(self, ig):
-        from space.uranic import Rosalind
+        from uranic import Rosalind
         return Rosalind
     def _lazy_get_Belinda_(self, ig):
-        from space.uranic import Belinda
+        from uranic import Belinda
         return Belinda
     def _lazy_get_Puck_(self, ig):
-        from space.uranic import Puck
+        from uranic import Puck
         return Puck
     def _lazy_get_Caliban_(self, ig):
-        from space.uranic import Caliban
+        from uranic import Caliban
         return Caliban
     def _lazy_get_Sycorax_(self, ig):
-        from space.uranic import Sycorax
+        from uranic import Sycorax
         return Sycorax
     def _lazy_get_Prospero_(self, ig):
-        from space.uranic import Prospero
+        from uranic import Prospero
         return Prospero
     def _lazy_get_Setebos_(self, ig):
-        from space.uranic import Setebos
+        from uranic import Setebos
         return Setebos
     def _lazy_get_Stephano_(self, ig):
-        from space.uranic import Stephano
+        from uranic import Stephano
         return Stephano
 
     # Neptune's satellites
     def _lazy_get_Triton_(self, ig):
-        from space.neptunous import Triton
+        from neptunous import Triton
         return Triton
     def _lazy_get_Nereid_(self, ig):
-        from space.neptunous import Nereid
+        from neptunous import Nereid
         return Nereid
     def _lazy_get_Naiad_(self, ig):
-        from space.neptunous import Naiad
+        from neptunous import Naiad
         return Naiad
     def _lazy_get_Thalassa_(self, ig):
-        from space.neptunous import Thalassa
+        from neptunous import Thalassa
         return Thalassa
     def _lazy_get_Despina_(self, ig):
-        from space.neptunous import Despina
+        from neptunous import Despina
         return Despina
     def _lazy_get_Galatea_(self, ig):
-        from space.neptunous import Galatea
+        from neptunous import Galatea
         return Galatea
     def _lazy_get_Proteus_(self, ig):
-        from space.neptunous import Proteus
+        from neptunous import Proteus
         return Proteus
     def _lazy_get_Larissa_(self, ig):
-        from space.neptunous import Larissa
+        from neptunous import Larissa
         return Larissa
     def _lazy_get_Galle_(self, ig):
-        from space.neptunous import Galle
+        from neptunous import Galle
         return Galle
     def _lazy_get_leVerrier_(self, ig):
-        from space.neptunous import leVerrier
+        from neptunous import leVerrier
         return leVerrier
     def _lazy_get_Lassel_(self, ig):
-        from space.neptunous import Lassel
+        from neptunous import Lassel
         return Lassel
     def _lazy_get_Arago_(self, ig):
-        from space.neptunous import Arago
+        from neptunous import Arago
         return Arago
     def _lazy_get_Adams_(self, ig):
-        from space.neptunous import Adams
+        from neptunous import Adams
         return Adams
 
     # Moons of Mars:
     def _lazy_get_Phobos_(self, ig):
-        from space.asteroid import Phobos
+        from asteroid import Phobos
         return Phobos
     def _lazy_get_Deimos_(self, ig):
-        from space.asteroid import Deimos
+        from asteroid import Deimos
         return Deimos
 
     # Asteroids:
     def _lazy_get_Asteroids_(self, ig):
-        from space.asteroid import Asteroids
+        from asteroid import Asteroids
         return Asteroids
     def _lazy_get_Ceres_(self, ig):
-        from space.asteroid import Ceres
+        from asteroid import Ceres
         return Ceres
     def _lazy_get_Albert_(self, ig):
-        from space.asteroid import Albert
+        from asteroid import Albert
         return Albert
     def _lazy_get_Eros_(self, ig):
-        from space.asteroid import Eros
+        from asteroid import Eros
         return Eros
     def _lazy_get_Amor_(self, ig):
-        from space.asteroid import Amor
+        from asteroid import Amor
         return Amor
     def _lazy_get_Apollo_(self, ig):
-        from space.asteroid import Apollo
+        from asteroid import Apollo
         return Apollo
     def _lazy_get_Icarus_(self, ig):
-        from space.asteroid import Icarus
+        from asteroid import Icarus
         return Icarus
     def _lazy_get_Adonis_(self, ig):
-        from space.asteroid import Adonis
+        from asteroid import Adonis
         return Adonis
     def _lazy_get_Hermes_(self, ig):
-        from space.asteroid import Hermes
+        from asteroid import Hermes
         return Hermes
 
     # Few Kuiper belt objects:
     def _lazy_get_Pluto_(self, ig):
-        from space.Kuiper import Pluto
+        from Kuiper import Pluto
         return Pluto
     def _lazy_get_Charon_(self, ig):
-        from space.Kuiper import Charon
+        from Kuiper import Charon
         return Charon
     def _lazy_get_Quaoar_(self, ig):
-        from space.Kuiper import Quaoar
+        from Kuiper import Quaoar
         return Quaoar
     def _lazy_get_Sedna_(self, ig):
-        from space.Kuiper import Sedna
+        from Kuiper import Sedna
         return Sedna
 
     # The outer reaches ...
     def _lazy_get_Kuiper_(self, ig):
-        from space.Kuiper import Kuiper
+        from Kuiper import Kuiper
         return Kuiper
     def _lazy_get_Oort_(self, ig):
-        from space.Kuiper import Oort
+        from Kuiper import Oort
         return Oort
     def _lazy_get_Terminus_(self, ig):
-        from space.Kuiper import Terminus
+        from Kuiper import Terminus
         return Terminus
     def _lazy_get_Gliese710_(self, ig):
-        from space.Kuiper import Gliese710
+        from Kuiper import Gliese710
         return Gliese710
 
 class PlanetList (Lazy):
@@ -440,11 +440,11 @@ class PlanetList (Lazy):
         return map(self.__getitem__, range(at, to, step))
 
     def _lazy_get_inner_(self, ignored):
-        from space.inner import Mercury, Venus, Earth, Mars
+        from inner import Mercury, Venus, Earth, Mars
         return ( Mercury, Venus, Earth, Mars )
 
     def _lazy_get_outer_(self, ignored):
-        from space.outer import Jupiter, Saturn, Uranus, Neptune
+        from outer import Jupiter, Saturn, Uranus, Neptune
         return ( Jupiter, Saturn, Uranus, Neptune )
 
 D = NameSpace()

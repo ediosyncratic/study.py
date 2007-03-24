@@ -1,13 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.6 2007-03-24 16:16:00 eddy Exp $
+$Id: inner.py,v 1.7 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Object, tophat, \
-     giga, mega, year, day, hour, minute, metre, kg, bar, Centigrade
-from space.home import Sun, Earth, KLplanet, KLsurface
-from space.common import Orbit, Spin, Discovery
+from study.value.units import Object, Quantity, tophat, \
+     giga, mega, year, day, hour, minute, metre, kg, bar, arc, Centigrade
+from home import Sun, Earth, KLplanet, KLsurface
+from common import Orbit, Spin, Discovery
 
 Mercury = KLplanet('Mercury',
                    KLsurface(.382, .38, Spin(58 * day + 16 * hour, 0),
@@ -61,7 +61,7 @@ Venus.orbit.spin.period.observe(224.68 * day)
 # Earth goes here ...
 
 def load_martian(): # lazy satellite loader
-    import space.asteroid # for Phobos and Deimos
+    import asteroid # for Phobos and Deimos
 
 Mars = KLplanet('Mars',
                 KLsurface(.532, .38, Spin(24 * hour + 37 * minute, 25.2),

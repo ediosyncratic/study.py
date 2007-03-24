@@ -1,6 +1,6 @@
 """Combinatorics.
 
-$Id: Pascal.py,v 1.1 2007-03-08 23:49:49 eddy Exp $
+$Id: Pascal.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
 """
 
 def factorial(num, cache=[1]):
@@ -90,7 +90,6 @@ class Pascal:
 	keys = self.__values.keys()
 	if not keys: return '1, 1, ...\n1,'
 	keys.sort()
-	import string
         # the following may be broken by __getitem__'s RuntimeError fallback ...
 
         row = []
@@ -106,7 +105,7 @@ class Pascal:
             n = n - 1
             here = row[n-1]
             if len(here) < n + 1: here.append('...')
-            row[n-1] = string.joinfields(here, ', ')
+            row[n-1] = ', '.join(here)
 
 	head = '1, 1'
         # now put a 1 above the last digit of each diagonal entry:
@@ -120,7 +119,7 @@ class Pascal:
 	    if gap < 2: break # last row brought us to our last column
 	    head, off, m = head + ',%*d' % (gap, 1), new, 1+m
 
-	return head + ', ...\n' + string.joinfields(row, ',\n') + ',\n...'
+	return head + ', ...\n' + ',\n'.join(row) + ',\n...'
 
     __repr__ = __str__
 
@@ -133,8 +132,7 @@ class Pascal:
                 result.append('%d, %d ->' % (n,m) + `val` + ' != ' + `check`)
 
         if result:
-            import string
-            return string.joinfields(result, '\n')
+            return '\n'.joinfields(result)
 
 Pascal = Pascal()
 

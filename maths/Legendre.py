@@ -1,16 +1,15 @@
 """Legendre polynomials and spherical harmonics.
 
 See http://www.chaos.org.uk/~eddy/math/smooth/harmony.html
-"""
 
-_rcs_id_ = """
-$Id: Legendre.py,v 1.2 2007-03-08 23:40:31 eddy Exp $
+$Id: Legendre.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
 """
 from polynomial import Polynomial
 
 class Legendre (Polynomial):
     __upinit = Polynomial.__init__
-    from natural import hcf, factorial
+    from natural import hcf
+    from Pascal import factorial
 
     def __init__(self, b, q, hcf=hcf, pling=factorial):
         if b < 0 or q > b or q < -b or b != int(b) or q != int(q):
@@ -67,11 +66,3 @@ class Spherical:
                theta.Cos**self.__q / self.__poly.scale / tp
 
     del pi
-
-_rcs_log_ = """
-$Log: Legendre.py,v $
-Revision 1.2  2007-03-08 23:40:31  eddy
-Extensive changes (2005-09-18).
-
-Initial Revision 1.1  2005/09/08 21:37:29  eddy
-"""

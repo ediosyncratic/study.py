@@ -1,9 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 """Descriptin of a Job in terms of time and money.
 
-$Id: job.py,v 1.3 2007-03-24 16:41:09 eddy Exp $
+$Id: job.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
-from value.lazy import Lazy
+from study.value.lazy import Lazy
 
 class Job (Lazy):
     # Should probably inherit dailyhours, public, weeklydays from

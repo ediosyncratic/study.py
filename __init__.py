@@ -8,5 +8,10 @@ Sub-packages:
  space -- the solar system and some of the rest of the universe
  value -- imprecise numbers and units of measurement, combined
 
-$Id: __init__.py,v 1.1 2007-03-24 13:37:46 eddy Exp $
+$Id: __init__.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
 """
+import chemy
+import code
+import maths
+import space
+import value

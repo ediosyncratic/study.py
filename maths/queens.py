@@ -11,7 +11,7 @@ distinct solutions (once one takes accounts of the symmetries of a chess board,
 allowing black and white squares to swap), one of which is symmetric under a
 half turn of the board: [2, 4, 1, 7, 0, 6, 3, 5].
 
-$Id: queens.py,v 1.2 2002-03-13 02:07:51 eddy Exp $
+$Id: queens.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
 """
 
 import permute
@@ -87,12 +87,3 @@ def unique():
     global unique
     def unique(r=u): return r
     return u
-
-_rcs_log = """
- $Log: queens.py,v $
- Revision 1.2  2002-03-13 02:07:51  eddy
- Fixed bugs in unique's isometries, tweaked show() and docs.
-
- Revision 1.1  2002/03/13 00:44:35  eddy
- Initial revision
-"""

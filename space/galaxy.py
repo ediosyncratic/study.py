@@ -1,14 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """Galaxies
 
-$Id: galaxy.py,v 1.3 2007-03-24 16:10:46 eddy Exp $
+$Id: galaxy.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Quantity, tophat, \
+from study.value.units import Quantity, tophat, \
      kilo, arc, year, second, metre
-from space.home import MilkyWay
-from space.common import Orbit, Discovery
-from space.body import Galaxy, Group
+from home import MilkyWay
+from common import Orbit, Discovery
+from body import Galaxy, Group
 
 # data from http://www.daviddarling.info/encyclopedia/G/Galaxy.html
 def MilkyOrbit(r): return Orbit(MilkyWay, r * kilo * year.light, None)

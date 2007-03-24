@@ -2,12 +2,12 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.4 2007-03-24 16:18:24 eddy Exp $
+$Id: ladder.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 from math import exp
 from home import Earth
 
-from value.units import kg, m, mega, Pascal, Quantity, Sample, Object
+from study.value.units import kg, m, mega, Pascal, Quantity, Sample, Object
 def V(S, D, MPa=mega * Pascal, rho=kg/m**3, Q=Quantity, W=Sample):
     v = (Q(W(S), MPa) / Q(W(D), rho)) ** .5
     return v.low, v.high
@@ -104,7 +104,7 @@ class Ladder (Object):
     def _lazy_get__integrator_(self, ignored, tool=[]):
         try: return tool[0]
         except IndexError: pass # 1st call; initialise tool
-        import maths.integrate
+        from study.maths import integrate
         I = integrate.Integrator
         tool.append(I)
         return I

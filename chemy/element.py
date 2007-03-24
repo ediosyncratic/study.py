@@ -9,14 +9,14 @@ arrangement of electrons around a nucleus which is a mixture of possible
 variants.  I chose to take the former description seriously and fake the latter.
 
 chemistry.mercury will need tweaked; it references atom.
-"""
 
-_rcs_id_ = """
-$Id: element.py,v 1.4 2007-03-24 14:39:58 eddy Exp $
+$Id: element.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
-from value.units import kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
-     gram, kg, tonne, second, minute, day, year, metre, mol, torr
-from particle import eV, Particle, Boson, Fermion, proton, neutron, electron, AMU
+from study.value.units import Object, Quantity, kilo, harpo, tophat, sample, \
+     Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc, \
+     second, minute, day, year
+from particle import eV, AMU, Particle, Boson, Fermion, Nucleon, Photon, \
+     proton, neutron, electron
 
 class Nucleus (Particle): _namespace = 'Nucleus.item'
 class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
@@ -76,8 +76,7 @@ class Isotope (Substance):
 
     Well, OK, if constructor's N is a distribution, you get a distribution.
     But my intent is that we don't do that; though we might do the equivalent for
-    a Nucleus, for the sake of an Element's atom.
-    """
+    a Nucleus, for the sake of an Element's atom.\n"""
 
     __upinit = Substance.__init__
     def __init__(self, Q, N):
@@ -134,13 +133,11 @@ naturalIsotopes = lambda : filter(lambda x: getattr(x, 'abundance', None), Isoto
 del all
 
 class Element (Substance):
-    """Mixture of isotopes.
-    """
+    """Mixture of isotopes. """
 
     __upinit = Substance.__init__
     def __init__(self, name, symbol, Z, A=None, **what):
-        """Initialise an Element.
-        """
+        """Initialise an Element. """
         self.__isotopes = {}
         what.update({'name': name, 'symbol': symbol,
                      'atomic number': Z})
@@ -488,7 +485,7 @@ Lawrencium = NASelement('Lawrencium', 'Lr', 103, 257, [257])
 Kurchatovium = NASelement('Kurchatovium', 'Ku', 104)
 
 # and a few synonyms ...
-protium = Hydrogen[1].nominate('protium')
+protium = Hydrogen[1].nominate('protium', 'p')
 Deuterium = Hydrogen[2].nominate('Deuterium', 'D') # abundance 8.5e-5 (relative to Si = 100)
 Tritium = Hydrogen[3].nominate('Tritium', 'T')
 Ionium = Thorium[230].nominate('Ionium', 'Io')
@@ -498,11 +495,11 @@ deuteron = Deuterium.atom.nucleus
 alpha = Helium[4].atom.nucleus
 
 # Decays:
-from value.units import *
+from study.value.units import *
 from decay import ratedDecay
 ln2 = Quantity(2).log
 Tritium.decays = ratedDecay(Tritium, 12.35 * year,
-                            (18.62e3 * eV, electron, Helium[3].atom.nucleus))
+                            (1, 18.62e3 * eV, electron, Helium[3].atom.nucleus))
 
 def decay(what, halflife, *modes):
     what.decays = apply(ratedDecay, (what, halflife) +
@@ -511,101 +508,103 @@ def decay(what, halflife, *modes):
 def photon(erg):
     return Photon(energy= erg * eV)
 
+positron = electron.anti
+
 decay(Isotope(2, 6), .81 * second, (1, 3.51e6, electron))
 decay(Isotope(2, 8), .122 * second,
       # 88% beta- 9.7; 12% n; 88% gamma .981 ???
-      (.88, 9.7e6, electron, photon(.981e6), Nucleon(3, 5)),
-      (.12, 0, neutron, Nucleon(2, 7)))
+      (.88, 9.7e6, electron, photon(.981e6), Isotope(3, 5)),
+      (.12, 0, neutron, Isotope(2, 7)))
 
 decay(Isotope(3, 8), .844 * second,
-      (1, 13.1e6, electron, Nucleon(4, 4)))
+      (1, 13.1e6, electron, Isotope(4, 4)))
 decay(Isotope(3, 9), .178 * second,
       # 65% beta- 13.6; 35% n, 2 alpha ??
-      (.65, 13.6e4, electron, Nucleon(4, 5)),
-      (.35, 0, neutron, Nucleon(3, 5)))
+      (.65, 13.6e4, electron, Isotope(4, 5)),
+      (.35, 0, neutron, Isotope(3, 5)))
 decay(Isotope(3, 11), 8.5e-3 * second,
       # 39% beta- 20.4; 61% n
-      (.39, 20.4e6, electron, Nucleon(4, 7)),
-      (.61, 0, neutron, Nucleon(3, 10))) # ???
+      (.39, 20.4e6, electron, Isotope(4, 7)),
+      (.61, 0, neutron, Isotope(3, 10))) # ???
 
 decay(Isotope(4, 7), 53.3 * day,
       # 100% K; 10% gamma .477 ???
-      (1, 47.7e3, positron, Nucleon(3, 4)))
+      (1, 47.7e3, positron, Isotope(3, 4)))
 decay(Isotope(4, 8), 7e-17 * second, (1, 0, alpha, alpha))
 decay(Isotope(4, 10), 1.6e6 * year, (1, 556e3, electron))
 decay(Isotope(4, 11), 13.8 * second,
       # 57% beta- 11.5; 33% gamma 2.12; 5% gamma 6.79; 2% gamma 5.85
-      (.57, 11.5e6, electron, Nucleon(5, 6)),
-      (.33, 2.12e6, Nucleon(4, 7)),
-      (.05, 6.79e6, Nucleon(4, 7)),
-      (.02, 5.85e6, Nucleon(4, 7)))
+      (.57, 11.5e6, electron, Isotope(5, 6)),
+      (.33, 2.12e6, Isotope(4, 7)),
+      (.05, 6.79e6, Isotope(4, 7)),
+      (.02, 5.85e6, Isotope(4, 7)))
 decay(Isotope(4, 12), .011 * second,
-      (1, 0, electron, neutron, Nucleon(5, 6)))
+      (1, 0, electron, neutron, Isotope(5, 6)))
 
 decay(Isotope(5, 8), .77 * second,
       # 93% beta+ 13.7; 100% 2 alpha
-      (.93, 13.7, positron, Nucleon(4, 8)))
+      (.93, 13.7, positron, Isotope(4, 8)))
 decay(Isotope(5, 12), .02 * second,
       # 97% beta- 13.37; 2% alpha; 1% gamma 4.439
-      (.97, 13.37e6, electron, Nucleon(6, 6)),
-      (.02, 0, alpha, Nucleon(3, 5)),
-      (.01, 4.439e6, Nucleon(5, 7)))
+      (.97, 13.37e6, electron, Isotope(6, 6)),
+      (.02, 0, alpha, Isotope(3, 5)),
+      (.01, 4.439e6, Isotope(5, 7)))
 decay(Isotope(5, 13), 17e-3 * second,
       # 92% beta- 13.44; 8% gamma 3.68
-      (.92, 13.44e6, electron, Nucleon(6, 7)),
-      (.08, 3.68e6, Nucleon(5, 8)))
+      (.92, 13.44e6, electron, Isotope(6, 7)),
+      (.08, 3.68e6, Isotope(5, 8)))
 decay(Isotope(5, 14), 16e-3 * second,
       # 87% beta- 14.5; 90% gamma 6.09; 9% gamma 6.73
-      (.87, 14.5e6, electron, Nucleon(6, 8)),
-      (.9, 6.09e6, Nucleon(5, 9)),
-      (.09, 6.73, Nucleon(5, 9)))
+      (.87, 14.5e6, electron, Isotope(6, 8)),
+      (.9, 6.09e6, Isotope(5, 9)),
+      (.09, 6.73, Isotope(5, 9)))
 
 decay(Isotope(6, 9), .127 * second,
       # beta+; 100% p
-      (1, 0, positron, proton, Nucleon(4, 4)))
+      (1, 0, positron, proton, Isotope(4, 4)))
 decay(Isotope(6, 10), 19.15 * second,
       # 99% beta+ 1.87; 99% gamma .718; 1% gamma 1.022
-      (.99, 1.87e6, positron, photon(.718e6), Nucleon(5, 5)),
-      (.01, 1.022e6, Nucleon(6, 4)))
+      (.99, 1.87e6, positron, photon(.718e6), Isotope(5, 5)),
+      (.01, 1.022e6, Isotope(6, 4)))
 
-decay(Isotope(6, 11), 20.38 * minute, (1, .96e6, positron, Nucleon(5, 6)))
-decay(Isotope(6, 14), 5730 * year, (1, .156e6, electron, Nucleon(7, 7)))
+decay(Isotope(6, 11), 20.38 * minute, (1, .96e6, positron, Isotope(5, 6)))
+decay(Isotope(6, 14), 5730 * year, (1, .156e6, electron, Isotope(7, 7)))
 decay(Isotope(6, 15), 2.45 * second,
       # 32% beta- 9.77; 68% beta- 4.47; 68% gamma 5.299
-      (.32, 9.77e6, electron, Nucleon(7, 8)),
-      (.68, 4.47e6, electron, photon(5.299e6), Nucleon(7, 8)))
+      (.32, 9.77e6, electron, Isotope(7, 8)),
+      (.68, 4.47e6, electron, photon(5.299e6), Isotope(7, 8)))
 decay(Isotope(6, 16), .75 * second,
       # 84% beta- 5.4; 100% n ???
-      (.84, 5.4e6, electron, neutron, Nucleon(7, 8)),
-      (.16, 0, neutron, Nucleon(6, 9)))
+      (.84, 5.4e6, electron, neutron, Isotope(7, 8)),
+      (.16, 0, neutron, Isotope(6, 9)))
 
 decay(Isotope(7, 12), .011 * second,
       # 94% beta+ 16.3; 4% alpha; 2% gamma 4.439
-      (.94, 16.3e6, positron, Nucleon(6, 6)),
-      (.04, 0, alpha, Nucleon(5, 3)),
-      (.02, 4.439e6, Nucleon(7, 5)))
-decay(Isotope(7, 13), 9.96 * minute, (1, 1.19e6, positron, Nucleon(6, 7)))
+      (.94, 16.3e6, positron, Isotope(6, 6)),
+      (.04, 0, alpha, Isotope(5, 3)),
+      (.02, 4.439e6, Isotope(7, 5)))
+decay(Isotope(7, 13), 9.96 * minute, (1, 1.19e6, positron, Isotope(6, 7)))
 decay(Isotope(7, 16), 7.1 * second,
      # 26% beta- 10.42; 68% beta- 4.29; 69% gamma 6.129; 5% gamma 7.115; 1% gamma .871
-      (1, 10.42e6, electron, Nucleon(8, 8)))
+      (1, 10.42e6, electron, Isotope(8, 8)))
 decay(Isotope(7, 17), 4.17 * second,
       # 2% beta- 8.7; 50% beta- 3.3; 95% n; 3% gamma .871 ???
-      (.02, 8.7e6, electron, Nucleon(8, 9)),
-      (.5, 3.3e6, electron, neutron, Nucleon(8, 8)))
+      (.02, 8.7e6, electron, Isotope(8, 9)),
+      (.5, 3.3e6, electron, neutron, Isotope(8, 8)))
 decay(Isotope(7, 18), .63 * second,
       # 100% beta- 9.6; 100% 1.982; 72% gamma .82; 72% gamma 1.65
-      (1, 9.6e6, electron, Nucleon(8, 10)))
+      (1, 9.6e6, electron, Isotope(8, 10)))
 
 decay(Isotope(8, 13), 9e-3 * second,
       # beta+ 16.7; 12% p
-      (.88, 16.7e6, positron, Nucleon(7, 6)),
-      (.12, 16.7e6, positron, proton, Nucleon(6, 6)))
+      (.88, 16.7e6, positron, Isotope(7, 6)),
+      (.12, 16.7e6, positron, proton, Isotope(6, 6)))
 decay(Isotope(8, 14), 70.6 * second,
       # 1% beta+ 4.12; 99% beta+ 1.81; 99% gamma 2.313
-      (.01, 4.12e6, positron, Nucleon(7, 7)),
-      (.99, 1.81e6, photon(2.313e6), positron, Nucleon(7, 7)))
-decay(Isotope(8, 15), 122.1 * second, (1, 1.73e6, positron, Nucleon(7, 8)))
+      (.01, 4.12e6, positron, Isotope(7, 7)),
+      (.99, 1.81e6, photon(2.313e6), positron, Isotope(7, 7)))
+decay(Isotope(8, 15), 122.1 * second, (1, 1.73e6, positron, Isotope(7, 8)))
 
 del kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
-    gram, kg, tonne, second, minute, day, year, metre, mol, torr \
+    gram, kg, tonne, second, minute, day, year, metre, mol, torr, \
     eV, Particle, Boson, Fermion, proton, neutron, electron, AMU

@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.17 2007-03-24 16:08:28 eddy Exp $
+$Id: body.py,v 1.18 2007-03-24 22:42:21 eddy Exp $
 """
 
 class Satellites:
@@ -92,7 +92,7 @@ course !), though ideally a more selective purge could be used.\n"""
         """Inserts what in self, taking hint that it belongs at end."""
         self.insert(len(self.__carry), what)
 
-from value import object
+from study.value import object
 
 class Object (object.Object):
     __space_upinit = object.Object.__init__
@@ -112,7 +112,7 @@ class Object (object.Object):
     def _lazy_get_Bode_(self, ignored, cache=[]):
         try: gen = cache[0]
         except IndexError:
-            from space.Bode import Bodalizer
+            from Bode import Bodalizer
             gen = Bodalizer
             cache.append(gen)
 
@@ -124,7 +124,7 @@ class Object (object.Object):
     def _lazy_get_satellites_(self, ig, S=Satellites):
         return S(self._lazy_reset_, self.__load_satellites)
 
-    from chemy.physics import Cosmos
+    from study.chemy.physics import Cosmos
     def _lazy_get_GM_(self, ig, G=Cosmos.G):
         try: mass = self.mass
         except AttributeError: # e.g. thanks to Lazy's recursion detection ...
@@ -142,8 +142,8 @@ class Object (object.Object):
 
 del object, Satellites
 
-from value.units import Quantity, second, metre, turn, pi, tophat
-from space.common import Spin, Orbit
+from study.value.units import Quantity, second, metre, turn, pi, tophat
+from common import Spin, Orbit
 
 class Body (Object):
     def _lazy_get_tidal_(self, ignored, zero = 0 / second**2, Q=Quantity):
@@ -236,7 +236,7 @@ class Body (Object):
 
         try: best = self.__GM(ignored)
         except AttributeError:
-            from value.sample import Weighted
+            from study.value.sample import Weighted
             if row: best = Weighted(row).median()
             else: raise AttributeError(ignored, 'no data available from which to infer')
             row.remove(best)
@@ -329,7 +329,7 @@ del Spin
 class Group (Object): pass # of galaxies
 
 del Quantity, second, metre, turn, pi
-from space.common import Round, Spheroid
+from common import Round, Spheroid
 
 class Galaxy (Body, Round): pass
 class Star (Body, Round): pass

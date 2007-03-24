@@ -2,11 +2,10 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.9 2007-03-24 16:23:06 eddy Exp $
+$Id: zoom.py,v 1.10 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Object, year, kg
-import math
+from study.value.units import Object, year, kg
 
 # the following is generally wrong !
 class Zoom (Object):

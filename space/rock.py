@@ -1,12 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
 
-$Id: rock.py,v 1.4 2007-03-24 16:20:34 eddy Exp $
+$Id: rock.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import tophat, mega, day, km, metre, kg, litre
-from space.body import Planetoid, Planet
-from space.common import Spheroid, Orbit, Spin
+from study.value.units import tophat, mega, day, km, metre, kg, litre
+from body import Planetoid, Planet
+from common import Spheroid, Orbit, Spin
 
 # Packaging data taken from NASA atlas, mostly pp 325--327
 def NASAshell(major, minor=None, minim=None, Sp=Spheroid, u=km):

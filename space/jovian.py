@@ -4,14 +4,14 @@
 Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and L5
 (trailing).
 
-$Id: jovian.py,v 1.4 2007-03-24 16:16:29 eddy Exp $
+$Id: jovian.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import metre, km, mega, tophat
-from space.rock import NASAmoon, NASAshell, NamedOrbit, SAOmoon
-from space.common import Discovery
-from space.body import Ring
-from space.outer import Jupiter
+from study.value.units import metre, km, mega, tophat
+from rock import NASAmoon, NASAshell, NamedOrbit, SAOmoon
+from common import Discovery
+from body import Ring
+from outer import Jupiter
 
 _tmp = Discovery("Galileo Galilei", 1610, location="Padua",
                  date="1610 January 8",

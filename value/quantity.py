@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.44 2007-03-24 16:49:19 eddy Exp $
+$Id: quantity.py,v 1.45 2007-03-24 22:42:21 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -277,7 +277,10 @@ def thermal():
     return { 'Centigrade': C, 'C': C, 'Celsius': C,
              'Fahrenheit': F, 'F': F  }
 
-kind_prop_lookup = { '': scalar, 'rad': angle, 'm/s': speed, 'kg': mass, 's': time, 'K': thermal }
+kind_prop_lookup = {
+    '': scalar, 'rad': angle, 'm/s': speed,
+    'kg': mass, 's': time, 'K': thermal,
+    '(m/s)**2.kg' : energy }
 del scalar, angle, speed, mass, time, thermal
 
 def adddict(this, that):
@@ -329,7 +332,7 @@ def scaledict(dict, scale):
 
     return result
 
-from value.object import Object
+from object import Object
 _terse_dict = {}
 
 class Quantity (Object):
@@ -793,4 +796,6 @@ def base_unit(nom, fullname, doc, **what):
     _terse_dict[nom] = result
     return result
 
-tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__) # 0 +/- .5: scale and add offset to taste
+tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__)
+# 0 +/- .5: scale and add offset to taste, e.g.:
+def sample(mid, tol, flat=2*tophat): return mid + tol * flat

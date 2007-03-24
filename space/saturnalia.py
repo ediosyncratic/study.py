@@ -1,14 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.6 2007-03-24 16:20:58 eddy Exp $
+$Id: saturnalia.py,v 1.7 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import mega, metre, km, tophat
-from space.common import Discovery
-from space.body import Ring, Hoop
-from space.rock import NASAmoon, NASAshell, NASAtrojan, SAOmoon
-from space.outer import Saturn
+from study.value.units import mega, metre, km, tophat
+from common import Discovery
+from body import Ring, Hoop
+from rock import NASAmoon, NASAshell, NASAtrojan, SAOmoon
+from outer import Saturn
 
 _tmp = Discovery("Herschel", 1789)
 Mimas = NASAmoon("Mimas", Saturn, _tmp, 185.52, 0.94,

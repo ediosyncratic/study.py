@@ -1,10 +1,10 @@
 """Description of black holes.
 
-$Id: hole.py,v 1.4 2007-03-24 16:13:20 eddy Exp $
+$Id: hole.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 
-from chemy.physics import Vacuum, Quantum, Cosmos, Thermal
-from value.quantity import pi, Object, Quantity
+from study.chemy.physics import Vacuum, Quantum, Cosmos, Thermal, pi
+from study.value.quantity import Object, Quantity
 
 class BlackHole (Object): # should be based on chemy.thermal.Radiator
     # Pass at least one of mass, radius, (surface) gravity, temperature to constructor.

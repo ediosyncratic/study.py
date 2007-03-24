@@ -44,10 +44,10 @@ starting on the first day of the next year, Piazzi made the first of a series of
 observations of what he soon realised was such a missing planet, which he named
 Ceres Ferdinandea.
 
-$Id: Bode.py,v 1.7 2007-03-24 16:06:33 eddy Exp $
+$Id: Bode.py,v 1.8 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.lazy import Lazy
+from study.value.lazy import Lazy
 
 class Bodalizer (Lazy):
     """The auto-Bodalizer.
@@ -94,7 +94,7 @@ Public methods:
 
     # Auto-detection of zero, unit and base:
 
-    from value.quantity import Quantity, tophat, tera
+    from study.value.quantity import Quantity, tophat, tera
     # NB: Any scalar Quantity has attributes exp and log (among others) we can exploit ;^)
 
     def median(seq, span=1, Q=Quantity, unit=tophat): # tool func
@@ -139,7 +139,7 @@ Public methods:
 
         return map(lambda x: x.orbit.radius, seq)
 
-    from value.SI import metre
+    from study.value.SI import metre
     Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
     del tophat, tera, metre
 
@@ -216,7 +216,7 @@ Public methods:
 
         return float(span) + 1j * float(oz)
 
-    from maths.search import Search
+    from study.maths.search import Search
 
     def _lazy_get_zero_(self, ignored, S=Search, e=math.exp, AU=Unit, Q=Quantity):
         # Mercury's orbit as zero:

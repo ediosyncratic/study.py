@@ -34,9 +34,9 @@ Miscellaneous:
   pythagorean -- integer-sided right-angle triangles
   ratio -- representing exact fractions and approximating numbers with them
 
-$Id: __init__.py,v 1.1 2007-03-24 15:57:38 eddy Exp $
+$Id: __init__.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
 """
-from value.quantity import Quantity
+from study.value.quantity import Quantity
 
 goldenratio = Quantity((1 + 5.**.5) / 2,
                        doc = """The golden ratio.

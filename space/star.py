@@ -11,13 +11,13 @@ See also:
   millisecond pulsar:
   http://antwrp.gsfc.nasa.gov/apod/ap020220.html
 
-$Id: star.py,v 1.5 2007-03-24 16:21:20 eddy Exp $
+$Id: star.py,v 1.6 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Quantity, tophat, kilo, mega, giga, micro, year, day
-from space.body import Object, Star, Group
-from space.common import Discovery, Spheroid, Spin, Orbit
-from space.home import Sun, AU
+from study.value.units import Quantity, tophat, kilo, mega, giga, micro, year, day
+from body import Object, Star, Group
+from common import Discovery, Spheroid, Spin, Orbit
+from home import Sun, AU
 
 class Cluster (Group): pass
 def Stjerne(name, typ, dist, locn, mass, size, lum, spin=None,

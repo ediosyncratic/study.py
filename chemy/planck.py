@@ -1,8 +1,9 @@
+# -*- coding: iso-8859-1 -*-
 """Planck's units.
 
-$Id: planck.py,v 1.1 2007-03-24 15:01:10 eddy Exp $
+$Id: planck.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
 """
-from physics import Vacuum, Quantum, Cosmos, Thermal
+from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 
 # Should really define a `system of units' class ...
 # Planck's units (c.f. Hartree's in /usr/share/misc/units):

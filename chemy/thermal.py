@@ -1,9 +1,9 @@
 """Description of thermal radiation.
 
-$Id: thermal.py,v 1.3 2007-03-24 16:11:59 eddy Exp $
+$Id: thermal.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
-from value.object import Object
+from study.value.object import Object
 
 import math # will del later
 
@@ -57,7 +57,7 @@ class Radiator (Object):
         else: return base * c**2 / wavelength**5
 
 del math, Object, Quantum
-from value.units import Kelvin
+from study.value.units import Kelvin
 
 def radiator(temperature, *args, **what):
     """Wrap Radiator with provision for -ve temperatures (in Centigrade).

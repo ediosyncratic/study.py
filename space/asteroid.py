@@ -10,17 +10,22 @@ See also:
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.9 2007-03-24 16:05:41 eddy Exp $
+$Id: asteroid.py,v 1.10 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
-from space import Planets, D
-from space.body import Asteroid, Ring
-from space.common import Discovery, Orbit
-from space.rock import NASAmoon, NASAshell
+from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, \
+     ton, mile, year, km, kg
+from inner import Mercury, Venus, Mars
+from home import Sun, AU, Earth
+from body import Asteroid, Ring
+from common import Discovery, Orbit, Spheroid
+from rock import NASAmoon, NASAshell
+
+# Rough stab at tilt of the asteroid belt - at least as much as any inner planet:
+tilted = max(map(lambda x: abs(x.orbit.spin.tilt), [ Mercury, Venus, Earth, Mars ]))
+del Mercury, Venus, Earth # keep Mars for its moons:
 
 # Mars' moons are just captured asteroids ...
-from space.inner import Mars
 tmp = Discovery("A. Hall", 1877, location="Washington", date="""August, 1877
 
 Hall discovered Deimos on August 11th and Phobos on August 17th.
@@ -40,9 +45,7 @@ Deimos = NASAmoon("Deimos", Mars, tmp, 23.46, 1.26,
                   etymology="Greek: Deimos (= English: Flight or Panic)")
 del Mars, tmp
 
-Asteroids = Ring("The Asteroid Belt", D.Sun, D.AU, 5 * D.AU,
-                 # at least as much tilt as any inner planet
-                 max(map(lambda x: abs(x.orbit.spin.tilt), Planets.inner)),
+Asteroids = Ring("The Asteroid Belt", Sun, AU, 5 * AU, tilted,
                  # Let Orbit guess eccentricity (don't use Ring's default, 0)
                  None,
                  __doc__ = """The Asteroid Belt
@@ -55,7 +58,7 @@ quite a few that inhabit Jupiter's Lagrange points.\n""")
 def IArock(name, when, period, maxdiam, mass, miss,
            blur=(1+.01*Sample.tophat), Tton=tera*ton.US, Mmile=mega*mile,
            Q=Quantity, bar=Sample.tophat, yr=year, ml=mile,
-           find=Discovery, rock=Asteroid, sol=D.Sun):
+           find=Discovery, rock=Asteroid, sol=Sun):
     """Asteroids described by Asimov in From Earth to Heaven.
 
 See p. 210, table 32.\n"""
@@ -70,7 +73,7 @@ See p. 210, table 32.\n"""
                 discovery=when)
 
 Ceres = Asteroid('Ceres',
-                 Orbit(D.Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
+                 Orbit(Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
                  Quantity(.87 + .01 * tophat, zetta * kg),
                  surface = Spheroid(Quantity(466 + tophat, km)),
                  number = 1,
@@ -124,5 +127,5 @@ Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
-del Planets, D, Asteroid, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock
+del Sun, AU, Asteroid, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock
 del Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg

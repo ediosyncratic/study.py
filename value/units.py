@@ -83,7 +83,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.27 2007-03-24 16:54:47 eddy Exp $
+$Id: units.py,v 1.28 2007-03-24 22:42:21 eddy Exp $
 """
 from SI import *
 
@@ -376,7 +376,6 @@ to base ten and multiply by ten to get the dB (SIL) value for it.  A sound
 intensity of one Watt per square metre is thus 12 Bel or 120 dB.\n"""))
 
 
-import string
 # Description of bytes, including the kilo = 1024 twist ...
 # but note kibi, mibi etc. should obsolete these; see quantity.py
 
@@ -401,7 +400,7 @@ class bQuantity(Quantity):
             else: here = '%sbyte^%d^' % (mul, order)
 
             if uni:
-                ind = string.find(uni, '/')
+                ind = uni.find('/')
                 if ind < 0: uni = uni + '.' + here
                 elif ind > 0: uni = uni[:ind] + '.' + here + uni[ind:]
                 else: uni = here + uni

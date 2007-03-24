@@ -1,17 +1,17 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.8 2007-03-24 16:16:51 eddy Exp $
+$Id: Kuiper.py,v 1.9 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import Sample, Quantity, tophat, \
+from study.value.units import Sample, Quantity, tophat, \
      tera, giga, mega, kilo, metre, mile, day, hour, year, kg, \
      Fahrenheit, Centigrade
-from space.home import Sun, Earth, AU, KLplanet, KLsurface
-from space.outer import Neptune
-from space.common import Orbit, Spin, Discovery, Spheroid
-from space.rock import NASAmoon, NASAshell
-from space.body import Planet, Object, Ring, Shell
+from home import Sun, Earth, AU, KLplanet, KLsurface
+from outer import Neptune
+from common import Orbit, Spin, Discovery, Spheroid
+from rock import NASAmoon, NASAshell
+from body import Planet, Object, Ring, Shell
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),

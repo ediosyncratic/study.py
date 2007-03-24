@@ -1,14 +1,13 @@
 """Atomic energy levels.
-"""
 
-_rcs_id_ = """
-$Id: atomic.py,v 1.2 2007-03-08 23:22:35 eddy Exp $
+$Id: atomic.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
 """
-from polynomial import Polynomial
+from study.maths.polynomial import Polynomial
 
 class Laguerre (Polynomial):
     __upinit = Polynomial.__init__
-    from natural import hcf, factorial
+    from study.maths.natural import hcf
+    from study.maths.Pascal import factorial
 
     def __init__(self, n, b, hcf=hcf, pling=factorial):
         if b < 0 or n <= b or b != int(b) or n != int(n):
@@ -31,7 +30,7 @@ class Laguerre (Polynomial):
         return ((self * linear)**2).Gamma ** .5
 
 del Polynomial
-from basEddy.lazy import Lazy
+from study.value.lazy import Lazy
 
 class Radial (Lazy):
     def __init__(self, n, b, Z):
@@ -51,7 +50,7 @@ class Radial (Lazy):
         return self.__poly(2*r) / r.exp / self.scale
 
 del Lazy
-from Legendre import Spherical
+from study.maths.Legendre import Spherical
 
 class Orbit:
     def __init__(self, n, b, j, Z=1):
@@ -95,12 +94,3 @@ class Orbit:
         Bohr radius as unit of length.\n"""
 
         return self.__angular(phi, theta) * self.__radial(r)
-
-
-_rcs_log_ = """
-$Log: atomic.py,v $
-Revision 1.2  2007-03-08 23:22:35  eddy
-Support Energy and degeneracy, revise scale.
-
-Initial Revision 1.1  2005/09/09 00:07:49  eddy
-"""

@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.35 2007-03-24 16:50:50 eddy Exp $
+$Id: sample.py,v 1.36 2007-03-24 22:42:21 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1173,7 +1173,7 @@ class statWeighted (_baseWeighted):
         # failing those, be arbitrary:
         return hi
 
-from value.object import Object
+from object import Object
 
 class _Weighted (Object, _baseWeighted):
     """Base-class providing a form of weight-dictionary. """

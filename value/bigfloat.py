@@ -18,9 +18,9 @@ is thus made available to the infrastructure tracking the overall powers of two
 encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
 accompanying the fractional value.
 
-$Id: bigfloat.py,v 1.12 2007-03-24 16:26:59 eddy Exp $
+$Id: bigfloat.py,v 1.13 2007-03-24 22:42:21 eddy Exp $
 """
-from value.lazy import Lazy
+from lazy import Lazy
 from types import FloatType
 
 class BigFloat (Lazy):

@@ -4,17 +4,17 @@
 Note that each outer planet's system of moons has a total mass of roughly 1e-4
 times the planet's mass: http://www.physorg.com/news69517584.html
 
-$Id: outer.py,v 1.5 2007-03-24 16:20:15 eddy Exp $
+$Id: outer.py,v 1.6 2007-03-24 22:42:21 eddy Exp $
 """
 
-from value.units import tophat, giga, mega, metre, day, hour, minute, year, kg
-from space.home import Sun, KLplanet, KLsurface
-from space.common import Orbit, Spin, Discovery
+from study.value.units import tophat, giga, mega, metre, day, hour, minute, year, kg
+from home import Sun, KLplanet, KLsurface
+from common import Orbit, Spin, Discovery
 tyr = 365.242198781 * day
 gassy = "H2, He, CH4, NH3, etc."
 
 def load_jovian(): # lazy satellite loader
-    import space.jovian
+    import jovian
 
 Jupiter = KLplanet('Jupiter',
                    KLsurface(11.19, 2.54, Spin(9 * hour + 50 * minute, 3.1),
@@ -40,7 +40,7 @@ Jupiter.orbit.spin.period.observe(11.862 * tyr)
 Jupiter.orbit.radius.observe(giga * (778.30 + .1 * tophat) * metre) # NASA
 
 def load_saturnalia(): # lazy satellite loader
-    import space.saturnalia
+    import saturnalia
 
 Saturn = KLplanet('Saturn',
                   KLsurface(9.41, 1.07, Spin(10 * hour + 14 * minute, 26.7),
@@ -70,7 +70,7 @@ Saturn.orbit.spin.period.observe(29.458 * tyr)
 Saturn.orbit.radius.observe(giga * (1429.39 + .1 * tophat) * metre) # NASA
 
 def load_uranic(): # lazy satellite loader
-    import space.uranic
+    import uranic
 
 Uranus = KLplanet('Uranus',
                   KLsurface(3.98, .9, Spin(15 * hour + 34 * minute, 97.9),
@@ -90,7 +90,7 @@ Uranus.orbit.spin.period.observe(83.75 * year) # NASA (suspiciously 1 year off K
 Uranus.orbit.radius.observe(giga * (2875.04 + .1 * tophat) * metre) # NASA
 
 def load_neptunous(): # lazy satellite loader
-    import space.neptunous
+    import neptunous
 
 Neptune = KLplanet('Neptune',
                    KLsurface(3.81, 1.2, Spin(18 * hour + 26 * minute, 29.6),

@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.3 2007-03-24 17:24:38 eddy Exp $
+$Id: primes.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 
 checking = None
@@ -433,29 +433,28 @@ def _tabulate_block(file, block):
 
 	file.write(' ' + `item` + ',')
 
-from value.lazy import Lazy
+from study.value.lazy import Lazy
 class cachePrimes(_Prime, Lazy):
     def __init__(self, row=None, sparse=None,
-		 moduledir='/home/eddy/sys/py',
+		 moduledir='/home/eddy/.sys/py',
 		 cachedir=None):
 	_Prime.__init__(self, row, sparse)
-	self._prime_module_dir = moduledir
-	self._prime_cache_dir = cachedir
-	self._step = 1024
-	self._high_water = 0
+	self.__prime_module_dir = moduledir
+        if cachedir is not None:
+            self.prime_cache_dir = cachedir
+	self.__step = 1024
+	self.__high_water = 0
 	return
 
     def _lazy_get_prime_cache_dir_(self, ignored):
-	if not self._prime_cache_dir:
-	    import os
-	    self._prime_cache_dir = os.path.join(self._prime_module_dir, 'primes')
-	return self._prime_cache_dir
+        import os
+	return os.path.join(self.__prime_module_dir, 'primes')
 
     def _do_import(self, handle):
 	"""Imports data from a file, preparatory to _load()ing."""
 	import sys, os
 	name = 'temp_cache'
-	infile = os.path.join(self._prime_module_dir, name + '.py')
+	infile = os.path.join(self.__prime_module_dir, name + '.py')
 
 	try: saved = sys.modules[name]
 	except KeyError: saved = None
@@ -471,7 +470,8 @@ class cachePrimes(_Prime, Lazy):
 
 	    finally:
 		os.unlink(infile)
-		os.unlink(infile + 'c')	# kill the .pyc file too !
+                if os.path.exists(infile + 'c'):
+                    os.unlink(infile + 'c') # kill the .pyc file too !
 	finally:
 	    # Put sys.modules back the way we found it.
 	    if saved: sys.modules[name] = saved
@@ -543,10 +543,10 @@ class cachePrimes(_Prime, Lazy):
 
     def _next_high(self):
 	try:
-	    while self._step < self._high_water / 8:
-		self._step = self._step * 2
+	    while self.__step < self.__high_water / 8:
+		self.__step = self.__step * 2
 	except OverflowError: pass
-	return self._high_water + self._step
+	return self.__high_water + self.__step
 
     def persist(self, name='c', force=None):
 	"""Records `most' of what the primes module knows in files for later reference.
@@ -586,25 +586,25 @@ class cachePrimes(_Prime, Lazy):
 	new = self._next_high()
 	size = len(self._item_carrier)
 	while new < size:
-	    outfile = name + `self._high_water` + '-' + `new` + '.py'
+	    outfile = name + `self.__high_water` + '-' + `new` + '.py'
 	    if force or not os.path.exists(outfile):
 		file = open(tmpfile, 'w')
 		try:
 		    file.writelines([
 		    '"""Persistence data for primes module."""',
-		    '\nat = ', `self._high_water`,
+		    '\nat = ', `self.__high_water`,
 		    '\nto = ', `new`,
 		    '\nsparse = ', `_sparse`,
 		    '\nblock = ['])
 		    _tabulate_block(file,
-				    self._item_carrier[self._high_water:new])
+				    self._item_carrier[self.__high_water:new])
 		    file.write('\n]\n')
 
 		finally: file.close()
 
 		os.rename(tmpfile, outfile)
 
-	    self._high_water = new
+	    self.__high_water = new
 	    new = self._next_high()
 
     def _lazy_get__caches_(self, ignored, stem='cache'):
@@ -613,19 +613,19 @@ class cachePrimes(_Prime, Lazy):
 	    dir = self.prime_cache_dir
 	    row = os.listdir(dir)
 	except: return {}
-	import string
 
-	def _read_int(text):
+	import string
+	def _read_int(text, s=string):
 	    import string
-	    if text[-1] == 'L': return string.atol(text, 0)
-	    else: return string.atoi(text, 0)
+	    if text[-1] == 'L': return s.atol(text, 0)
+	    else: return s.atoi(text, 0)
 
 	result = {}
 	lang = len(stem)
 	for name in row:
 	    if name[:lang] == stem and name[-3:] == '.py' and '-' in name[lang:-3]:
 		result[os.path.join(dir, name)
-		       ] = map(_read_int, string.split(name[lang:-3], '-'))
+		       ] = map(_read_int, name[lang:-3].split('-'))
 
 	return result
 

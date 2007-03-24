@@ -17,14 +17,14 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.23 2007-03-24 14:58:25 eddy Exp $
+$Id: particle.py,v 1.24 2007-03-24 22:42:21 eddy Exp $
 """
-from physics import sample, Quantum, Vacuum, Thermal
-from value.units import tophat, pi, \
+from study.value.lazy import Lazy
+from study.value.quantity import Quantity, Object
+from study.value.units import tophat, pi, \
      harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
      gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
-from value.quantity import Quantity
-from value.lazy import Lazy
+from physics import sample, Quantum, Vacuum, Thermal
 from decay import Decay
 
 eV = Quantity(Quantum.Millikan, Volt,
@@ -53,8 +53,7 @@ class Particle (Object):
           decays -- a decay.Decays (q.v.) object.
 
         You can use an Object(particle, kinetic=energy) to specify a particle of
-        the given type with some specified kinetic energy.
-        """
+        the given type with some specified kinetic energy.\n"""
         try: self.__bits = what['constituents']
         except KeyError: pass # self will be deemed primitive
         else: del what['constituents']
@@ -80,7 +79,7 @@ class Particle (Object):
         To get the composition specified when self was constructed, pass
         Particle as the sole argument; pass no arguments to get the particle
         reduced to its most primitive constituents; pass Nucleon to get a
-        nucleus reduced to its nucleons; etc. """
+        nucleus reduced to its nucleons; etc.\n"""
 
         try: bits = self.__bits
         except AttributeError: return { self: 1 }
@@ -132,12 +131,13 @@ class Particle (Object):
         return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
 
     class __ItemCarrier (Lazy):
+        __upinit = Lazy.__init__
         def __init__(self, *args, **what):
             ali = what.get('lazy_aliases', {})
             # Only relevant to Quark and its bases:
             ali.update({'top': 'truth', 'bottom': 'beauty'})
             what['lazy_aliases'] = ali
-            apply(Lazy.__init__, (self,) + args, what)
+            apply(self.__upinit, args, what)
 
         # Only relevant to Lepton and its bases:
         def _lazy_get_positron_(self, ignored):
@@ -262,8 +262,7 @@ class Particle (Object):
         """Charge in units of on third the positron's charge.
 
         This is an exact integer value, far more suitable for working with than
-        the actual charge, whose error bar grows with each arithmetic operation.
-        """
+        the actual charge, whose error bar grows with each arithmetic operation.\n"""
 
         try: bits = self.__bits
         except AttributeError: return 0
@@ -342,7 +341,7 @@ class Particle (Object):
         sub-classes to make distinctions (e.g. that between bosonic and
         fermionic nuclei, below) one orthodoxly ignores, self may prefer to be
         sought in the base-class with the nice familiar name rather than in the
-        pedantically more apt derived class. """
+        pedantically more apt derived class.\n"""
 
         return '%s.item' % self.__class__.__name__
 
@@ -621,9 +620,7 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, un
       -ve quark mass -- mass estimate, in GeV, for the -ve quark
 
       +ve quark name -- name of the quark of charge with +ve charge 2*e/3
-      +ve quark mass -- mass estimate, in GeV, for the +ve quark
-
-    """
+      +ve quark mass -- mass estimate, in GeV, for the +ve quark\n"""
 
     return Family(Neutrino(lnom, mass=Quantity(under(nm), mev)),
                   Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym, decay=Quantity(lrate, Hertz)),
@@ -712,7 +709,7 @@ proton = Nucleon(2, 1, 'proton',
 # c.f. moment of inertia = mass * area
 
 neutron = Nucleon(1, 2, 'neutron',
-                  Quantity(sample(939565.36 + .8), kilo * eV.mass,
+                  Quantity(sample(939565.36, .8), kilo * eV.mass,
                            sample = (Quantity(sample(1.0086649156, .6e-9), AMU),
                                      Quantity(sample(1674.82, .08), harpo * gram))),
                   "The neutral (uncharged) ingredient in nuclei",
@@ -725,9 +722,9 @@ their error bars didn't over-lap), but showed a consistent downward trend.  That
 trend appears to have stabilised, with (reassuringly) mutually compatible
 results emerging in the 1990s ans since, converging on the value used here
 ('Review of Particle Properties', K. Hagiwara et al. (Particle Data Group),
-Phys. Rev.  D 66 (2002) 010001).\n"),
+Phys. Rev.  D 66 (2002) 010001).\n"""),
                   # http://hyperphysics.phy-astr.gsu.edu/hbase/particles/proton.html#c4
-                  decays=((1, .7824e6 * ev, proton, electron, Neutrino.item.electron.anti),)
+                  decays=((1, .7824e6 * eV, proton, electron, Neutrino.item.electron.anti),),
                   # charge: Quantity(sample(-.4, 1.1), zepto * electron.charge), i.e. zero.
                   magneticmoment = 0.96623640e-26 * Joule / Tesla,
                   polarizability = Object(electric = Quantity(sample(1.16, .15),
@@ -743,6 +740,6 @@ radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
 Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
 
-del sample, Quantum, Vacuum, Thermal, tophat, pi, Quantity, Lazy, Decay, \
+del sample, Quantum, Vacuum, Thermal, tophat, pi, Quantity, Decay, \
     harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
     gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla

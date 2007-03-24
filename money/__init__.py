@@ -1,12 +1,13 @@
+# -*- coding: iso-8859-1 -*-
 """Describing finance.
 
 Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
 
-$Id: __init__.py,v 1.3 2007-03-24 16:48:54 eddy Exp $
+$Id: __init__.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
-from value.quantity import base_unit, tophat
+from study.value.quantity import base_unit, tophat
 
 quid = base_unit('£', 'Pound Sterling',
 		 """The base unit of British currency.

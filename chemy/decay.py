@@ -23,7 +23,7 @@ modest half-life, during which this intermediate can run into the third party.
 Description of reactions/decays is thus quite a subtle problem.  Which is my
 excuse for the present implementation being over-simple ...
 
-$Id: decay.py,v 1.3 2007-03-24 14:26:18 eddy Exp $
+$Id: decay.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 import math # del it later
 _ln2 = math.log(2)
@@ -69,6 +69,9 @@ def ratedDecay(source, halflife, *procs):
     procs = tuple(map(lambda p, s=scale: (p[0] / s,) + tuple(p[1:]), procs))
     return apply(Decay, (source,) + procs)
 
+from study.value.lazy import Lazy
+from study.value.units import second
+
 class Decay (Lazy):
     """Describes all the decays of some species of particle.
     """
@@ -133,16 +136,5 @@ class Decay (Lazy):
 
     def before(self, when, exp=math.exp):
         return 1 - exp(self.rate * when)
-
-del math
 
-_rcs_log = """
- $Log: decay.py,v $
- Revision 1.3  2007-03-24 14:26:18  eddy
- Eliminate dependence on old const.py; fix handling of log(2).
-
- Revision 1.2  2007/03/08 23:32:41  eddy
- Better tunnelling.  Wry comment.
-
- Initial Revision 1.1  2003/07/09 21:32:38  eddy
-"""
+del math, Lazy

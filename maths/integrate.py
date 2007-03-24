@@ -1,6 +1,6 @@
 """Integration made easy.
 
-$Id: integrate.py,v 1.4 2007-03-24 15:19:18 eddy Exp $
+$Id: integrate.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -107,7 +107,7 @@ class Integrator:
 
     # hairy implementation follows: no further exports.
 
-    from value.quantity import tophat
+    from study.value.quantity import tophat
     def __blur(mid, spread, H=tophat): return mid + H * spread
     del tophat
     # __blur and __gettest will be del'd shortly ... they're *not* methods

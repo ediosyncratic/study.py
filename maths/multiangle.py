@@ -3,10 +3,8 @@
 See S and C for details, or
 http://www.chaos.org.uk/~eddy/math/multiangle.html
 for theory.
-"""
 
-_rcs_id_ = """
-$Id: multiangle.py,v 1.10 2003-09-01 05:32:37 eddy Exp $
+$Id: multiangle.py,v 1.11 2007-03-24 22:42:21 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -102,45 +100,8 @@ class seqSin (LazySeq):
 
         assert ans.rank == key
         return ans
-
+
 # C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin()
 del seqCos, seqSin, LazySeq
 del term, z, Polynomial
-
-_rcs_log_ = """
-$Log: multiangle.py,v $
-Revision 1.10  2003-09-01 05:32:37  eddy
-Little tweaks.  Defined term more clearly; deployed it more.  Renamed z
-to x when tunnelling it.  Delete LazySeq when used.
-
-Revision 1.9  2003/09/01 05:25:43  eddy
-Changed Middle to use addition-derived formulae.  Refined a check.
-
-Revision 1.8  2003/08/17 20:25:35  eddy
-Added some assertions to Middle.
-
-Revision 1.7  2003/08/13 22:15:12  eddy
-Fixed d'oh; wrong sign for the term used by Cos.
-
-Revision 1.6  2003/08/12 22:57:43  eddy
-Eliminated A, B, Q, R in favour of K and halvings through S and C;
-i.e. I have now proved B-Q unification (and renamed T and D to K), along
-with eliminating A and R as mere aspects of C and S (respectively).
-
-Revision 1.5  2003/08/10 20:45:02  eddy
-Added implementation of the polynomial that unifies Q and B, albeit I haven't
-yet *proved* it does so.  The assertions make me confident, though ;^>
-
-Revision 1.4  2003/08/10 12:45:42  eddy
-Renumbered S down by 1, so S[n].rank is n.
-Added assorted assertions.
-
-Revision 1.3  2003/08/10 11:47:33  eddy
-Fixed the S[1] tweak so it's lambda x: 1, not lambda x: x - d'oh !
-
-Revision 1.2  2003/08/05 21:42:34  eddy
-Tweaked so S[1] is a polynomial, not 1.0; added comments.
-
-Initial Revision 1.1  2003/08/03 23:21:14  eddy
-"""
