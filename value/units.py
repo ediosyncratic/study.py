@@ -83,7 +83,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: units.py,v 1.26 2006-12-13 22:15:51 eddy Exp $
+$Id: units.py,v 1.27 2007-03-24 16:54:47 eddy Exp $
 """
 from SI import *
 
@@ -878,101 +878,3 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
             firkin = firkin.US, hogshead = hogshead.US, barrel = barrel.US,
             bushel = bushel.US, peck = peck.US, pace = pace.US, cable = cable.US,
             cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
-
-_rcs_log = """
- $Log: units.py,v $
- Revision 1.26  2006-12-13 22:15:51  eddy
- NIST gave some different spellings for unit names; and specified the rad.
-
- Revision 1.25  2006/08/08 21:01:47  eddy
- Move torr to beside atm and document.
- Add Reaumur function and wikipedia link.
-
- Revision 1.24  2006/08/06 22:40:27  eddy
- Added (some time ago) the logarithmic units bel and atronomical magnitude.
- Documented the arc units.  Used ** in preference to pow() and .weight in
- preference to .force.  Added the degree.Réaumur, quintal and pond.
- Added object limit, initially only bounding human hearing.
-
- Revision 1.23  2006/03/24 08:23:12  eddy
- Moved quid and Job out to money.py
-
- Revision 1.22  2006/01/04 12:00:40  eddy
- Corrected pica.  Added arc.point (c/o Neal Stephenson, Quicksilver).
-
- Revision 1.21  2005/10/31 02:45:31  eddy
- Corrected barn, linked to bipm's spec.
- Juggled handling of degree, noted the nautical bell.
-
- Revision 1.20  2005/05/20 07:08:34  eddy
- Added tropical and sidereal years.
-
- Revision 1.19  2005/04/24 14:28:34  eddy
- Documented the foot and noted its closeness to light nano-second.
-
- Revision 1.18  2005/03/20 17:45:11  eddy
- Scientific python module contradicted my datum on calorie; adjusted accordingly.
-
- Revision 1.17  2005/02/13 20:47:09  eddy
- Suggest several et al.
- Added to comments, shuffled order of bits, tidied up a bit.
-
- Revision 1.16  2005/02/06 10:46:56  eddy
- Conformed French units to name-spacery used for Scandic ones.
- Noted similarity of Swiss lien to the league.
- Guessed error bar on TNT from number of sig. figs in given datum.
-
- Revision 1.15  2005/01/17 23:57:38  eddy
- Added degree Object to carry the various kinds thereof.
- Added gunner's grad = turn / 400.
- Noted similarities between Danish volumes and UK ones.
- Noted Danish and Norse members of foot &c. families.
- Assorted minor tidy-up.
-
- Revision 1.14  2005/01/16 19:28:09  eddy
- Merged in lots of data I'd gathered into my copy of this at work.
- Added some documentation.
-
- Revision 1.13  2005/01/16 16:40:47  eddy
- Made to{Centigrade,Fahrenheit} redundant - temperatures now have an attribute for this.
- Fixed iso-latin-1 mangled chars
-
- Revision 1.12  2004/04/03 18:09:26  eddy
- Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
-
- Revision 1.11  2003/09/05 00:22:00  eddy
- Packed various things into namespaces, rather than jamming several words
- together to make their names.  Lots of tidy-up in the process.
-
- Revision 1.10  2003/04/21 20:15:45  eddy
- Use best, not mean, in qSample constructor (now delegates directly to Sample).
-
- Revision 1.9  2003/04/17 22:46:16  eddy
- Put non-SI units of angle back in units.py
-
- Revision 1.8  2003/04/17 22:42:02  eddy
- moved various SI-compatibles in from SI; moved angles to SI; some comments
-
- Revision 1.7  2003/04/17 22:19:20  eddy
- Fixed stupid typo in toCentrigrade; enhanced several docs; wrote, into
- doc string, a minor essay on the relevance of choice of unit.
-
- Revision 1.6  2002/10/06 18:04:58  eddy
- Removed use of the Quantity.name() - bad choice of method name !
- Also, eV is now elsewhere.
-
- Revision 1.5  2002/09/23 18:52:44  eddy
- Expanded sterling's doc.  Added Centigrade and Fahrenheit handlers.
-
- Revision 1.4  2002/03/21 03:06:18  eddy
- Added Scoville unit of pungency.
-
- Revision 1.3  2002/02/15 16:03:51  eddy
- Moved Mass/Time bodge to SI, various minor tweaks.
-
- Revision 1.2  2002/02/11 01:37:00  eddy
- Added Mass and Time to implement .force and .light attributes (respectively).
- Added quid and some comments.  Replaced workyear mess with Job etc.
-
- Initial Revision 1.1  2001/03/21 20:04:06  eddy
-"""

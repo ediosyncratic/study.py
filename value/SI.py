@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.13 2007-03-24 14:08:31 eddy Exp $
+$Id: SI.py,v 1.14 2007-03-24 16:53:35 eddy Exp $
 """
 from quantity import *
 
@@ -132,45 +132,3 @@ abridged the standard definition to give the number density of molecules (or
 atoms); multiply this by cm**3 to get the orthodox number. """),
     Faraday = mol.charge)
 # See also ../chemy/physics.py, which adds the gas constant, R.
-
-"""
- $Log: SI.py,v $
- Revision 1.13  2007-03-24 14:08:31  eddy
- Move most of old const.py's mol.also()s here.
-
- Revision 1.12  2006/08/06 22:42:22  eddy
- Use m**2 in places where I was using are before I corrected its definition !
-
- Revision 1.11  2005/10/31 02:39:10  eddy
- Corrected are, linked to SI brochure.
-
- Revision 1.10  2005/04/24 15:30:00  eddy
- Doc tweaks.
-
- Revision 1.9  2004/04/03 18:11:23  eddy
- Mass/Time bodge now redundant thanks to kind-specific _lazy_late_ in Quantity.
-
- Revision 1.8  2003/07/05 15:44:11  eddy
- Moved trigonometric functions out to trig.py
-
- Revision 1.7  2003/04/17 22:45:50  eddy
- Put non-SI units of angle back in units.py
-
- Revision 1.6  2003/04/17 22:40:09  eddy
- Removed (most) SI-compatibles to unit.py; added trig functions using units of angle.
-
- Revision 1.5  2003/02/16 14:31:15  eddy
- Added NIST URL and reference to const.py, which now stores some
- attributes on mol which it previously kept on an object called molar.
-
- Revision 1.4  2002/02/15 16:15:20  eddy
- Moved the Mass/Time bodges here (from units.py).
- Added units of textile fineness, tex and dtex.
-
- Revision 1.3  2002/02/11 01:32:49  eddy
- Migrated some aliasing to units.py, moved light-speed to a datum of times,
- repositioned poise and Stokes.  Untabified.
-
- Revision 1.2  1999/08/07 15:20:07  eddy
- Moved ancillaries, added log.
-"""
