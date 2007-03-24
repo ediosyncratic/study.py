@@ -6,8 +6,8 @@ to be able to perform the integration needed to determine moments (e.g. the
 mean) and the probability of the variate falling in any given range of its
 permitted values.
 
+$Id: variate.py,v 1.2 2007-03-24 15:57:04 eddy Exp $
 """
-_rcs_id = "$Id: variate.py,v 1.1 2007-03-09 00:03:08 eddy Exp $"
 
 from integrate import Integrator
 from basEddy import Lazy
@@ -84,10 +84,3 @@ class RatioGenerator:
             ans = self.__source()
             if self.__ratio(ans) > random() * bound:
                 return ans
-
-_rcs_log = """
- $Log: variate.py,v $
- Revision 1.1  2007-03-09 00:03:08  eddy
- Initial revision
-
-"""

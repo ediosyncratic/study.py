@@ -7,9 +7,9 @@ For each naturals i, j with i > j, the triangle with sides
 is a right-angle triangle, as may be verified by summing the squares of
 the later two and comparing to the square of the first
 (see http://www.chaos.org.uk/~eddy/math/pythagoras.html#Whole).
-"""
 
-_rcs_id = "$Id: pythagorean.py,v 1.3 2006-06-16 16:31:44 eddy Exp $"
+$Id: pythagorean.py,v 1.4 2007-03-24 15:49:46 eddy Exp $
+"""
 
 def whole(i, j):
     ans = ( 2*(i*(i+1) +(j+1)*j) +1, 2*(i*(i+1) -(j+1)*j), (2*i+1)*(2*j+1) )
@@ -97,15 +97,3 @@ def raysvg(bok, height=1024, base=10, maxp=3, font=14):
             break
 
     return '\n'.join(text)
-
-
-_rcs_log = """
- $Log: pythagorean.py,v $
- Revision 1.3  2006-06-16 16:31:44  eddy
- Generation of SVG to depict some pythagorean diagonals.
-
- Revision 1.2  2005/12/31 16:59:10  eddy
- No need to search: general solution known :-)
-
- Initial Revision 1.1  2005/08/18 16:48:44  eddy
-"""

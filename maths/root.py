@@ -1,7 +1,8 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
-$Id: root.py,v 1.6 2005-08-18 03:41:10 eddy Exp $
+
+$Id: root.py,v 1.7 2007-03-24 15:53:22 eddy Exp $
 """
 
 class Search:
@@ -144,25 +145,3 @@ class Search:
                 good = self.score
 
         self.__flush(16)
-
-_rcs_log = """
- $Log: root.py,v $
- Revision 1.6  2005-08-18 03:41:10  eddy
- .evaluate yields scalars, .copy preserves units.
-
- Revision 1.5  2004/04/25 17:11:45  eddy
- correct punctuation in a lambda
-
- Revision 1.4  2004/04/25 17:10:42  eddy
- Make logrange less wasteful.  Get gradient's chord-filtering right.
- Use min instead of .sort() and [0].  Added __broaden for when slope is too low.
-
- Revision 1.3  2004/04/25 15:28:08  eddy
- Use exact values in cache, yield exact values from refiners.
- Also, flush cache after each rummage.
-
- Revision 1.2  2004/04/25 14:06:46  eddy
- Fix dumb error in chord, and record its step size when sensible.
-
- Initial Revision 1.1  2004/04/25 13:56:17  eddy
-"""
