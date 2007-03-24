@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.8 2003-04-21 20:02:56 eddy Exp $
+$Id: object.py,v 1.9 2007-03-24 16:47:16 eddy Exp $
 """
 
 def aslookup(whom):
@@ -28,7 +28,7 @@ def aslookup(whom):
     return lambda k, __w=whom: getattr(__w, k)
     # which coincides with how an Object behaves as a callable.
 
-from basEddy.lazy import Lazy
+from lazy import Lazy
 
 class Object (Lazy):
     """A primitive object variety.
@@ -149,33 +149,3 @@ class Object (Lazy):
     def __call__(self, key): return getattr(self, key)
     # ... which curries self as getattr's first argument.
     # Then we can borrow from it.
-
-class Value (Object): pass       # Backwards compatibility ...
-
-_rcs_log = """
- $Log: object.py,v $
- Revision 1.8  2003-04-21 20:02:56  eddy
- Make borrowing only apply to magic and `export' attributes (i.e. ones
- whose names don't begin with _, unless they begin and end with __).
-
- Revision 1.7  2003/04/21 11:24:06  eddy
- Slightly cleaner handling of _lazy_preserve_.
-
- Revision 1.6  2003/04/12 12:55:05  eddy
- Provided for unborrowable attributes of Objects (for particle.py's
- benefit, in the first instance).  Clarified documentation a bit ...
-
- Revision 1.5  2002/10/06 15:33:30  eddy
- Rewrote aslookup(). Added support for lazy_aliases. Various tweaklets.
-
- Revision 1.4  1999/12/29 17:52:21  eddy
- Removed Sample infrastructure to sample.py; much further change.
-
- Revision 1.3  1999/02/21 01:49:47  eddy
- Redundant Numeric.
-
- Revision 1.2  1999/02/21 01:31:57  eddy
- Revolution.
-
- Initial Revision 1.1  1999/01/24 22:34:32  eddy
-"""

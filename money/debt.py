@@ -1,11 +1,10 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.2 2006-10-12 07:59:34 eddy Exp $
+$Id: debt.py,v 1.3 2007-03-24 16:43:31 eddy Exp $
 """
-
 from datetime import date, timedelta
-from basEddy import Lazy
-
+from value.lazy import Lazy
+
 class Debt (Lazy):
     def __init__(self, amount, currency, start=date.today(), monthly=None, yearly=.041 * .72):
         """Construct a Debt object.
@@ -139,10 +138,3 @@ def affordable(monthly, duration, interest=.041 * .72, inflate=.05):
     moons = int(duration * 12 + .5)
     if -1e-4 < f - h < 1e-4: return moons * monthly / h
     return monthly * (1 - (h/f)**moons) / (f - h)
-
-_rcs_log = """
- $Log: debt.py,v $
- Revision 1.2  2006-10-12 07:59:34  eddy
- Moved deployment to money.py, cleaned up assorted details.
-
-"""
