@@ -7,7 +7,7 @@ of the planets in order out from the Sun.  Write down the sequence
 and add 4 to each term:
         4, 7, 10, 16, 28, 52, 100, ...
 Then divide each term by 10.  This leaves you with the series
-        0.4, 0.7, 1.0, 1.6, 2.8, 5.2, 10.0, ...
+        0.4, 0.7, 1.0, 1.6, 2.8, 5.2, 10.0, 19.6, 38.8, ...
 which reasonably approximate the semimajor axes of the planets, measured in
 astronomical units; more accurately they're
     0.38692, 0.72300, 1, 1.52296, 5.1998, 9.556, 19.25, 30.18, 39.59
@@ -26,9 +26,10 @@ coincidental.  In particular, it is notable that the pattern from Saturn
 outwards is better modelled by an arithmetic series (in steps of 10 AU), whose
 next value inwards would be roughly zero, -0.46 AU.
 
-(That's from http://www.alcyone.com/max/physics/laws/b.html; while
-http://www.astropa.unipa.it/versione_inglese/Hystory/BODE'S_LAW.htm
-gives some history, as follows.)
+(That's from http://www.alcyone.com/max/physics/laws/b.html, and 0.46 AU is
+about 100 times the Sun's radius; while
+http://www.astropa.unipa.it/versione_inglese/Hystory/BODE'S_LAW.htm gives some
+history, as follows.)
 
 The law first appeared in 1766 in a translation, by Johann Daniel Titius von
 Wittenberg, of Contemplation de la Nature (1764), by the French natural
@@ -43,7 +44,7 @@ starting on the first day of the next year, Piazzi made the first of a series of
 observations of what he soon realised was such a missing planet, which he named
 Ceres Ferdinandea.
 
-$Id: Bode.py,v 1.5 2005-04-17 14:42:57 eddy Exp $
+$Id: Bode.py,v 1.6 2007-03-24 12:18:04 eddy Exp $
 """
 
 from basEddy.lazy import Lazy
@@ -75,17 +76,8 @@ Public methods:
         # First identfy your demos ...
         plenty, k = len(seq), 3
         while k * k < plenty: k = 1 + k
-        plenty = k
-        for k in self._bodytypes:
-            row = filter(lambda x, k=k: isinstance(x, k), seq)
-            if len(row) > plenty: break
-        self.__seq = map(lambda x: x.orbit.radius, row)
-
-    def _lazy_get__bodytypes_(self, ignored, seq=[]):
-        if seq: return tuple(seq)
-        from body import Planet, Planetoid, Body, Object
-        seq[:] = [ Planet, Planetoid, Body, Object ]
-        return tuple(seq)
+        plenty = k # max(3, sqrt(len(seq)) rounded up)
+        self.__seq = self.__enough(seq, plenty)
 
     def __len__(self): return len(self.__seq)
     def __getitem__(self, key):
@@ -93,6 +85,12 @@ Public methods:
 
     def __repr__(self):
         return 'lambda i: %s + %s * %s ** i' % (self.zero, self.unit, self.base)
+
+    def index(self, radius):
+        r = (radius - self.zero) / self.unit
+        if r.low < .0001: return 0 # avoid domain errors and hugely -ve answers ...
+        # (while incidentally being polite to Mercury)
+        return r.log / self.__base
 
     # Auto-detection of zero, unit and base:
 
@@ -108,6 +106,38 @@ Public methods:
         if b: lo, hi = seq[i].best, seq[-1-i].best
         else: lo, hi = seq[i].low, seq[-1-i].high
         return Q(1, .5 * (lo + hi) + unit * (hi - lo), best=best)
+
+    def __enough(self, seq, plenty, mid=median, cache=[]):
+        try: bodytypes = cache[0]
+        except IndexError:
+            from body import Planet, Planetoid, Body, Object
+            bodytypes = ( Planet, Planetoid, Body, Object )
+            cache.append(bodytypes)
+
+        for k in bodytypes:
+            row = filter(lambda x, k=k: isinstance(x, k), seq)
+            if len(row) < plenty: continue
+
+            # try to eliminate any initial or final arithmetic sequences
+            row = map(lambda x: x.orbit.radius, row)
+            gap = map(lambda x, y: y - x, row[:-1], row[1:])
+            rat = map(lambda x, y: (y / x).log, gap[:-1], gap[1:])
+            cut = mid(rat) / 5
+
+            score = rat[0]
+            while score < cut:
+                row, rat = row[1:], rat[1:]
+                score = score + rat[0]
+
+            score = rat[-1]
+            while score < cut:
+                row, rat = row[:-1], rat[:-1]
+                score = score + rat[-1]
+
+            if len(row) >= plenty:
+                return row
+
+        return map(lambda x: x.orbit.radius, seq)
 
     from basEddy.SI import metre
     Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
@@ -205,18 +235,15 @@ Public methods:
         return e(z.imag) * AU
 
     del Quantity, Search, Unit, math
-
-    def index(self, radius):
-        r = (radius - self.zero) / self.unit
-        if r.low < .0001: return 0 # avoid domain errors and hugely -ve answers ...
-        # (while incidentally being polite to Mercury)
-        return r.log / self.__base
 
 del Lazy
 
 _rcs_log = """
 $Log: Bode.py,v $
-Revision 1.5  2005-04-17 14:42:57  eddy
+Revision 1.6  2007-03-24 12:18:04  eddy
+More tinkering (some time ago, IIRC).
+
+Revision 1.5  2005/04/17 14:42:57  eddy
 More experimentation.  Reorganized docs.
 Check-in to have a fall-back: I'm about to try trimming arithmetic tail-piece.
 
