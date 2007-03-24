@@ -1,6 +1,10 @@
 """Basic physics.
 
-$Id: physics.py,v 1.1 2007-03-24 14:10:42 eddy Exp $
+See also:
+  http://physics.nist.gov/cuu/Constants/
+  http://www.alcyone.com/max/physics/laws/
+
+$Id: physics.py,v 1.2 2007-03-24 14:18:01 eddy Exp $
 """
 from value.units import *
 def sample(mid, tol, flat=2*tophat): return mid + tol * flat
