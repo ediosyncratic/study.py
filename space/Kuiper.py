@@ -1,10 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.7 2005-03-21 23:21:14 eddy Exp $
+$Id: Kuiper.py,v 1.8 2007-03-24 16:16:51 eddy Exp $
 """
 
-from basEddy.units import Sample, Quantity, tophat, \
+from value.units import Sample, Quantity, tophat, \
      tera, giga, mega, kilo, metre, mile, day, hour, year, kg, \
      Fahrenheit, Centigrade
 from space.home import Sun, Earth, AU, KLplanet, KLsurface
@@ -171,28 +171,3 @@ coarse purposes, it's useful to have a marker orbit.\n""")
 del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
     Spheroid, Planet, Object, Ring, Sample, Quantity, tophat, \
     tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
-
-_rcs_log = """
-$Log: Kuiper.py,v $
-Revision 1.7  2005-03-21 23:21:14  eddy
-Added discovery and temperature data on Pluto, total mass estimate for Ooort cloud;
-added reference to Edgeworth in Kuiper belt, and noted low eccentricity in Kuiper;
-refined Charon's orbit from solstation and noted its discrepancies with NASA data.
-
-Revision 1.6  2005/03/16 23:24:35  eddy
-Moved Gliese710 to star, added Heliosphere and its parts, made some things Shell()s.
-
-Revision 1.5  2005/03/13 16:45:01  eddy
-Renamed body's exports.  Cleaned up import/export.
-
-Revision 1.4  2005/03/12 17:28:41  eddy
-Also need Ring.  Added comment from ../planets.py about Oort/Kuiper sources.
-
-Revision 1.3  2005/03/12 16:34:30  eddy
-Add the Kuiper and Oort objects, plus other outer details.
-
-Revision 1.2  2005/03/12 15:35:49  eddy
-Chuck in Charon while we're at it.
-
-Initial Revision 1.1  2005/03/12 15:25:57  eddy
-"""

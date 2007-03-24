@@ -46,10 +46,10 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.3 2007-03-24 12:20:58 eddy Exp $
+$Id: __init__.py,v 1.4 2007-03-24 16:15:20 eddy Exp $
 """
 
-from basEddy import Lazy
+from value.lazy import Lazy
 class NameSpace (Lazy):
     # Home:
     def _lazy_get_Earth_(self, ig):
@@ -702,16 +702,4 @@ Wolf 630 D		20.3			(-5.8,-19.2,-2.9)	M4	-			-		-
 
 Types: O,B,A,F,G,K,M; O0 brightest, M9 dimmest; but white dwarfs have type D*
 
-"""
-
-_rcs_log = """
-$Log: __init__.py,v $
-Revision 1.3  2007-03-24 12:20:58  eddy
-More data (in strings, for later processing), tidying, demoted Pluto.
-
-Revision 1.2  2005/03/13 15:11:28  eddy
-Moved PlanetList and Planets from home.py and large comment from common.py;
-added NameSpace and its instance, D; documented it and Planets.
-
-Initial Revision 1.1  2005/03/12 12:58:26  eddy
 """
