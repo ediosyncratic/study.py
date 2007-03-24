@@ -1,6 +1,6 @@
 """Lazy toys.
 
-$Id: lazy.py,v 1.3 2004-12-30 12:55:38 eddy Exp $
+$Id: lazy.py,v 1.4 2007-03-24 16:30:15 eddy Exp $
 """
 # This is in the same spirit as cacheing, but quite independent.
 class Lazy:
@@ -453,14 +453,13 @@ class lazyClass (Lazy):
 class Delegator:
     """Self-revising object class.
 
-    For use by base-classes which expect to discover things about its objects,
+    For use by a base-class which expect to discover things about its objects,
     after creation, which mean the object should now turn itself into an
     instance of a derived class.
 
     If you have a delegator in your namespace, it is sensible to revise it to
     its delegate from time to time: for example,
 	name = name.self()
-
     This would typically replace an object in a base class with one in a more
     specific class which has methods appropriate to the data it carries. """
 
@@ -493,25 +492,3 @@ class Delegator:
 	    self._self_ = self._self_.self()
 
 	return self._self_
-
-_rcs_log = """
-$Log: lazy.py,v $
-Revision 1.3  2004-12-30 12:55:38  eddy
-Fix twisted bug caused by 2.3 change in coercion semantics.
-
-Revision 1.2  2003/04/12 13:57:23  eddy
-Lots of documentation changes.  Added infrastructure to protect against
-recursion (so lazy lookups can reference one another mutually, on the
-off chance that *one* of the attributes is ther, possibly falling back
-on some approach if the first recurses).  Discarded (nowhere used)
-fallback mechanism in favour of attribute aliases.  Gave init parameters
-lazy_ prefixes so that derived class initialisers avoid collisions with
-them.  Provided for lazy-lookup methods that are classes to be suitably
-curried with self.  Provided for lazy lookup of __*__ magic names.
-Provided a reset operation to discard all lazily recomputable data,
-based on a notion of ephemerality.
-Fixed dumb bug in lazyClass._lazy_early_
-Forgot to check in for several years !
-
-Initial Revision 1.1  1999/02/21 01:33:41  eddy
-"""
