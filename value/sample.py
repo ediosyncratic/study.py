@@ -24,10 +24,8 @@ any other.
 Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
-"""
 
-_rcs_id_ = """
-$Id: sample.py,v 1.34 2007-03-18 17:02:12 eddy Exp $
+$Id: sample.py,v 1.35 2007-03-24 16:50:50 eddy Exp $
 """
 
 class _baseWeighted:
@@ -65,7 +63,7 @@ class _baseWeighted:
 
 # First layer of functionality: interpret self as describing a curve.
 import math # del at end of this page
-from basEddy import Lazy # likewise
+from lazy import Lazy # likewise
 
 class curveWeighted (Lazy, _baseWeighted):
     """Interpretation of the weights dictionary as a curve.
@@ -1175,7 +1173,7 @@ class statWeighted (_baseWeighted):
         # failing those, be arbitrary:
         return hi
 
-from basEddy.value import Object
+from value.object import Object
 
 class _Weighted (Object, _baseWeighted):
     """Base-class providing a form of weight-dictionary. """
@@ -1740,7 +1738,7 @@ class Sample (Object):
         extremes of the distribution and there are 1+n entries in the tuple. """
 
         return self.__weigh.niles(n, mid)
-
+
 del _power, _multiply, _divide
 _surprise = """\
 Note that one can do some surprising things with Sample()s; e.g.:
@@ -1764,178 +1762,3 @@ Sample.tophat = Sample(Weighted.tophat, best=0,
 
 Also known as 0 +/- .5, which can readily be used as
 a simple way to implement a+/-b as a + 2*b*tophat.""")
-
-_rcs_log_ = """
-  $Log: sample.py,v $
-  Revision 1.34  2007-03-18 17:02:12  eddy
-  If no weights, perhaps crib them off best or a base.
-
-  Revision 1.33  2007/03/18 16:44:12  eddy
-  Corrected Sample._weighted_'s calculation of total weight.
-  Test .add's func is not None overtly.
-  Let flatten's loop cope if a Sample shows up inside a statWeighted.
-
-  Revision 1.32  2006/07/19 07:41:34  eddy
-  Change Sample._weighted_ to a function instantiating Weighted, so that
-  we can re-scale weights when their total is big (e.g. the binomial
-  distribution represented by { i: chose(N,i) } as weights).  Also ensure
-  weights end up being floats in these cases.
-
-  Revision 1.31  2006/06/20 23:11:35  eddy
-  Support for future extensions: truediv as div.
-
-  Revision 1.30  2005/03/13 18:43:42  eddy
-  Made interpolator's cuts honour sign of weight-points if they all have same sign.
-  Prevents certain kinds of spurious zero-spanning.  Also fixed a petty typo.
-
-  Revision 1.29  2005/01/28 01:09:17  eddy
-  Bodge round a rounding issue.
-
-  Revision 1.28  2004/12/30 20:42:51  eddy
-  Bodged Sample division to tolerate distributions that span 0 provided their weights don't ...
-
-  Revision 1.27  2004/12/30 14:42:55  eddy
-  Corrected phrasing of interpolator._unit's scale invariance properties.
-
-  Revision 1.26  2004/02/15 16:31:12  eddy
-  Fix stupid bug in repWeighted.bounds() when frac between 0 and 1
-
-  Revision 1.25  2004/02/15 16:16:00  eddy
-  Got reach() wrong for case with prior data; fixed.
-
-  Revision 1.24  2004/02/15 15:41:48  eddy
-  Allow weights to be empty if reach()ing is going to give us a value.
-
-  Revision 1.23  2004/02/14 20:41:50  eddy
-  Added new method, reach, to curveWeighted, so Sample can ensure its
-  distribution reaches any low or high bounds it's given.  Moved tophat
-  onto Sample, as attribute (so Quantity's tophat doesn't hide it).
-  Some tidying.
-
-  Revision 1.22  2003/09/24 21:25:57  eddy
-  Turned __extract_ into a function, not a method; tunnelled it into join and
-  __cmp__, del after; shuffled these three together to limit extract's scope.
-
-  Revision 1.21  2003/09/24 21:01:38  eddy
-  Tweaks to cope with bigfloat.BigFloat() as sample points.
-  Added what*0 to __unit()'s 10. to coerce its type.
-  Try parsing str(unit) to compute exponent.
-
-  Revision 1.20  2003/09/21 14:17:35  eddy
-  Deal with infinity in repWeighted.round()
-
-  Revision 1.19  2003/07/05 15:03:04  eddy
-  Renamed Sample.__bundle_ to .join, so other code can use it.
-  Documented it in the process.
-
-  Revision 1.18  2003/04/21 19:55:25  eddy
-  Handle case where a Sample is supplied as the weights when constructing
-  a Sample (so quantity.qSample doesn't need a constructor).  Made best a
-  non-borrowable attribute, but made what *would* be borrowed serve as a
-  replacement for what['best'], when absent.  Ensured any Sample gets
-  non-empty __weigh when initialised, but allow constructor to be given no
-  weights - in which case a best estimate must be available !
-
-  Revision 1.17  2003/04/21 11:49:19  eddy
-  More change to Sample.update(); ensure single-point distributions are
-  interpreted as mere best estimates, so that joinWeighted.cross can work
-  sensibly.  Stopped struggling to tell lazy infrastructure to preserve
-  .best's value - __best handles that for us, now.  Abandonned update's
-  old **what, which I'm now sure was redundant and I don't want.  Renamed
-  curveWeighted without leading _, sanitised _rcs_* variables.
-
-  Revision 1.16  2003/04/20 23:54:04  eddy
-  Changed Sample.update() to `intersect' distributions rather than
-  `uniting' them; i.e. multiply pointwise, rather than adding.  Did this
-  by adding a .cross method to joinWeighted, supported in turn by
-  interpolator.cross (including a bodge to cope with combining
-  incompatible distributions).
-
-  Ripped interpolator out of repWeighted into a new base-class,
-  _curveWeighted (along with the entropy-related toys that didn't belong
-  in repWeighted), so that joinWeighted and repWeighted can both inherit
-  from it.  May make replacement interpolators easier to do.
-
-  Also, changed Sample.update() to only mess with distribution if offered
-  new value is also a distribution, otherwise only add it to a list of
-  `best' estimates whose median to use as actual .best attribute; this
-  list also gets an entry from any distributions offered, if they're
-  packaged as Sample() so have a .best to offer.  Stopped bothering with
-  (hopefully) unused weight/func args specific to add(), which was the
-  crux of the old implementation.  Skeptical about retaining **what.
-
-  Revision 1.15  2003/04/20 14:53:35  eddy
-  Fix to width-computation in repWeighted.__embrace, so as to ensure
-  correct rounding when the half-width interval fails to embrace the
-  target value; either because it's outside the distribution, or because
-  enough weight was on the weight-point nearest it.  Fixes rounding bug
-  first noticed in tophat**2's repr being "0".
-
-  Revision 1.14  2003/01/26 16:03:25  eddy
-  Bug-fix so .between() copes if input sequence includes some positions
-  less than all cut-points of our distribution (i.e. our result needs to
-  begin with some zeros).
-
-  Revision 1.13  2002/10/07 17:53:42  eddy
-  Fixed two bugs: normalise() would return None if total() was 1; copy()
-  would discard some weights if func mapped several keys to equal outputs.
-  Also made __combine() normalise its result if possible, added support
-  for % to Sample and made its __rdiv__ complain if both bounds are zero
-  (thus matching what __div__ does).
-
-  Revision 1.12  2002/10/06 16:12:45  eddy
-  Added note, _surprise, on how Sample()s can behave strangely.
-
-  Revision 1.11  2002/10/06 15:41:52  eddy
-  Lose leading hspace on tophat's doc string.
-
-  Revision 1.10  2002/10/06 14:20:00  eddy
-  Doc tweaks to *Weighted, more lambda tweaks, added tophat implementing +/-.5.
-  Fixed bug in width induced by recent rehabilitation of high and low.
-  Fixed Sample's .modes to always produce a tuple (unlike __call_or_best_).
-
-  Revision 1.9  2002/10/05 13:06:45  eddy
-  Use parameter defaults to build various lambda expressions only once.
-  Replaced repWeighted's `internal use only' sorted keys params with
-  sortedkeys lazy attribute on _Weighted.  Gave Sample a str() and
-  partially rehabilitated low and high methods on _baseWeighted.  Added
-  lots of commentary (much on possible difficulties) and untabified.
-
-  Revision 1.8  2001/12/13 03:53:42  eddy
-  Refined Weighted.__cmp__ and moved it from _Weighted to joinWeighted.
-  Also moved obsolete low, high to baseWeighted.  May retire later.
-
-  Revision 1.7  2001/12/12 16:56:27  eddy
-  Reinstated _str but made it an alias for _repr.
-  Shuffled Sample.__init__ to handle best via **what rather than overtly.
-  untabified.
-
-  Revision 1.6  2001/12/12 14:58:04  eddy
-  shuffled parts of _Weighted for clarity of reading.
-  Made Sample use _repr for __str__ rather than having a separate
-  _str for derived classes to need to over-ride as well as _repr.
-
-  Revision 1.5  2001/12/10 20:42:43  eddy
-  Major re-write of repWeighted to use piecewise uniform interpolation
-  mediated by an inner class as _lazy_get_interpolator_(), simplified
-  bounds() and niles() to use interpolator.split().  Changed decompose to
-  use repWeighted's notion of weights between end-points, tweaked
-  condense.  Made normalisation a feature of statWeighted, fixed noddy
-  bugs in mode and fractiles.  Added the means to compute dispersal
-  (entropy) along with various uses of it.
-
-  Revision 1.4  2001/11/30 17:54:51  eddy
-  Much messing and rumination; about to do revolutionary change to repWeighted.
-  Replaced internal-use optional row arguments with sortedkeys attribute.
-  Moved cmp and hash together and documented irritation.  Value -> Object.
-  Added bounds()/span(), fractiles()/niles()/share_cut() features,
-  tweaked rounding, expanded docs.
-
-  Revision 1.3  1999/12/31 18:33:46  eddy
-  Much has changed ...
-
-  Revision 1.2  1999/07/04 12:15:42  eddy
-  First working version.
-
-  Initial Revision 1.1  1999/06/01 21:17:47  eddy
-"""
