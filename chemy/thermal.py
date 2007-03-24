@@ -1,6 +1,6 @@
 """Description of thermal radiation.
 
-$Id: thermal.py,v 1.2 2007-03-24 15:08:24 eddy Exp $
+$Id: thermal.py,v 1.3 2007-03-24 16:11:59 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
 from value.object import Object
@@ -56,7 +56,7 @@ class Radiator (Object):
         if frequency: return base * f**3 / c**2
         else: return base * c**2 / wavelength**5
 
-del math, Object, Quantum, Thermal
+del math, Object, Quantum
 from value.units import Kelvin
 
 def radiator(temperature, *args, **what):
