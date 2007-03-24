@@ -17,17 +17,13 @@ int register holding the power of two the answer should be scaled by; this int
 is thus made available to the infrastructure tracking the overall powers of two
 encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
 accompanying the fractional value.
-"""
 
-_rcs_id_ = """
-$Id: bigfloat.py,v 1.11 2006-06-20 23:16:28 eddy Exp $
+$Id: bigfloat.py,v 1.12 2007-03-24 16:26:59 eddy Exp $
 """
-
-from basEddy.lazy import Lazy
+from value.lazy import Lazy
 from types import FloatType
 
 class BigFloat (Lazy):
-
     def __init__(self, val=1, century=0):
         if century != long(century):
             raise ValueError, 'century must be whole'
@@ -343,42 +339,4 @@ class BigComplex (Lazy):
     del extract
     __rmul__, __radd__ = __mul__, __add__
 
-_rcs_log_ = """
-$Log: bigfloat.py,v $
-Revision 1.11  2006-06-20 23:16:28  eddy
-Support for future extensions: truediv as div.
-
-Revision 1.10  2003/10/05 14:52:15  eddy
-Added thoughts on a different approach to implementing floats.
-
-Revision 1.9  2003/10/04 10:22:14  eddy
-Fixed handling of powers of BigFloat(0)
-
-Revision 1.8  2003/10/04 10:12:15  eddy
-Added equality testing for complex.
-
-Revision 1.7  2003/10/04 10:04:42  eddy
-Made complex work.  Corrected phase.  Added str, repr, pow.  Fiddled exp so it works.
-
-Revision 1.6  2003/09/29 23:17:44  eddy
-First draft of BigComplex (not yet tested).
-
-Revision 1.5  2003/09/22 23:19:35  eddy
-Fixed bugs in long, add.  Made test against inf/nan only apply to
-floats; a long can appear to be inf otherwise ...
-
-Revision 1.4  2003/09/22 22:15:48  eddy
-Fixed bug in add (forgot factors of 100 on centuries !), made lazy;
-implemented float, int, long, divmod, exp, log, hash.
-
-Revision 1.3  2003/09/22 07:20:32  eddy
-Added support for abs, long, int, float
-
-Revision 1.2  2003/09/21 17:29:23  eddy
-everything == nan, so test for it differently !
-pow algorithm depends on whole being of an integral type; make it so.
-make decade more symmetric
-
-Revision 1.1  2003/09/21 17:10:50  eddy
-Initial revision
-"""
+del Lazy
