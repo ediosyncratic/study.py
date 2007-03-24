@@ -17,25 +17,18 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.22 2007-03-18 15:27:56 eddy Exp $
+$Id: particle.py,v 1.23 2007-03-24 14:58:25 eddy Exp $
 """
-
-from const import *
-from basEddy import Lazy
+from physics import sample, Quantum, Vacuum, Thermal
+from value.units import tophat, pi, \
+     harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
+     gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
+from value.quantity import Quantity
+from value.lazy import Lazy
 from decay import Decay
-
+
 eV = Quantity(Quantum.Millikan, Volt,
               doc='The electron-Volt: a standard unit of energy in particle physics.')
-
-def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
-    """Returns a sample from `almost zero' up to a given value.
-
-    Required argument is the upper bound on some quantity: optional second
-    argument is a distribution on the unit interval (its default is nearly
-    uniform) which doesn't quite straddle zero. """
-
-    # more sophistication might use a less uniform distribution ...
-    return unit * val
 
 class Particle (Object):
     # needs merged in with units-related toys etc.
@@ -292,7 +285,7 @@ class Particle (Object):
 
         try: m = self.__dict__['mass']
         except KeyError: pass
-        else: return m * Vacuum.c**2
+        else: return m.energy
 
         try: f = self.__dict__['frequency']
         except KeyError: pass
@@ -303,8 +296,8 @@ class Particle (Object):
 
         raise AttributeError('energy', 'mass', 'frequency', 'nu')
 
-    def _lazy_get_mass_(self, ignored, csqr = Vacuum.c**2):
-        return self.energy / csqr
+    def _lazy_get_mass_(self, ignored):
+        return self.energy.mass
 
     def _lazy_get_qperm_(self, ignored):
         """Charge-to-mass ratio"""
@@ -318,19 +311,19 @@ class Particle (Object):
         except AttributeError: pass
         return self.energy / Quantum.Planck
 
-    def _lazy_get_momentum_(self, ignored):
+    def _lazy_get_momentum_(self, ignored, hbar=Quantum.hbar, h=Quantum.h):
         try: k = self.__dict__['wavevector']
         except KeyError: pass
-        else: return Quantum.hbar * k
+        else: return hbar * k
 
         try: d = self.__dict__['wavelength']
         except KeyError: pass
-        else: return Quantum.h / d
+        else: return h / d
 
         raise AttributeError('momentum', 'wavevector', 'wavelength')
 
-    def _lazy_get_wavevector_(self, ignored):
-        return self.momentum / Quantum.hbar
+    def _lazy_get_wavevector_(self, ignored, hbar=Quantum.hbar):
+        return self.momentum / hbar
 
     def _lazy_get_wavelength_(self, ignored):
         return Quantum.h / self.momentum
@@ -400,7 +393,7 @@ from the second of which I took the extra-visible spectral data below.
         try: return '%s(%s)' % (self.symbol, self.__energystr())
         except AttributeError: return self.symbol
 
-    def __energystr(self):
+    def __energystr(self, eV=eV):
         e = self.energy # raises AttributeError if we can't work this out.
         siz = e / eV
         if e > 1e11: # more than a few nano Joules
@@ -427,7 +420,7 @@ from the second of which I took the extra-visible spectral data below.
         if name != 'photon': name = '%s light' % name
         self.__store_as(name, Boson)
 
-    restmass = 0 * kilogramme # inducing a correlation between energy and momentum
+    restmass = 0 * gram # inducing a correlation between energy and momentum
     __energy = Particle._lazy_get_energy_
     __momentum = Particle._lazy_get_momentum_
 
@@ -601,7 +594,17 @@ class Family (Object):
 
 del Lazy
 
-def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass):
+def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
+    """Returns a sample from `almost zero' up to a given value.
+
+    Required argument is the upper bound on some quantity: optional second
+    argument is a distribution on the unit interval (its default is nearly
+    uniform) which doesn't quite straddle zero. """
+
+    # more sophistication might use a less uniform distribution ...
+    return unit * val
+
+def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, under=below):
 
     """Deciphering Kaye&Laby p449.
 
@@ -622,7 +625,7 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass):
 
     """
 
-    return Family(Neutrino(lnom, mass=Quantity(below(nm), mev)),
+    return Family(Neutrino(lnom, mass=Quantity(under(nm), mev)),
                   Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym, decay=Quantity(lrate, Hertz)),
                   dQuark(mnom, mass=mm*kilo*mev),
                   uQuark(pnom, mass=pm*kilo*mev))
@@ -635,6 +638,7 @@ table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1.
                    'beauty', sample(4.7, .05), 'truth', sample(40, 10)) )
 # NB: the error bars on quark masses other than truth's are my interpolation
 # from K&L's truncation of the numbers.
+del below
 
 # Make electron a primary export:
 electron = Lepton.item.electron
@@ -739,114 +743,6 @@ radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
 Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
 
-_rcs_log = """
- $Log: particle.py,v $
- Revision 1.22  2007-03-18 15:27:56  eddy
- Back out the decays complexity - decay.ratedDecay handles it just fine.
- Add lifetime = 1/decay, exploit new .mass attribute of energies, act on
- the comment suggesting a Hadron class, record some more modern data on
- the neutron and proton.
-
- Revision 1.21  2007/03/17 16:50:59  eddy
- Better handling of decays.
-
- Revision 1.20  2007/03/08 23:49:31  eddy
- Replacing hbar with Planck
-
- Revision 1.19  2006/04/22 15:24:24  eddy
- const no longer exports Lazy !
-
- Revision 1.18  2005/04/10 17:41:00  eddy
- Another spectral href.
-
- Revision 1.17  2005/04/09 09:12:52  eddy
- Punctuation.
-
- Revision 1.16  2005/03/21 23:46:03  eddy
- Added some data on the infra-red.
-
- Revision 1.15  2005/03/21 22:49:36  eddy
- Doc/coment burble, expanded red out to 780 micron.
-
- Revision 1.14  2005/02/14 08:08:04  eddy
- Made visible into a namespace holding the spectral bands; added some
- spectral lines (from Bad Astronomy) to these bands.
-
- Revision 1.13  2005/01/28 01:29:09  eddy
- Added extra-visible specrum, thanks to NASA.
-
- Revision 1.12  2005/01/16 19:39:25  eddy
- Cleaner presentation of the visible spectrum.
-
- Revision 1.11  2004/02/17 00:14:47  eddy
- Noted muon's magnetic dipole, added Nucleon.amuk, AMU/k.
- Noted neutron's half life, mumbled about pion.
-
- Revision 1.10  2003/07/07 23:12:39  eddy
- Added .qperm (c.f. const.Cosmos.qperm) as charge-to-mass ratio of particles.
-
- Revision 1.9  2003/06/15 14:50:36  eddy
- Removed nucleus and atom (to new elements.py), made p,n,e into primary exports.
-
- Revision 1.8  2003/04/21 20:09:46  eddy
- _charge just ceased being borrowable anyway, so no need to say not to borrow it.
-
- Revision 1.7  2003/04/12 13:38:17  eddy
- Made various attributes, notably charge, non-borrowable (fixed problem
- of positron.charge being negative); made all .item carrier objects cope
- with name aliasing, also with .anti sub-object; thus made positron be
- created lazily without session needing to reference electron.anti first.
-
- Revision 1.6  2003/02/16 14:28:15  eddy
- Made Fermion use a Decay, lazily, as its .decay; added its __init__ to
- cope with that; adjusted to accommodate const.molar's attributes moving
- to the SI unit mol.
-
- Revision 1.5  2003/01/26 18:30:09  eddy
- Clean-up of light's naming.  Tweaked _store_as_ so that sub-classes can
- reuse the base-class implementation when over-riding it; made Photon do
- like Neutrino and change the name in its bases; stopped name propagation
- through bases from over-writing existing attributes.
-
- Revision 1.4  2003/01/26 16:43:30  eddy
- Removed Decays into its own module, for further mangling.
- Refined definition of eV, repr of Photon.
- Added .spectrum to light, noted sodium orange.
-
- Revision 1.3  2002/10/08 21:30:04  eddy
- Rearranged view of Particle's constituents; now wants them supplied as
- `highest-level' and provides .constituents([primitives...]) to decompose
- them to chosen level.  Likewise, scraps previous binding* attributes in
- favour of binging*([primitives...]) methods measured relative to
- particular choice of primitives.
-
- Changed charge to go via integer-valued (so exact) _charge attribute, in
- units of a third of Millikan's quantum.
-
- Made repr() produce namespace-qualified name (str() still gives leaf
- name) and provided for some classes to hide derived classes from the
- namespacing.  Separated iso+ and iso- quarks.  Added Nucleon class and
- scrapped nucleon.  Added Nucleus and Atom classes, with boson and
- fermion subs and nucleus() and atom() functions to access them.
-
- Removed substances to chemistry.py
-
- Revision 1.2  2002/10/06 18:38:06  eddy
- Added .item namespace as carrier for all particles of each class, thus
- particles no longer clutter up their class name-space directly (and
- aliasing is easy); this also cleaned up neutrino-naming; and made this
- storage recursive, so Leptons show up among the Fermions, etc.
-
- Major over-haul of attributes mutually implied by de Broglie &c. (mass,
- wavelength, period, momentum, energy, ...).  Added symbols for Leptons
- and Neutrinos and error bars on quark masses.  Neutron and proton no
- longer borrow from nucleon - that was just confusing.
-
- Moved below() in from const.py (which didn't use it).  Added Photon,
- Substance and Element classes for relevant things to be instances of.
- Tweaked docs.
-
- oh - and began sketching out new Decay class.
-
- Initial Revision 1.1  2002/07/07 17:28:44  eddy
-"""
+del sample, Quantum, Vacuum, Thermal, tophat, pi, Quantity, Lazy, Decay, \
+    harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
+    gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
