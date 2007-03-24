@@ -6,9 +6,10 @@ keys of decoding are strings representing the morse code for the corresponding
 letter: dot is encoded as '.', dash as '-'.
 
 Provides two functions, encode and decode, which perform the implied
-conversions. """
+conversions.
 
-_rcs_id = "$Id: morse.py,v 1.2 2007-03-24 12:10:46 eddy Exp $"
+$Id: morse.py,v 1.3 2007-03-24 16:02:27 eddy Exp $
+"""
 
 encoding = {
     'A': '.-',
@@ -66,12 +67,3 @@ def decipher(message):
             else: row.append(it)
 
     return map(lambda it: it[0], row)
-
-_rcs_log = """
- $Log: morse.py,v $
- Revision 1.2  2007-03-24 12:10:46  eddy
- New function to make (ambiguous) sense of a morse-coded message without pauses between letters.
-
- Initial Revision 1.1  2005/10/08 16:01:01  eddy
- Dates back to at least 2002-09, probably older.
-"""
