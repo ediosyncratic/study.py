@@ -1,7 +1,12 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Neptune
 
-$Id: neptunous.py,v 1.1 2005-03-12 15:59:26 eddy Exp $
+It's also accompanied in its orbit by a host of trojans:
+http://www.space.com/scienceastronomy/070130_st_neptune_trojans.html
+The ones found to date are at its forward Lagrange point, L4; and the New
+Horizons probe shall pass near its trailing one, L5, en route to Pluto.
+
+$Id: neptunous.py,v 1.2 2007-03-24 12:25:12 eddy Exp $
 """
 
 from basEddy.units import mega, metre, km
@@ -25,6 +30,8 @@ Galatea = NASAmoon("Galatea", Neptune, _tmp, 61.95, .43, NASAshell(79))
 Proteus = NASAmoon("Proteus", Neptune, _tmp, 117.65, 1.12, NASAshell(218, 208, 201))
 Larissa = NASAmoon("Larissa", Neptune, Discovery("Reitsema et al.", 1989, source="Voyager 2"),
                    73.55, .55, NASAshell(104, 89))
+# Plus three more, with diameters of 30 to 40 km, discovered in 2003
+# http://www.space.com/scienceastronomy/neptune_moons_030113.html
 
 # rings discovered in the mid-1980s
 Galle = Ring("Galle", Neptune, 41.7 * mega * metre, 41.86 * mega * metre, id="1989 N3R", width=15 * km)
@@ -42,7 +49,8 @@ del NASAmoon, NASAshell, Ring, Hoop, Discovery, mega, metre, km, _tmp
 
 _rcs_log = """
 $Log: neptunous.py,v $
-Revision 1.1  2005-03-12 15:59:26  eddy
-Initial revision
+Revision 1.2  2007-03-24 12:25:12  eddy
+more details (in comment and string).
 
+Initial Revision 1.1  2005/03/12 15:59:26  eddy
 """
