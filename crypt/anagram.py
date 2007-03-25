@@ -2,7 +2,7 @@
 
 Can surely be done better !
 
-$Id: anagram.py,v 1.1 2007-03-08 23:20:53 eddy Exp $
+$Id: anagram.py,v 1.2 2007-03-25 07:46:22 eddy Exp $
 """
 
 class OrdBok:
@@ -38,7 +38,7 @@ class OrdBok:
                     store.append(stem)
             i = i - 1
 
-from permute import Iterator
+from study.maths.permute import Iterator
 
 def anagrams(text, dict=OrdBok()):
     jam = ''.join(text.split())
