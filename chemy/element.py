@@ -10,7 +10,7 @@ variants.  I chose to take the former description seriously and fake the latter.
 
 chemistry.mercury will need tweaked; it references atom.
 
-$Id: element.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: element.py,v 1.6 2007-03-26 07:56:46 eddy Exp $
 """
 from study.value.units import Object, Quantity, kilo, harpo, tophat, sample, \
      Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc, \
@@ -351,6 +351,8 @@ Neon = NASelement('Neon', 'Ne', 10, 20.183 + 3e-3 * tophat, {20: 90.92, 21: .26,
 Sodium = NASelement('Sodium', 'Na', 11, 22.9898, {23: 1}, 12.5, arcanum='Natrium')
 Magnesium = NASelement('Magnesium', 'Mg', 12, 24.312, {24: 78.60, 25: 10.11, 26: 11.29}, 9.2)
 Aluminium = NASelement('Aluminium', 'Al', 13, 26.9185, {27: 1}, 35.8, alias=('Aluminum',))
+Aluminium[26].half-life = Quantity(.7, mega * year,
+                                   cite="http://space.newscientist.com/article/dn11366-saturn-moons-mysterious-heat-traced-to-early-fever.html")
 Silicon = NASelement('Silicon', 'Si', 14, 28.086 + 1e-3 * tophat, {28: 92.18, 29: 4.71, 30: 3.12}, 100)
 Phosphorus = NASelement('Phosphorus', 'P', 15, 30.9738, {31: 1}, 5.2)
 Sulphur = NASelement('Sulphur', 'S', 16, 32.064 + 3e-3 * tophat, {32: 95, 33: .76, 34: 4.22, 36: .01}, .23, alias=('Sulfur',))
