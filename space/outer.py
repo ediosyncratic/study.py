@@ -4,7 +4,7 @@
 Note that each outer planet's system of moons has a total mass of roughly 1e-4
 times the planet's mass: http://www.physorg.com/news69517584.html
 
-$Id: outer.py,v 1.6 2007-03-24 22:42:21 eddy Exp $
+$Id: outer.py,v 1.7 2007-03-26 07:57:55 eddy Exp $
 """
 
 from study.value.units import tophat, giga, mega, metre, day, hour, minute, year, kg
@@ -44,6 +44,9 @@ def load_saturnalia(): # lazy satellite loader
 
 Saturn = KLplanet('Saturn',
                   KLsurface(9.41, 1.07, Spin(10 * hour + 14 * minute, 26.7),
+                            # But its spin is very uncertain, thanks to
+                            # Enceladus' geysers: see, e.g.,
+                            # http://www.physorg.com/news93793251.html
                             flattening = .1076),
                   Orbit(Sun, (1431 + .1 * tophat) * giga * metre,
                         Spin(29.57 * year, 2.49), .051),
