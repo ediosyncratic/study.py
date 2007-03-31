@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.24 2007-03-24 22:42:21 eddy Exp $
+$Id: particle.py,v 1.25 2007-03-31 08:12:52 eddy Exp $
 """
 from study.value.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -448,7 +448,7 @@ visible = photon(380, 700, 'visible',
                  doc="""Visible light.
 
 The visible spectrum ranges from .4 to .7 microns.  See, e.g.,
-    http://www.sundog.clara.co.uk/rainbows/primcol.htm
+    http://www.atoptics.co.uk/rainbows/primcol.htm
 on the site that persuaded me to broaden the spectrum to 380--700 nm;
 but see also (conflicting in details)
     http://cimss.ssec.wisc.edu/wxwise/bluesky.html
@@ -469,6 +469,7 @@ we're seeing, counting inwards from the most easily dislodged ones.
                  # All rather approximate; see Nuffield, pp46--47 and sources in doc string.
                  #' It'd be nice to have a way to use blurry-boundaries ... a chart of the spectrum ?
                  red=photon(624, 780, 'red',
+                            # There's a Hydrogen line in here, too
                             NII=Photon(name='NII', wavelength=6580 * Angstrom, source='Nitrogen')),
                  orange=photon(606, 624, 'orange'), # but see Na orange
                  yellow=photon(590, 606, 'yellow',
