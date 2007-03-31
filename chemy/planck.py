@@ -1,13 +1,65 @@
 # -*- coding: iso-8859-1 -*-
-"""Planck's units.
+"""Planck's units, and kindred systems of units.
 
-$Id: planck.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
+$Id: planck.py,v 1.3 2007-03-31 10:56:30 eddy Exp $
 """
 from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 
-# Should really define a `system of units' class ...
+# Should really define a more general `system of units' class ... see dev/py/'s
+# eddy.science.unit
+class Planckoid (Object):
+    """A system of units, having the form of Planck's units.
+
+    The constructor's defaults yield my preferred system of this kind; the
+    Planck instance of this class over-rides these (as explained in its own
+    documentation, q.v.) to be faithful to what Plank actually used.  The unit
+    of speed is (unless over-ridden by key-word argument) the speed of light;
+    the eot (energy over time) attribute used to obtain temperature from energy
+    is (again, unless over-ridden) Boltzmann's constant.
+
+    The constructor's parameters, given in the following order or via key-words,
+    are used to initialize eponymous attributes, with the indicated defaults:
+
+      geoid -- Newton's constant times 8.pi (G-oid)
+      action -- Planck's constant (unit of angular momentum)
+      impedance -- the impedance of free space
+
+    Lazy attributes:
+      tom -- time over mass = geoid / speed**3
+      arearate -- area / time
+      magneton -- arearate * charge = charge * action / mass
+
+    plus charge, momentum, length, mass, energy, torque, time, current,
+    temperature, force, acceleration with their conventional meanings.\n"""
+
+    __upinit = Object.__init__
+    def __init__(self, geoid=Cosmos.G * 8 * pi, action=Quantum.h,
+                 impedance=Vacuum.impedance, *args, **what):
+        what.update({ 'impedance': impedance, # electromagnetic field
+                      'action': action, # quantum of action
+                      'geoid': geoid }) # Newton's constant, suitably scaled #'
+        apply(self.__upinit, args, what)
+
+    speed = Vacuum.c    # fabric of space-time
+    eot = Thermal.k     # energy over time
+
+    def _lazy_get_tom_(self, ig):       return self.geoid / self.speed**3
+    def _lazy_get_charge_(self, ig):    return (self.action / self.impedance)**.5
+    def _lazy_get_momentum_(self, ig):  return (self.action / self.tom)**.5
+    def _lazy_get_length_(self, ig):    return (self.action * self.tom)**.5
+    def _lazy_get_mass_(self, ig):      return self.momentum / self.speed
+    def _lazy_get_energy_(self, ig):    return self.momentum * self.speed
+    _lazy_get_torque_ = _lazy_get_energy_
+    def _lazy_get_time_(self, ig):      return self.length / self.speed
+    def _lazy_get_arearate_(self, ig):  return self.length * self.speed
+    def _lazy_get_current_(self, ig):   return self.charge / self.time
+    def _lazy_get_magneton_(self, ig):  return self.charge * self.arearate
+    def _lazy_get_temperature_(self, ig): return self.energy / self.eot
+    def _lazy_get_force_(self, ig):     return self.momentum / self.time
+    def _lazy_get_acceleration(self, ig): return self.speed / self.time
+
 # Planck's units (c.f. Hartree's in /usr/share/misc/units):
-Planck = Object(
+Planck = Planckoid(Cosmos.G, Quantum.h, Vacuum.impedance,
     __doc__ = """Planck's units.
 
 When Planck discovered his solution to the problem then known as the
@@ -73,35 +125,10 @@ use the Einstein-Maxwell charge-to-mass ratio (Cosmos.qperm, above) in place of
 G, along with Z0 as just justified (in terms of q = sqrt(h/Z0) as unit of
 charge); which would be equivalent to replacing G, in the system actually used
 here, with its matching Newtonian field-equation unit, 4*pi*G, and using Z0
-rather than Z0/4/pi.  However, Planck chose G.\n""",
-
-    # The fabric of space-time:
-    speed = Vacuum.c,
-    # The quantum of action:
-    action = Quantum.h,                 # angular momentum
-    # Newton's constant, with suitable powers of c bound into place: # '
-    kappa = Cosmos.G / Vacuum.c**3,     # time/mass
-    # The electromagnetic field:
-    impedance = Vacuum.impedance / 4 / pi)
-
-# obviously, I want to automate the following ... see eddy.science.unit
-Planck.also(
-    charge   = (Planck.action / Planck.impedance)**.5,  # 29.3446 positrons
-    momentum = (Planck.action / Planck.kappa)**.5,      # 8.451 stone foot / second
-    length   = (Planck.action * Planck.kappa)**.5)      # very tiny.
-# so tiny that a mole of Planck lenghts add up to almost a quarter of an Ångstrøm ...
-Planck.also(
-    mass = Planck.momentum / Planck.speed, # sqrt(c.h/G)
-    energy = Planck.momentum * Planck.speed,
-    time = Planck.length / Planck.speed,
-    arearate = Planck.length * Planck.speed)    # aka action / mass
-Planck.also(
-    current = Planck.charge / Planck.time,
-    magneton = Planck.charge * Planck.arearate, # aka charge * action / mass
-    temperature = Planck.energy / Thermal.k,
-    force = Planck.momentum / Planck.time,
-    torque = Planck.energy,                     # i.e. force * distance, or action / time
-    acceleration = Planck.speed / Planck.time)
+rather than Z0/4/pi.  However, Planck chose G.  The resulting system yields a
+charge equal to 8.2780 times that on a positron, a momentum of 8.451 stone foot
+/ second, and very tiny length and time - a mole of the lengths add up to almost
+a quarter of an Ångstrøm.\n""")
 
 Planck.mass.also(__doc__="""The Planck mass.
 
@@ -113,3 +140,5 @@ over a dozen times the first of these.  Tardigrades (a.k.a. water bears) are
 fully articulated animals with less mass than the Planck mass.  Thus, plenty of
 living organisms are smaller than the Planck mass; a cube of water with this
 mass has sides over a third of a millimetre long.\n""")
+
+del Vacuum, Quantum, Cosmos, Thermal, Object, pi
