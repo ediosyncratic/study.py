@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Planck's units, and kindred systems of units.
 
-$Id: planck.py,v 1.3 2007-03-31 10:56:30 eddy Exp $
+$Id: planck.py,v 1.4 2007-03-31 11:07:04 eddy Exp $
 """
 from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 
@@ -59,7 +59,7 @@ class Planckoid (Object):
     def _lazy_get_acceleration(self, ig): return self.speed / self.time
 
 # Planck's units (c.f. Hartree's in /usr/share/misc/units):
-Planck = Planckoid(Cosmos.G, Quantum.h, Vacuum.impedance,
+Planck = Planckoid(Cosmos.G, Quantum.h, Vacuum.impedance / 4 / pi,
     __doc__ = """Planck's units.
 
 When Planck discovered his solution to the problem then known as the
@@ -126,7 +126,7 @@ G, along with Z0 as just justified (in terms of q = sqrt(h/Z0) as unit of
 charge); which would be equivalent to replacing G, in the system actually used
 here, with its matching Newtonian field-equation unit, 4*pi*G, and using Z0
 rather than Z0/4/pi.  However, Planck chose G.  The resulting system yields a
-charge equal to 8.2780 times that on a positron, a momentum of 8.451 stone foot
+charge equal to 29.3446 times that on a positron, a momentum of 8.451 stone foot
 / second, and very tiny length and time - a mole of the lengths add up to almost
 a quarter of an Ångstrøm.\n""")
 
