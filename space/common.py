@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.8 2007-03-24 22:42:21 eddy Exp $
+$Id: common.py,v 1.9 2007-04-01 09:40:13 eddy Exp $
 """
 from study.value.units import tophat, arc, pi, Object, second
 
@@ -14,7 +14,7 @@ class Discovery (Object):
     def __repr__(self): return '%s (%d)' % (self.who, self.year)
     __str__ = __repr__
 
-class Spin(Object):
+class Spin (Object):
     __upinit = Object.__init__
     def __init__(self, period, tilt=(tophat + .5) * 180, **what):
         """Initialises a Spin object.
@@ -60,6 +60,31 @@ class Round (Object): # handy base-class for round things
 class Orbit (Round):
     __upinit = Round.__init__
     def __init__(self, centre, radius, spin, eccentricity=None, tilt=None, **what):
+        """Constructor.
+
+        Required arguments:
+          centre -- a body.Body instance at a focus of the orbit
+          radius -- semi-major axis of the orbit
+          spin -- a Spin object describing the rotation; or None to force
+                  computation from other data (you'll get a ValueError if you
+                  haven't supplied enough other data).
+
+        Optional arguments:
+          eccentricity -- pure number or default, None, provoking an abuse of
+                          radius; its high and low shall be interpreted as
+                          semi-major and semi-minor axes, from which to infer
+                          eccentricity.
+          tilt -- when spin is given as None, and this is supplied, this shall
+                  be forwarded to the constructor for the inferred Spin object.
+
+        Note that semi-major axis is the radius to use here: this is [1] the
+        time-average of the radius of the orbit; it is also [2] the
+        eccentricity-adjusted radius whose cube is proportional to the square of
+        the orbit's period.
+
+        [1] http://csep10.phys.utk.edu/astr161/lect/history/kepler.html
+        [2] http://www.chaos.org.uk/~eddy/physics/cocentric.html
+        """
         ws = []
 	try: ws.append(what['speed'] / radius)
 	except KeyError: pass
@@ -87,7 +112,7 @@ class Orbit (Round):
         if maybe is None:
             assert periods # tested by constructor
             if tilt is None: maybe = Spin(periods[0]) # use Spin's default tilt
-            else: spin = Spin(periods[0], tilt)
+            else: maybe = Spin(periods[0], tilt)
             periods = periods[1:]
 
         for it in periods:
