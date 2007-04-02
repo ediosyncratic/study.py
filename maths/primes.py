@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: primes.py,v 1.5 2007-04-02 15:21:02 eddy Exp $
 """
 
 checking = None
@@ -39,49 +39,6 @@ So when is pow(2, pow(2,i)+pow(-1,i))-1 a prime ?  For i=1 we get 1 which
 we ignore, then for i in (2,3,4,5) we get primes.  For i=6 I get a segfault.
 """
 
-# two tools: add one, coping with overflow, and ordered insertion.
-def add_one(num):
-    try: return num + 1
-    except OverflowError: return num + 1L
-
-if None:
-    def order_insert(row, val):
-	"""Inserts val into sorted row, with val not previously in row.
-
-	This is a straightforward implementation.  Works fine for short rows ;^)
-	"""
-	at = len(row) - 1
-	while at > 0 and row[at] > val: at = at - 1
-	row[at:at] = [ val ]
-
-else:
-    def order_insert(row, val):
-	"""Inserts val into sorted row, with val not previously in row.
-
-	This implementation uses binary chop.  For long rows I expect it to work
-        faster than the straightforward implementation above.
-	"""
-
-	if not row or row[0] > val: row[:0] = [ val ]
-	elif row[-1] < val: row.append(val)
-	else:
-	    assert val not in row
-	    # so row[0] < val < row[-1], and len(row) > 1
-	    bot, top = 0, len(row) - 1	# so bot < top
-	    while bot + 1 < top:
-		at = (bot + top) / 2	# midpoint, erring low
-		assert bot < at < top, 'arithmetic'
-		assert row[bot] < row[at] < row[top], 'prior order'
-
-		if row[at] < val: bot = at
-		else: top = at
-
-		assert row[bot] < val < row[top], 'binary chop missed'
-
-	    assert bot + 1 == top, 'binary chop mis-terminating'
-	    # so insert val after bot, before top - ie, at position top
-	    row.insert(top, val)
-
 class lazyTuple:
     """Evaluation on demand of a (possibly infinite) tuple.
 
@@ -97,7 +54,7 @@ class lazyTuple:
 
 	try: top = row[-1]
 	except self._entry_error_: top = 0
-	self._ask = add_one(top)
+	self._ask = 1 + top
 
     def __repr__(self):
 	text = `tuple(self._item_carrier)`
@@ -152,8 +109,40 @@ class lazyTuple:
 	"""
 	result = self._ask
 	self._item_carrier.append(result)
-	self._ask = add_one(result)
+	self._ask = 1 + result
 	return result
+
+class list (list):
+    # inheriting from list would work better if __getslice__ propagated class ...
+    __upgetsl = list.__getslice__
+    def __getslice__(self, i, j):
+        return self.__class__(self.__upgetsl(i, j))
+
+class risingSet (list):
+    __upinit = list.__init__
+    def __init__(self, val=None):
+        self.__upinit(val or [])
+
+    __upins = list.insert
+    def insert(self, val):
+        if not self or self[0] > val: self[:0] = [ val ]
+        elif self[-1] < val: self.append(val)
+        elif val not in self:
+            # so self[0] < val < self[-1]
+	    bot, top = 0, len(self) - 1	# so bot < top
+	    while bot + 1 < top:
+		at = (bot + top) / 2	# midpoint, erring low
+		assert bot < at < top, 'arithmetic'
+		assert self[bot] < self[at] < self[top], 'prior order'
+
+		if self[at] < val: bot = at
+		else: top = at
+
+		assert self[bot] < val < self[top], 'binary chop missed'
+
+	    assert bot + 1 == top, 'binary chop mis-terminating'
+	    # so insert val after bot, before top - ie, at position top
+	    self.__upins(top, val)
 
 class _Prime(lazyTuple):
     """List of all primes, generated as needed.
@@ -184,9 +173,7 @@ class _Prime(lazyTuple):
 	lazyTuple.__init__(self, row)
 
 	self._sqrt = 2	# Every prime less than _sqrt has square less than _ask.
-
-	if sparse is None: self._sparse = []
-	else: self._sparse = sparse
+        self._sparse = risingSet(sparse)
 
     def __repr__(self):
         return '%s()' % (self.__class__.__name__)
@@ -228,7 +215,7 @@ class _Prime(lazyTuple):
 
     def grow(self):
 	if self._ask < self[-1]:
-	    self._ask = add_one(self[-1])
+	    self._ask = 1 + self[-1]
 	was = self._ask
 
 	while self[-1] < was:	# so we exit when we know.
@@ -258,7 +245,8 @@ class _Prime(lazyTuple):
 	only time it matters is when it's self._ask: which is then stepped
 	forward to the next integer. """
 	if other in ( None, self._ask ):
-	    self._ask = add_one(self._ask)
+	    self._ask = 1 + self._ask
+
 
     def _know(self, other=None):
 	"""Records a prime.
@@ -277,12 +265,12 @@ class _Prime(lazyTuple):
 		self._sparse = self._sparse[1:]
 
 	    other = self._ask	# we're going to return this
-	    self._ask = add_one(other)
+	    self._ask = 1 + other
 
 	elif not (other in self._item_carrier or other in self._sparse):
             assert self._ask <= other, 'missed out a prime, %d, in the search' % other
 
-	    order_insert(self._sparse, other)
+	    self._sparse.insert(other)
 
 	return other
 
@@ -364,12 +352,15 @@ class _Prime(lazyTuple):
 		p = self.grow()
 		count, num = self.__reduce(num, p)
 		if count: result[p] = count
-		if long(p) * p > num:
+                if num == 1: pass
+		elif long(p) * p > num:
 		    # num's a prime !
 		    self._know(num)
 		    result[num] = 1
 		    # job done ;^)
 		    num = 1
+                else:
+                    assert p > 1
 
 	return result
 
@@ -435,10 +426,11 @@ def _tabulate_block(file, block):
 
 from study.value.lazy import Lazy
 class cachePrimes(_Prime, Lazy):
+    __upinit = _Prime.__init__
     def __init__(self, row=None, sparse=None,
 		 moduledir='/home/eddy/.sys/py',
 		 cachedir=None):
-	_Prime.__init__(self, row, sparse)
+	self.__upinit(row, sparse)
 	self.__prime_module_dir = moduledir
         if cachedir is not None:
             self.prime_cache_dir = cachedir
@@ -530,7 +522,6 @@ class cachePrimes(_Prime, Lazy):
 
 	# Now the actual loading !
 	self._item_carrier[found.at:] = found.block
-	self._ask = add_one(self._item_carrier[-1])
 
 	# Tidy away anything in _sparse that now doesn't belong there:
 	while self._sparse and self._sparse[0] in self._item_carrier:
@@ -540,6 +531,9 @@ class cachePrimes(_Prime, Lazy):
                'sparse prime, %d, missed in "full" list' % self._sparse[0]
 
 	return 1
+
+    def _lazy_get__ask_(self, ig):
+        return 1 + self._item_carrier[-1]
 
     def _next_high(self):
 	try:
