@@ -145,36 +145,7 @@ Proof:
   1 and p = q.r has q as a factor so p/q = r is a positive integer. """
 
 
-from types import IntType, LongType
-def squareroot(value):
-    """Nearest integer to square root.
-
-    Takes one argument.  Raises ValueError if the argument is negative.  Returns
-    the nearest integer to the square root of this value. """
-
-    if value < 0: raise ValueError, ('square root of negative value', value)
-    if type(value) not in (IntType, LongType):
-	try: value = int(value + .75)
-	except OverflowError: value = long(value + .75)
-
-    try: return { 0: 0, 1: 1, 2: 1, 3: 2, 4: 2, 5: 2, 6: 2,
-		  7: 3, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3 }[value]
-    except KeyError: pass
-
-    bit = 0
-    while (1L << bit) < value: bit = bit + 1
-    if not (value & 1L<<bit): bit = bit - 1
-
-    ans, tib, val = 0, divmod(bit, 2)[0], val
-    while val:
-	while tib >= 0 and not (val & (1L << tib)): tib = tib - 1
-	# want top bit of (val / ans - ans) / 2
-	# is (ans+ 1<<tib)**2 OK ?  Needs val >= ans << tib + 1<<tib<<tib
-	# its top bit is 1<<(tib + bit)
-
-    raise NotImplementedError
-
-def sqrt(val): # how does this compare with squareroot ?
+def sqrt(val):
     """Returns the highest natural whose square does not exceed val"""
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
@@ -184,24 +155,23 @@ def sqrt(val): # how does this compare with squareroot ?
         v >>= 2
         bit += 1
 
-    bb = 1L << (2 * bit)
+    bb = 1 << (2 * bit)
     while bit:
         bb >>= 2
         up = (v << bit) + bb
         bit -= 1
         if up <= val:
-            v |= 1L << bit
+            v |= 1 << bit
             val -= up
 
     return v
 
 # and now for something python-2.2-specific:
 class Naturals (list):
-    class Suc ({}.__class__):
+    class Suc (dict):
         def __init__(self, bok=None):
-            if bok is None: self.clear()
-            else:
-                self.clear()
+            self.clear()
+            if bok is not None:
                 self.update(bok)
                 self[bok] = self
 
@@ -217,3 +187,4 @@ class Naturals (list):
 
 naturals = Naturals()
 del Naturals
+# NB: len(str(naturals[1+n])) = 13 * 3**n -2
