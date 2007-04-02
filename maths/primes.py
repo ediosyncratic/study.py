@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.5 2007-04-02 15:21:02 eddy Exp $
+$Id: primes.py,v 1.6 2007-04-02 15:32:19 eddy Exp $
 """
 
 checking = None
@@ -346,6 +346,9 @@ class _Prime(lazyTuple):
 		    seen = len(self)	# ignore sparse
 		    if self.get_cache(): continue
 		break
+
+            # Conjecture: hunting outwards from approximately sqrt(num), rather
+            # than up from _ask, might be quicker.
 
 	    # Now go hunting for primes until the job is done:
 	    while num > 1:
