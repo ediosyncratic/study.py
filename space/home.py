@@ -1,13 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.20 2007-03-24 22:42:21 eddy Exp $
+$Id: home.py,v 1.21 2007-04-08 12:26:22 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
      micro, kilo, mega, giga, tera, peta, arc, radian, \
-     year, day, hour, minute, second, kg, metre, km, mile, \
+     year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
+from study.value.archaea import mile
 import body
 from common import Orbit, Spin, Discovery, Surface, \
      SurfacePart, Ocean, Island, Continent, LandMass
