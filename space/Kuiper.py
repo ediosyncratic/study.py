@@ -1,12 +1,14 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.9 2007-03-24 22:42:21 eddy Exp $
+$Id: Kuiper.py,v 1.10 2007-04-08 12:32:15 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, \
-     tera, giga, mega, kilo, metre, mile, day, hour, year, kg, \
+     tera, giga, mega, kilo, metre, day, hour, year, kg, \
      Fahrenheit, Centigrade
+from study.value.archaea import mile
+
 from home import Sun, Earth, AU, KLplanet, KLsurface
 from outer import Neptune
 from common import Orbit, Spin, Discovery, Spheroid
