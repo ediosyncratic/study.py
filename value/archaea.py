@@ -3,17 +3,6 @@
 
 See SI.py for base units and units.py for various others.
 
-Interesting URLs:
-http://www.ukmetrication.com/history2.htm
-http://www.sylvaefa.com/svf1.htm
-http://www.maritimt.net/arkforsk/svenskem.htm
-http://en.wikipedia.org/wiki/Cgs
-http://home.clara.net/brianp/
-http://www.gnu.org/software/units/units.html
-http://www.unc.edu/~rowlett/units/
-http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
-http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
-
 This file documents lots of obscure and/or silly units, may of them derived from
 the /usr/share/misc/units repository of knowledge on the subject (see
 units.html, above, for details).  This file aims to be all-inclusive, rather
@@ -83,8 +72,37 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.1 2007-04-08 12:22:39 eddy Exp $
+$Id: archaea.py,v 1.2 2007-04-08 12:36:10 eddy Exp $
 """
+
+URLs = """Interesting URLs:
+
+http://www.ukmetrication.com/history2.htm
+http://www.sylvaefa.com/svf1.htm
+http://www.maritimt.net/arkforsk/svenskem.htm
+http://en.wikipedia.org/wiki/Cgs
+http://home.clara.net/brianp/
+http://www.gnu.org/software/units/units.html
+http://www.unc.edu/~rowlett/units/
+http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
+http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
+
+Nautical mile and its kin
+http://www.gwydir.demon.co.uk/jo/units/sea.htm
+http://www.explore-dictionary.com/weights_and_measures/M/Megalithic_yard.html
+
+German archaic units of measurement:
+http://de.wikipedia.org/wiki/Alte_Maﬂe_und_Gewichte
+should move the relevant section of units.py to
+archaea.py or even archaea/*.py !
+
+Dutch archaic units:
+http://home.hetnet.nl/~vanadovv/Lengte.html
+
+Fathom = vadem in dutch:
+<URL: http://home.hetnet.nl/~vanadovv/Lengte.html >
+"""
+
 from units import *
 
 # some non-SI base units ...
