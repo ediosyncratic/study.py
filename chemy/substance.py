@@ -8,12 +8,13 @@ alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
 mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
 
-$Id: substance.py,v 1.8 2007-03-26 07:57:31 eddy Exp $
+$Id: substance.py,v 1.9 2007-04-08 12:23:48 eddy Exp $
 """
 from element import * # q.v.
 from study.value.quantity import Quantity, tophat
 from study.value.units import second, metre, gram, kilogramme, litre, \
-     Joule, Kelvin, Centigrade, Atmosphere, gallon, pound, mach
+     Joule, Kelvin, Centigrade, Atmosphere, mach
+from study.value.archaea import gallon, pound
 
 # Properties of some substances:
 class Gas (Substance):
