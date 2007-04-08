@@ -10,11 +10,12 @@ See also:
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.10 2007-03-24 22:42:21 eddy Exp $
+$Id: asteroid.py,v 1.11 2007-04-08 12:33:07 eddy Exp $
 """
 
-from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, \
-     ton, mile, year, km, kg
+from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, year, km, kg
+from study.value.archaea import ton, mile
+
 from inner import Mercury, Venus, Mars
 from home import Sun, AU, Earth
 from body import Asteroid, Ring
