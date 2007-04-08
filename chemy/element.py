@@ -10,12 +10,12 @@ variants.  I chose to take the former description seriously and fake the latter.
 
 chemistry.mercury will need tweaked; it references atom.
 
-$Id: element.py,v 1.7 2007-04-08 12:20:48 eddy Exp $
+$Id: element.py,v 1.8 2007-04-08 22:35:00 eddy Exp $
 """
-from study.value.units import Object, Quantity, mega, kilo, harpo, tophat, sample, \
-     Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc, \
-     second, minute, day, year
-from particle import eV, AMU, Particle, Boson, Fermion, Nucleon, Photon, \
+from study.value.units import Object, Sample, Quantity, \
+     mega, kilo, harpo, tophat, sample, year, \
+     Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc
+from particle import AMU, Particle, Boson, Fermion, \
      proton, neutron, electron
 
 class Nucleus (Particle): _namespace = 'Nucleus.item'
@@ -168,6 +168,7 @@ class Element (Substance):
             Element.byName[alias] = self
 
         # should also handle the dog latin names for > 103, unnilquadium et al.
+        # nil, un, , tr, , pent, , , oct,
 
     bySymbol, byName = {}, {}
     byNumber = [ None ] * 104
@@ -208,7 +209,7 @@ class Element (Substance):
     def __repr__(self): return self.name
     def __str__(self): return self.symbol
 
-    def _lazy_get_atom_(self, ignored):
+    def _lazy_get_atom_(self, ignored, Q=Quantity, S=Sample):
         # aggregate atom of isotopes, unless self has exactly one natural isotope.
         if len(self) == 1: return self.__isotopes.values()[0].atom
         bok, what, base = {}, {}, ()
@@ -216,7 +217,7 @@ class Element (Substance):
         try: A = self.A
         except AttributeError: pass
         else:
-            if isinstance(A, Quantity): A = A._scalar
+            if isinstance(A, Q): A = A._scalar
             base = (A,) # use as weights if no bok; else as a base
             what['best'] = A
 
@@ -231,7 +232,7 @@ class Element (Substance):
             else: bok[n] = bun
 
         if bok: base = (bok,) + base
-        try: apply(Sample, base, what)
+        try: apply(S, base, what)
         except TypeError:
             raise AttributeError("I don't know enough about myself to describe my atom", self)
 
@@ -324,7 +325,7 @@ def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
 
 atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
      mass=Quantity(sample(1673.43, .08), harpo * gram),
-     nucleus=Nucleon.item.proton)
+     nucleus=proton)
 atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
      nucleus=nucleus(1, 1, 'deuteron', doc="Deuterium's nucleus",
                      # roughly the sum of proton and neutron:
@@ -485,6 +486,11 @@ Mendelevium = NASelement('Mendelevium', 'Md', 101, 256, [256])
 Nobelium = NASelement('Nobelium', 'No', 102, 254, [254])
 Lawrencium = NASelement('Lawrencium', 'Lr', 103, 257, [257])
 Kurchatovium = NASelement('Kurchatovium', 'Ku', 104)
+# ...
+Darmstadtium = NASelement('Darmstadtium', 'Ds', 110, None, [269, 271])
+# Elements 11[1-68] have also been reported, with decays
+# 118 (.9 ms, 2006) alpha -> 116 alpha -> 114 -> ?
+# 115 (90 ms, 2004) -> 113 (1.2 s) -> ?
 
 # and a few synonyms ...
 protium = Hydrogen[1].nominate('protium', 'p')
@@ -494,119 +500,11 @@ Ionium = Thorium[230].nominate('Ionium', 'Io')
 Thoron = Radon[220].nominate('Thoron', 'Tn')
 
 deuteron = Deuterium.atom.nucleus
+triton = Tritium.atom.nucleus
 alpha = Helium[4].atom.nucleus
 
-# Decays:
-from study.value.units import *
-from decay import ratedDecay
-ln2 = Quantity(2).log
-Tritium.decays = ratedDecay(Tritium, 12.35 * year,
-                            (1, 18.62e3 * eV, electron, Helium[3].atom.nucleus))
-
-def decay(what, halflife, *modes):
-    what.decays = apply(ratedDecay, (what, halflife) +
-                        tuple(map(lambda m: (m[0], m[1] * eV) + tuple(m[2:]), modes)))
-
-def photon(erg):
-    return Photon(energy= erg * eV)
-
-positron = electron.anti
-
-decay(Isotope(2, 6), .81 * second, (1, 3.51e6, electron))
-decay(Isotope(2, 8), .122 * second,
-      # 88% beta- 9.7; 12% n; 88% gamma .981 ???
-      (.88, 9.7e6, electron, photon(.981e6), Isotope(3, 5)),
-      (.12, 0, neutron, Isotope(2, 7)))
-
-decay(Isotope(3, 8), .844 * second,
-      (1, 13.1e6, electron, Isotope(4, 4)))
-decay(Isotope(3, 9), .178 * second,
-      # 65% beta- 13.6; 35% n, 2 alpha ??
-      (.65, 13.6e4, electron, Isotope(4, 5)),
-      (.35, 0, neutron, Isotope(3, 5)))
-decay(Isotope(3, 11), 8.5e-3 * second,
-      # 39% beta- 20.4; 61% n
-      (.39, 20.4e6, electron, Isotope(4, 7)),
-      (.61, 0, neutron, Isotope(3, 10))) # ???
-
-decay(Isotope(4, 7), 53.3 * day,
-      # 100% K; 10% gamma .477 ???
-      (1, 47.7e3, positron, Isotope(3, 4)))
-decay(Isotope(4, 8), 7e-17 * second, (1, 0, alpha, alpha))
-decay(Isotope(4, 10), 1.6e6 * year, (1, 556e3, electron))
-decay(Isotope(4, 11), 13.8 * second,
-      # 57% beta- 11.5; 33% gamma 2.12; 5% gamma 6.79; 2% gamma 5.85
-      (.57, 11.5e6, electron, Isotope(5, 6)),
-      (.33, 2.12e6, Isotope(4, 7)),
-      (.05, 6.79e6, Isotope(4, 7)),
-      (.02, 5.85e6, Isotope(4, 7)))
-decay(Isotope(4, 12), .011 * second,
-      (1, 0, electron, neutron, Isotope(5, 6)))
-
-decay(Isotope(5, 8), .77 * second,
-      # 93% beta+ 13.7; 100% 2 alpha
-      (.93, 13.7, positron, Isotope(4, 8)))
-decay(Isotope(5, 12), .02 * second,
-      # 97% beta- 13.37; 2% alpha; 1% gamma 4.439
-      (.97, 13.37e6, electron, Isotope(6, 6)),
-      (.02, 0, alpha, Isotope(3, 5)),
-      (.01, 4.439e6, Isotope(5, 7)))
-decay(Isotope(5, 13), 17e-3 * second,
-      # 92% beta- 13.44; 8% gamma 3.68
-      (.92, 13.44e6, electron, Isotope(6, 7)),
-      (.08, 3.68e6, Isotope(5, 8)))
-decay(Isotope(5, 14), 16e-3 * second,
-      # 87% beta- 14.5; 90% gamma 6.09; 9% gamma 6.73
-      (.87, 14.5e6, electron, Isotope(6, 8)),
-      (.9, 6.09e6, Isotope(5, 9)),
-      (.09, 6.73, Isotope(5, 9)))
-
-decay(Isotope(6, 9), .127 * second,
-      # beta+; 100% p
-      (1, 0, positron, proton, Isotope(4, 4)))
-decay(Isotope(6, 10), 19.15 * second,
-      # 99% beta+ 1.87; 99% gamma .718; 1% gamma 1.022
-      (.99, 1.87e6, positron, photon(.718e6), Isotope(5, 5)),
-      (.01, 1.022e6, Isotope(6, 4)))
-
-decay(Isotope(6, 11), 20.38 * minute, (1, .96e6, positron, Isotope(5, 6)))
-decay(Isotope(6, 14), 5730 * year, (1, .156e6, electron, Isotope(7, 7)))
-decay(Isotope(6, 15), 2.45 * second,
-      # 32% beta- 9.77; 68% beta- 4.47; 68% gamma 5.299
-      (.32, 9.77e6, electron, Isotope(7, 8)),
-      (.68, 4.47e6, electron, photon(5.299e6), Isotope(7, 8)))
-decay(Isotope(6, 16), .75 * second,
-      # 84% beta- 5.4; 100% n ???
-      (.84, 5.4e6, electron, neutron, Isotope(7, 8)),
-      (.16, 0, neutron, Isotope(6, 9)))
-
-decay(Isotope(7, 12), .011 * second,
-      # 94% beta+ 16.3; 4% alpha; 2% gamma 4.439
-      (.94, 16.3e6, positron, Isotope(6, 6)),
-      (.04, 0, alpha, Isotope(5, 3)),
-      (.02, 4.439e6, Isotope(7, 5)))
-decay(Isotope(7, 13), 9.96 * minute, (1, 1.19e6, positron, Isotope(6, 7)))
-decay(Isotope(7, 16), 7.1 * second,
-     # 26% beta- 10.42; 68% beta- 4.29; 69% gamma 6.129; 5% gamma 7.115; 1% gamma .871
-      (1, 10.42e6, electron, Isotope(8, 8)))
-decay(Isotope(7, 17), 4.17 * second,
-      # 2% beta- 8.7; 50% beta- 3.3; 95% n; 3% gamma .871 ???
-      (.02, 8.7e6, electron, Isotope(8, 9)),
-      (.5, 3.3e6, electron, neutron, Isotope(8, 8)))
-decay(Isotope(7, 18), .63 * second,
-      # 100% beta- 9.6; 100% 1.982; 72% gamma .82; 72% gamma 1.65
-      (1, 9.6e6, electron, Isotope(8, 10)))
-
-decay(Isotope(8, 13), 9e-3 * second,
-      # beta+ 16.7; 12% p
-      (.88, 16.7e6, positron, Isotope(7, 6)),
-      (.12, 16.7e6, positron, proton, Isotope(6, 6)))
-decay(Isotope(8, 14), 70.6 * second,
-      # 1% beta+ 4.12; 99% beta+ 1.81; 99% gamma 2.313
-      (.01, 4.12e6, positron, Isotope(7, 7)),
-      (.99, 1.81e6, photon(2.313e6), positron, Isotope(7, 7)))
-decay(Isotope(8, 15), 122.1 * second, (1, 1.73e6, positron, Isotope(7, 8)))
-
-del kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
-    gram, kg, tonne, second, minute, day, year, metre, mol, torr, \
-    eV, Particle, Boson, Fermion, proton, neutron, electron, AMU
+del Object, Sample, Quantity, \
+    mega, kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
+    gram, kg, tonne, year, metre, mol, torr, cc, \
+    Particle, Boson, Fermion, proton, neutron, electron, AMU, \
+    NASelement
