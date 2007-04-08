@@ -8,9 +8,9 @@ view of a chemical species (via its molecule), the element's atom has a definite
 arrangement of electrons around a nucleus which is a mixture of possible
 variants.  I chose to take the former description seriously and fake the latter.
 
-chemistry.mercury will need tweaked; it references atom.
+For data, see (inter alia): http://www.webelements.com/
 
-$Id: element.py,v 1.8 2007-04-08 22:35:00 eddy Exp $
+$Id: element.py,v 1.9 2007-04-08 23:58:29 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -84,6 +84,12 @@ class Isotope (Substance):
         assert type(Q) is type(1) is type(N)
         self.__upinit(protons=Q, neutrons=N)
 
+        try: el = Element.byNumber[self.protons]
+        except IndexError: pass
+        else:
+            if el is not None:
+                el[Q+N] = self
+
     def nominate(self, name, symbol):
         Element.bySymbol[symbol] = Element.byName[name] = self
         # So we record the attempt even if we fail to put it into effect ...
@@ -117,7 +123,12 @@ class Isotope (Substance):
 
     def _lazy_get_electrons_(self, ignored): return self.protons
     def _lazy_get_massnumber_(self, ignored): return self.protons + self.neutrons
-    def _lazy_get_element_(self, ignored): return Element.byNumber[self.protons]
+    def _lazy_get_element_(self, ignored):
+        el = Element.byNumber[self.protons]
+        if el is None:
+            el = Element(None, None, self.protons, None)
+            # may cause problems if that element is subsequently constructed nicely !
+        return el
 
     def __repr__(self): return self.name
     def __str__(self): return self.symbol
@@ -136,11 +147,12 @@ class Element (Substance):
     """Mixture of isotopes. """
 
     __upinit = Substance.__init__
-    def __init__(self, name, symbol, Z, A=None, **what):
+    def __init__(self, name, symbol, Z, A, **what):
         """Initialise an Element. """
         self.__isotopes = {}
-        what.update({'name': name, 'symbol': symbol,
-                     'atomic number': Z})
+        if name is not None: what['name'] = name
+        if symbol is not None: what['symbol'] = symbol
+        what['atomic number'] = Z
         if A is not None: what['relative atomic mass'] = A
         apply(self.__upinit, (), what)
         self.Z = Z
@@ -148,13 +160,15 @@ class Element (Substance):
 
         # Handle storage in Element.by* lookups:
         while len(Element.byNumber) <= Z: Element.byNumber.append(None)
-        Element.bySymbol[symbol] = Element.byName[name] = Element.byNumber[Z] = self
+        Element.bySymbol[self.symbol] = Element.byName[self.name] = Element.byNumber[Z] = self
 
         try: alias = what['alias']
         except KeyError: pass
         else:
             for sym in alias:
-                if len(sym) < 3: # should also handle len == 3 pig latin symbols.
+                if len(sym) < 3 or (len == 3 and # it looks like a pig latin name:
+                                    sym == sym.capitalise() and sym[0] in 'UBTQPHSOE' and
+                                    not filter(lambda x: x not in 'nubtqphsoe', sym[1:])):
                     assert not Element.bySymbol.has_key(sym)
                     Element.bySymbol[sym] = self
                 else:
@@ -167,17 +181,41 @@ class Element (Substance):
             assert not Element.byName.has_key(alias)
             Element.byName[alias] = self
 
-        # should also handle the dog latin names for > 103, unnilquadium et al.
-        # nil, un, , tr, , pent, , , oct,
+        if Z > 100:
+            # Elements 101 onwards have had pig latin names until IUPAC settles
+            # all name disputes.
+            if name is not None:
+                sym = self._lazy_get_name_('name')
+                Element.byName[sym] = self
+            if symbol is not None:
+                sym = self._lazy_get_symbol_('symbol')
+                Element.bySymbol[sym] = self
 
     bySymbol, byName = {}, {}
     byNumber = [ None ] * 104
+
+    def _lazy_get__nom_(self, ig,
+                        latin=( 'nil', 'un', 'bi', 'tri', 'quad',
+                                'pent', 'hex', 'sept', 'oct', 'enn' )):
+        row, Z = (), self.Z
+        while Z:
+            Z, d = divmod(Z, 10)
+            row = latin[d:d+1] + row
+        return row
+
+    def _lazy_get_name_(self, ig):
+        name = ''.join(self._nom)
+        if name[-1] == 'i': return name + 'um'
+        return name + 'ium'
+
+    def _lazy_get_symbol_(self, ig):
+        return ''.join(map(lambda x: x[0], self._nom)).capitalize()
 
     def __getitem__(self, key):
         try: ans = self.__isotopes[key]
         except KeyError:
             assert key == int(key)
-            ans = self.__isotopes[key] = Isotope(self.Z, int(key) - self.Z)
+            ans = Isotope(self.Z, int(key) - self.Z) # which calls __setitem__ for us
         return ans
 
     def __setitem__(self, key, value):
@@ -238,7 +276,7 @@ class Element (Substance):
 
         return atom(self.Z, A, self.name, self.symbol, "%s atom" % self.name)
 
-def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
+def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
     """Create an Element based on my Nuffield Advanced Data book's data.
 
     Required arguments:
@@ -280,12 +318,11 @@ def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
         # that Silicon's true abundance is believed to be 27.72 %
         what['abundance'] = abundance * .2772
 
-    if A is not None:
-        try: A.width
-        except AttributeError: # give it an error bar
-            try: isos[:] # radioactive/artificial elements
-            except TypeError: A = A + tophat * .0001 # real ones
-            else: A = A + tophat * max(1, max(isos) - min(isos))
+    try: A.width
+    except AttributeError: # give it an error bar
+        try: isos[:] # radioactive/artificial elements
+        except TypeError: A = A + tophat * .0001 # real ones
+        else: A = A + tophat * max(1, max(isos) - min(isos))
 
     ans = apply(Element, (name, symbol, Z, A), what)
 
@@ -307,7 +344,7 @@ def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
                           / sum(filter(lambda x: x > 1, weights))
 
             for k, v in isos.items():
-                ans[k] = Isotope(Z, k - Z)
+                iso = Isotope(Z, k - Z)
                 if v:
                     unit = 1
                     if v < 1:
@@ -315,11 +352,11 @@ def NASelement(name, symbol, Z, A=None, isos=None, abundance=None, **what):
                         unit = unit * .1
                     if fix and v > 1: v = v * fix # bodge
                     v = v + unit * tophat * .01
-                    ans[k].abundance = v * scale
+                    iso.abundance = v * scale
     else:
         # sequence: known isotopes
         for k in isos:
-            ans[k] = Isotope(Z, k - Z)
+            Isotope(Z, k - Z)
 
     return ans
 
@@ -485,10 +522,16 @@ Fermium = NASelement('Fermium', 'Fm', 100, 253, [253])
 Mendelevium = NASelement('Mendelevium', 'Md', 101, 256, [256])
 Nobelium = NASelement('Nobelium', 'No', 102, 254, [254])
 Lawrencium = NASelement('Lawrencium', 'Lr', 103, 257, [257])
-Kurchatovium = NASelement('Kurchatovium', 'Ku', 104)
-# ...
-Darmstadtium = NASelement('Darmstadtium', 'Ds', 110, None, [269, 271])
-# Elements 11[1-68] have also been reported, with decays
+Rutherfordium = NASelement('Rutherfordium', 'Rf', 104, 261, [ 260 ],
+                           alias=('Kurchatovium', 'Ku'))
+Dubnium = NASelement('Dubnium', 'Db', 105, 262, [ 261 ])
+Seaborgium = NASelement('Seaborgium', 'Sg', 106, 266, [ 263, 266 ])
+Bohrium = NASelement('Bohrium', 'Bh', 107, 264, [ 262, 266, 267 ])
+Hassium = NASelement('Hassium', 'Hs', 108, 269, [ 265 ])
+Meitnerium = NASelement('Meitnerium', 'Mt', 109, 268, [ 266 ])
+Darmstadtium = NASelement('Darmstadtium', 'Ds', 110, 281, [ 269, 271 ])
+Roentgenium = NASelement('Roentgenium', 'Rg', 111, 272, [ 272 ])
+# Elements 11[2-68] have also been reported, with decays
 # 118 (.9 ms, 2006) alpha -> 116 alpha -> 114 -> ?
 # 115 (90 ms, 2004) -> 113 (1.2 s) -> ?
 
@@ -503,8 +546,6 @@ deuteron = Deuterium.atom.nucleus
 triton = Tritium.atom.nucleus
 alpha = Helium[4].atom.nucleus
 
-del Object, Sample, Quantity, \
-    mega, kilo, harpo, tophat, Joule, Tesla, Kelvin, Centigrade, \
-    gram, kg, tonne, year, metre, mol, torr, cc, \
-    Particle, Boson, Fermion, proton, neutron, electron, AMU, \
-    NASelement
+del Object, Sample, Quantity, mega, kilo, harpo, tophat, \
+    Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, year, metre, mol, torr, cc, \
+    Particle, Boson, Fermion, AMU, NASelement
