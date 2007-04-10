@@ -10,7 +10,7 @@ variants.  I chose to take the former description seriously and fake the latter.
 
 For data, see (inter alia): http://www.webelements.com/
 
-$Id: element.py,v 1.9 2007-04-08 23:58:29 eddy Exp $
+$Id: element.py,v 1.10 2007-04-10 23:09:26 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -142,6 +142,25 @@ def Isotope(Q, N, klaz=Isotope, rack=all):
 Isotopes = all.values
 naturalIsotopes = lambda : filter(lambda x: getattr(x, 'abundance', None), Isotopes())
 del all
+
+# Local function, del'd below:
+def Noble(n, cache=[2]):
+    """Element number for noble gas number n (counting with He as 0).
+
+    If we take each noble gas as the last element in its cycle, the successive
+    cycles of the periodic table have lengths (breaking after each group VIII
+    element) 2, 8, 8, 18, 18, 32, 32, 50, 50, 72, 72, ...; let L be the list
+    whose entries these are; then L[2*i] == L[2*i-1] == 2*(i+1)**2.  Summing
+    according to Noble(i) = Noble(i-1) + L[i] then suffices to determine the
+    element numbers of the noble gasses.\n"""
+
+    if n < 0: raise IndexError # this function thinks it's a list ;->
+
+    while n >= len(cache):
+        i = (len(cache) + 1) / 2
+        cache.append(cache[-1] + 2 * (i+1)**2)
+
+    return cache[n]
 
 class Element (Substance):
     """Mixture of isotopes. """
@@ -275,6 +294,111 @@ class Element (Substance):
             raise AttributeError("I don't know enough about myself to describe my atom", self)
 
         return atom(self.Z, A, self.name, self.symbol, "%s atom" % self.name)
+
+    # Support for groups I through VIII:
+    def _lazy_get_period_(self, ig, N=Noble):
+        """Conventional Period number of the element.
+
+        This places H and He in period 1, Li through Ne in period 2, and so on.\n"""
+
+        i = 0
+        while N(i) < self.Z: i += 1
+        return i + 1
+
+    from study.value.lazy import Lazy
+    class Group (Lazy):
+        """A column of the periodic table of the elements.
+
+        For my purposes, columns are numbered leftwards from 0 at group VIII,
+        except that Groups I and II get negative values -1 and -2, respectively.
+        See http://www.chaos.org.uk/~eddy/bits/elements.html for why.
+
+        Groups I through VIII are named classically; each other column of the
+        table reuses the name of its first element.  Each group has a .leader
+        element, which is the first in the group (except that H is ignored).\n"""
+
+        def __init__(self, number):
+            self.__num, self.__seq = number, []
+
+        def __repr__(self): return self.name
+        __str__ = __repr__
+
+        def _lazy_get_name_(self, ig, N=Noble,
+                            latin=('VIII', 'VII', 'VI', 'V', 'IV', 'III', 'II', 'I')):
+            """Classical name, else symbol of first element in group"""
+            i = self.__num
+            if i < 6: return 'Group ' + latin[i]
+            return self.leader.symbol + '-Group'
+
+        def _lazy_get_leader_(self, ig, N=Noble):
+            """First element in this group, ignoring H"""
+            g = self.__num
+            # Special case groups I through VIII:
+            if g <= 0: return Element.byNumber[2 - g]
+            # Deliberately use F as group I's leader, regardless of whether H is in it:
+            if g < 6: return Element.byNumber[10 - g]
+
+            # Otherwise, find the first period to include a member of this group.
+            i = 2
+            while 2 * i**2 < g + 2: i += 1
+            # Period 2*j has length 2*(j+1)**2, so
+            # the first member of this group is in period 2*(i-1);
+            # N(2*(i-1) -1) marks the end of that period.
+            assert i >= 3
+            assert N(2*i -3) > N(2*i -4) + g + 2
+            assert N(2*i -4) <= N(2*i -5) + g + 2
+            return Element.byNumber[N(2*i -3) - g]
+
+        def __getitem__(self, key, N=Noble):
+            if key < 0: raise IndexError, key
+
+            if not self.__seq: # first time
+                if self.__num == 1 or self.__num == -1:
+                    # Hydrogen is schizophrenic:
+                    self.__seq.append(Element.byNumber[1])
+                self.__seq.append(self.leader)
+
+            P = self.__seq[-1].period
+            if self.__num < 0: P -= 1
+            while len(self.__seq) <= key:
+                # this'll IndexError for us if we run out of elements:
+                self.__seq.append(Element.byNumber[N(P) - self.__num])
+                P += 1
+
+            return self.__seq[key]
+
+        def __len__(self):
+            try:
+                i = len(self.__seq)
+                while True:
+                    self[i] # IndexError to break out of loop
+                    i += 1
+            except IndexError: pass
+            return i
+
+    del Lazy
+    def Group(n, G=Group, cache=[None]*8):
+        assert n > -3
+        while len(cache) <= n + 2: cache.append(None)
+        ans = cache[n+2]
+
+        if ans is None:
+            ans = cache[n+2] = G(n)
+
+        return ans
+
+    def _lazy_get_group_(self, ig, N=Noble, G=Group):
+        P = self.period
+        if P > 1:
+            tail = self.Z - N(P-2)
+            if tail < 3:
+                assert tail > 0
+                return G(-tail)
+
+        return G(N(P-1) - self.Z)
+
+    del Group
+del Noble
 
 def NASelement(name, symbol, Z, A, isos=None, abundance=None, **what):
     """Create an Element based on my Nuffield Advanced Data book's data.
