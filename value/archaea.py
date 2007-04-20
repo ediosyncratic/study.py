@@ -5,12 +5,13 @@ See SI.py for base units and units.py for various others.
 
 This file documents lots of obscure and/or silly units, may of them derived from
 the /usr/share/misc/units repository of knowledge on the subject (see
-units.html, above, for details).  This file aims to be all-inclusive, rather
-than sensible; however, there are `issues', since some of the units (especially
-ones relevant to trade in the anglophone world) have several variants - where
-possible, I have tried to find namespace-based ways to manage this mess (e.g.:
-print bushel.US.__doc__), but sometimes (e.g. the chain) I just gave up and left
-a comment here indicating the part of the story that I've left out !
+units.html, in URLs attribute of this module, for details).  This file aims to
+be all-inclusive, rather than sensible; however, there are `issues', since some
+of the units (especially ones relevant to trade in the anglophone world) have
+several variants - where possible, I have tried to find namespace-based ways to
+manage this mess (e.g.: print bushel.US.__doc__), but sometimes (e.g. the chain)
+I just gave up and left a comment here indicating the part of the story that
+I've left out !
 
 I should probably replace most of this file with a family of XML or RDF
 documents describing all the units, coupled to a deployment of some standard
@@ -72,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.2 2007-04-08 12:36:10 eddy Exp $
+$Id: archaea.py,v 1.3 2007-04-20 11:52:54 eddy Exp $
 """
 
 URLs = """Interesting URLs:
@@ -106,12 +107,6 @@ Fathom = vadem in dutch:
 from units import *
 
 # some non-SI base units ...
-bit = base_unit('bit', 'bit',
-		"""The definitive unit of binary data.
-
-A single binary digit is capable of exactly two states, known as 0 and 1.
-A sequence of n binary digits thus has pow(2, n) possible states. """)
-
 Lenat = base_unit('L', 'Lenat',
 		  """The standard unit of bogosity
 
@@ -163,86 +158,6 @@ should be noted that the 3e4/day figure is merely the infant mortality rate; we
 could as readily use 5e4 if we include adults.\n""")
 
 
-# Description of bytes, including the kilo = 1024 twist ...
-# but note kibi, mibi etc. should obsolete these; see quantity.py
-
-class bQuantity(Quantity):
-    def _quantity(self, what, units):
-        try: order = units['bit']
-        except KeyError: order = 0
-        if order: return self.__class__(what, units)
-        return Quantity(what, units)
-
-    def _lazy_get__unit_str_(self, key):
-        order = self._unit_order('bit')
-        factor, mul = self._quantade_split_(order)
-
-        if factor < 1: factor, mul = 1, ''
-        tail = self / pow(factor * byte, order)
-        tail = tail._primitive()
-        num, uni = tail._number_str, tail._unit_str
-
-        if order > 0:
-            if order == 1: here = mul + 'byte'
-            else: here = '%sbyte^%d^' % (mul, order)
-
-            if uni:
-                ind = uni.find('/')
-                if ind < 0: uni = uni + '.' + here
-                elif ind > 0: uni = uni[:ind] + '.' + here + uni[ind:]
-                else: uni = here + uni
-
-            else: uni = here
-
-        elif order < 0:
-            if order == -1: uni = '%s/%sbyte' % (uni, mul)
-            else: uni = '%s/%sbyte^%d^' % (uni, mul, -order)
-
-        self._number_str, self._unit_str = num, uni
-
-        if key == '_unit_str': return uni
-        elif key == '_number_str': return num
-        else: raise ValueError, key
-
-    _lazy_get__number_str_ = _lazy_get__unit_str_
-
-_name = 'byte'
-byte = bQuantity(qSample(best=8), # but no actual sample
-                bit,
-                """The standard unit of memory on a computer.
-
-Whereas the bit is the *natural* unit of binary data, in practice one normally
-manipulates data in larger chunks.  These may vary from machine to machine, but
-one mostly deals with multiples of 8 bits (these days) - these suffice for 256
-distinct values.  An 8-bit byte is also known as an `octet'.
-
-Groups of (typically 2, 4, 8 and sometimes higher powers of two) bytes tend to
-have special significance to the machine, and form the building blocks out of
-which one builds data structures.
-
-On the large scale, one tends to measure amounts of data in units of kilobytes,
-megabytes, gigabytes, ... in which the factor by which each is a multiple of its
-predecessor is 1024, rather than the 1000 normally used in kilo, mega, giga ...
-So I also define Kb, Mb, Gb, along with the full swath of positive-exponent
-quantifiers applied to byte, as kilobyte etc. above.  Indeed, it is mainly in
-order to do this that I bother defining the byte ... """,
-                _name)
-
-from quantity import _quantifier_dictionary
-_row = filter(lambda x: x > 0, _quantifier_dictionary.keys())
-_row.sort()
-for _key in _row:
-    if _key % 3: continue # skip deka, hecto
-    _nom = '%sbyte' % _quantifier_dictionary[_key]
-    try: exec '%s = Quantity(1024, %s, nom="%s")' % (_nom, _name, _nom)
-    except OverflowError:
-        # assert: _nom is terabyte
-        exec '%s = Quantity(1024L, %s, nom="%s")' % (_nom, _name, _nom)
-    _name = _nom
-
-del _nom, _name, _key, _row, _quantifier_dictionary
-Kb, Mb, Gb = kilobyte, megabyte, gigabyte
-
 # Many units are or have been subject to what amounts to dialect variation, some
 # have undergone significant changes of definition over time (as compared to the
 # fine-tuning of, for example, the metre in 1975).  This is only to be expected:
@@ -268,7 +183,7 @@ Kb, Mb, Gb = kilobyte, megabyte, gigabyte
 # purposes, Troy is treated as a nation - but doesn't actually mean the ancient
 # city-state of that name !  I should probably do the same to the UK versions of
 # anglophone units - if only to make this module's name-space less cluttered !
-
+
 champagne = Object(
     split = .2 * litre,
     magnum = 1.5 * litre)
@@ -280,6 +195,8 @@ champagne.also(
     balthazar = 8 * champagne.magnum,
     nebuchadnezzar = 10 * champagne.magnum)
 
+jiffy = second / 60 # but also s/100 and ms ...
+
 # Anglophone units of length:
 inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
 caliber = inch / 100
@@ -291,8 +208,8 @@ palmlength = 8 * inch
 span = 9 * inch
 fingerlength = span / 2
 fingerbreadth = 7 * inch / 8
-ell = cubit = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
-# but also: cubit = yard / 2, span = cubit / 2 (but ell = 45 in, as here)
+ell = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
+cubit = span * 2 # but also used as synonym for ell
 ft = foot = Quantity(3, hand,
                      """The English foot.
 
@@ -352,11 +269,14 @@ Some backward countries seem likely to continue using this unit to measure
 distances - along with the mile per hour as a unit of speed - for some time to
 come.  Contrast mile.nautical and the Scandinavian mil.\n""")
 
-league = 3 * mile
-league.document("""league: a varying measure of road distance, usu. about three miles (poxy).""")
+league = Quantity(3, mile,
+                  """The league
+
+A varying measure of road distance, usu. about three miles (poxy).
+""")
 marathon = 26 * mile + 385 * yard
 point = pica / 12        # the printer's point
-point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller, below - under mass !)
+point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller - a mass)
 point.arc = arc.point
 shoe = Object( # units of thickness of leather in shoes
     iron = inch / 48, # soles
@@ -380,9 +300,9 @@ catching up with a 1929 international standard.
                               UK = 6080 * foot)) # until 1970
 cable = Quantity(0.1, mile.nautical,
                  US = Quantity(100, fathom,
-                               navy = 720 * 1200 / 3937 * metre))
+                               navy = 720 * foot.survey))
 league.marine = 3 * mile.nautical
-knot = mile.nautical * 1. / hour
+knot = mile.nautical / hour
 
 foot.French = 4500 * metre / 13853	# pied de roi, French foot
 inch.French = foot.French / 12
@@ -394,7 +314,7 @@ French = Object(pied = foot.French,
                 point = point.French,
                 toise = 6 * foot.French,
                 arpent = (180 * foot.French)**2)
-
+
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
 mite = grain / 20
@@ -429,7 +349,7 @@ homestead = 160 * acre # aka section / 4
 
 # `cubic or solid measure' (KDWB):
 foot.timber = foot**3
-stack = Object(wood = 108 * foot.timber)
+stack = Object(wood = 108 * foot.timber) # yard * fathom * fathom
 cord = 128 * foot.timber
 cord.house = cord / 3
 ton.ship = 40 * foot.timber
@@ -473,6 +393,7 @@ slinch = 12 * slug
 duty = foot * pound.weight
 pond = gram.weight
 
+
 # Imperial units of volume (part 1):
 
 # `fluid measure'
@@ -500,9 +421,9 @@ gill = noggin = Quantity(1, pint / 4, # gill confirmed by Nick
 cup = pint / 2
 floz = ounce.fluid = Quantity(1, gill / 5, US = gill.US / 4)
 teacup = pint / 3
-spoon = Object(table = floz / 2) # but 20 cc in metric versions
+spoon = Object(table = Quantity(1, floz / 2, metric = 20 * cc))
 spoon.desert = spoon.table / 2
-dram.fluid = spoon.tea = Quantity(1, spoon.desert / 2)
+dram.fluid = spoon.tea = spoon.desert / 2
 dram.US = floz.US / 8
 minim = drop = Quantity(1, dram / 60, US = dram.US / 60)
 drachm = Object(Troy = Troy.drachm, fluid = dram.fluid)
@@ -513,7 +434,7 @@ fluid = Object(ounce = ounce.fluid, dram = dram.fluid)
 # differences of meaning, both geographic and temporal.
 firkin = Quantity(9, gallon, US = 9 * gallon.US)
 pin = firkin / 2
-# but I've met these two names with swapped meanings.
+# I've even met these last two names with swapped meanings.
 kilderkin = firkin * 2  # aka kil, possibly kill.
 barrel = Quantity(2, kilderkin,  # NHD agrees on barrel = 4 firkin.
                   wine = 63 * gallon.wine / 2,
@@ -545,6 +466,8 @@ ale = Object(beer,
              barrel = barrel.ale, hogshead = hogshead.ale)
 # and so on *ad nauseam* !
 
+# A few other nations' contributions:
+
 # Swedish stuff from http://www.maritimt.net/arkforsk/svenskem.htm
 Swedish = Object(
     doc = "Old Swedish units, as used since 1863",
@@ -605,21 +528,21 @@ mil = Quantity(10, kilo * metre,
 In Norway, 10 km is known as 'en mil'.  This is clearly a metricised replacement
 for an archaic Norwegian unit of distance, presumably close to the Danish and
 Swedish variants which I've found documented on the web.  The name is doubtless
-cognate with the Anglic 'mile' (q.v.), but the distance is significantly larger.
-The related sjømil units of the Scandinavian tradition literally translate as
-'sea mile'; see Swedish.sjoemil, for example.  However, the Scandinavian
-countries have embraced international standards, so now use the 1929 nautical
-mile and the metric system of units, rather than clinging to archaic units like
-some less civilized countries.\n""",
+cognate with the Anglic 'mile' (q.v.), but the distance is significantly larger
+(but compare the Prussion mile).  The related sjømil units of the Scandinavian
+tradition literally translate as 'sea mile'; see Swedish.sjoemil, for example.
+However, the Scandinavian countries have embraced international standards, so
+now use the 1929 nautical mile and the metric system of units, rather than
+clinging to archaic units like some less civilized countries.\n""",
                Dansk = Danish.mil,
                Svensk = Swedish.mil)
-
+
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 Swiss = Object(lien = 5249 * yard) # c. (land) league
 Dutch = Object(oncen = kilogramme / 10)
 Turk = Object(oke = 2.8342 * pound, berri = 1828 * yard)
 Russia = Object(verst = 1167 * yard, pood = 36.11 * pound)
-
+
 # Imperial units of volume (part 2):
 
 # `dry measure'
@@ -665,3 +588,5 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
             firkin = firkin.US, hogshead = hogshead.US, barrel = barrel.US,
             bushel = bushel.US, peck = peck.US, pace = pace.US, cable = cable.US,
             cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
+
+# Now, imagine being expected, in school, to memorise the UK share of that ...
