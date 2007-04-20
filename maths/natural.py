@@ -2,7 +2,7 @@
 
 Example linear spaces over the positive integers:
  the natural numbers
- the integers, whether modulo some large value or not
+ the integers, whether modulo some value or not
  the polynomials with integer coefficients
  the rational, real or complex numbers
  any vector or linear space over any of the above
@@ -56,56 +56,55 @@ def dividemod(num, den, base):
     return q % base
 
 def gcd(a, b):
-	"""Pair-wise highest common factor.
+    """Pair-wise highest common factor.
 
-	The value returned is, strictly, that value whose set of factors is the
-	intersection of the sets of factors of the two arguments, ignoring all
-	universal factors (e.g. 1, -1: values which are factors of everything).
-	"""
+    The value returned is, strictly, that value whose set of factors is the
+    intersection of the sets of factors of the two arguments, ignoring all
+    universal factors (e.g. 1, -1: values which are factors of everything).\n"""
 
-	# Any negative factor's matching positive is also a factor, and is
-	# greater than any negative.
-	if b < 0: b = -b
-	if a < 0: a = -a
-	elif a == 0: return b	# gcd(0,b) = abs(b)
-	# gcd(a,0) falls out naturally in the following
+    # Any negative factor's matching positive is also a factor, and is
+    # greater than any negative.
+    if b < 0: b = -b
+    if a < 0: a = -a
+    elif a == 0: return b	# gcd(0,b) = abs(b)
+    # gcd(a,0) falls out naturally in the following
 
-	# Euclid's algorithm:
-	while b > 0: a, b = b, a % b
-	return a
+    # Euclid's algorithm:
+    while b > 0: a, b = b, a % b
+    return a
 
 def hcf(this, *others):
-	"""The highest common factor of its arguments.
+    """The highest common factor of its arguments.
 
-	All arguments should be members of a linear space over the natural
-	numbers, eg (optionally long) integers or polynomials with such
-	coefficients; there must be at least one argument, with as many more as
-	you wish.
+    All arguments should be members of a linear space over the natural numbers,
+    eg (optionally long) integers or polynomials with such coefficients; there
+    must be at least one argument, with as many more as you wish.
 
-	Formally, the % operator, as defined for the given arguments, must be
-	guaranteed to yield a positive or zero value whenever its (two)
-	arguments are positive.  This is true for integers.
+    Formally, the % operator, as defined for the given arguments, must be
+    guaranteed to yield a positive or zero value whenever its (two) arguments
+    are positive.  This is true for integers.
 
-	Formally, at least one argument (to hcf) must be non-zero: if the
-	arguments are all zero, of which every value is a factor, there is no
-	highest common factor - all integers are factors of 0.  In this case,
-	the value zero is returned.
+    Formally, at least one argument (to hcf) must be non-zero: if the arguments
+    are all zero, of which every value is a factor, there is no highest common
+    factor - all integers are factors of 0.  In this case, the value zero is
+    returned.
 
-	To justify not raising an error when all inputs are zero, we can re-cast
-	the definition as: `that non-negative value which has, as its factors,
-	exactly those values which are factors of all the arguments'.  So the
-	result must be a multiple of every common factor of the arguments, but
-	of nothing else.  This coincides with `highest common factor' when at
-	least one argument is non-zero: and gives zero when all arguments are
-	zero.  Note that -1 is a factor of every value (just as is 1), hence the
-	need to specify `non-negative'.
+    To justify not raising an error when all inputs are zero, we can re-cast the
+    definition as: `that non-negative value which has, as its factors, exactly
+    those values which are factors of all the arguments'.  So the result must be
+    a multiple of every common factor of the arguments, but of nothing else.
+    This coincides with `highest common factor' when at least one argument is
+    non-zero: and gives zero when all arguments are zero.  Note that -1 is a
+    factor of every value (just as is 1), hence the need to specify
+    `non-negative'.
 
-	With this (undeniably less catchy) re-definition, we also get: a
-	concatenation of lists of values has, as its hcf, the hcf of the values
-	obtained by taking the hcfs of the lists seperately. """
+    With this (undeniably less catchy) re-definition, we also get: a
+    concatenation of lists of values has, as its hcf, the hcf of the values
+    obtained by taking the hcfs of the lists seperately; i.e. hcf is a
+    transitive binary operator.\n"""
 
-	for other in others: this = gcd(this, other)
-	return this
+    for other in others: this = gcd(this, other)
+    return this
 
 def lcm(this, *others):
     """The lowest common multiple of its arguments.
