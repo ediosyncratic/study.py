@@ -50,12 +50,12 @@ class linearSystem:
         assert i == len(left)
         while i > 0:
             i -= 1
-            self.__check(i, left)
+            self.__check(i, left[i])
 
-    def __check(self, i, left, gcd=natural.gcd):
+    def __check(self, i, row, gcd=natural.gcd):
         j = len(self.matrix)
-        row, scale = left[:j], left[j]
-        # row i of left times column j of matrix should yield i == j
+        # row i of result times column j of matrix should yield 0, or 1 when i == j
+        # Final entry in each row of each matrix is a denominator for that row.
         while j > 0:
             j -= 1
             tot, den = 0, 1 # sum of product entry, implicitly as tot/den
@@ -63,9 +63,10 @@ class linearSystem:
             while k-- > 0:
                 right = matrix[k]
                 v, s = row[k] * right[j], right[-1]
-                d = gcd(s, den)
-                tot = tot * s / d + v * den / d
-                den *= s/d
+                tot = tot * s + v * den
+                den *= s
+                f = gcd(tot, den)
+                tot, den = tot / f, den / f
 
             if j = i:
                 assert tot == den * scale, ("Non-unit diagonal entry", tot, den, scale)
@@ -85,52 +86,44 @@ class linearSystem:
                 raise ValueError('zero divisor on row', row)
             ans.append(r)
 
-        self.__matrix = ans
         return tuple(map(tuple, ans))
 
-    def identity(n):
-        nul, ans, i = ( 0, ) * n + ( 1, ), [], 0
-        while i < n:
+    def scaling(row):
+        nul, ans, i = ( 0, ) * len(row), [], 0
+        while i < len(row):
             it = list(nul)
-            it[i] = 1
+            it[i] = row[i]
             ans.append(it)
             i += 1
 
         return ans
 
-    def __solve(self, unit=identity):
-        # Should actually use __matrix's denominators as diagonal entries.
-        # This would eliminate most of the denominator complications ...
-        self.__result = unit(len(self.__matrix))
+    def __solve(self, unit=scaling):
+        self.__matrix = map(lambda r: r[:-1], self.matrix)
+        self.__result = unit(map(lambda r: r[-1], self.matrix))
         self.__upper()
         self.__diag()
         self.__tidy()
+        del self.__matrix # we should no longer be referencing it
 
-    del identity
+    del scaling
 
-    def __tidy(self, gcd=natural.gcd):
+    def __tidy(self, gcd=natural.hcf):
         i = len(self.matrix)
         while i > 0:
             i -= 1
             row = self.__matrix[i]
-            assert not filter(None, row[:i] + row[i+1:-1])
-            num, den = row[i], row[-1]
+            assert not filter(None, row[:i] + row[i+1:])
+            num = row[i]
+
             row = self.__result[i]
-
-            j = len(self.matrix)
-            f = row[j] = row[j] * num
-            while j > 0:
-                j -= 1
-                row[j] *= den
-                f = gcd(f, row[j])
-
+            row.append(num)
+            f = apply(gcd, row)
             if f > 1:
                 j = len(row)
                 while j > 0:
                     j -= 1
                     row[j] /= f
-
-        del self.__matrix # we should no longer be referencing it
 
     def __diag(self):
         """Reduce self.__matrix from upper triangular form to diagonal form."""
@@ -140,16 +133,15 @@ class linearSystem:
         while i > 0:
             i -= 1
             row = self.__matrix[i]
-            num, den = row[i], row[-1]
+            num = row[i]
             if num:
                 j = i
                 while j > 0:
                     j -= 1
                     row = self.__matrix[j]
-                    n, d = row[i], row[-1]
+                    n = row[i]
                     if n:
-                        self.__take(self.__matrix, i, n, d, j, num, den)
-                        self.__take(self.__result, i, n, d, j, num, den)
+                        self.__take(i, n, j, num)
             else:
                 zeros.append(i)
 
@@ -165,53 +157,52 @@ class linearSystem:
         while i < len(self.matrix):
             # First, get a good candidate in __matrix[i][i]
             # Find smallest non-zero entry in column i:
-            j, k, n, d = i+1, i, self.__matrix[i][i], self.__matrix[i][-1]
+            j, k, n = i+1, i, self.__matrix[i][i]
 
             while j < len(self.matrix):
-                m, e = self.__matrix[j][i], self.__matrix[j][-1]
-                if m and (not n or abs(m*d) < abs(n*e)):
-                    k, n, d = j, m, e
+                m = self.__matrix[j][i]
+                if m and (not n or abs(m) < abs(n)):
+                    k, n = j, m
                 j += 1
 
             if k != i:
-                self.__swap(self.__matrix, i, k)
-                self.__swap(self.__result, i, k)
+                self.__swap(i, k)
             row = self.__matrix[i]
-            key, scale = row[i], row[-1]
+            key = row[i]
 
             j = 1 + i
             while j < len(self.matrix):
                 # subtract enough of row from self.__matrix[j] to make its [i] entry zero
                 row = self.__matrix[j]
-                q, s = row[i], row[-1]
+                q = row[i]
                 if q: # else: nothing to do
-                    self.__take(self.__matrix, i, q, s, j, key, scale)
-                    self.__take(self.__result, i, q, s, j, key, scale)
+                    self.__take(i, q, j, key)
                     assert not row[i], ('Bad arithmetic', i, row[i])
                 j += 1
             i += 1
 
-    def __swap(self, matrix, i, j):
+    def __swap(self, i, j):
         """Swap rows i and j of the given matrix"""
-        a, b = matrix[i], matrix[j]
-        matrix[i], matrix[j] = b, a
+        for matrix in self.__matrix, self.__result:
+            a, b = matrix[i], matrix[j]
+            matrix[i], matrix[j] = b, a
 
-    def __take(self, matrix, i, ni, di, j, nj, dj, gcd=natural.gcd):
+    def __take(self, i, ni, j, nj, gcd=natural.hcf):
         """Replace row j of matrix by combining with row i."""
 
-        row = matrix[i]
-        top, scale = row[:-1], row[-1]
-        row = matrix[j]
-        k, s = len(self.matrix), row[-1]
-        f = row[-1] = row[-1] * di * dj * scale
-        while k > 0:
-            k -= 1
-            row[k] = row[k] * nj * di * scale - top[k] * ni * dj * s
-            f = gcd(f, row[k])
-
-        if f > 1:
-            k = len(row)
+        for matrix in self.__matrix, self.__result:
+            top = matrix[i]
+            row = matrix[j]
+            k = len(self.matrix)
             while k > 0:
                 k -= 1
-                assert not row[k] % f, 'bad gcd'
-                row[k] /= f
+                row[k] = row[k] * nj - top[k] * ni
+
+        f = apply(gcd, self.__matrix[j] + self.__result[j])
+        if f > 1:
+            for row in ( self.__matrix[j], self.__result[j] ):
+                k = len(row)
+                while k > 0:
+                    k -= 1
+                    assert not row[k] % f, 'bad gcd'
+                    row[k] /= f
