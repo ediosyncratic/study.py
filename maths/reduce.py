@@ -80,15 +80,16 @@ class linearSystem (Lazy):
             if row[i]:
                 how[i].append(row[i])
                 f = apply(gcd, how[i])
-                if f > 1:
+                if f and row[i] < 0: f = -f
+                if f > 1 or f < 0:
                     k = len(how[i])
                     while k > 0:
                         k -= 1
                         how[i][k] /= f
             else:
-                un.append(i]
+                un.append(i)
 
-            if filter(None, row[:i] + row[1+i]):
+            if filter(None, row[:i] + row[1+i:]):
                 co.append(i)
 
             i += 1
@@ -98,7 +99,7 @@ class linearSystem (Lazy):
         if co: bad = bad + ('Irreducible composites', co)
         if bad: raise apply(ValueError, bad)
 
-        return how
+        return tuple(map(tuple, how))
 
     def check(self):
         """Compute solution and test for correctness.
@@ -139,7 +140,7 @@ class linearSystem (Lazy):
             j -= 1
             tot, den = self.__contract(j, row) # sum of product entry, implicitly as tot/den
 
-            if j = i:
+            if j == i:
                 assert tot == den * scale, ("Non-unit diagonal entry", i, tot, den, scale)
             else:
                 assert tot == 0, ("Non-zero off-diagonal entry", i, tot, den, scale)
@@ -215,15 +216,15 @@ class linearSystem (Lazy):
         have integer components.  Note that it is this column of vectors that is
         permuted by .__swap(), not the basis or availables.\n"""
 
-        self.__matrix = map(lambda r: r[:-1], self.problem)
-        self.__result = diag(map(lambda r: r[-1], self.matrix))
+        self.__matrix = map(lambda r: list(r[:-1]), self.problem)
+        self.__result = diag(map(lambda r: r[-1], self.problem))
         self.__column = range(self.__ca[0])
 
     del scaling
 
     def __entry(self, i, j): return self.__matrix[i][self.__column[j]]
 
-    def __tidy(self, invert=permute.order):
+    def __tidy(self, order=permute.order, shuffle=permute.permute):
         """Tidy-up after attempted diagonalization.
 
         We now have .__matrix as near as we can hope for to diagonal form,
@@ -250,12 +251,13 @@ class linearSystem (Lazy):
             j, row = 0, avail[i]
             while not row[j]: j += 1 # we know row has at least one non-zero entry.
             indent.append(j) # we also know that no two rows have the same indent.
+            i += 1
         perm = order(indent)
         assert len(avail) == len(perm) == len(recip)
-        avail, recip = permute(avail, perm), permute(recip, perm)
+        avail, recip = shuffle(avail, perm), shuffle(recip, perm)
 
         del self.__matrix, self.__result, self.__column
-        return avail, recip
+        return tuple(map(tuple, avail)), tuple(map(tuple, recip))
 
     def __diag(self):
         """Reduce self.__matrix from upper triangular form to diagonal form."""
@@ -269,9 +271,10 @@ class linearSystem (Lazy):
                 j = ava
                 while j > 0:
                     j -= 1
+                    if j == i: continue # leave that row itself alone !
                     n = self.__entry(j, i)
                     if n:
-                        assert j > self.__ca[0] or j < i
+                        assert j > self.__ca[0] or j < i, ('expected zeros', i)
                         self.__take(i, n, j, num)
 
     # TODO: study choices for peak; natural.lcm, number of non-zero entries ...
@@ -290,6 +293,7 @@ class linearSystem (Lazy):
             n = peak(self.__matrix[j])
             if n and (not m or n < m):
                 k, m = j, n
+            j += 1
 
         if not m: return # all remaining entries are zero !
         if k != i: self.__swap(i, k)
@@ -300,6 +304,7 @@ class linearSystem (Lazy):
             n = abs(self.__entry(i, j))
             if n and (not m or n < m):
                 k, m = j, n
+            j += 1
 
         assert m, 'How did we find a non-zero lcm of this row, to like ?'
         if k != i:
@@ -312,9 +317,10 @@ class linearSystem (Lazy):
         if dim > ava: dim = ava
         i = 0
         while i < dim:
-            if not self.__select(i):
-                return # remainder of __matrix is zero (so upper triangular already)
+            self.__select(i)
             key = self.__entry(i, i)
+            if not key:
+                return # remainder of .__matrix is zero (so upper triangular already)
 
             j = 1 + i
             while j < ava:
