@@ -2,88 +2,125 @@
 
 This is desirable for unit-related calculations, when inferring how a set of
 values, of known kinds, imply units for values of assorted other kinds.
-
-TODO: cope with non-square cases ?
 """
 
-from study.maths import natural
+from study.maths import natural, permute
+from study.value.lazy import Lazy
 
-class linearSystem:
-    def __init__(self, *rows):
-        """Prepare an integer-valued matrix.
+class linearSystem (Lazy):
+    """Analyzer for integer-valued linear systems.
 
-        Each input should be a sequence of integers; there should be as many
-        integers in each sequence as there are inputs, or possibly one more; the
-        extra entry is an integer by which each entry in the row should be
-        implicitly divided (it defaults to 1 on rows where it is omitted).
-        Shorter sequences shall be silently padded with zero entries.  The
-        inputs are collectively interpreted as a matrix, whose inverse is
-        returned by self.solve().\n"""
+    The system is described by a canonical basis and a set of available vectors
+    expressed in terms of this basis.  The object representing the system does
+    what it can to express the canonical basis in terms of the available
+    vectors.  Where the available vectors themselves form a basis, the object
+    expresses the canonical basis in terms of it, via the .inverse attribute.
+    Otherwise, attempting to access .inverse shall get you a value error and the
+    object does the best it can, via other attributes (to be invented).
 
-        self.matrix = self.__ingest(rows)
+    Each matrix attribute is encoded as a tuple of rows; each row is itself a
+    tuple giving the co-ordinates of the row with respect to the input basis for
+    the matrix.  In matrix attributes marked as '(rational)', each row's last
+    entry is an implicit denominator for all earlier entries; others are simple
+    integer sequences, with no extra entry on each row.  Aside from .problem,
+    all attributes are lazily-evaluated.  Public attributes:
 
-    def solve(self):
-        """Returns the inverse of the matrix.
+      problem -- cleaned-up form of the constructor's input (rational)
+      inverse -- 'inverse' of .problem (rational), where available (else
+                 ValueError); each row, .inverse[i], specifies a linear
+                 combination of available vectors which yields the canonical
+                 basis member with index i.
+      available -- each row is a vector, in terms of the canonical basis,
+                   which can be expressed in terms of the available vectors
+      recipe -- each row specifies the linear comibination of the available
+                vectors that yields the matching row of .available
+      solution -- pair, (.available, .recipe), describing what can be achieved
 
-        The inverse is encoded as a sequence of rows.  As for the constructor's
-        inputs, an extra entry is appended to each row of the result, indicating
-        implicit division of that row by the given entry.  If this final entry
-        zero, the matrix was degenerate and the available inputs can only
-        produce zero as the relevant output component.
+    The rows of .available and of .recipe are linearly independent, as are those
+    of .inverse when available (in which case, so are those of .problem).
 
-        The entire computation is done by a succession of left-multiplications
-        by rational matrices, done simultaneously to (a copy of) the input and
-        the result matrix (which starts out as an identity).\n"""
+    Although dealing notionally with integer-valued data, this class actually
+    (via the implicit denominator mechanism) supports rational values; general
+    integer-valued problems can perfectly readilly imply solutions involving
+    rationals, so it makes sense to support the converse case. The crucial thing
+    is that all arithmetic is approached from an exact integer perspective,
+    rather than using floating-point approximations.\n"""
 
-        try: ans = self.__result
-        except AttributeError:
-            ans = self.__solve() # sets self.__result
-        return ans
+    def __init__(self, n, *rows):
+        """Prepare to analyze an integer-valued linear system.
 
-    def check(self):
-        """Compute solution and test for correctness.
+        First input, n, is the dimension of a linear space; each subsequent
+        input is a sequence of integers, denoting a vector in that linear space.
+        Any [n] entry of such a sequence denotes a denominator by which the [:n]
+        entries are implicitly divided.  Any sequence shorter than n is
+        implicitly padded with zero entries to length n, and given an [n] entry
+        of 1.  The sequences are not modified.  The new object retains copies of
+        them, so subsequent modifications to them shall not affect the new
+        object.\n"""
 
-        The test is done via assertions, so only works if debug is enabled !\n"""
+        self.__ca = n, len(rows) # numbers of vectors: in canonical basis; and available
+        self.problem = self.__ingest(n, rows)
 
-        left = self.solve()
-        i = len(self.matrix)
-        assert i == len(left)
-        while i > 0:
-            i -= 1
-            self.__check(i, left[i])
+    def _lazy_get_solution_(self, ig):
+        self.__setup()
+        self.__upper()
+        self.__diag()
+        return self.__tidy()
 
-    def __check(self, i, row, gcd=natural.gcd):
-        j = len(self.matrix)
-        # row i of result times column j of matrix should yield 0, or 1 when i == j
-        # Final entry in each row of each matrix is a denominator for that row.
-        while j > 0:
-            j -= 1
-            tot, den = 0, 1 # sum of product entry, implicitly as tot/den
-            k = len(self.matrix)
-            while k-- > 0:
-                right = matrix[k]
-                v, s = row[k] * right[j], right[-1]
-                tot = tot * s + v * den
-                den *= s
-                f = gcd(tot, den)
-                tot, den = tot / f, den / f
+    def _lazy_get_available_(self, ig): return self.solution[0]
+    def _lazy_get_recipe_(self, ig): return self.solution[1]
 
-            if j = i:
-                assert tot == den * scale, ("Non-unit diagonal entry", tot, den, scale)
+    def _lazy_get_inverse_(self, ig, gcd=natural.hcf):
+        can, how = self.solution
+        how = map(list, how) # deep copy; it'll be our result
+        # Conveniently, .__tidy() is sure to have left this diagonal if invertible.
+
+        i, un, co = 0, [], []
+        for row in can:
+            if row[i]:
+                how[i].append(row[i])
+                f = apply(gcd, how[i])
+                if f > 1:
+                    k = len(how[i])
+                    while k > 0:
+                        k -= 1
+                        how[i][k] /= f
             else:
-                assert tot == 0, ("Non-zero off-diagonal entry", tot, den, scale)
+                un.append(i]
 
-    def __ingest(self, rows):
-        n = len(rows)
+            if filter(None, row[:i] + row[1+i]):
+                co.append(i)
+
+            i += 1
+
+        bad = ()
+        if un: bad = bad + ('Unavailable canonical basis members', un)
+        if co: bad = bad + ('Irreducible composites', co)
+        if bad: raise apply(ValueError, bad)
+
+        return how
+
+    def __ingest(self, n, rows, gcd=natural.hcf):
         ans = []
         for row in rows:
             if len(row) > 1 + n:
-                raise ValueError('row longer than number of rows', row)
+                raise ValueError('over-long row', row)
+
             r = list(row)
             while len(r) < n: r.append(0)
+
             if len(r) == n: r.append(1)
             elif not r[n]:
-                raise ValueError('zero divisor on row', row)
+                raise ValueError('zero denominator on row', row)
+            else:
+                # The two prior cases make f be 0 or 1, so don't need this:
+                f = apply(gcd, r)
+                if f > 1:
+                    i = len(r)
+                    while i > 0:
+                        i -= 1
+                        r[i] /= f
+
             ans.append(r)
 
         return tuple(map(tuple, ans))
@@ -98,111 +135,164 @@ class linearSystem:
 
         return ans
 
-    def __solve(self, unit=scaling):
-        self.__matrix = map(lambda r: r[:-1], self.matrix)
-        self.__result = unit(map(lambda r: r[-1], self.matrix))
-        self.__upper()
-        self.__diag()
-        self.__tidy()
-        del self.__matrix # we should no longer be referencing it
+    def __setup(self, diag=scaling):
+        """Prepare for analysis of our linear system.
+
+        Uses .problem's denominators as diagonal entries for (otherwise zero)
+        .__result and the rest of .problem as .__matrix; sets up __column as the
+        identity permutation.
+
+        When computation is trying to make it be upper triangular and, later,
+        diagonal, .__matrix only appears so (in so far as we succeed) when
+        viewed via the permutation of its columns encoded in .__column; this
+        view of .__matrix is what .__entry() implements.
+
+        If we multiply .__matrix on its right by a column whose entries are the
+        members of our canonical basis, the result is a column of vectors.  If
+        we multiply .__result on its right by a column whose entries are our
+        initial available vectors, we get the same column of vectors.  This
+        column is initially just the available vectors, scaled if necessary to
+        have integer components.  Note that it is this column of vectors that is
+        permuted by .__swap(), not the basis or availables.\n"""
+
+        self.__matrix = map(lambda r: r[:-1], self.problem)
+        self.__result = diag(map(lambda r: r[-1], self.matrix))
+        self.__column = range(self.__ca[0])
 
     del scaling
 
-    def __tidy(self, gcd=natural.hcf):
-        i = len(self.matrix)
+    def __entry(self, i, j): return self.__matrix[i][self.__column[j]]
+
+    def __tidy(self, invert=permute.order):
+        """Tidy-up after attempted diagonalization.
+
+        We now have .__matrix as near as we can hope for to diagonal form,
+        albeit as seen through the distorting lens of .__column; we need to
+        extract from it, and from the accompanying .__result, the information we
+        were looking for.\n"""
+
+        # Purge any zero rows:
+        avail, recip = self.__matrix, self.__result
+        i = len(avail)
+        assert i == len(recip)
         while i > 0:
             i -= 1
-            row = self.__matrix[i]
-            assert not filter(None, row[:i] + row[i+1:])
-            num = row[i]
 
-            row = self.__result[i]
-            row.append(num)
-            f = apply(gcd, row)
-            if f > 1:
-                j = len(row)
-                while j > 0:
-                    j -= 1
-                    row[j] /= f
+            if filter(None, avail[i]):
+                assert filter(None, recip[i])
+            else:
+                assert not filter(None, recip[i])
+                del avail[i], recip[i]
+
+        # Order rows by increasing length of initial sequence of zeros:
+        indent, i = [], 0
+        while i < len(avail):
+            j, row = 0, avail[i]
+            while not row[j]: j += 1 # we know row has at least one non-zero entry.
+            indent.append(j) # we also know that no two rows have the same indent.
+        perm = order(indent)
+        assert len(avail) == len(perm) == len(recip)
+        avail, recip = permute(avail, perm), permute(recip, perm)
+
+        del self.__matrix, self.__result, self.__column
+        return avail, recip
 
     def __diag(self):
         """Reduce self.__matrix from upper triangular form to diagonal form."""
 
-        i = len(self.matrix)
-        zeros = []
+        i, ava = self.__ca
+        if i > ava: i = ava
         while i > 0:
             i -= 1
-            row = self.__matrix[i]
-            num = row[i]
+            num = self.__entry(i, i)
             if num:
-                j = i
+                j = ava
                 while j > 0:
                     j -= 1
-                    row = self.__matrix[j]
-                    n = row[i]
+                    n = self.__entry(j, i)
                     if n:
+                        assert j > self.__ca[0] or j < i
                         self.__take(i, n, j, num)
-            else:
-                zeros.append(i)
 
-        for i in zeros:
-            # check column i now contains *only* zeros (like its diagonal entry) ...
-            j = len(self.matrix)
-            while j > 0:
-                assert not self.__matrix[j][i], ("Ambiguous degeneracy", i)
+    # TODO: study choices for peak; natural.lcm, number of non-zero entries ...
+    def __select(self, i, peak=lambda r: max(map(abs, r))):
+        """Find a good candidate for self.__entry(i, i).
+
+        This prefers a row with low, but non-zero, peak entry; and selects a
+        smallest non-zero entry in this row to be the nominal i-th entry on the
+        diagonal of __matrix.\n"""
+
+        dim, ava = self.__ca
+
+        # Find row with smallest peak, swap it into row i:
+        j, k, m = i+1, i, peak(self.__matrix[i])
+        while j < ava and m != 1:
+            n = peak(self.__matrix[j])
+            if n and (not m or n < m):
+                k, m = j, n
+
+        if not m: return # all remaining entries are zero !
+        if k != i: self.__swap(i, k)
+
+        # Find smallest non-zero entry in row, swap it into virtual column i
+        j, k, m = i+1, i, abs(self.__entry(i, i))
+        while j < dim and m != 1:
+            n = abs(self.__entry(i, j))
+            if n and (not m or n < m):
+                k, m = j, n
+
+        assert m, 'How did we find a non-zero lcm of this row, to like ?'
+        if k != i:
+            p, q = self.__column[k], self.__column[i]
+            self.__column[k], self.__column[i] = q, p
 
     def __upper(self):
         """Reduce self.__matrix to upper triangular form."""
+        dim, ava = self.__ca
+        if dim > ava: dim = ava
         i = 0
-        while i < len(self.matrix):
-            # First, get a good candidate in __matrix[i][i]
-            # Find smallest non-zero entry in column i:
-            j, k, n = i+1, i, self.__matrix[i][i]
-
-            while j < len(self.matrix):
-                m = self.__matrix[j][i]
-                if m and (not n or abs(m) < abs(n)):
-                    k, n = j, m
-                j += 1
-
-            if k != i:
-                self.__swap(i, k)
-            row = self.__matrix[i]
-            key = row[i]
+        while i < dim:
+            if not self.__select(i):
+                return # remainder of __matrix is zero (so upper triangular already)
+            key = self.__entry(i, i)
 
             j = 1 + i
-            while j < len(self.matrix):
+            while j < ava:
                 # subtract enough of row from self.__matrix[j] to make its [i] entry zero
-                row = self.__matrix[j]
-                q = row[i]
+                q = self.__entry(j, i)
                 if q: # else: nothing to do
                     self.__take(i, q, j, key)
-                    assert not row[i], ('Bad arithmetic', i, row[i])
+                    assert not self.__entry(j, i), ('Bad arithmetic', i, self.__entry(j, i))
                 j += 1
             i += 1
 
     def __swap(self, i, j):
-        """Swap rows i and j of the given matrix"""
-        for matrix in self.__matrix, self.__result:
-            a, b = matrix[i], matrix[j]
-            matrix[i], matrix[j] = b, a
+        """Swap rows i and j of the system."""
+        for seq in self.__matrix, self.__result:
+            seq[i], seq[j] = seq[j], seq[i]
 
-    def __take(self, i, ni, j, nj, gcd=natural.hcf):
-        """Replace row j of matrix by combining with row i."""
+    def __take(self, i, ni, j, nj):
+        """Replace row j of system by a linear combination with row i."""
 
-        for matrix in self.__matrix, self.__result:
-            top = matrix[i]
-            row = matrix[j]
-            k = len(self.matrix)
+        for seq in self.__matrix, self.__result:
+            top, row = seq[i], seq[j]
+            k = len(row)
             while k > 0:
                 k -= 1
                 row[k] = row[k] * nj - top[k] * ni
 
-        f = apply(gcd, self.__matrix[j] + self.__result[j])
+        self.__norm(j)
+
+    def __norm(self, i, gcd=natural.hcf):
+        """Eliminate any common factor from i rows of matrix and result"""
+
+        f = apply(gcd, self.__matrix[i] + self.__result[i])
         if f > 1:
-            for row in ( self.__matrix[j], self.__result[j] ):
+            for row in ( self.__matrix[i], self.__result[i] ):
                 k = len(row)
                 while k > 0:
                     k -= 1
                     assert not row[k] % f, 'bad gcd'
                     row[k] /= f
+
+del Lazy, permute, natural
