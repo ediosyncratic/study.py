@@ -100,6 +100,43 @@ class linearSystem (Lazy):
 
         return how
 
+    def check(self):
+        """Compute solution and test for correctness.
+
+        The test is done via assertions, so only works if debug is enabled !\n"""
+
+        try: inv = self.inverse
+        except ValueError: pass
+        else:
+            i = self.__cb[1]
+            assert i == len(inv) >= self.__cb[0]
+            while i > 0:
+                i -= 1
+                self.__check(i, inv[i])
+
+    def __check(self, i, row, gcd=natural.gcd):
+        # row i of inverse times column j of problem should yield 0, or 1 when i == j
+        # Final entry in each row of each matrix is a denominator for that row.
+        row, scale = row[:-1], row[-1]
+        j = len(row)
+        assert j == self.__cb[0]
+        while j > 0:
+            j -= 1
+            tot, den = 0, 1 # sum of product entry, implicitly as tot/den
+            k = len(row)
+            while k-- > 0:
+                right = self.problem[k]
+                v, s = row[k] * right[j], right[-1]
+                tot = tot * s + v * den
+                den *= s
+                f = gcd(tot, den)
+                tot, den = tot / f, den / f
+
+            if j = i:
+                assert tot == den * scale, ("Non-unit diagonal entry", i, tot, den, scale)
+            else:
+                assert tot == 0, ("Non-zero off-diagonal entry", i, tot, den, scale)
+
     def __ingest(self, n, rows, gcd=natural.hcf):
         ans = []
         for row in rows:
