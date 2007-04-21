@@ -129,7 +129,7 @@ class linearSystem (Lazy):
             tot, den = self.__contract(j, left)
             assert tot == out[j] * den
 
-    def __check(self, i, row, gcd=natural.gcd):
+    def __check(self, i, row):
         # row i of inverse times column j of problem should yield 0, or 1 when i == j
         # Final entry in each row of each matrix is a denominator for that row.
         row, scale = row[:-1], row[-1]
@@ -144,11 +144,13 @@ class linearSystem (Lazy):
             else:
                 assert tot == 0, ("Non-zero off-diagonal entry", i, tot, den, scale)
 
-    def __contract(self, j, row):
+    def __contract(self, j, row, gcd=natural.gcd):
         # contract column j of problem with given row
         k, tot, den = len(row), 0, 1
         assert k == len(self.problem)
-        while k-- > 0:
+
+        while k > 0:
+            k -= 1
             right = self.problem[k]
             v, s = row[k] * right[j], right[-1]
             tot = tot * s + v * den
