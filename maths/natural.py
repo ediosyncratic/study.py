@@ -107,16 +107,15 @@ def hcf(this, *others):
     return this
 
 def lcm(this, *others):
-    """The lowest common multiple of its arguments.
+    """The smallest common multiple of its arguments.
 
     All arguments should be members of a linear space over the natural numbers,
     e.g. (optionally long) integers or polynomials with such coefficients.
-    There may be as many arguments as you wish.
+    There must be at least one argument, with as many more as you wish.
 
-    As for hcf(), to cope with zero (which, formally, is a common multiple of
-    the arguments and usually lower than the answer here given), we should
-    re-cast the definition as: that non-negative value whose multiples are
-    exactly the values which are multiples of every argument. """
+    If any entry is zero, so is the result: zero is a multiple of everything,
+    and is smaller than any other value; furthermore, nothing else is a multiple
+    of zero, so it is the only candidate.\n"""
 
     for other in others:
 	if this == 0: return this # in case it's an object whose class views it as zero
