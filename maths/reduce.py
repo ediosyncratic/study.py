@@ -114,6 +114,21 @@ class linearSystem (Lazy):
                 i -= 1
                 self.__check(i, inv[i])
 
+        av, re = self.solution # re * problem == av
+        i = len(re)
+        while i > 0:
+            i -= 1
+            self.__confirm(re[i], av[i])
+
+    def __confirm(self, left, out):
+        # left times column j of problem should yield out[j]
+        j = self.__cb[0]
+        assert j == len(out)
+        while j > 0:
+            j -= 1
+            tot, den = self.__contract(j, left)
+            assert tot == out[j] * den
+
     def __check(self, i, row, gcd=natural.gcd):
         # row i of inverse times column j of problem should yield 0, or 1 when i == j
         # Final entry in each row of each matrix is a denominator for that row.
@@ -122,20 +137,26 @@ class linearSystem (Lazy):
         assert j == self.__cb[0]
         while j > 0:
             j -= 1
-            tot, den = 0, 1 # sum of product entry, implicitly as tot/den
-            k = len(row)
-            while k-- > 0:
-                right = self.problem[k]
-                v, s = row[k] * right[j], right[-1]
-                tot = tot * s + v * den
-                den *= s
-                f = gcd(tot, den)
-                tot, den = tot / f, den / f
+            tot, den = self.__contract(j, row) # sum of product entry, implicitly as tot/den
 
             if j = i:
                 assert tot == den * scale, ("Non-unit diagonal entry", i, tot, den, scale)
             else:
                 assert tot == 0, ("Non-zero off-diagonal entry", i, tot, den, scale)
+
+    def __contract(self, j, row):
+        # contract column j of problem with given row
+        k, tot, den = len(row), 0, 1
+        assert k == len(self.problem)
+        while k-- > 0:
+            right = self.problem[k]
+            v, s = row[k] * right[j], right[-1]
+            tot = tot * s + v * den
+            den *= s
+            f = gcd(tot, den)
+            if f > 1: tot, den = tot / f, den / f
+
+        return tot, den
 
     def __ingest(self, n, rows, gcd=natural.hcf):
         ans = []
