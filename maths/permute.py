@@ -297,26 +297,32 @@ def invert(perm):
     inverse: that is, if p is a permutation and q = invert(p), then p@q and q@p
     are the identity permutation, id = range(len(p)), of the same length.
 
-    Asserting that our input was a permutation is most readilly checked by
-    verifying that, when ordered, it yields the range it should. """
+    Checking that our input was a permutation is most readilly done by verifying
+    that the inverse we compute does actually get an entry in each position; the
+    pidgeon-hole principle then ensures the rest.\n"""
 
     n = len(perm)
     ans = [ None ] * n
-    while n > 0:
-        n = n - 1
-        ans[perm[n]] = n
 
-    if None in ans:
+    try:
+        while n > 0:
+            n = n - 1
+            ans[perm[n]] = n
+
+        if None in ans: raise IndexError
+
+    except IndexError:
         raise ValueError, ('sequence is not a permutation', perm)
+
     assert permute(ans, perm) == range(len(perm)) == permute(perm, ans)
     assert ans == order(perm)
     return tuple(ans)
 
-def sorted(row):
-    return permute(row, order(row))
+def sorted(row, cmp=cmp):
+    return permute(row, order(row, cmp))
 
-def sort(row):
-    row[:] = sorted(row)
+def sort(row, cmp=cmp):
+    row[:] = sorted(row, cmp)
 
 class Iterator:
     # for a rather elegant application, see queens.py's derived class
@@ -348,8 +354,8 @@ class Iterator:
     appropriate; e.g. .p, .perm, .permutation, .i, .inv and .inverse all work.
     [Note that `permute' is *not* an initial chunk of `permutation'.]  These are
     re-computed every time they are asked for: if you intend to use either,
-    particularly .inverse, several times in an iteration, you should take a copy
-    of its value to save re-computation. """
+    particularly .inverse, several times in an iteration, you should save its
+    value the first time to avoid re-computation.\n"""
 
     def __init__(self, size):
         """Initialise permutation iterator.
@@ -386,7 +392,7 @@ class Iterator:
         """Advances iterator.
 
         Sets live to a false value if iterator was, before the call to step(),
-        on the last permutation. """
+        on the last permutation.\n"""
 
         i = len(self.__row) -1
         while i > 0 and self.__row[i-1] > self.__row[i]: i = i-1
