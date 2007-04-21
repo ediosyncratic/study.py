@@ -13,31 +13,47 @@ class linearSystem (Lazy):
     The system is described by a canonical basis and a set of available vectors
     expressed in terms of this basis.  The object representing the system does
     what it can to express the canonical basis in terms of the available
-    vectors.  Where the available vectors themselves form a basis, the object
-    expresses the canonical basis in terms of it, via the .inverse attribute.
-    Otherwise, attempting to access .inverse shall get you a value error and the
-    object does the best it can, via other attributes (to be invented).
+    vectors.  Where the available vectors' span coincides with that of some
+    subset of the canonical basis, the object expresses this subset of the
+    canonical basis in terms of it, via the .inverse attribute.  Otherwise,
+    attempting to access .inverse shall get you a value error and the object
+    does the best it can, via other attributes (to be invented).
 
     Each matrix attribute is encoded as a tuple of rows; each row is itself a
-    tuple giving the co-ordinates of the row with respect to the input basis for
-    the matrix.  In matrix attributes marked as '(rational)', each row's last
-    entry is an implicit denominator for all earlier entries; others are simple
-    integer sequences, with no extra entry on each row.  Aside from .problem,
-    all attributes are lazily-evaluated.  Public attributes:
+    tuple giving co-ordinates of the row with respect to either the canonical
+    basis or the available vectors.  In matrix attributes marked as
+    '(rational)', each row's last entry is an implicit denominator for all
+    earlier entries; others are simple integer sequences, with no extra entry on
+    each row.  Aside from .problem, all attributes are lazily-evaluated.
+
+    Public attributes:
 
       problem -- cleaned-up form of the constructor's input (rational)
-      inverse -- 'inverse' of .problem (rational), where available (else
-                 ValueError); each row, .inverse[i], specifies a linear
-                 combination of available vectors which yields the canonical
-                 basis member with index i.
+
+      inverse -- 'inverse' of .problem (rational), where available; each row,
+                 .inverse[i], specifies a linear combination of available
+                 vectors which yields the canonical basis member with index i,
+                 where that is accessibility; otherwise, inaccessibility is
+                 signalled by a denominator of 0 and the rest of the row is
+                 taken from kernel or, if those run out, is all zero.  Where two
+                 canonical basis members are inseparable, you'll get a
+                 ValueError (there's only so much I'm willing to kludge).
+
       available -- each row is a vector, in terms of the canonical basis,
                    which can be expressed in terms of the available vectors
+
       recipe -- each row specifies the linear comibination of the available
                 vectors that yields the matching row of .available
-      solution -- pair, (.available, .recipe), describing what can be achieved
+
+      kernel -- each row is a linear dependency among the available vectors
+
+      solution -- pair, (.available, .recipe, .kernel), describing what can be
+                  achieved
 
     The rows of .available and of .recipe are linearly independent, as are those
-    of .inverse when available (in which case, so are those of .problem).
+    of .inverse with non-zero denominator, when available.  Note that .kernel is
+    not guaranteed to be exhaustive, or linearly independent, but it's quite
+    likely to be both.
 
     Although dealing notionally with integer-valued data, this class actually
     (via the implicit denominator mechanism) supports rational values; general
@@ -61,107 +77,109 @@ class linearSystem (Lazy):
         self.__ca = n, len(rows) # numbers of vectors: in canonical basis; and available
         self.problem = self.__ingest(n, rows)
 
-    def _lazy_get_solution_(self, ig):
-        self.__setup()
-        self.__upper()
-        self.__diag()
-        return self.__tidy()
+    def contract(self, row):
+        """Weighted sum of available values.
 
-    def _lazy_get_available_(self, ig): return self.solution[0]
-    def _lazy_get_recipe_(self, ig): return self.solution[1]
+        Single argument is a sequence of coefficients for the available vectors
+        supplied to the constructor; each entry is multiplied by the matching
+        available vector, the results are summed and a rational vector
+        (i.e. final entry is an implied denominator for the earlier ones)
+        relative to the canonical basis is returned.  If the given sequence has
+        fewer entries than there are available values, (a copy of) it is padded
+        with zeros; otherwise, it may have one extra value, indicating an
+        implied denominator for all the others.\n"""
 
-    def _lazy_get_inverse_(self, ig, gcd=natural.hcf):
-        can, how = self.solution
-        how = map(list, how) # deep copy; it'll be our result
-        # Conveniently, .__tidy() is sure to have left this diagonal if invertible.
+        n = self.__ca[1]
+        if len(row) > 1 + n:
+            raise ValueError('too many entries', row, n)
+        elif len(row) < n:
+            row = list(row)
+            while len(row) < n: row.append(0)
 
-        i, un, co = 0, [], []
-        for row in can:
-            if row[i]:
-                how[i].append(row[i])
-                f = apply(gcd, how[i])
-                if f and row[i] < 0: f = -f
-                if f > 1 or f < 0:
-                    k = len(how[i])
-                    while k > 0:
-                        k -= 1
-                        how[i][k] /= f
-            else:
-                un.append(i)
+        if len(row) > n: row, scale = row[:n], row[n]
+        else: scale = 1
 
-            if filter(None, row[:i] + row[1+i:]):
-                co.append(i)
-
-            i += 1
-
-        bad = ()
-        if un: bad = bad + ('Unavailable canonical basis members', un)
-        if co: bad = bad + ('Irreducible composites', co)
-        if bad: raise apply(ValueError, bad)
-
-        return tuple(map(tuple, how))
+        return self.__lincomb(row, scale)
 
     def check(self):
         """Compute solution and test for correctness.
 
         The test is done via assertions, so only works if debug is enabled !\n"""
 
+        dim, ava = self.__ca
         try: inv = self.inverse
         except ValueError: pass
         else:
-            i = self.__cb[1]
-            assert i == len(inv) >= self.__cb[0]
+            assert ava >= dim == len(inv)
+            i = dim
             while i > 0:
                 i -= 1
                 self.__check(i, inv[i])
 
-        av, re = self.solution # re * problem == av
+        av, re, ker = self.solution # re * problem == av
         i = len(re)
         while i > 0:
             i -= 1
             self.__confirm(re[i], av[i])
 
-    def __confirm(self, left, out):
-        # left times column j of problem should yield out[j]
-        j = self.__cb[0]
-        assert j == len(out)
-        while j > 0:
-            j -= 1
-            tot, den = self.__contract(j, left)
-            assert tot == out[j] * den
+        i, nul = len(ker), ( 0, ) * dim
+        while i > 0:
+            i -= 1
+            self.__confirm(ker[i], nul)
 
-    def __check(self, i, row):
-        # row i of inverse times column j of problem should yield 0, or 1 when i == j
-        # Final entry in each row of each matrix is a denominator for that row.
-        row, scale = row[:-1], row[-1]
-        j = len(row)
-        assert j == self.__cb[0]
-        while j > 0:
-            j -= 1
-            tot, den = self.__contract(j, row) # sum of product entry, implicitly as tot/den
+        if len(re) + len(ker) != len(self.problem):
+            print "It surprises me that kernel", len(ker), "and rank", len(re), \
+                  "don't add up to system size", len(self.problem)
+            # but this isn't an error
 
-            if j == i:
-                assert tot == den * scale, ("Non-unit diagonal entry", i, tot, den, scale)
+    def _lazy_get_available_(self, ig): return self.solution[0]
+    def _lazy_get_recipe_(self,    ig): return self.solution[1]
+    def _lazy_get_kernel_(self,    ig): return self.solution[2]
+    def _lazy_get_solution_(self,  ig):
+        self.__setup()
+        self.__upper()
+        self.__diag()
+        return self.__tidy()
+
+    def freeze(row): return tuple(map(tuple, row)) # local function, del'd later
+
+    def _lazy_get_inverse_(self, ig, gcd=natural.hcf, safe=freeze):
+        can, how, ker = self.solution
+        how = map(list, how) # deep copy; it'll be our result
+        # Conveniently, .__tidy() is sure to have left this diagonal if invertible.
+
+        dim, ava = self.__ca
+        i, j, k, co = 0, 0, 0, []
+        while i < dim:
+            row = can[j]
+            if row[i]:
+                j += 1
+                how[i].append(row[i])
+                f = apply(gcd, how[i])
+                if f and how[i][-1] < 0: f = -f
+                if f > 1 or f < 0:
+                    k = len(how[i])
+                    while k > 0:
+                        k -= 1
+                        how[i][k] /= f
+
+                if filter(None, row[:i] + row[1+i:]):
+                    co.append(i)
+
+            elif k < len(ker):
+                how.insert(i, ker[k] + (0,))
+                k += 1
             else:
-                assert tot == 0, ("Non-zero off-diagonal entry", i, tot, den, scale)
+                how.insert(i, (0,) * (ava + 1))
 
-    def __contract(self, j, row, gcd=natural.gcd):
-        # contract column j of problem with given row
-        k, tot, den = len(row), 0, 1
-        assert k == len(self.problem)
+            i += 1
 
-        while k > 0:
-            k -= 1
-            right = self.problem[k]
-            v, s = row[k] * right[j], right[-1]
-            tot = tot * s + v * den
-            den *= s
-            f = gcd(tot, den)
-            if f > 1: tot, den = tot / f, den / f
+        if co:
+            raise ValueError('Irreducible composites', co)
 
-        return tot, den
+        return safe(how)
 
-    def __ingest(self, n, rows, gcd=natural.hcf):
+    def __ingest(self, n, rows, gcd=natural.hcf, safe=freeze):
         ans = []
         for row in rows:
             if len(row) > 1 + n:
@@ -184,7 +202,107 @@ class linearSystem (Lazy):
 
             ans.append(r)
 
-        return tuple(map(tuple, ans))
+        return safe(ans)
+
+    def __confirm(self, left, out):
+        # left times column j of problem should yield out[j]
+        j = self.__ca[0]
+        assert j == len(out)
+        while j > 0:
+            j -= 1
+            tot, den = self.__contract(j, left)
+            assert tot == out[j] * den
+
+    def __check(self, i, row):
+        # row i of inverse times column j of problem should yield 0, or 1 when i == j
+        # Final entry in each row of each matrix is a denominator for that row.
+        row, scale = row[:-1], row[-1]
+        j = self.__ca[0]
+        while j > 0:
+            j -= 1
+            tot, den = self.__contract(j, row) # sum of product entry, implicitly as tot/den
+
+            if j == i:
+                assert tot == den * scale, ("Non-unit diagonal entry", i, tot, den, scale)
+            else:
+                assert tot == 0, ("Non-zero off-diagonal entry", i, j, tot, den, scale)
+
+    def __contract(self, j, row, gcd=natural.gcd):
+        """Contract column j of problem with given row."""
+        k, tot, den = len(row), 0, 1
+        assert k == len(self.problem)
+        assert j < self.__ca[0]
+
+        while k > 0:
+            k -= 1
+            right = self.problem[k]
+            v, s = row[k] * right[j], right[-1]
+            tot = tot * s + v * den
+            den *= s
+            f = gcd(tot, den)
+            if f > 1: tot, den = tot / f, den / f
+
+        return tot, den
+
+    def __lincomb(self, row, scale, lcm=natural.lcm, gcd=natural.hcf):
+        """As for .contract(), but with row of correct length and scale separate."""
+        ans = map(lambda j, c=self.__contract, r=row: c(j, r), range(self.__ca[0]))
+        den = apply(lcm, map(lambda (n, d): d, ans))
+        ans = map(lambda (n, d), s=den: n * s / d, ans) + [ den * scale ]
+
+        f = apply(gcd, ans)
+        if ans[-1] < 0: f = -f
+        if f > 1 or f < 0:
+            i = len(ans)
+            while i > 0:
+                i -= 1
+                ans[i] /= f
+
+        return tuple(ans)
+
+    # The actual analysis of the problem:
+
+    def __tidy(self, order=permute.order, shuffle=permute.permute, safe=freeze):
+        """Tidy-up after attempted diagonalization.
+
+        We now have .__matrix as near as we can hope for to diagonal form,
+        albeit as seen through the distorting lens of .__column; we need to
+        extract from it, and from the accompanying .__result, the information we
+        were looking for.\n"""
+
+        # Purge any zero rows:
+        avail, recip, degen = self.__matrix, self.__result, []
+        i = len(avail)
+        assert i == len(recip)
+        while i > 0:
+            i -= 1
+
+            if filter(None, avail[i]):
+                assert filter(None, recip[i])
+            else:
+                if filter(None, recip[i]):
+                    degen.append(recip[i])
+                del avail[i], recip[i]
+
+        self.kernel = safe(degen)
+
+        # Order rows by increasing length of initial sequence of zeros:
+        indent, i = [], 0
+        while i < len(avail):
+            j, row = 0, avail[i]
+            while not row[j]: j += 1 # we know row has at least one non-zero entry.
+            indent.append(j) # we also know that no two rows have the same indent.
+            i += 1
+        perm = order(indent)
+        assert len(avail) == len(perm) == len(recip)
+        avail, recip = shuffle(avail, perm), shuffle(recip, perm)
+
+        del self.__matrix, self.__result, self.__column
+        self.available = safe(avail)
+        self.recipe = safe(recip)
+        return self.available, self.recipe, self.kernel
+
+    del freeze
 
     def scaling(row):
         nul, ans, i = ( 0, ) * len(row), [], 0
@@ -223,41 +341,6 @@ class linearSystem (Lazy):
     del scaling
 
     def __entry(self, i, j): return self.__matrix[i][self.__column[j]]
-
-    def __tidy(self, order=permute.order, shuffle=permute.permute):
-        """Tidy-up after attempted diagonalization.
-
-        We now have .__matrix as near as we can hope for to diagonal form,
-        albeit as seen through the distorting lens of .__column; we need to
-        extract from it, and from the accompanying .__result, the information we
-        were looking for.\n"""
-
-        # Purge any zero rows:
-        avail, recip = self.__matrix, self.__result
-        i = len(avail)
-        assert i == len(recip)
-        while i > 0:
-            i -= 1
-
-            if filter(None, avail[i]):
-                assert filter(None, recip[i])
-            else:
-                assert not filter(None, recip[i])
-                del avail[i], recip[i]
-
-        # Order rows by increasing length of initial sequence of zeros:
-        indent, i = [], 0
-        while i < len(avail):
-            j, row = 0, avail[i]
-            while not row[j]: j += 1 # we know row has at least one non-zero entry.
-            indent.append(j) # we also know that no two rows have the same indent.
-            i += 1
-        perm = order(indent)
-        assert len(avail) == len(perm) == len(recip)
-        avail, recip = shuffle(avail, perm), shuffle(recip, perm)
-
-        del self.__matrix, self.__result, self.__column
-        return tuple(map(tuple, avail)), tuple(map(tuple, recip))
 
     def __diag(self):
         """Reduce self.__matrix from upper triangular form to diagonal form."""
@@ -353,7 +436,9 @@ class linearSystem (Lazy):
         """Eliminate any common factor from i rows of matrix and result"""
 
         f = apply(gcd, self.__matrix[i] + self.__result[i])
-        if f > 1:
+        r = filter(None, self.__matrix[i])
+        if r and r[0] < 0: f = -f
+        if f > 1 or f < 0:
             for row in ( self.__matrix[i], self.__result[i] ):
                 k = len(row)
                 while k > 0:
