@@ -73,29 +73,31 @@ def gcd(a, b):
     while b > 0: a, b = b, a % b
     return a
 
-def hcf(this, *others):
-    """The highest common factor of its arguments.
+def hcf(*others):
+    """The highest natural common factor of its arguments.
 
     All arguments should be members of a linear space over the natural numbers,
     eg (optionally long) integers or polynomials with such coefficients; there
-    must be at least one argument, with as many more as you wish.
+    may be arbitrarily many arguments.
 
     Formally, the % operator, as defined for the given arguments, must be
     guaranteed to yield a positive or zero value whenever its (two) arguments
     are positive.  This is true for integers.
 
-    Formally, at least one argument (to hcf) must be non-zero: if the arguments
-    are all zero, of which every value is a factor, there is no highest common
-    factor - all integers are factors of 0.  In this case, the value zero is
-    returned.
+    Formally, at least one argument (to hcf) must be non-zero: if (there are no
+    arguments, or) the arguments are all zero, of which every value is a factor,
+    there is no highest common factor - all integers are factors of 0.  In this
+    case, the value zero is returned.
 
-    To justify not raising an error when all inputs are zero, we can re-cast the
-    definition as: `that non-negative value which has, as its factors, exactly
-    those values which are factors of all the arguments'.  So the result must be
-    a multiple of every common factor of the arguments, but of nothing else.
-    This coincides with `highest common factor' when at least one argument is
-    non-zero: and gives zero when all arguments are zero.  Note that -1 is a
-    factor of every value (just as is 1), hence the need to specify
+    To justify not raising an error when (there are no inputs, or) all inputs
+    are zero, we can re-cast the definition as: `that non-negative value which
+    has, as its factors, exactly those naturals which are factors of all the
+    arguments' (reading 'is n a factor of all arguments' as the negation of 'no
+    argument does not have n as a factor' for the case of no arguments).  So the
+    result must be a multiple of every common factor of the arguments, but of
+    nothing else.  This coincides with `highest common factor' when at least one
+    argument is non-zero: and gives zero when all arguments are zero.  Note that
+    -1 is a factor of every value (just as is 1), hence the need to specify
     `non-negative'.
 
     With this (undeniably less catchy) re-definition, we also get: a
@@ -103,23 +105,26 @@ def hcf(this, *others):
     obtained by taking the hcfs of the lists seperately; i.e. hcf is a
     transitive binary operator.\n"""
 
+    this = 0
     for other in others: this = gcd(this, other)
     return this
 
-def lcm(this, *others):
+def lcm(*others):
     """The smallest common multiple of its arguments.
 
     All arguments should be members of a linear space over the natural numbers,
     e.g. (optionally long) integers or polynomials with such coefficients.
-    There must be at least one argument, with as many more as you wish.
+    There may be arbitrarily many arguments.
 
     If any entry is zero, so is the result: zero is a multiple of everything,
     and is smaller than any other value; furthermore, nothing else is a multiple
-    of zero, so it is the only candidate.\n"""
+    of zero, so it is the only candidate.  The return when no arguments are
+    supplied is 1, to ensure that lcm is transitive.\n"""
 
+    this = 1
     for other in others:
-	if this == 0: return this # in case it's an object whose class views it as zero
-	c = gcd(this, other)	# > 0, as this != 0.
+	if not other: return other # in case it's an object whose class views it as zero
+	c = gcd(this, other)	# > 0, as other != 0.
 	this = other * this / c
 
     # this's sign is currently the product of the signs of the arguments.
