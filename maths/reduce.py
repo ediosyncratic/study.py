@@ -8,13 +8,13 @@ describes the kind of one of the given values by the powers of the 'base kinds'
 that make up the value's kind.  The canonical basis may then be inferred from
 the values by using the linear system's inverse.
 
-$Id: reduce.py,v 1.9 2007-04-22 00:25:12 eddy Exp $
+$Id: reduce.py,v 1.10 2007-04-22 01:20:25 eddy Exp $
 """
 
-from study.maths import natural, permute
+import natural, permute
 from study.value.lazy import Lazy
 
-class linearSystem (Lazy):
+class System (Lazy):
     """Analyzer for integer-valued linear systems.
 
     The system is described by a canonical basis and a set of available vectors
@@ -171,7 +171,7 @@ class linearSystem (Lazy):
                         how[i][k] /= f
 
                 if filter(None, row[:i] + row[1+i:]):
-                    co.append(i)
+                    co.append(j)
 
             elif k < len(ker):
                 how.insert(i, ker[k] + (0,))
@@ -272,18 +272,19 @@ class linearSystem (Lazy):
     def __tidy(self, order=permute.order, shuffle=permute.permute, safe=freeze):
         """Tidy-up after attempted diagonalization.
 
-        We now have .__matrix as near as we can hope for to diagonal form,
-        albeit as seen through the distorting lens of .__column; we need to
-        extract from it, and from the accompanying .__result, the information we
-        were looking for.\n"""
+        We have .__matrix as near as we can hope for to diagonal form, albeit as
+        seen through the distorting lens of .__column; we need to extract from
+        it, and from the accompanying .__result, the information we were looking
+        for.\n"""
+
+        avail, recip, degen = self.__matrix, self.__result, []
+        del self.__matrix, self.__result, self.__column
 
         # Purge any zero rows:
-        avail, recip, degen = self.__matrix, self.__result, []
         i = len(avail)
         assert i == len(recip)
         while i > 0:
             i -= 1
-
             if filter(None, avail[i]):
                 assert filter(None, recip[i])
             else:
@@ -298,15 +299,14 @@ class linearSystem (Lazy):
         while i < len(avail):
             j, row = 0, avail[i]
             while not row[j]: j += 1 # we know row has at least one non-zero entry.
-            indent.append(j) # we also know that no two rows have the same indent.
+            indent.append(j)
             i += 1
+
         perm = order(indent)
         assert len(avail) == len(perm) == len(recip)
-        avail, recip = shuffle(avail, perm), shuffle(recip, perm)
+        self.available = safe(shuffle(avail, perm))
+        self.recipe    = safe(shuffle(recip, perm))
 
-        del self.__matrix, self.__result, self.__column
-        self.available = safe(avail)
-        self.recipe = safe(recip)
         return self.available, self.recipe, self.kernel
 
     del freeze
@@ -350,22 +350,46 @@ class linearSystem (Lazy):
     def __entry(self, i, j): return self.__matrix[i][self.__column[j]]
 
     def __diag(self):
-        """Reduce self.__matrix from upper triangular form to diagonal form."""
+        """Reduce .__matrix from upper triangular form to diagonal form."""
 
         i, ava = self.__ca
         if i > ava: i = ava
         while i > 0:
             i -= 1
             num = self.__entry(i, i)
-            if num:
-                j = ava
-                while j > 0:
-                    j -= 1
-                    if j == i: continue # leave that row itself alone !
-                    n = self.__entry(j, i)
-                    if n:
-                        assert j > self.__ca[0] or j < i, ('expected zeros', i)
-                        self.__take(i, n, j, num)
+            if not num: continue # can't change anything usefully
+
+            j = ava
+            while j > 0:
+                j -= 1
+                if j == i: continue # leave that row itself alone !
+
+                n = self.__entry(j, i)
+                if n:
+                    assert j > self.__ca[0] or j < i, ('expected zeros', i)
+                    self.__take(i, n, j, num)
+
+    def __upper(self):
+        """Reduce .__matrix to upper triangular form."""
+        dim, ava = self.__ca
+        if dim > ava: dim = ava
+        i = 0
+        while i < dim:
+            self.__select(i)
+            key = self.__entry(i, i)
+            if not key:
+                break # Remainder of .__matrix is zero, so upper triangular already
+
+            # Use .__matrix[i] to clear .__entry(j, i) for all j > i:
+            j = i + 1
+            while j < ava:
+                q = self.__entry(j, i)
+                if q: # else: nothing to do
+                    self.__take(i, q, j, key)
+                    assert not self.__entry(j, i), ('Bad arithmetic', i, self.__entry(j, i))
+
+                j += 1
+            i += 1
 
     # TODO: study choices for peak; natural.lcm, number of non-zero entries ...
     def __select(self, i, peak=lambda r: max(map(abs, r))):
@@ -398,36 +422,15 @@ class linearSystem (Lazy):
 
         assert m, 'How did we find a non-zero lcm of this row, to like ?'
         if k != i:
-            p, q = self.__column[k], self.__column[i]
-            self.__column[k], self.__column[i] = q, p
-
-    def __upper(self):
-        """Reduce self.__matrix to upper triangular form."""
-        dim, ava = self.__ca
-        if dim > ava: dim = ava
-        i = 0
-        while i < dim:
-            self.__select(i)
-            key = self.__entry(i, i)
-            if not key:
-                return # remainder of .__matrix is zero (so upper triangular already)
-
-            j = 1 + i
-            while j < ava:
-                # subtract enough of row from self.__matrix[j] to make its [i] entry zero
-                q = self.__entry(j, i)
-                if q: # else: nothing to do
-                    self.__take(i, q, j, key)
-                    assert not self.__entry(j, i), ('Bad arithmetic', i, self.__entry(j, i))
-                j += 1
-            i += 1
+            col = self.__column
+            col[k], col[i] = col[i], col[k]
 
     def __swap(self, i, j):
         """Swap rows i and j of the system."""
         for seq in self.__matrix, self.__result:
             seq[i], seq[j] = seq[j], seq[i]
 
-    def __take(self, i, ni, j, nj):
+    def __take(self, i, ni, j, nj, gcd=natural.hcf):
         """Replace row j of system by a linear combination with row i."""
 
         for seq in self.__matrix, self.__result:
@@ -437,20 +440,15 @@ class linearSystem (Lazy):
                 k -= 1
                 row[k] = row[k] * nj - top[k] * ni
 
-        self.__norm(j)
-
-    def __norm(self, i, gcd=natural.hcf):
-        """Eliminate any common factor from i rows of matrix and result"""
-
-        f = apply(gcd, self.__matrix[i] + self.__result[i])
-        r = filter(None, self.__matrix[i])
+        f = apply(gcd, self.__matrix[j] + self.__result[j])
+        r = filter(None, self.__matrix[j])
         if r and r[0] < 0: f = -f
         if f > 1 or f < 0:
-            for row in ( self.__matrix[i], self.__result[i] ):
-                k = len(row)
-                while k > 0:
-                    k -= 1
-                    assert not row[k] % f, 'bad gcd'
-                    row[k] /= f
+            mat, row = self.__matrix[j], self.__result[j]
+            k = len(row)
+            while k > 0:
+                k -= 1
+                row[k] /= f
+                mat[k] /= f
 
 del Lazy, permute, natural
