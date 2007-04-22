@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.7 2007-04-22 20:06:50 eddy Exp $
+$Id: primes.py,v 1.8 2007-04-22 20:32:59 eddy Exp $
 """
 
 checking = None
@@ -217,6 +217,8 @@ class _Prime(lazyTuple):
 	if self._ask < self[-1]:
 	    self._ask = 1 + self[-1]
 	was = self._ask
+
+        # This method doesn't load cache !  Architecture change needed.
 
 	while self[-1] < was:	# so we exit when we know.
 	    if self._ask in self._sparse: self._know()
@@ -460,35 +462,50 @@ class cachePrimes(_Prime, Lazy):
 
     del nosuchdir
 
-    def _do_import(self, handle):
-	"""Imports data from a file, preparatory to _load()ing."""
-	import sys, os
-	name = 'temp_cache'
-	infile = os.path.join(self.__prime_module_dir, name + '.py')
-
-	try: saved = sys.modules[name] # execfile would make this redundant
-	except KeyError: saved = None
-	else: del sys.modules[name]
-	# So we've cleared sys.modules and must be sure to put it back.
+    def _lazy_get__caches_(self, ignored, stem='c'):
 	try:
-	    os.link(handle, infile)
-	    try:
-		temp = {}
-		found = None
-                # TODO: use execfile() builtin instead !
-		exec 'import ' + name in temp
-		return temp[name]
+	    import os
+	    loc = self.prime_cache_dir
+	    row = os.listdir(loc)
+	except: return {}
 
-	    finally:
-		os.unlink(infile)
-                if os.path.exists(infile + 'c'):
-                    os.unlink(infile + 'c') # kill the .pyc file too !
-	finally:
-	    # Put sys.modules back the way we found it.
-	    if saved: sys.modules[name] = saved
-	    else: # execfile would make this redundant
-		try: del sys.modules[name]
-		except KeyError: pass
+	import string
+	def _read_int(text, s=string):
+	    import string
+	    if text[-1] == 'L': return s.atol(text, 0)
+	    else: return s.atoi(text, 0)
+
+	result = {}
+	lang = len(stem)
+	for name in row:
+	    if name[:lang] == stem and name[-3:] == '.py' and '-' in name[lang:-3]:
+		result[os.path.join(loc, name)
+		       ] = map(_read_int, name[lang:-3].split('-'))
+
+	return result
+
+    class Dummy: pass
+
+    def _do_import(self, handle, object=Dummy):
+	"""Imports data from a file, preparatory to _load()ing."""
+
+        obj = object()
+        obj.__dict__
+        execfile(handle, obj.__dict__)
+        return obj
+
+    del Dummy
+
+    def get_cache(self):
+	"""Returns true if it got anything out of the caches."""
+        print 'Getting cache'
+	size = len(self._item_carrier)
+	for name, pair in self._caches.items():
+	    if pair[0] <= size:
+		del self._caches[name]
+		if pair[-1] > size: return self._load(self._do_import(name))
+
+	return None
 
     def _load(self, found):
 	"""Loads data that's been imported from a file.
@@ -618,38 +635,6 @@ class cachePrimes(_Prime, Lazy):
 
 	    self.__high_water = new
 	    new = self._next_high()
-
-    def _lazy_get__caches_(self, ignored, stem='cache'):
-	try:
-	    import os
-	    dir = self.prime_cache_dir
-	    row = os.listdir(dir)
-	except: return {}
-
-	import string
-	def _read_int(text, s=string):
-	    import string
-	    if text[-1] == 'L': return s.atol(text, 0)
-	    else: return s.atoi(text, 0)
-
-	result = {}
-	lang = len(stem)
-	for name in row:
-	    if name[:lang] == stem and name[-3:] == '.py' and '-' in name[lang:-3]:
-		result[os.path.join(dir, name)
-		       ] = map(_read_int, name[lang:-3].split('-'))
-
-	return result
-
-    def get_cache(self):
-	"""Returns true if it got anything out of the caches."""
-	size = len(self._item_carrier)
-	for name, pair in self._caches.items():
-	    if pair[0] <= size:
-		del self._caches[name]
-		if pair[-1] > size: return self._load(self._do_import(name))
-
-	return None
 
 primes = cachePrimes()
 def is_prime(num):
