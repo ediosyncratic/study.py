@@ -1,7 +1,14 @@
 """Solving linear equations in integer coefficients.
 
 This is desirable for unit-related calculations, when inferring how a set of
-values, of known kinds, imply units for values of assorted other kinds.
+values, of known kinds, imply units for values of assorted other kinds.  For
+this use, the addition and integer scaling of our linear system correspond to
+multiplication and taking powers of the kinds of value.  Each available vector
+describes the kind of one of the given values by the powers of the 'base kinds'
+that make up the value's kind.  The canonical basis may then be inferred from
+the values by using the linear system's inverse.
+
+$Id: reduce.py,v 1.9 2007-04-22 00:25:12 eddy Exp $
 """
 
 from study.maths import natural, permute
@@ -33,7 +40,7 @@ class linearSystem (Lazy):
       inverse -- 'inverse' of .problem (rational), where available; each row,
                  .inverse[i], specifies a linear combination of available
                  vectors which yields the canonical basis member with index i,
-                 where that is accessibility; otherwise, inaccessibility is
+                 where that is accessible; otherwise, inaccessibility is
                  signalled by a denominator of 0 and the rest of the row is
                  taken from kernel or, if those run out, is all zero.  Where two
                  canonical basis members are inseparable, you'll get a
@@ -47,8 +54,8 @@ class linearSystem (Lazy):
 
       kernel -- each row is a linear dependency among the available vectors
 
-      solution -- pair, (.available, .recipe, .kernel), describing what can be
-                  achieved
+      solution -- tuple, (.available, .recipe, .kernel), describing what can be
+                  achieved.
 
     The rows of .available and of .recipe are linearly independent, as are those
     of .inverse with non-zero denominator, when available.  Note that .kernel is
