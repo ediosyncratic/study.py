@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.6 2007-04-02 15:32:19 eddy Exp $
+$Id: primes.py,v 1.7 2007-04-22 20:06:50 eddy Exp $
 """
 
 checking = None
@@ -65,7 +65,7 @@ class lazyTuple:
 	return len(self._item_carrier)
 
     def __getitem__(self, key):
-        while key > len(self._item_carrier) and self.grow(): pass
+        while key >= len(self._item_carrier) and self.grow(): pass
 	return self._item_carrier[key]	# raising IndexError if grow failed
 
     # A list is function from naturals to its entries:
@@ -338,9 +338,10 @@ class _Prime(lazyTuple):
 	    while 1:
 		for p in self.known()[seen:]:
 		    count, num = self.__reduce(num, p)
-		    if count: result[p] = count
+		    if count: result[p] = count + result.get(p, 0)
 		    if num < p:
-                        assert num == 1, 'all primes less than p have already been tried'
+                        assert num == 1 or num > self._item_carrier[-1] + 1, \
+                               ('all primes less than p have already been tried', num, p)
                         break
 		else:
 		    seen = len(self)	# ignore sparse
@@ -431,9 +432,12 @@ from study.value.lazy import Lazy
 class cachePrimes(_Prime, Lazy):
     __upinit = _Prime.__init__
     def __init__(self, row=None, sparse=None,
-		 moduledir='/home/eddy/.sys/py',
+		 moduledir=None,
 		 cachedir=None):
 	self.__upinit(row, sparse)
+        if moduledir is None:
+            from study.maths import __path__
+            moduledir = __path__[0]
 	self.__prime_module_dir = moduledir
         if cachedir is not None:
             self.prime_cache_dir = cachedir
@@ -441,9 +445,20 @@ class cachePrimes(_Prime, Lazy):
 	self.__high_water = 0
 	return
 
-    def _lazy_get_prime_cache_dir_(self, ignored):
+    def nosuchdir(nom, os):
+        try: st = os.stat(nom)
+        except os.error: return True
+        import stat
+        if stat.S_ISDIR(st.st_mode): return False
+        raise TypeError(nom, 'exists but is not a directory')
+
+    def _lazy_get_prime_cache_dir_(self, ignored, nodir=nosuchdir):
         import os
-	return os.path.join(self.__prime_module_dir, 'primes')
+        ans = os.path.join(self.__prime_module_dir, 'primes')
+        if nodir(ans, os): os.makedirs(ans)
+	return ans
+
+    del nosuchdir
 
     def _do_import(self, handle):
 	"""Imports data from a file, preparatory to _load()ing."""
@@ -451,7 +466,7 @@ class cachePrimes(_Prime, Lazy):
 	name = 'temp_cache'
 	infile = os.path.join(self.__prime_module_dir, name + '.py')
 
-	try: saved = sys.modules[name]
+	try: saved = sys.modules[name] # execfile would make this redundant
 	except KeyError: saved = None
 	else: del sys.modules[name]
 	# So we've cleared sys.modules and must be sure to put it back.
@@ -460,6 +475,7 @@ class cachePrimes(_Prime, Lazy):
 	    try:
 		temp = {}
 		found = None
+                # TODO: use execfile() builtin instead !
 		exec 'import ' + name in temp
 		return temp[name]
 
@@ -470,7 +486,7 @@ class cachePrimes(_Prime, Lazy):
 	finally:
 	    # Put sys.modules back the way we found it.
 	    if saved: sys.modules[name] = saved
-	    else:
+	    else: # execfile would make this redundant
 		try: del sys.modules[name]
 		except KeyError: pass
 
@@ -577,12 +593,11 @@ class cachePrimes(_Prime, Lazy):
 
 	import os
 	name = os.path.join(self.prime_cache_dir,
-			    name)	# implicitly tests isabs(name).
+			    name) # implicitly tests isabs(name).
 	tmpfile = name + '.tmp'
 
 	new = self._next_high()
-	size = len(self._item_carrier)
-	while new < size:
+	while new < len(self._item_carrier):
 	    outfile = name + `self.__high_water` + '-' + `new` + '.py'
 	    if force or not os.path.exists(outfile):
 		file = open(tmpfile, 'w')
@@ -591,7 +606,7 @@ class cachePrimes(_Prime, Lazy):
 		    '"""Persistence data for primes module."""',
 		    '\nat = ', `self.__high_water`,
 		    '\nto = ', `new`,
-		    '\nsparse = ', `_sparse`,
+		    '\nsparse = ', `self._sparse`,
 		    '\nblock = ['])
 		    _tabulate_block(file,
 				    self._item_carrier[self.__high_water:new])
