@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.10 2007-04-23 04:37:59 eddy Exp $
+$Id: primes.py,v 1.11 2007-04-23 04:46:14 eddy Exp $
 """
 
 _TODO = """Various potential improvements
@@ -43,6 +43,8 @@ _TODO = """Various potential improvements
      this'll make a bigger block-size practical.
    - Think in terms of writing a .so module to implement crucial parts, when
      implementing octet format.
+   - Retain *one* old-style cache file for an initial chunk of (at least 3)
+     primes, plus sparse (which has no place in octet format).
    - Turn primary object into a holder for objects describing sub-ranges; load
      and unload these as needed, to limit how much is held in memory; iterators
      need to remember their positions in terms of chunk index and offset, since
