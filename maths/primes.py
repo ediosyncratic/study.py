@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.9 2007-04-23 04:25:28 eddy Exp $
+$Id: primes.py,v 1.10 2007-04-23 04:37:59 eddy Exp $
 """
 
 _TODO = """Various potential improvements
@@ -32,8 +32,12 @@ _TODO = """Various potential improvements
  * Cache improvements:
    - Ensure that all uses load from cache in preference to working out afresh
      (current .grow()-based approach doesn't).
-   - Change naming to use hex in file-names, varying first letter each time we
-     add a digit (so ls gets order right); use 'hidden' cache-dir.
+   - Use hex in file-names, rather than base ten.
+   - Use 'hidden' cache-dir (now that we can) and support use of sub-dir to
+     provide a hierarchical cache (avoid over-large individual directories).
+   - Add a variable second letter to file-name prefix; change each time we add a
+     digit to start index (so ls gets order right); allow to wrap round a-z
+     since we should be in a separate sub-dir by then !
    - Change format to sequence of [ 1, 7, 11, 13, 17, 19, 23, 29 ] octets to
      limit growth in file size (change init to [2, 3, 5], to go with that);
      this'll make a bigger block-size practical.
