@@ -19,10 +19,12 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.11 2007-04-23 04:46:14 eddy Exp $
+$Id: primes.py,v 1.12 2007-04-23 05:01:54 eddy Exp $
 """
 
 _TODO = """Various potential improvements
+
+ * Turn it all into a separate sub-package, maths/prime/ !
 
  * Iterator support:
    - Support interface in existing class.
@@ -33,8 +35,8 @@ _TODO = """Various potential improvements
    - Ensure that all uses load from cache in preference to working out afresh
      (current .grow()-based approach doesn't).
    - Use hex in file-names, rather than base ten.
-   - Use 'hidden' cache-dir (now that we can) and support use of sub-dir to
-     provide a hierarchical cache (avoid over-large individual directories).
+   - Support use of sub-directories in the cache to provide a hierarchical cache
+     (avoid over-large individual directories).
    - Add a variable second letter to file-name prefix; change each time we add a
      digit to start index (so ls gets order right); allow to wrap round a-z
      since we should be in a separate sub-dir by then !
@@ -49,9 +51,11 @@ _TODO = """Various potential improvements
      and unload these as needed, to limit how much is held in memory; iterators
      need to remember their positions in terms of chunk index and offset, since
      chunk may get unloaded between next()s.
-   - Support for list of read-only caches from which to borrow data; and (at
-     least initially) an 'old-style cache dir' so we can digest old data into
-     new cache format.
+   - Support for list of read-only caches from which to borrow data; default
+     from $STUDY_PRIME_PATH else empty.
+   - Change default cache dir; $STUDY_PRIME_DIR else ~/.study/primes
+   - Support (at least initially) an 'old-style cache dir' so we can digest old
+     data into new cache format; let it keep the old default.
 
  * Miscellaneous
    - After exhausting factorise()'s trawl through known primes, try around the
