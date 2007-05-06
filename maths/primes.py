@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.13 2007-05-06 01:00:45 eddy Exp $
+$Id: primes.py,v 1.14 2007-05-06 10:43:03 eddy Exp $
 """
 
 checking = None
@@ -174,6 +174,7 @@ class _Prime(lazyTuple):
 	return self._ask
 
     def has_value(self, num):
+        # could sensibly check pow(i, num-1, num) == 1 for a few i in range(2, num)
 	seen = 0
 	while 1:
             if num in self._item_carrier[seen:] or num in self._sparse: return num
@@ -270,7 +271,8 @@ class _Prime(lazyTuple):
 	Optional argument:
 
 	    gather -- dictionary to which to add results, or None (the default)
-	    to use a fresh empty dictionary: this is what factorise() returns.
+	              to use a fresh empty dictionary: this is what factorise()
+	              returns.
 
 	The result of factorise() is always a dictionary: its prodict() is num,
 	its keys are primes, -1 or 0 and its values are positive integers.  The
@@ -503,7 +505,6 @@ class cachePrimes(_Prime, Lazy):
 	block is used as self[at:to], while entries in sparse are added to
 	_sparse in their right order.
 
-
 	The bits of the file we'll examine are variables in the global scope
 	with names 'at', 'to', 'sparse' and 'block'.  Most of this function
 	checks things, the actual loading is quite brief ! """
@@ -623,11 +624,9 @@ class cachePrimes(_Prime, Lazy):
 	    new = self._next_high()
 
 primes = cachePrimes()
-def is_prime(num):
-    """is_prime(num) is true precisely if num is a prime"""
-    return primes.has_value(num)
-def factorise(num): return primes.factorise(num)
-factorise.__doc__ = primes.factorise.__doc__
+factorise = primes.factorise
+# The following should survive as prime.tool:
+is_prime = primes.has_value
 
 def prodict(dict):
     """Returns the product of a factorisation dictionary.
@@ -677,10 +676,10 @@ def Factorise(args=(), gather=None, cache=True):
 	passing the key to Factorise().  If args is the empty tuple, Factorise
 	acts as if it'd been given the smallest natural number that the primes
 	module doesn't yet know about.  If args is an integer, Factorise()
-	behaves as factorise(), so prodict(Factorise(())) will be this `least
-	unknown', but it'll be known by the time you've evaluated that.
+	behaves as primes.factorise(), so prodict(Factorise(())) will be this
+	`least unknown', but it'll be known by the time you've evaluated that.
 
-	See also: prodict() and factorise().
+	See also: prodict() and primes.factorise().
 	"""
 
 	# Can't use {} as gather's default, as we modify it !
@@ -717,24 +716,6 @@ def Factorise(args=(), gather=None, cache=True):
 	if cache: primes.persist()
 	return result
 
-class printFactor:
-    """Pseudo-dictionary with which to make Factorise print answers.
-
-    Use a printFactor as gather in Factorise: the results will be printed for
-    you (you won't need to scan and print the dictionary yourself). """
-    def __init__(self, dict=None):
-	if dict is None: dict = {}
-	self._dict = dict
-    def __len__(self): return len(self._dict)
-    def __getitem__(self, key): return self._dict[key]
-    def __setitem__(self, key, val):
-	self._dict[key] = val
-	print key, '->', val
-	return val
-    def __delitem__(self, key): del self._dict[key]
-    def __getattr__(self, key):
-        return getattr(self._dict, key)
-
 def factors(num):
     """Returns a dictionary whose keys are the factors of num.
 
@@ -753,7 +734,7 @@ def factors(num):
 	num = -num
 	result = {-1: 1}
     else: result = {}
-    fact = factorise(num)
+    fact = primes.factorise(num)
     result[1] = max(fact.values())
 
     for key, val in fact.items():
