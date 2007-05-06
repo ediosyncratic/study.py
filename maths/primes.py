@@ -5,7 +5,7 @@ of all primes, in their proper order.  If you ask it how long it is, it'll be
 finite, but if you ask for an element past the `end' you'll still get it (though
 you may have to wait).  Ask for its last element and you'll get some prime: ask
 whether some bigger prime is in the list and the answer will be yes, none the
-less (provided you use primes.has_value(number) rather than the raw `in' test).
+less.
 
 Building on that, this module also provides facilities for factorisation and
 multiplying back together again:
@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.14 2007-05-06 10:43:03 eddy Exp $
+$Id: primes.py,v 1.15 2007-05-06 11:48:08 eddy Exp $
 """
 
 checking = None
@@ -62,7 +62,7 @@ class lazyTuple:
 	if i < 0 or j < 0: raise IndexError
 	return self._item_carrier[i:j]
 
-    def has_value(self, val):
+    def __contains__(self, val):
 	"""Is val in self ?
 
 	Override this in base-classes.
@@ -71,11 +71,11 @@ class lazyTuple:
 	return val in self._item_carrier
 
     def count(self, item):
-        if self.has_value(item): return 1
+        if item in self: return 1
         return 0
 
     def index(self, item):
-        if self.has_value(item):
+        if item in self:
             return self._item_carrier.index(item)
 
 	return -1
@@ -173,7 +173,7 @@ class _Prime(lazyTuple):
 	"""Returns a number about which self would like to be asked. """
 	return self._ask
 
-    def has_value(self, num):
+    def __contains__(self, num):
         # could sensibly check pow(i, num-1, num) == 1 for a few i in range(2, num)
 	seen = 0
 	while 1:
@@ -626,7 +626,7 @@ class cachePrimes(_Prime, Lazy):
 primes = cachePrimes()
 factorise = primes.factorise
 # The following should survive as prime.tool:
-is_prime = primes.has_value
+is_prime = primes.__contains__
 
 def prodict(dict):
     """Returns the product of a factorisation dictionary.
