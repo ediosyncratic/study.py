@@ -5,10 +5,10 @@ values, of known kinds, imply units for values of assorted other kinds.  For
 this use, the addition and integer scaling of our linear system correspond to
 multiplication and taking powers of the kinds of value.  Each available vector
 describes the kind of one of the given values by the powers of the 'base kinds'
-that make up the value's kind.  The canonical basis may then be inferred from
-the values by using the linear system's inverse.
+that make up the value's kind.  The standard base units (i.e. canonical basis)
+may then be inferred from the values by using the linear system's inverse.
 
-$Id: reduce.py,v 1.10 2007-04-22 01:20:25 eddy Exp $
+$Id: reduce.py,v 1.11 2007-05-12 15:05:54 eddy Exp $
 """
 
 import natural, permute
@@ -108,6 +108,25 @@ class System (Lazy):
 
         return self.__lincomb(row, scale)
 
+    def obtain(self, row, scale=1):
+        """Find how to combine availables to yield a given member of our linear space.
+
+        Singe argument, row, is a member of the linear space; returns a sequence
+        of coefficients which, if fed to .contract(), would yield this row as
+        output.\n"""
+
+        n = self.__ca[0]
+        if len(row) > 1 + n:
+            raise ValueError('too many entries', row, n)
+        elif len(row) < n:
+            row = list(row)
+            while len(row) < n: row.append(0)
+
+        if len(row) > n: row, scale = row[:n], row[n]
+        else: scale = 1
+
+        return self.__obtain(row, scale)
+
     def check(self):
         """Compute solution and test for correctness.
 
@@ -201,7 +220,8 @@ class System (Lazy):
             else:
                 # The two prior cases make f be 0 or 1, so don't need this:
                 f = apply(gcd, r)
-                if f > 1:
+                if r[n] < 0: f = -f
+                if f > 1 or f < 0:
                     i = len(r)
                     while i > 0:
                         i -= 1
@@ -234,15 +254,14 @@ class System (Lazy):
             else:
                 assert tot == 0, ("Non-zero off-diagonal entry", i, j, tot, den, scale)
 
-    def __contract(self, j, row, gcd=natural.gcd):
-        """Contract column j of problem with given row."""
+    def dragwith(matrix, j, row, gcd=natural.gcd):
         k, tot, den = len(row), 0, 1
-        assert k == len(self.problem)
-        assert j < self.__ca[0]
+        assert k == len(matrix)
+        assert j < len(matrix[0])
 
         while k > 0:
             k -= 1
-            right = self.problem[k]
+            right = matrix[k]
             v, s = row[k] * right[j], right[-1]
             tot = tot * s + v * den
             den *= s
@@ -251,11 +270,9 @@ class System (Lazy):
 
         return tot, den
 
-    def __lincomb(self, row, scale, lcm=natural.lcm, gcd=natural.hcf):
-        """As for .contract(), but with row of correct length and scale separate."""
-        ans = map(lambda j, c=self.__contract, r=row: c(j, r), range(self.__ca[0]))
-        den = apply(lcm, map(lambda (n, d): d, ans))
-        ans = map(lambda (n, d), s=den: n * s / d, ans) + [ den * scale ]
+    def denominate(pairs, scale lcm=natural.lcm, gcd=natural.hcf):
+        den = apply(lcm, map(lambda (n, d): d, pairs))
+        ans = map(lambda (n, d), s=den: n * s / d, pairs) + [ den * scale ]
 
         f = apply(gcd, ans)
         if ans[-1] < 0: f = -f
@@ -266,6 +283,22 @@ class System (Lazy):
                 ans[i] /= f
 
         return tuple(ans)
+
+    def __contract(self, j, row, dot=dragwith):
+        """Contract column j of matrix with given row."""
+        return dot(self.problem, j, row)
+
+    def __lincomb(self, row, scale, comb=denominate):
+        """As for .contract(), but with row of correct length and scale separate."""
+        return comb(map(lambda j, c=self.__contract, r=row: c(j, r),
+                        range(self.__ca[0])), scale)
+
+    def __obtain(self, row, scale=1, comb=denominate, dot=dragwith):
+        """As for .obtain(), but with row of correct length and scale separate."""
+        return comb(map(lambda j, r=row, d=dot, m=self.inverse: d(m, j, r),
+                        range(len(self.inverse[0]))), scale)
+
+    del dragwith, denominate
 
     # The actual analysis of the problem:
 
