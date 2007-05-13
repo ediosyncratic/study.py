@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.15 2007-05-06 11:48:08 eddy Exp $
+$Id: primes.py,v 1.16 2007-05-13 09:35:33 eddy Exp $
 """
 
 checking = None
@@ -55,6 +55,12 @@ class lazyTuple:
 
     # A list is function from naturals to its entries:
     __call__ = __getitem__
+
+    def __iter__(self):
+        i = 0
+        while True:
+            yield self[i]
+            i = 1 + i
 
     def __getslice__(self, i, j):
 	"""self[i:j]"""
