@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.25 2007-03-31 08:12:52 eddy Exp $
+$Id: particle.py,v 1.26 2007-05-19 17:33:58 eddy Exp $
 """
 from study.value.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -564,6 +564,32 @@ class Quark (Fermion):
     _namespace = 'Quark.item' # hide u/d distinction.
     def _lazy_get_symbol_(self, ignored): return str(self)[0]
     def _lazy_get_isospin_(self, ignored): return (self._charge -.5) / 3 # times hbar ?
+
+    class CKM (Object):
+        """Cabibbo-Kobayashi-Maskawa matrix
+
+        The CKM matrix describes weak decays between uQuark and dQuark of the
+        various flavours.  Its complex conjugate describes the decays between
+        their anti-particles.  The matrix is necessarily unitary.  This implies
+        that the sum of squared-moduli of each row or column is 1.  It also
+        implies zero as various sums of three terms; each such sum can be
+        represented on an Argand diagram as a triangle, known as 'a unitarity
+        triangle', whose height (perpendicular to its longest side)
+        characterises the amount of charge-parity symmetry violation involved in
+        the decays described by the two columns (or two rows) involved.  The one
+        describing transitions involving the bottom and down quarks, cd.cb*
+        +td.tb* +ud.ub* = 0, is anticipated to have most height - the rest are
+        all expected to be relatively flat - consequently, this unitarity
+        triangle is generally referred to as *the* unitarity triangle; its usual
+        depiction re-scales its longest side, cd.cb*, to lie along the real axis
+        from 0 to 1, with ud.ub* as the edge coming out of the origin.  The
+        angle at the origin, opposite td.tb*, is then called &gamma;, the angle
+        at the top, opposite cd.cb*, is called &alpha; and the angle opposite
+        ud.ub* is called &beta;.
+
+        See: http://physicsweb.org/articles/world/20/4/4/1\n"""
+
+    CKM = CKM() # TODO: data !
 
 class uQuark (Quark): _charge = 2
 class dQuark (Quark): _charge = -1
