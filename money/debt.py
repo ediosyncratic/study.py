@@ -1,12 +1,14 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: debt.py,v 1.5 2007-05-22 20:31:04 eddy Exp $
 """
 from datetime import date, timedelta
 from study.value.lazy import Lazy
 
 class Debt (Lazy):
-    def __init__(self, amount, currency, start=date.today(), monthly=None, yearly=.041 * .72):
+    def __init__(self, amount, currency, start=date.today(),
+                 monthly=None, yearly=.045 * .72,
+                 daily=False):
         """Construct a Debt object.
 
         Required arguments:
@@ -16,10 +18,12 @@ class Debt (Lazy):
         Optional arguments:
             start -- date from which it pays interest (of class date; default today)
             monthly -- monthly interest rate (default: None)
-            yearly -- annual interest rate (default: 4%)
+            yearly -- annual interest rate (default: 4.5% * .72; 28% tax rebate)
+            daily -- true if interest is calculated daily; false (default) for
+                     monthly calculation.
 
         If monthly is supplied, it takes precedence over yearly; otherwise,
-        (1+yearly)**(1./12) -1 is used for monthly."""
+        (1+yearly)**(1./12) -1 is used for monthly.\n"""
 
         if monthly is not None:
             factor = 1 + monthly
@@ -28,18 +32,10 @@ class Debt (Lazy):
 
         self.amount, self.currency = amount, currency
         self.start, self.factor = start, factor
+        self.__diem = daily
 
     def _lazy_get_current_(self, ignored):
         return int(self.__asat(self.start.today()))
-
-    def __asat(self, when):
-        then = self.start
-        gap = (when.year -then.year) * 12 + when.month - then.month
-        if when.day < then.day: gap = gap - 1 # latest month not complete
-        if gap > 0: 
-            return self.amount * self.factor ** gap
-        # else interest not yet due
-        return self.amount
 
     def __add__(self, other):
         if self.currency != other.currency:
@@ -64,31 +60,77 @@ class Debt (Lazy):
         return ln(value) / ln(self.factor)
     del log
 
-    def when(self, amount, dpm = (365 + .97/4)/12., day = date, delta = timedelta):
+    dayspermonth = (365 + .97/4)/12 # Gregorian calendar's average month
+
+    def when(self, amount, dpm = dayspermonth, day = date, delta = timedelta):
         if amount < self.amount: return min(self.start, self.start.today())
         elif amount == self.amount: return self.start
         moons = self.__log(amount / self.amount)
-        full = int(moons)
-        yr, mn = divmod(full + self.start.month - 1, 12)
-        return day(yr + self.start.year, mn + 1, self.start.day) + delta((moons - full) * dpm)
+        if self.__diem:
+            off = delta(moons * dpm)
+            base = self.start
+        else:
+            full = int(moons)
+            yr, mn = divmod(full + self.start.month - 1, 12)
+            base = day(yr + self.start.year, mn + 1, self.start.day)
+            off = delta((moons - full) * dpm)
+        return base + off
+
+    def __asat(self, when, dpm = dayspermonth):
+        then = self.start
+        if self.__diem:
+            gap = (when - then).days
+            if gap > 0:
+                return self.amount * self.factor ** (gap / dpm)
+        else:
+            gap = (when.year -then.year) * 12 + when.month - then.month
+            if when.day < then.day: gap -= 1 # latest month not complete
+            if gap > 0: 
+                return self.amount * self.factor ** gap
+        # else interest not yet due
+        return self.amount
+
+    del dayspermonth
 
     def repay(self, amount, when):
         """Return new Debt object resulting from a repayment.
 
         Required arguments:
            amount -- how much repayed (number, in same currency as self.amount)
-           when -- date(year, month, day) object describing date of payment
+           when -- date(y, m, d) object describing date of payment
         """
         if when <= self.start:
-            return Debt(self.amount - amount, self.currency, self.start, self.factor -1)
-        return Debt(self.__asat(when) - amount, self.currency, when, self.factor -1)
+            left, when = self.amount - amount, self.start
+        else:
+            left = self.__asat(when) - amount
+
+        return Debt(left, self.currency, when, self.factor -1, daily=self.__diem)
+
+    def rerate(self, rate, when, monthly=False):
+        """Return new Debt object resulting from a change of interest rate.
+
+        Required arguments:
+          rate -- new interest rate
+          when -- date(y, m, d) object describing date of change
+        Optional argument:
+          monthly -- true if rate is monthly, else (default) it's assumed to be yearly.
+        """
+        if not monthly:
+            rate = (1 +rate) ** (.5/6) -1
+
+        if when <= self.start:
+            left, when = self.amount, self.start
+        else:
+            left = self.__asat(when)
+
+        return Debt(left, self.currency, when, rate, daily=self.__diem)
 
 class Mortgage (Lazy):
     """Description of a mortgage.
 
     See http://www.chaos.org.uk/~eddy/math/mortgage.html for theory.  Real
-    interest rate: 4.1%; and .28 of that gets refunded by government from taxes,
-    so .72 * .041 is the real interest rate.
+    interest rate: 4.25%; and .28 of that gets refunded by government from
+    taxes, so .72 * .0425 is the effective interest rate.
     """
 
     def __init__(self, debt, monthly=None, growth=.05, duration=5):
@@ -103,7 +145,8 @@ class Mortgage (Lazy):
                       (default: 5), ignored if monthly is suupplied.
 
         Each argument appears as an eponymous attribute; the unsupplied or
-        ignored one is lazily computed from the supplied one.\n"""
+        ignored one is lazily computed from the supplied one.  Any monthly
+        'administrative fee' should not be included in monthly.\n"""
         
         self.debt, self.rate = debt, (1+growth)**(.5/6)
         if monthly is None: self.duration = duration
@@ -122,12 +165,12 @@ class Mortgage (Lazy):
         return when.year - self.debt.start.year + (when.month - self.debt.start.month)*.5/6
 
     def _lazy_get_monthly_(self, ig):
-        """Compute required monthly payment."""
+        """Compute (approximate) required monthly payment."""
         moons, debt = int(self.duration * 12 + .5), self.debt
         if -1e-4 < self.rate - debt.factor < 1e-4: return debt.amount * self.rate / moons
-        return debt.amount * (debt.factor -self.rate) / (1 -(debt.factor/self.rate) ** -moons)
+        return debt.amount * (debt.factor -self.rate) / (1 -(self.rate/debt.factor) ** moons)
 
-def affordable(monthly, duration, interest=.041 * .72, inflate=.05):
+def affordable(monthly, duration, interest=.0425 * .72, inflate=.05):
     """How big a debt can one pay off in a given time with given available cash ?
 
     See Mortgage for theory:
