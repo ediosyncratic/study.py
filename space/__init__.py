@@ -46,10 +46,10 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: __init__.py,v 1.6 2007-06-03 16:43:33 eddy Exp $
 """
 
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 class NameSpace (Lazy):
     # Home:
     def _lazy_get_Earth_(self, ig):

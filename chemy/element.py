@@ -10,7 +10,7 @@ variants.  I chose to take the former description seriously and fake the latter.
 
 For data, see (inter alia): http://www.webelements.com/
 
-$Id: element.py,v 1.10 2007-04-10 23:09:26 eddy Exp $
+$Id: element.py,v 1.11 2007-06-03 16:41:52 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -305,7 +305,7 @@ class Element (Substance):
         while N(i) < self.Z: i += 1
         return i + 1
 
-    from study.value.lazy import Lazy
+    from study.snake.lazy import Lazy
     class Group (Lazy):
         """A column of the periodic table of the elements.
 
@@ -366,6 +366,8 @@ class Element (Substance):
                 P += 1
 
             return self.__seq[key]
+
+        # __getslice__ ? TODO: support slices as input to __getitem__.
 
         def __len__(self):
             try:
@@ -506,6 +508,7 @@ Carbon = NASelement('Carbon', 'C', 6, 12.0111 + 5e-5 * tophat, {12: 98.89, 13: 1
                     .14, sublime=Centigrade(3700))
 Nitrogen = NASelement('Nitrogen', 'N', 7, 14.0067, {14: 99.63, 15: .37}, 9e-2)
 Oxygen = NASelement('Oxygen', 'O', 8, 15.994 + 1e-4 * tophat,
+                    # Third most abundant atom in the universe
                     {16: 99.759, 17: .037, 18: .204}, 2.1e-2,
                     temperature = Temperatures(boil=90 * Kelvin)) # allegedly
 Fluorine = NASelement('Fluorine', 'F', 9, 18.9984, {19: 1}, .4)

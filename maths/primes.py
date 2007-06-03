@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.16 2007-05-13 09:35:33 eddy Exp $
+$Id: primes.py,v 1.17 2007-06-03 16:42:41 eddy Exp $
 """
 
 checking = None
@@ -424,7 +424,7 @@ def _tabulate_block(file, block):
 
 	file.write(' ' + `item` + ',')
 
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 class cachePrimes(_Prime, Lazy):
     __upinit = _Prime.__init__
     def __init__(self, row=None, sparse=None,

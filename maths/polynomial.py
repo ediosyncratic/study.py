@@ -1,9 +1,9 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.18 2007-03-24 22:42:21 eddy Exp $
+$Id: polynomial.py,v 1.19 2007-06-03 16:42:30 eddy Exp $
 """
 import types
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class invalidCoefficient (TypeError): "Invalid coefficient for polynomial"
 class unNaturalPower (TypeError): "Power of variable in polynomial is not a natural number"

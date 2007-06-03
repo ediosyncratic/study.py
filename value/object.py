@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.9 2007-03-24 16:47:16 eddy Exp $
+$Id: object.py,v 1.10 2007-06-03 16:48:45 eddy Exp $
 """
 
 def aslookup(whom):
@@ -28,7 +28,7 @@ def aslookup(whom):
     return lambda k, __w=whom: getattr(__w, k)
     # which coincides with how an Object behaves as a callable.
 
-from lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Object (Lazy):
     """A primitive object variety.

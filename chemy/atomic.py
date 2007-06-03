@@ -1,6 +1,6 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
+$Id: atomic.py,v 1.4 2007-06-03 16:39:59 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
@@ -30,7 +30,7 @@ class Laguerre (Polynomial):
         return ((self * linear)**2).Gamma ** .5
 
 del Polynomial
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Radial (Lazy):
     def __init__(self, n, b, Z):

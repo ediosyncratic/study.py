@@ -17,9 +17,9 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.26 2007-05-19 17:33:58 eddy Exp $
+$Id: particle.py,v 1.27 2007-06-03 16:41:11 eddy Exp $
 """
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
 from study.value.units import tophat, pi, \
      harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \

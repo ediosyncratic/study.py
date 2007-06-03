@@ -1,9 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 """Descriptin of a Job in terms of time and money.
 
-$Id: job.py,v 1.5 2007-04-26 22:28:25 eddy Exp $
+$Id: job.py,v 1.6 2007-06-03 16:43:54 eddy Exp $
 """
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 from study.value.units import hour, day, week, year
 
 class Job (Lazy):

@@ -8,11 +8,11 @@ describes the kind of one of the given values by the powers of the 'base kinds'
 that make up the value's kind.  The standard base units (i.e. canonical basis)
 may then be inferred from the values by using the linear system's inverse.
 
-$Id: reduce.py,v 1.11 2007-05-12 15:05:54 eddy Exp $
+$Id: reduce.py,v 1.12 2007-06-03 16:43:10 eddy Exp $
 """
 
 import natural, permute
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class System (Lazy):
     """Analyzer for integer-valued linear systems.

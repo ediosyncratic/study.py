@@ -23,7 +23,7 @@ modest half-life, during which this intermediate can run into the third party.
 Description of reactions/decays is thus quite a subtle problem.  Which is my
 excuse for the present implementation being over-simple ...
 
-$Id: decay.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: decay.py,v 1.5 2007-06-03 16:40:30 eddy Exp $
 """
 import math # del it later
 _ln2 = math.log(2)
@@ -69,7 +69,7 @@ def ratedDecay(source, halflife, *procs):
     procs = tuple(map(lambda p, s=scale: (p[0] / s,) + tuple(p[1:]), procs))
     return apply(Decay, (source,) + procs)
 
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 from study.value.units import second
 
 class Decay (Lazy):

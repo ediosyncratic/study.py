@@ -1,8 +1,8 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.7 2007-03-24 22:42:21 eddy Exp $
+$Id: Huffman.py,v 1.8 2007-06-03 16:44:08 eddy Exp $
 """
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Huffman (Lazy):
     def __init__(self, P, N=1, blank=None, symbols='01', tail=None):

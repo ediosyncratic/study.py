@@ -1,9 +1,9 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.5 2007-05-22 20:31:04 eddy Exp $
+$Id: debt.py,v 1.6 2007-06-03 16:43:44 eddy Exp $
 """
 from datetime import date, timedelta
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Debt (Lazy):
     def __init__(self, amount, currency, start=date.today(),

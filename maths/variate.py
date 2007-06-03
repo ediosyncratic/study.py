@@ -6,11 +6,11 @@ to be able to perform the integration needed to determine moments (e.g. the
 mean) and the probability of the variate falling in any given range of its
 permitted values.
 
-$Id: variate.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
+$Id: variate.py,v 1.4 2007-06-03 16:42:54 eddy Exp $
 """
 
 from integrate import Integrator
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Variate (Integrator, Lazy):
     __upinit = Integrator.__init__

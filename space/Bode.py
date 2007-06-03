@@ -44,10 +44,10 @@ starting on the first day of the next year, Piazzi made the first of a series of
 observations of what he soon realised was such a missing planet, which he named
 Ceres Ferdinandea.
 
-$Id: Bode.py,v 1.8 2007-03-24 22:42:21 eddy Exp $
+$Id: Bode.py,v 1.9 2007-06-03 16:43:21 eddy Exp $
 """
 
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 
 class Bodalizer (Lazy):
     """The auto-Bodalizer.

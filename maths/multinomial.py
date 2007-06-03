@@ -2,9 +2,9 @@
 
 c.f. polynomial, using only one free variable.
 
-$Id: multinomial.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: multinomial.py,v 1.5 2007-06-03 16:42:19 eddy Exp $
 """
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 from polynomial import unNaturalPower
 
 class Multinomial (Lazy):

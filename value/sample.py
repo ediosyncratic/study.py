@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.36 2007-03-24 22:42:21 eddy Exp $
+$Id: sample.py,v 1.37 2007-06-03 16:48:59 eddy Exp $
 """
 
 class _baseWeighted:
@@ -63,7 +63,7 @@ class _baseWeighted:
 
 # First layer of functionality: interpret self as describing a curve.
 import math # del at end of this page
-from lazy import Lazy # likewise
+from study.snake.lazy import Lazy # likewise
 
 class curveWeighted (Lazy, _baseWeighted):
     """Interpretation of the weights dictionary as a curve.

@@ -41,11 +41,11 @@ our integral of p up to X pretty close to
 
  (beta*X)**alpha / alpha / gamma(alpha)
 
-$Id: gamma.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: gamma.py,v 1.6 2007-06-03 16:42:06 eddy Exp $
 """
 
 from integrate import Integrator
-from study.value.lazy import Lazy
+from study.snake.lazy import Lazy
 import math, stirling
 
 class Gamma (Integrator, Lazy):
