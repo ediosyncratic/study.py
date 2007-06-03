@@ -2,8 +2,9 @@
 
 Sub-packages:
  chemy -- fundamental physics through to chemistry
- code  -- tools for encoding and decoding
+ crypt -- tools for encoding and decoding
  maths -- assorted mathematical tools
+ snake -- general pythonic helper infrastructure
  space -- the solar system and some of the rest of the universe
  value -- imprecise numbers and units of measurement, combined
 
@@ -19,10 +20,12 @@ combining things the source gives to obtain the attributes we actually want).
 However, this requires some fairly far-reaching re-design, so I'll make do with
 what I have in the mean time ;-)
 
-$Id: __init__.py,v 1.3 2007-03-25 07:56:07 eddy Exp $
+$Id: __init__.py,v 1.4 2007-06-03 16:37:17 eddy Exp $
 """
-import chemy
-import code
+
+import snake
 import maths
-import space
 import value
+import crypt
+import chemy
+import space
