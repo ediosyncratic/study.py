@@ -146,7 +146,58 @@ Proof:
   prime factor of m has odd multiplicity as a factor of p.p, all of whose
   factors have even multiplicity; thus m cannot have any prime factors, so m is
   1 and p = q.r has q as a factor so p/q = r is a positive integer. """
+
+_early_primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
+def factorsum(N):
+    """Returns the sum of the proper factors of N.
 
+    Thus N is perfect precisely if N == factorsum(N).
+    """
+
+    # Find (upper bound on) highest proper factor of N:
+    for p in _early_primes:
+        i, r = divmod(N, p)
+        if r == 0: break
+
+    S = 0 # sum proper factors:
+    while i > 0:
+        if N % i == 0:
+            S += i
+        i -= 1
+
+    return S
+
+def perfect():
+    """Returns an iterator over the perfect numbers.
+
+    All known perfect numbers are 2**n * (2**(1+n) -1) for some positive natural
+    n (for which the second factor, 2**(1+n) -1, is prime), so iterating over
+    these (which is *much* quicker, even pausing to check primality of the
+    second factor) shall (probably) yield the same result.  The iterator yielded
+    by this implementation checks for other perfect numbers and prints a message
+    if it ever finds one.\n"""
+
+    i = 1
+    while True:
+        # functionally, call factorsum(i): but abort if > i.
+        for p in _early_primes:
+            j, r = divmod(i, p)
+            if r == 0: break
+
+        S = 0
+        while j > 0 and S <= i:
+            if i % j == 0: S += j
+            j -= 1
+
+        if i == S: # iff i == factorsum(i)
+            yield i
+            # Check to see if i fits the usual pattern:
+            n = 0 # max power of two that is a factor of i.
+            while not (i & (1L << n)): n += 1
+            if (i >> n) != ((1L << (1+n)) -1):
+                print 'Unusually perfect', hex(i), n, hex(i >> (n-1))
+
+        i += 1
 
 def sqrt(val):
     """Returns the highest natural whose square does not exceed val"""
