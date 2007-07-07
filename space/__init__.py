@@ -1,13 +1,34 @@
 # -*- coding: iso-8859-1 -*-
 """Data about stars, planets and other clutter in space.
 
-This module exports two objects: a namespace, D, whose attributes are all the
-heavenly bodies and related data of this package; and an immutable sequence,
-Planets, whose entries are the nine planets of our Solar system.  For
-convenience, Planets also has attributes inner, outer and final: inner is a
-tuple of the four Earthoid inner planets, outer is a tuple of the four gas
-giants and final is the Kuiper belt object that is commonly considered a planet.
-Both D and Planets use lazy evaluation to avoid loading data you don't yet want.
+Exported objects:
+  D -- a namespace; attributes are all the heavenly bodies and related data of
+       this package
+  Planets -- immutable sequence listing the eight planets of our Solar system;
+             has attributes inner (the four Earthoid inner planets) and outter
+             (the four gas giants).
+Each uses lazy evaluation to avoid loading data you don't yet want.
+
+Modules:
+  asteroid -- the asteroids, including Mars's moons
+  Bode -- experiments with generalizing the Titius-Bode law
+  body -- internal classes describing heavenly bodies
+  common -- internal classes describing miscellaneous things
+  galaxy -- some galaxies
+  hole -- description of a black hole (Schwarzschild solution)
+  home -- universe, local group, milky way, Sun, Earth and Moon
+  inner -- Mercury, Venus and Mars; also borrows Earth off home
+  jovian -- Jupiter's moons
+  Kuiper -- the outer solar system
+  ladder -- description of a synchronously orbiting space elevator
+  neptunous -- Neptune's moons
+  outer -- Jupiter, Saturn, Uranus and Neptune
+  rock -- internal classes mapping particular data sources to the classes in
+          body and common
+  saturnalia -- Saturn's moons
+  star -- assorted stars
+  uranic -- Uranus's moons
+  zoom -- description of motion at constant accelleration
 
 Sources:
     Kaye & Laby: Tables of physical and chemical constants
@@ -46,7 +67,7 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.7 2007-07-07 15:51:03 eddy Exp $
+$Id: __init__.py,v 1.8 2007-07-07 16:08:37 eddy Exp $
 """
 
 from study.snake.lazy import Lazy
