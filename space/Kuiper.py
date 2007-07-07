@@ -1,11 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.10 2007-04-08 12:32:15 eddy Exp $
+$Id: Kuiper.py,v 1.11 2007-07-07 15:37:39 eddy Exp $
 """
 
-from study.value.units import Sample, Quantity, tophat, \
-     tera, giga, mega, kilo, metre, day, hour, year, kg, \
+from study.value.units import Sample, Quantity, tophat, upward, \
+     zetta, tera, giga, mega, kilo, metre, day, hour, year, kg, \
      Fahrenheit, Centigrade
 from study.value.archaea import mile
 
@@ -91,6 +91,73 @@ created; she's said to live at the bottom of the Arctic Ocean.\n"""))
 # it in Sun.Bode[9:13]); between 800 and 1100 miles across; may have a moon.
 del ape, peri
 
+# Data on Eris and Dysnomia from Wikipedia (2007/July/7):
+Eris = Planet('Eris',
+              Surface(Quantity(1.3 + tophat * .2 + upward * .2, mega * metre),
+                      # But alleged equatorial radius is only 1.2 Mm ...
+                      .8 * metre / second**2, Spin(Quantity(10 + 4 * tophat, hour)), # > 8
+                      albedo=0.86 + tophat * .14,
+                      material="CH4 ice",
+                      temperature = Quantity(42.5 + tophat * 25, Kelvin)),
+              Orbit(Sun, 67.6681 * AU, Spin(203500 * day, 44.187), .4417,
+                    apehelion=97.56 * AU,
+                    perihelion=37.77 * AU),
+              mass = Quantity(16.6 + .4 * tophat, zetta * kg),
+              discovery=Discovery("Mike Brown, Chad Trujillo, David Rabinowitz", 2003,
+                                  telescope = "Palomar Oschin",
+                                  note="""Originally called 2003 UB313.
+
+First noticed on January 5, 2005, in images dating from October 21, 2003.
+
+Initially nick-named Xena (after a warrior princess in an eponymous television
+show), Eris forced astronomers to come to a decision as to whether to classify
+it as a planet or to declassify Pluto as a planet; for more on this, see
+http://www.chaos.org.uk/~eddy/when/2006/planet.html
+
+Given the conflicts that resulted, the name Eris seems entirely apt: Eris was
+the ancient Greek deity (a vicious one, a companion of Ares) associated with
+discord.  She wasn't invited to the wedding of Peleus and Thetis (Achilles'
+parents), in spite at which she threw a golden apple in among the celebrants,
+inscribed 'To the most beautiful' - leading to a legendary conflict among the
+goddesses there present as to which deserved that title.  In the end, the three
+goddesses who wouldn't back down agreed to let Paris, son of King Priam of Troy,
+adjudicate.  Each candidate did her best to sway his judgement her way;
+ultimately, one of them (I'm guessing Aphrodite) promissed him the most
+beautiful wife in the world - Helen - if he'd give her the prize.  Paris took
+that offer, got Helen and thereby precipitated the ten-year siege known as the
+Trojan war, which led to his death and the fall of Troy.  Eris, goddess of
+discord, must have been delighted at how well her trouble-making succeeded.
+
+Modern types have a tendency to identify Eris with chaos, celebrating the
+transformative power of chaos, but it should be noted that the ancient Greeks
+had a perfectly good word for that - chaos - and Eris wasn't particularly
+associated with it, aside from it tending to be a consequence of her vicious
+trouble-making.  As Steve Linley put it, Eris is identified as 'warmonger, the
+cause of conflict, the source of competitive rivalry. Any attempt to euphemise,
+mollify or glamorise her nature is naive.'  For further details, see:
+ * http://www.pantheon.org/articles/e/eris.html
+ * http://homepage.mac.com/cparada/GML/Eris.html
+"""))
+
+Dysnomia = Planetoid(name="Dysnomia",
+                     surface=Spheroid(75 * km),
+                     orbit=Orbit(Eris,
+                                 Quantity(37.37 + .3 * tophat, mega * metre),
+                                 Spin(Quantity(15.774 + tophat * .004, day),
+                                      142 + tophat * 6),
+                                 .0065 + tophat * .013),
+                     discovery=Discovery("M. E. Brown, M. A. van Dam, A. H. Bouchez, D. Le Mignant",
+                                         2005, telescope="Keck",
+                                         note="""2005, September 10 images.
+
+Initially nicknamed Gabrielle after Xena's side-kick.
+Discovered using laser guide star adaptive optics.
+Its discoverers translate 'Dysnomia' as 'lawlessness', punning on the name, Lucy
+Lawless, of the actress who played Xena.
+
+http://www.pantheon.org/articles/d/dysnomia.html
+"""))
+
 # I take Kupier and Oort from a diagram in New Scientist [2004/Dec/25th, p46]
 # using a logarithmic scale for radius.  Like Asteroid, they're rather
 # imprecise.  Separate nasa.gov pages refined the Kuiper orbit: "it has a rather
@@ -172,4 +239,4 @@ coarse purposes, it's useful to have a marker orbit.\n""")
 
 del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
     Spheroid, Planet, Object, Ring, Sample, Quantity, tophat, \
-    tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
+    zetta, tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
