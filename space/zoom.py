@@ -2,12 +2,11 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.10 2007-03-24 22:42:21 eddy Exp $
+$Id: zoom.py,v 1.11 2007-07-07 18:17:11 eddy Exp $
 """
 
 from study.value.units import Object, year, kg
 
-# the following is generally wrong !
 class Zoom (Object):
     """Relativistic constant accelerator.
 
