@@ -46,7 +46,7 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.6 2007-06-03 16:43:33 eddy Exp $
+$Id: __init__.py,v 1.7 2007-07-07 15:51:03 eddy Exp $
 """
 
 from study.snake.lazy import Lazy
@@ -398,6 +398,12 @@ class NameSpace (Lazy):
     def _lazy_get_Sedna_(self, ig):
         from Kuiper import Sedna
         return Sedna
+    def _lazy_get_Eris_(self, ig):
+        from Kuiper import Eris
+        return Eris
+    def _lazy_get_Dysnomia_(self, ig):
+        from Kuiper import Dysnomia
+        return Dysnomia
 
     # The outer reaches ...
     def _lazy_get_Kuiper_(self, ig):
