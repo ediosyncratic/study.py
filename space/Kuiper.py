@@ -1,19 +1,19 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.11 2007-07-07 15:37:39 eddy Exp $
+$Id: Kuiper.py,v 1.12 2007-07-07 15:48:38 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, upward, \
-     zetta, tera, giga, mega, kilo, metre, day, hour, year, kg, \
-     Fahrenheit, Centigrade
+     zetta, tera, giga, mega, kilo, metre, second, hour, day, year, kg, \
+     Kelvin, Fahrenheit, Centigrade
 from study.value.archaea import mile
 
 from home import Sun, Earth, AU, KLplanet, KLsurface
 from outer import Neptune
-from common import Orbit, Spin, Discovery, Spheroid
+from common import Orbit, Spin, Discovery, Spheroid, Surface
 from rock import NASAmoon, NASAshell
-from body import Planet, Object, Ring, Shell
+from body import Object, Ring, Shell, Planetoid, Planet
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -140,7 +140,7 @@ mollify or glamorise her nature is naive.'  For further details, see:
 """))
 
 Dysnomia = Planetoid(name="Dysnomia",
-                     surface=Spheroid(75 * km),
+                     surface=Spheroid(75 * kilo * metre), # < 150 km
                      orbit=Orbit(Eris,
                                  Quantity(37.37 + .3 * tophat, mega * metre),
                                  Spin(Quantity(15.774 + tophat * .004, day),
