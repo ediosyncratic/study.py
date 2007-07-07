@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.37 2007-06-03 16:48:59 eddy Exp $
+$Id: sample.py,v 1.38 2007-07-07 15:21:57 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1760,5 +1760,9 @@ different weight dictionaries !
 Sample.tophat = Sample(Weighted.tophat, best=0,
                        __doc__="""Unit width zero-centred error bar.
 
-Also known as 0 +/- .5, which can readily be used as
-a simple way to implement a+/-b as a + 2*b*tophat.""")
+Also known as 0 +/- .5, which can readily be used as a simple way to implement
+a+/-b as a + 2*b*tophat.  For asymmetric error bars, use Sample.upward, which
+has best estimate zero, like tophat, but is uniformly distributed on the
+interval from zero to one.""")
+
+Sample.upward = Sample(Weighted.tophat, best=-.5) + .5
