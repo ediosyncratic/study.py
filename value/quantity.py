@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.45 2007-03-24 22:42:21 eddy Exp $
+$Id: quantity.py,v 1.46 2007-07-07 15:24:11 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -797,5 +797,6 @@ def base_unit(nom, fullname, doc, **what):
     return result
 
 tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__)
+upward = Quantity(Sample.upward)
 # 0 +/- .5: scale and add offset to taste, e.g.:
 def sample(mid, tol, flat=2*tophat): return mid + tol * flat
