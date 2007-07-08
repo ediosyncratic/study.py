@@ -1,16 +1,16 @@
 # -*- coding: iso-8859-1 -*-
 """Galaxies
 
-$Id: galaxy.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: galaxy.py,v 1.5 2007-07-08 02:04:57 eddy Exp $
 """
 
 from study.value.units import Quantity, tophat, \
      kilo, arc, year, second, metre
-from home import MilkyWay
+from home import MilkyWay, LocalGroup
 from common import Orbit, Discovery
 from body import Galaxy, Group
 
-# data from http://www.daviddarling.info/encyclopedia/G/Galaxy.html
+# Data from http://www.daviddarling.info/encyclopedia/G/Galaxy.html
 def MilkyOrbit(r): return Orbit(MilkyWay, r * kilo * year.light, None)
 
 # Magnitudes are absolute.
@@ -72,25 +72,7 @@ LeoII = Galaxy("Leo II",
 
 del MilkyOrbit
 
-# See also: http://www.daviddarling.info/encyclopedia/L/LocalGroup.html
-# Data from apod:
-LocalGroup = Group('Local Group',
-                   speed=Quantity(627 + 44 * tophat, kilo * metre / second,
-                                  """Speed of Local Group
-
-Our local group of galaxies is moving at somewhere between 600 and 650 km/s
-relative to the cosmic microwave background, in a direction described by
-astronomers as toward a position given in terms of co-ordinates (l,b) whose
-values are given as attributes here.
-
-Most of our uncertainty about this arises from our ignorance of our motion
-relative to the Local Group: we know our own velocity relative to the background
-radiation far more accurately.
-
-See also: http://antwrp.gsfc.nasa.gov/apod/ap030209.html
-""",
-                                  l = (273 + 6 * tophat) * arc.degree,
-                                  b = (30 + 6 * tophat) * arc.degree))
+# TODO: Andromeda, its satellites, the rest of the LocalGroup
 
 del Quantity, tophat, kilo, arc, year, second, metre, \
     Orbit, Discovery, Galaxy, Group
