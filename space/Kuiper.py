@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.12 2007-07-07 15:48:38 eddy Exp $
+$Id: Kuiper.py,v 1.13 2007-07-08 10:53:24 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, upward, \
@@ -13,7 +13,7 @@ from home import Sun, Earth, AU, KLplanet, KLsurface
 from outer import Neptune
 from common import Orbit, Spin, Discovery, Spheroid, Surface
 from rock import NASAmoon, NASAshell
-from body import Object, Ring, Shell, Planetoid, Planet
+from body import Object, Ring, Shell, Planetoid, MinorPlanet, DwarfPlanet
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
@@ -22,6 +22,7 @@ Pluto = KLplanet('Pluto',
                  Orbit(Sun, (5936 + .1 * tophat) * giga * metre,
                        Spin(250 * year, 17.13), .253),
                  .0025, 1.95 + .3 * tophat, # K&L gave 1.1 g/cc; solstation gave 1.8 to 2.1
+                 DwarfPlanet, # in place of Planet
                  atmosphere="trace CH4",
                  discovery=Discovery('Clyde Tombaugh', 1930,
                                      date="1930 February 18 or 23",
@@ -49,13 +50,15 @@ Pluto.orbit.radius.observe(giga * (5915.80 + .1 * tophat) * metre) # NASA
 Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.64, 6.39, NASAshell(593), "ice")
 # but http://www.solstation.com/stars/kuiper.htm gives surface radius 635 km
 
-Quaoar = Planet('Quaoar', Spheroid(800 * mile),
-                # I haven't yet found radius ... but its eccentricity is low
-                Orbit(Sun, Quantity(4 + tophat, giga * mile), None, 0),
-                magnitude=18.5,
-                discovery=Discovery("Chadwick Trujillo and Michael Brown, of Caltech", 2002,
-                                    telescope = "Palomar Oschin Schmidt",
-                                    note = """2002 LM60, a.k.a. Quaoar
+Quaoar = MinorPlanet('Quaoar',
+                   surface=Spheroid(800 * mile),
+                   # I haven't yet found radius ... but its eccentricity is low
+                   orbit=Orbit(Sun, Quantity(4 + tophat, giga * mile), None, 0),
+                   magnitude=18.5,
+                   discovery=Discovery("Chadwick Trujillo and Michael Brown, of Caltech",
+                                       2002,
+                                       telescope = "Palomar Oschin Schmidt",
+                                       note = """2002 LM60, a.k.a. Quaoar
 
 Drs. Trujillo and Brown first observed this Kuiper Belt object, then (July 5,
 August 1) had the Hubble Space Telescope take a closer look, to determine true
@@ -67,18 +70,18 @@ ape = Quantity(900, AU)
 ape.observe(130 * tera * metre)
 ape.observe(84 * giga * mile)
 peri = Quantity(76 + 14 * tophat, AU)
-Sedna = Planet('Sedna', Spheroid((950 + 300 * tophat) * mile,
-                                 # surface temperature is "about" -400 F.
-                                 temperature=Fahrenheit(-400 + 20 * tophat),
-                                 # it "likely rotates once every approximately 40 days"
-                                 #' suggesting that it's tidally locked to a moon
-                                 spin=Spin(Quantity(40 + 10 * tophat, day))),
-               # orbit comes as close as
-               Orbit(Sun,
-                     .5 * (ape.best + peri.best) + (ape.high - peri.low) * tophat,
-                     Spin(10.5 * kilo * year),
-                     perihelion=peri, apehelion=ape),
-               discovery=Discovery(
+Sedna = MinorPlanet('Sedna',
+                  surface=Spheroid((950 + 300 * tophat) * mile,
+                                   # surface temperature is "about" -400 F.
+                                   temperature=Fahrenheit(-400 + 20 * tophat),
+                                   # it "likely rotates once every approximately 40 days"
+                                   #' suggesting that it's tidally locked to a moon
+                                   spin=Spin(Quantity(40 + 10 * tophat, day))),
+                  orbit=Orbit(Sun,
+                              .5 * (ape.best + peri.best) + (ape.high - peri.low) * tophat,
+                              Spin(10.5 * kilo * year),
+                              perihelion=peri, apehelion=ape),
+                  discovery=Discovery(
     "Michael Brown (Caltech), Chadwick Trujillo (Gemini Observatory), David Rabinowitz (Yale)",
     2004, telescope="Samuel Oschin", observatory="Palomar",
     note="""2003 VB12, a.k.a. Sedna
@@ -92,20 +95,20 @@ created; she's said to live at the bottom of the Arctic Ocean.\n"""))
 del ape, peri
 
 # Data on Eris and Dysnomia from Wikipedia (2007/July/7):
-Eris = Planet('Eris',
-              Surface(Quantity(1.3 + tophat * .2 + upward * .2, mega * metre),
-                      # But alleged equatorial radius is only 1.2 Mm ...
-                      .8 * metre / second**2, Spin(Quantity(10 + 4 * tophat, hour)), # > 8
-                      albedo=0.86 + tophat * .14,
-                      material="CH4 ice",
-                      temperature = Quantity(42.5 + tophat * 25, Kelvin)),
-              Orbit(Sun, 67.6681 * AU, Spin(203500 * day, 44.187), .4417,
-                    apehelion=97.56 * AU,
-                    perihelion=37.77 * AU),
-              mass = Quantity(16.6 + .4 * tophat, zetta * kg),
-              discovery=Discovery("Mike Brown, Chad Trujillo, David Rabinowitz", 2003,
-                                  telescope = "Palomar Oschin",
-                                  note="""Originally called 2003 UB313.
+Eris = DwarfPlanet('Eris',
+                   surface=Surface(Quantity(1.3 + tophat * .2 + upward * .2, mega * metre),
+                                   # But alleged equatorial radius is only 1.2 Mm ...
+                                   .8 * metre / second**2, Spin(Quantity(10 + 4 * tophat, hour)), # > 8
+                                   albedo=0.86 + tophat * .14,
+                                   material="CH4 ice",
+                                   temperature = Quantity(42.5 + tophat * 25, Kelvin)),
+                   orbit=Orbit(Sun, 67.6681 * AU, Spin(203500 * day, 44.187), .4417,
+                               apehelion=97.56 * AU,
+                               perihelion=37.77 * AU),
+                   mass = Quantity(16.6 + .4 * tophat, zetta * kg),
+                   discovery=Discovery("Mike Brown, Chad Trujillo, David Rabinowitz", 2003,
+                                       telescope = "Palomar Oschin",
+                                       note="""Originally called 2003 UB313.
 
 First noticed on January 5, 2005, in images dating from October 21, 2003.
 
@@ -238,5 +241,5 @@ meandering between the realms of our Sun and its nearest peers; but, for my
 coarse purposes, it's useful to have a marker orbit.\n""")
 
 del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
-    Spheroid, Planet, Object, Ring, Sample, Quantity, tophat, \
+    Spheroid, Object, Ring, Sample, Quantity, tophat, \
     zetta, tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
