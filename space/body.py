@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.18 2007-03-24 22:42:21 eddy Exp $
+$Id: body.py,v 1.19 2007-07-08 01:49:48 eddy Exp $
 """
 
 class Satellites:
@@ -13,16 +13,17 @@ class Satellites:
 Arguments:
 
   callback -- function to call when adding a new entry; should clear any
-  attributes (of the centre this object serves) that depend on what satellites
-  it has.
+              attributes (of the centre this object serves) that depend on what
+              satellites it has.
 
   fill -- function to call once when it's a good moment to load all members; is
-  actually called the first time any indexing is attempted.
+          actually called the first time any indexing is attempted.
 
 In practice, the central body's lazy reset method is sensible for the former
 (provided we configure it to preserve its lazy satellites attribute, of
 course !), though ideally a more selective purge could be used.\n"""
 
+        # Use Ordered (see maths/prime/) for __carry ?
         self.__cb, self.__carry = callback, []
         if fill is not None: self.__fill = fill
 
@@ -35,21 +36,6 @@ course !), though ideally a more selective purge could be used.\n"""
                 else: row.append(GM)
 
         return row
-
-    def __getitem__(self, ind):
-        try: fill = self.__fill
-        except AttributeError: pass
-        else:
-            del self.__fill
-            fill()
-
-        if ind < 0 or ind >= len(self.__carry): raise IndexError, ind
-        return self.__carry[ind]
-
-    # things we should be borrowing from __carry, but py 2.1 doesn't let us:
-    def __repr__(self): return `self.__carry`
-    def __str__(self): return str(self.__carry)
-    def __len__(self): return len(self.__carry)
 
     def insert(self, ind, what):
         """Inserts what into self: ind is a hint at where to put it.
@@ -91,12 +77,37 @@ course !), though ideally a more selective purge could be used.\n"""
     def append(self, what):
         """Inserts what in self, taking hint that it belongs at end."""
         self.insert(len(self.__carry), what)
+
+    # Dealing with things for which we should first call .__fill():
+    def __all(self):
+        try: fill = self.__fill
+        except AttributeError: pass
+        else:
+            del self.__fill
+            fill()
+
+        self.__all = lambda c=self.__carry: c
+        return self.__carry
+
+    def __getitem__(self, ind):
+        if ind < 0 or ind >= len(self.__all()): raise IndexError, ind
+        return self.__all()[ind]
+
+    def __repr__(self): return `self.__all()`
+    def __str__(self): return str(self.__all())
+    def __len__(self): return len(self.__all())
 
 from study.value import object
+from study.value.units import Quantity
 
 class Object (object.Object):
+    """Generic object class for astronomical things.
+
+    Each derived class should have its own instance dictionary, unless its
+    instances should be carried by a base class.\n"""
+
     __space_upinit = object.Object.__init__
-    def __init__(self, name, satelload=None, **what):
+    def __init__(self, name, satelload=None, __doc__=None, **what):
         apply(self.__space_upinit, (), what)
         self.name = name
         self.__load_satellites = satelload
@@ -104,7 +115,50 @@ class Object (object.Object):
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
+        self.__class__.instance[name] = self
+        if __doc__ is None:
+            __doc__ = "%s named %s" % (self.__class__.__name__, name)
+        self.__doc__ = __doc__
+
+    instance = {}
     _lazy_preserve_ = object.Object._lazy_preserve_ + ('satellites',)
+
+    def augment(self, what, Q=Quantity):
+        # TODO: richer handling of aliases
+        try: your = what['aliases']
+        except KeyError: pass
+        else:
+            try: mine = self.aliases
+            except AttributeError: mine = ()
+            mine = tuple(mine)
+            for nom in your:
+                if not nom in mine:
+                    self.__class__.instance[nom] = self
+                    mine = mine + (nom,)
+
+            what['aliases'] = mine
+
+        try: your, mine = what['type'], self.type
+        except (KeyError, AttributeError): pass
+        else:
+            if mine[:len(your)] == your:
+                del what['type']
+
+        for k, your in what.items():
+            try: mine = getattr(self, k)
+            except AttributeError: pass
+            else:
+                if isinstance(mine, Q):
+                    mine.observe(your)
+                    del what[k]
+                elif isinstance(your, Q):
+                    your.observe(mine)
+                elif k not in ('aliases', 'type') and mine != your:
+                    print "Data loss: collision for", name, \
+                          "attibute", k, "replacing", mine, "with", your
+
+        # TODO: something more sophisticated, to cope if we already know a datum !
+        self.__dict__.update(what)
 
     def __str__(self): return self.name
     __repr__ = __str__
@@ -142,10 +196,12 @@ class Object (object.Object):
 
 del object, Satellites
 
-from study.value.units import Quantity, second, metre, turn, pi, tophat
+from study.value.units import second, metre, turn, pi, tophat, day, year
 from common import Spin, Orbit
 
 class Body (Object):
+    instance = {}
+
     def _lazy_get_tidal_(self, ignored, zero = 0 / second**2, Q=Quantity):
         """Returns strength of tidal stresses near self.
 
@@ -324,17 +380,69 @@ on the surface of %s as it rotates. """ % (name, self.name))
         return klz()
 
     del rowbok
-
-del Spin
-class Group (Object): pass # of galaxies
 
-del Quantity, second, metre, turn, pi
 from common import Round, Spheroid
+class Star (Body, Round):
+    instance = {}
 
-class Galaxy (Body, Round): pass
-class Star (Body, Round): pass
+    def __sol(self):
+        from home import Sun
+        Star.__sol = lambda x: Sun
+        return Sun
+
+    def Solstation(self, type, dist, locn, mass, size, lum, spin=None,
+                   Sp=Spin, Sf=Spheroid, ly=year.light, dy=day,
+                   **what):
+        """Initialize a Star based (mostly) on solstation.com's data."""
+
+        Sol = self.__sol()
+        if spin is None: skin = Sf(Sol.surface.radius * size)
+        else: skin = Sf(Sol.surface.radius * size, spin=Sp(dy * spin))
+
+        what.update({'type': type, 'distance': dist * ly,
+                     'ICRS2000_0': locn, # 'ICRS 2000.0' data
+                     'mass': mass * Sol.mass,
+                     'surface': skin,
+                     'luminosity': lum * Sol.luminosity })
+
+        self.augment(what)
+
+    def NeighbourTable(self, away, (x, y, z), type=None, lum=None, mass=None, radius=None,
+                       ly = year.light, Sf=Spheroid):
+        """Data from a table of near neighbour stars.
+
+        I'm not sure where I found this.  Typos suggest I transcribed the data
+        by hand.  Its columns were: Star, R(Sol)/light-year, (X,Y,Z)/light-year,
+        Type, Luminosity/Sun.lum, Mass/Sun.mass and Radius/Sun.R, and it noted
+        that Types are: O,B,A,F,G,K,M; O0 brightest, M9 dimmest; but white
+        dwarfs have type D*\n"""
+
+        bok, Sol = {}, self.__sol()
+        bok['position'] = (x * ly, y * ly, z * ly)
+        bok['distance'] = away * ly
+        if type is not None: bok['type'] = type
+        if lum is not None: bok['luminosity'] = lum * Sol.luminosity
+        if mass is not None: bok['mass'] = mass * Sol.mass
+
+        if radius is not None:
+            radius *= Sol.surface.radius
+            try: skin = self.surface
+            except AttributeError: self.surface = Sf(radius)
+            else: skin.radius.observe(radius)
+
+        self.augment(bok)
+
+del Spin, year, Quantity, second, metre, turn, pi
+
+class Galaxy (Body, Round): instance = {}
+class Group (Object): instance = {} # of galaxies
+
+class Constellation (Object): instance = {} # of stars
+class System (Object): instance = {} # solar system of possibly several stars
+class Cluster (Object): instance = {} # lots of stars
 
 class Hoop (Object, Round):
+    instance = {}
     # used for gaps and ring arcs, and as base for Ring.
     __upinit = Object.__init__
     def __init__(self, name, centre, radius, tilt=0, eccentricity=0, O=Orbit, **what):
@@ -352,11 +460,13 @@ class Shell (Object, Spheroid):
     def __init__(self, name, centre, *radii, **what):
         apply(self.__spinit, radii)
         what['centre'] = centre
-        apply(self.__obinit, (name,), what) # what has to come this way so satelload reaches Object
+        # what has to come this way so satelload reaches Object
+        apply(self.__obinit, (name,), what)
 
 del Spheroid
 
 class Ring (Hoop):
+    # Share instance dictionary with other Hoop-based classes.
     __upinit = Hoop.__init__
     def __init__(self, name, centre, inner, outer, tilt=0, eccentricity=0, **what):
         apply(self.__upinit, (name, centre,
@@ -365,12 +475,14 @@ class Ring (Hoop):
               what)
 
 class Planetoid (Body):
-    # any vaguely spherical object that orbits a star
+    # Any vaguely spherical object that orbits a star.
+    # Share instance dictionary with Body.
 
     def _lazy_get_iBode_(self, ignored):
         return self.orbit.iBode
 
 class Asteroid (Planetoid):
+    instance = {}
     __upinit = Planetoid.__init__
     def __init__(self, name, orbit, mass, **what):
         what.update({'orbit': orbit, 'mass': mass})
@@ -385,6 +497,8 @@ class Planet (Planetoid):
     other bodies in orbits of kindred radius.  This would knock Pluto off the
     list and leave us with only the eight planets out to Neptune.  They regard
     Pluto, like Quaoar, as a Kuiper belt object.\n"""
+
+    instance = {}
 
     __upinit = Planetoid.__init__
     def __init__(self, name, surface, orbit, **what):
