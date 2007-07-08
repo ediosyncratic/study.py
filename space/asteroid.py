@@ -10,7 +10,7 @@ See also:
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.11 2007-04-08 12:33:07 eddy Exp $
+$Id: asteroid.py,v 1.12 2007-07-08 10:52:07 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, year, km, kg
@@ -18,7 +18,7 @@ from study.value.archaea import ton, mile
 
 from inner import Mercury, Venus, Mars
 from home import Sun, AU, Earth
-from body import Asteroid, Ring
+from body import Asteroid, DwarfAster, Ring
 from common import Discovery, Orbit, Spheroid
 from rock import NASAmoon, NASAshell
 
@@ -73,14 +73,14 @@ See p. 210, table 32.\n"""
                 periterrion=Q(miss * blur, Mmile), # closest approach to Terra
                 discovery=when)
 
-Ceres = Asteroid('Ceres',
-                 Orbit(Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
-                 Quantity(.87 + .01 * tophat, zetta * kg),
-                 surface = Spheroid(Quantity(466 + tophat, km)),
-                 number = 1,
-                 discovery=Discovery("Piazzi", 1801,
-                                      day="January 1st 1801",
-                                      __doc__="""The discovery of Ceres.
+Ceres = DwarfAster('Ceres',
+                   Orbit(Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
+                   Quantity(.87 + .01 * tophat, zetta * kg),
+                   surface = Spheroid(Quantity(466 + tophat, km)),
+                   number = 1,
+                   discovery=Discovery("Piazzi", 1801,
+                                       day="January 1st 1801",
+                                       __doc__="""The discovery of Ceres.
 
 A team of astronomers set out, in 1800, to look for a planet between Mars and
 Jupiter, as anticipated by the Titius-Bode law (see Sun.Bode); starting on the
@@ -128,5 +128,5 @@ Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
-del Sun, AU, Asteroid, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock
-del Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
+del Sun, AU, Asteroid, DwarfAster, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock, \
+    Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
