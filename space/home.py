@@ -1,11 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.21 2007-04-08 12:26:22 eddy Exp $
+$Id: home.py,v 1.22 2007-07-08 01:21:04 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
-     micro, kilo, mega, giga, tera, peta, arc, radian, \
+     micro, kilo, mega, giga, tera, peta, arc, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
 from study.value.archaea import mile
@@ -211,6 +211,8 @@ See the doc string of AU for further details. """)
 
 parsec.observe(30.857 * peta * metre) # Kaye & Laby
 # some other source alleged 3.26 * year.light, which is about the same.
+
+Sun.luminosity = Sun.bright * 4 * pi * AU**2
 
 # surface part data taken from Asimov:
 _square_kilo_mile = (kilo * mile)**2
@@ -475,5 +477,5 @@ Moon.surface.spin.period.observe(Month) # tidally locked
 
 del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
     Sample, qSample, Quantity, Object, tophat, micro, kilo, mega, giga, tera, peta, \
-    kg, metre, mile, arc, radian, Kelvin, year, day, hour, minute, second, \
+    kg, metre, mile, arc, radian, pi, Kelvin, year, day, hour, minute, second, \
     litre, bar, Watt, Tesla, Ampere, Gauss
