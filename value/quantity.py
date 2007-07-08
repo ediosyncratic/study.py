@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.46 2007-07-07 15:24:11 eddy Exp $
+$Id: quantity.py,v 1.47 2007-07-08 02:09:23 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -436,6 +436,7 @@ class Quantity (Object):
         else:   self.__doc__ = doc
 
     def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
+    # TODO: need a .merge(self, other) yielding result of merging two Quantities.
 
     __obcopy = Object.copy
     def copy(self, func=None):
