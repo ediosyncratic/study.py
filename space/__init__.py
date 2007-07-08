@@ -67,7 +67,7 @@ modules that just cause the side effects of refining data.  Requires total
 revolution.  Also demands that I find the assorted sources again so as to record
 each separately, as the present data is a mish-mash of them all.
 
-$Id: __init__.py,v 1.9 2007-07-07 18:28:02 eddy Exp $
+$Id: __init__.py,v 1.10 2007-07-08 02:08:33 eddy Exp $
 """
 
 from study.snake.lazy import Lazy
@@ -84,6 +84,9 @@ class NameSpace (Lazy):
     def _lazy_get_Universe_(self, ig):
         from home import Universe
         return Universe
+    def _lazy_get_LocalGroup_(self, ig):
+        from home import LocalGroup
+        return LocalGroup
     def _lazy_get_MilkyWay_(self, ig):
         from home import MilkyWay
         return MilkyWay
@@ -437,16 +440,111 @@ class NameSpace (Lazy):
         from Kuiper import Terminus
         return Terminus
 
-    # Stars ...
+    # Stars, Systems and Constellations ...
+    def _lazy_get_Solar_(self, ig):
+        from star import Solar
+        return Solar
     def _lazy_get_Gliese710_(self, ig):
         from star import Gliese710
         return Gliese710
-    def _lazy_get_ProximaCentauri_(self, ig):
-        from star import ProximaCentauri
-        return ProximaCentauri
-    def _lazy_get_AlphaCentauri_(self, ig):
-        from star import AlphaCentauri
-        return AlphaCentauri
+    def _lazy_get_Centaurus_(self, ig):
+        from star import Centaur
+        return Centaur
+    def _lazy_get_Barnard_(self, ig):
+        from star import Barnard
+        return Barnard
+    def _lazy_get_Sirius_(self, ig):
+        from star import Sirius
+        return Sirius
+    def _lazy_get_Cetus_(self, ig):
+        from star import Cetus
+        return Cetus
+    def _lazy_get_Eridanus_(self, ig):
+        from star import Eridanus
+        return Eridanus
+    def _lazy_get_Cygnus_(self, ig):
+        from star import Cygnus
+        return Cygnus
+    def _lazy_get_Indus_(self, ig):
+        from star import Indus
+        return Indus
+    def _lazy_get_Procyon_(self, ig):
+        from star import Procyon
+        return Procyon
+    def _lazy_get_Kapteyn_(self, ig):
+        from star import Kapteyn
+        return Kapteyn
+    def _lazy_get_vanMaanen_(self, ig):
+        from star import vanMaanen
+        return vanMaanen
+    def _lazy_get_Altair_(self, ig):
+        from star import Altair
+        return Altair
+    def _lazy_get_Ophiuchus_(self, ig):
+        from star import Ophiuchus
+        return Ophiuchus
+    def _lazy_get_UrsaMajor_(self, ig):
+        from star import UrsaMajor
+        return UrsaMajor
+    def _lazy_get_Draco_(self, ig):
+        from star import Draco
+        return Draco
+    def _lazy_get_CanisMinor_(self, ig):
+        from star import CanisMinor
+        return CanisMinor
+    def _lazy_get_Pavonis_(self, ig):
+        from star import Pavonis
+        return Pavonis
+    def _lazy_get_Cassiopeia_(self, ig):
+        from star import Cassiopeia
+        return Cassiopeia
+    def _lazy_get_Hydra_(self, ig):
+        from star import Hydra
+        return Hydra
+
+    # Instance dictionaries of various classes:
+    def _lazy_get_star_(self, ig):
+        import star
+        from body import Star
+        return Star.instance
+    def _lazy_get_galaxy_(self, ig):
+        import galaxy
+        from body import Galaxy
+        return Galaxy.instance
+    def _lazy_get_group_(self, ig):
+        import galaxy
+        from body import Group
+        return Group.instance
+    def _lazy_get_constellation_(self, ig):
+        import star
+        from body import Constellation
+        return Constellation.instance
+    def _lazy_get_system_(self, ig):
+        import star
+        from body import System
+        return System.instance
+    def _lazy_get_cluster_(self, ig):
+        import star
+        from body import Cluster
+        return Cluster.instance
+    def _lazy_get_ring_(self, ig):
+        from body import Ring
+        return Ring.instance # actually borrowed off Hoop
+    def _lazy_get_asteroid_(self, ig):
+        import asteroid
+        from body import Asteroid
+        return Asteroid.instance
+    def _lazy_get_planet_(self, ig):
+        import inner, outer
+        from body import Planet
+        return Planet.instance
+
+    def _lazy_get_body_(self, ig):
+        from body import Body
+        return Body.instance
+    def _lazy_get_object_(self, ig):
+        from body import Object
+        return Object.instance
 
 class PlanetList (Lazy):
     def __len__(self): return 9
