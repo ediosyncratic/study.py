@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.19 2007-07-08 01:49:48 eddy Exp $
+$Id: body.py,v 1.20 2007-07-08 02:23:11 eddy Exp $
 """
 
 class Satellites:
@@ -201,6 +201,20 @@ from common import Spin, Orbit
 
 class Body (Object):
     instance = {}
+    __upinit = Object.__init__
+    def __init__(self, *args, **what):
+        apply(self.__upinit, args, what)
+
+        try: surface = self.surface
+        except AttributeError: pass
+        else: # give surface.gravity an error bar (where feasible):
+            try: r, m = surface.radius, self.GM
+            except AttributeError: pass
+            else:
+                myg = m/r**2
+                try: g = surface.gravity
+                except AttributeError: surface.gravity = myg
+                else: g.observe(myg)
 
     def _lazy_get_tidal_(self, ignored, zero = 0 / second**2, Q=Quantity):
         """Returns strength of tidal stresses near self.
@@ -518,7 +532,3 @@ class Planet (Planetoid):
 
         what.update({'orbit': orbit, 'surface': surface})
         apply(self.__upinit, (name,), what)
-        # give surface.gravity an error bar (where feasible):
-        try: g, r, m = surface.gravity, surface.radius, self.GM
-        except AttributeError: pass
-        else: g.observe(m/r**2)
