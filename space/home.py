@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.23 2007-07-08 01:43:12 eddy Exp $
+$Id: home.py,v 1.24 2007-07-08 02:06:49 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -31,14 +31,26 @@ gives an answer just a little bit less than 1.\n"""),
                                        number = 413e6 / metre**3))
 del Cosmos
 
+# See also: http://www.daviddarling.info/encyclopedia/L/LocalGroup.html
+# Data from apod:
 LocalGroup = body.Group("The Local Group",
                         # Error bar is a wild guess, based on MilkyWay.orbit.speed
-                        velocity = Quantity(600 + 50 * tophat, km / second,
-                                            """Velocity of the Local Group.
+                        velocity = Quantity(627 + 44 * tophat, km / second,
+                                            """Speed of Local Group
 
-The local group of galaxies moves at about 600 km/s relative to the cosmic
-background of microwave radiation.  It's headed towards the Virgo Cluster.
-"""),
+Our local group of galaxies is moving at somewhere between 600 and 650 km/s
+relative to the cosmic microwave background, in a direction described by
+astronomers as toward a position (somewhere in the Virgo Cluster) given in terms
+of co-ordinates (l,b) whose values are given as attributes here.
+
+Most of our uncertainty about this arises from our ignorance of our motion
+relative to the Local Group: we know our own velocity relative to the background
+radiation far more accurately.
+
+See also: http://antwrp.gsfc.nasa.gov/apod/ap030209.html
+""",
+                                  l = (273 + 6 * tophat) * arc.degree,
+                                  b = (30 + 6 * tophat) * arc.degree),
                         # Guess based on: Andromeda being a bit bigger than the
                         # Milky Way; and the rest of the group not adding up to
                         # much by comparison:
@@ -52,7 +64,7 @@ MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
 # Just the part inwards from the Sun (about 90 giga Sun), given here so that
 # adding the Sun as a satellite of it goes smoothly.  See below for a .also()
 # with more details.
-
+
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
 # orbit can't be specified until Sun has been created.
 def load_rubble(): # lazy satellite loader for Sun
