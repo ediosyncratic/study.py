@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.20 2007-07-08 02:23:11 eddy Exp $
+$Id: body.py,v 1.21 2007-07-08 10:01:40 eddy Exp $
 """
 
 class Satellites:
@@ -115,13 +115,24 @@ class Object (object.Object):
 	except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
-        self.__class__.instance[name] = self
+        self._name_as_(name)
         if __doc__ is None:
             __doc__ = "%s named %s" % (self.__class__.__name__, name)
         self.__doc__ = __doc__
 
     instance = {}
     _lazy_preserve_ = object.Object._lazy_preserve_ + ('satellites',)
+
+    def _name_as_(self, nom, klaz=None):
+        if klaz is None: klaz = self.__class__
+
+        try: was = klaz.instance[nom]
+        except KeyError: pass
+        else:
+            if was is not self:
+                print "Name collision for", klaz.__name__, "name:", nom
+
+        klaz.instance[nom] = self
 
     def augment(self, what, Q=Quantity):
         # TODO: richer handling of aliases
@@ -133,7 +144,7 @@ class Object (object.Object):
             mine = tuple(mine)
             for nom in your:
                 if not nom in mine:
-                    self.__class__.instance[nom] = self
+                    self._name_as(nom)
                     mine = mine + (nom,)
 
             what['aliases'] = mine
@@ -488,6 +499,7 @@ class Ring (Hoop):
                               tilt, eccentricity),
               what)
 
+
 class Planetoid (Body):
     # Any vaguely spherical object that orbits a star.
     # Share instance dictionary with Body.
@@ -495,12 +507,22 @@ class Planetoid (Body):
     def _lazy_get_iBode_(self, ignored):
         return self.orbit.iBode
 
-class Asteroid (Planetoid):
+class MinorPlanet (Planetoid): instance = {}
+class DwarfPlanet (MinorPlanet): instance = {}
+
+class Asteroid (MinorPlanet):
     instance = {}
-    __upinit = Planetoid.__init__
+    __upinit = MinorPlanet.__init__
     def __init__(self, name, orbit, mass, **what):
         what.update({'orbit': orbit, 'mass': mass})
         apply(self.__upinit, (name,), what)
+
+class DwarfAster (Asteroid, DwarfPlanet):
+    __upname = Asteroid._name_as_
+    assert __upname.im_func is DwarfPlanet._name_as_.im_func, "else need to call each"
+    def _name_as_(self, nom):
+        self.__upname(nom, Asteroid)
+        self.__upname(nom, DwarfPlanet)
 
 class Planet (Planetoid):
     """A major satellite of the sun.
