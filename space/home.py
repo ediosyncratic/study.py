@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.24 2007-07-08 02:06:49 eddy Exp $
+$Id: home.py,v 1.25 2007-07-08 02:25:30 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -451,14 +451,15 @@ The central bulge has much stronger magnetic fields.
 
 def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **what):
     """As Planet, but with mass scaled by that of the earth and density in g/cc"""
-    what['mass'] = Earth.mass * mass
-    what['density'] = density * d
-    return apply(P, (name, surface, orbit), what)
+    what.update({'mass': Earth.mass * mass,
+                 'density': density * d,
+                 'surface': surface,
+                 'orbit': orbit})
+    return apply(P, (name,), what)
 
 # Kaye & Laby also give, for orbits, synodic periods and longitudes of node and
 # perihelion (closest approach).  Several of the following also get .observe
 # applied to some of their data, giving the /usr/share/misc/units value.
-del body
 
 Moon = KLplanet('Moon',
                 KLsurface(.272, .17, Spin(29.4 * day, 5.2), material="silicates"),
@@ -471,6 +472,7 @@ Moon = KLplanet('Moon',
                       Spin(27 * day + 7.719864 * hour, 1.5),
                       .055),
                 .0123, 3.34,      # mass, density
+                body.Planetoid, # over-ride Planet !
                 discovery = Discovery("early life", -1e9,
                                       etymology = "English: Moon <- Germanic: Mond/Mand"),
                 aliases = ('Luna', 'Selene'))
@@ -487,7 +489,7 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
-del Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
+del body, Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
     Sample, qSample, Quantity, Object, tophat, micro, kilo, mega, giga, tera, peta, \
     kg, metre, mile, arc, radian, pi, Kelvin, year, day, hour, minute, second, \
     litre, bar, Watt, Tesla, Ampere, Gauss
