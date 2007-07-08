@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.22 2007-07-08 01:21:04 eddy Exp $
+$Id: home.py,v 1.23 2007-07-08 01:43:12 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -55,11 +55,11 @@ MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
 
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
 # orbit can't be specified until Sun has been created.
-def load_planets(): # lazy satellite loader for Sun
-    import inner, outer
+def load_rubble(): # lazy satellite loader for Sun
+    import inner, outer, Kuiper, asteroids
 
 Sun = body.Star(
-    'Sun', load_planets, type='G2 V',
+    'Sun', load_rubble, type='G2 V',
     orbit = Orbit(MilkyWay,
 		  Quantity(27 + 4 * tophat, kilo * year.light),
                   # I've seen figures of 28 k ly, 8 k parsec; I used to quote 3e4 ly
@@ -137,7 +137,7 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
     magnitude = qSample({}, low=4.79, high=4.83), # K&L, Moore
     aliases = ('Sol',))
 
-del load_planets
+del load_rubble
 
 ua = AU = AstronomicalUnit = Quantity(
     93, mega * mile,
