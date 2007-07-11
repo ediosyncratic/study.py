@@ -1,7 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """Galaxies
 
-$Id: galaxy.py,v 1.5 2007-07-08 02:04:57 eddy Exp $
+For the Canes I group:
+http://www.atlasoftheuniverse.com/galgrps/cvni.html
+
+$Id: galaxy.py,v 1.6 2007-07-11 06:48:45 eddy Exp $
 """
 
 from study.value.units import Quantity, tophat, \
