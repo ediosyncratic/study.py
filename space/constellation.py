@@ -9,17 +9,17 @@ objects.
 """
 from body import Constellation
 
+CanisMinor = Constellation("Canis Minor")
+Cassiopeia = Constellation("Cassiopeia")
 Centaur = Constellation("Centaurus")
 Cetus = Constellation("Cetus")
-Eridanus = Constellation("Eridanus")
 Cygnus = Constellation("Cygnus", aliases=("The Swan",))
+Draco = Constellation("Draco", aliases=("The Dragon",))
+Eridanus = Constellation("Eridanus")
+Hydra = Constellation("Hydra")
 Indus = Constellation("Indus")
 Ophiuchus = Constellation("Ophiuchus")
-Cassiopeia = Constellation("Cassiopeia")
-UrsaMajor = Constellation("Ursa Majoris", aliases=("The Great Bear", "The Plough"))
-Draco = Constellation("Draco", aliases=("The Dragon",))
-CanisMinor = Constellation("Canis Minor")
 Pavonis = Constellation("Pavonis")
-Hydra = Constellation("Hydra")
+UrsaMajor = Constellation("Ursa Majoris", aliases=("The Great Bear", "The Plough"))
 
 del Constellation
