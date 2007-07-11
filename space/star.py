@@ -13,13 +13,15 @@ See also:
   Big fat database of stars:
   http://antwrp.gsfc.nasa.gov/apod/ap990426.html
 
-$Id: star.py,v 1.8 2007-07-08 01:52:02 eddy Exp $
+$Id: star.py,v 1.9 2007-07-11 07:24:48 eddy Exp $
 """
 
 from study.value.units import Quantity, tophat, kilo, mega, giga, micro, year
-from body import Star, Constellation, System
+from body import Star, System
 from common import Discovery, Spin, Orbit
 from home import AU, Sun
+from constellation import CanisMinor, Cassiopeia, Centaur, Cetus, Cygnus, \
+     Draco, Eridanus, Hydra, Indus, Ophiuchus, Pavonis, UrsaMajor
 
 Solar = System("The Solar System", star=Sun)
 del Sun
@@ -48,12 +50,11 @@ Gliese710.Solstation('K5-M1 V', 63.0 + tophat * .1,
                      # gives "within 1.1 ly (0.34 pc)"; i.e. c. 7e4 AU
                      closestapproach = 4e4 * AU)
 
-Centaur = Constellation("Centaurus")
 Centaur.Alpha = System("&alpha; Centauri",
                         __doc__="""&alpha; Centauri has been known since ancient times.
 
 It's the fourth brightest star in the night sky as well as the brightest star in
-Constellation Centaurus; it's been known about for millennia.\n""",
+constellation Centaurus; it's been known about for millennia.\n""",
                         aliases=("Rigil Kentaurus",),
                         discovery=Discovery('prehistoric', (-2 + tophat * 3) * kilo,
                                             etymology="Arabic: Rigil Kentaurus = the foot of the Centaur"),
@@ -146,33 +147,25 @@ Sirius = System("Sirius", aliases=("The Dog Star",),
                 A = Star("Sirius A"), B = Star("Sirius B"))
 Sirius.A.NeighbourTable(8.7, (-1.6,8.2,-2.5), "A1", 23.0, 2.31, 1.8)
 Sirius.B.NeighbourTable(8.7, (-1.6,8.2,-2.5), "DA", .0028, .98, .022)
-Cetus = Constellation("Cetus", tau = Star("&tau; Ceti"),
-                      UV = System("UV Ceti", A = Star("UV Ceti A"), B = Star("UV Ceti B")))
+Cetus.UV = System("UV Ceti", A = Star("UV Ceti A"), B = Star("UV Ceti B"))
 Cetus.UV.A.NeighbourTable(8.9, (7.7,3.4,-2.8), "M6e", .00006, .12, .05)
 Cetus.UV.B.NeighbourTable(8.9, (7.7,3.4,-2.8), "M6e", .00004, .10, .04)
 Ross154 = Star("Ross 154")
 Ross154.NeighbourTable(9.5, (1.8,-8.5,-3.8), "M5e", .0004, .31, .12)
 Ross248 = Star("Ross 248")
 Ross248.NeighbourTable(10.3, (7.4,-.7,7.1), "M6e", .00011, .25, .07)
-Eridanus = Constellation("Eridanus",
-                         epsilon = Star("&epsilon; Eridani"),
-                         s82 = Star("82 Eridani"),
-                         Omicron = System("&Omicron; Eridani",
-                                          A = Star("&Omicron; Eridani A"),
-                                          B = Star("&Omicron; Eridani B"),
-                                          C = Star("&Omicron; Eridani C")))
+Eridanus.epsilon = Star("&epsilon; Eridani"),
 Eridanus.epsilon.NeighbourTable(10.7, (6.4,8.4,-1.8), "K2", .3, .8, .9)
 Luyten789_6 = Star("Luyten 789-6")
 Luyten789_6.NeighbourTable(10.8, (9.7,-3.7,-2.9), "M6", .00012, .25, .08)
 Ross128 = Star("Ross 128")
 Ross128.NeighbourTable(10.8, (-10.8,.7,.2), "M5", .00033, .31, .1)
-Cygnus = Constellation("Cygnus", aliases=("The Swan",),
-                       s61 = System("61 Cygni",
-                                    A = Star("61 Cygni A"),
-                                    B = Star("61 Cygni B")))
+Cygnus.s61 = System("61 Cygni",
+                    A = Star("61 Cygni A"),
+                    B = Star("61 Cygni B"))
 Cygnus.s61.A.NeighbourTable(11.2, (6.3,-6.1,7.0), "K5", .063, .59, .7)
 Cygnus.s61.B.NeighbourTable(11.2, (6.3,-6.1,7.0), "K7", .040, .50, .8)
-Indus = Constellation("Indus", epsilon = Star("&epsilon; Indi"))
+Indus.epsilon = Star("&epsilon; Indi")
 Indus.epsilon.NeighbourTable(11.2, (5.3,-3.0,-9.4), "K5", .13, .71, 1.0)
 Procyon = System("Procyon", A = Star("Procyon A"), B = Star("Procyon B"))
 Procyon.A.NeighbourTable(11.4, (-4.7,10.3,1.1), "F5", 7.6, 1.77, 1.7)
@@ -189,6 +182,7 @@ Groombridge34.A.NeighbourTable(11.5, (8.4,.5,8.0), "M2", .0058, .38, .38)
 Groombridge34.B.NeighbourTable(11.5, (8.4,.5,8.0), "M4", .0004, None, .11)
 Lacaille9352 = Star("Lacaille 9352")
 Lacaille9352.NeighbourTable(11.7, (9.2,-2.3,-6.9), "M2", .012, .47, .57)
+Cetus.tau = Star("&tau; Ceti")
 Cetus.tau.NeighbourTable(11.9, (10.3,4.9,-3.3), "G8", .44, .82, 1.67)
 LuytenBD = Star("Luyten BD")
 LuytenBD.NeighbourTable(12.2, (-4.4,11.3,1.1), "M4", .0014, .38, .16)
@@ -233,6 +227,10 @@ Luyten145_141 = Star("Luyten 145-141")
 Luyten145_141.NeighbourTable(15.8, (-6.8,.5,-14.3), "DA", .0008)
 Ross780 = Star("Ross 780")
 Ross780.NeighbourTable(15.8, (14.6,-4.5,-4.0), "M5", .0016, .39, .23)
+Eridanus.Omicron = System("&Omicron; Eridani",
+                          A = Star("&Omicron; Eridani A"),
+                          B = Star("&Omicron; Eridani B"),
+                          C = Star("&Omicron; Eridani C"))
 Eridanus.Omicron.A.NeighbourTable(15.9, (7.1,14.1,-2.1), "K0", .33, .81, .7)
 Eridanus.Omicron.B.NeighbourTable(15.9, (7.1,14.1,-2.1), "DA", .0027, .43, .018)
 Eridanus.Omicron.C.NeighbourTable(15.9, (7.1,14.1,-2.1), "M4e", .00063, .21, .43)
@@ -240,14 +238,9 @@ BDp20deg2465 = Star("BD +20&deg; 2465")
 BDp20deg2465.NeighbourTable(16.1, (-13.6,6.6,5.5), "M4", .0036, .44, .28)
 Altair = Star("Altair")
 Altair.NeighbourTable(16.6, (7.4,-14.6,2.5), "A7", 10.0, 1.9, 1.2)
-Ophiuchus = Constellation("Ophiuchus",
-                          s70 = System("70 Ophiuchi",
-                                       A = Star("70 Ophiuchi A"),
-                                       B = Star("70 Ophiuchi B")),
-                          s36 = System("36 Ophiuchi",
-                                       A = Star("36 Ophiuchi A"),
-                                       B = Star("36 Ophiuchi B"),
-                                       C = Star("36 Ophiuchi C")))
+Ophiuchus.s70 = System("70 Ophiuchi",
+                       A = Star("70 Ophiuchi A"),
+                       B = Star("70 Ophiuchi B")),
 Ophiuchus.s70.A.NeighbourTable(16.7, (.2,-16.7,.7), "K1", .44, .89, 1.3)
 Ophiuchus.s70.B.NeighbourTable(16.7, (.2,-16.7,.7), "K6", .083, .68, .84)
 ACp79deg3888 = Star("AC +79&deg; 3888")
@@ -257,23 +250,26 @@ BDp43deg4305.NeighbourTable(16.9, (11.5,-3.9,11.8), "M5e", .0021, .26, .24)
 Stein2051 = System("Stein 2051", A = Star("Stein 2051 A"), B = Star("Stein 2051 B"))
 Stein2051.A.NeighbourTable(17.0, (3.5,8.1,14.6), "M5", .0008)
 Stein2051.B.NeighbourTable(17.0, (3.5,8.1,14.6), "DC", .0003)
-UrsaMajor = Constellation("Ursa Majoris", aliases=("The Great Bear", "The Plough"),
-                            WX = System("WX Ursa Majoris",
-                                        A = Star("WX Ursa Majoris A"),
-                                        B = Star("WX Ursa Majoris B")))
+UrsaMajor.WX = System("WX Ursa Majoris",
+                      A = Star("WX Ursa Majoris A"),
+                      B = Star("WX Ursa Majoris B"))
 UrsaMajor.WX.A.NeighbourTable(17.5, (-12.2,3.1,12.1), "M2")
 UrsaMajor.WX.B.NeighbourTable(17.5, (-12.2,3.1,12.1), "M8")
+Ophiuchus.s36 = System("36 Ophiuchi",
+                       A = Star("36 Ophiuchi A"),
+                       B = Star("36 Ophiuchi B"),
+                       C = Star("36 Ophiuchi C"))
 Ophiuchus.s36.A.NeighbourTable(17.7, (-3.3,-15.5,-7.9), "K2", .26, .77, .90)
 Ophiuchus.s36.B.NeighbourTable(17.7, (-3.3,-15.5,-7.9), "K1", .26, .76, .82)
 Ophiuchus.s36.C.NeighbourTable(17.7, (-3.3,-15.5,-7.9), "K6", .09, .63, .90)
 HR7703 = System("HR 7703", A = Star("HR 7703 A"), B = Star("HR 7703 B"))
 HR7703.A.NeighbourTable(18.4, (7.9,-12.6,-10.9), "K3", .20, .76, .80)
 HR7703.B.NeighbourTable(18.4, (7.9,-12.6,-10.9), "M5", .0008, .35, .14)
-Draco = Constellation("Draco", aliases=("The Dragon",), sigma = Star("&sigma; Draconis"))
+Draco.sigma = Star("&sigma; Draconis")
 Draco.sigma.NeighbourTable(18.5, (2.5,-5.9,17.3), "K0", .4, .82, .28)
-CanisMinor = Constellation("Canis Minor", YZ = Star("YZ Canis Minoris"))
+CanisMinor.YZ = Star("YZ Canis Minoris")
 CanisMinor.YZ.NeighbourTable(18.5, (-7.8,16.7,1.2), "M4")
-Pavonis = Constellation("Pavonis", delta = Star("&delta; Pavonis"))
+Pavonis.delta = Star("&delta; Pavonis")
 Pavonis.delta.NeighbourTable(18.6, (3.8,-6.4,-17.0), "G6", 1.0, .98, 1.07)
 p1deg4774 = Star("1&deg; 4774")
 p1deg4774.NeighbourTable(18.6, (18.6,-1.1,.7), "M2", .0001)
@@ -285,10 +281,9 @@ Luyten97_12 = Star("Luyten 97-12")
 Luyten97_12.NeighbourTable(18.9, (-3.4,6.3,-17.5), "D", .0003)
 Luyten674_15 = Star("Luyten 674-15")
 Luyten674_15.NeighbourTable(19.1, (-.96,15.0,-7.0), "M")
-Cassiopeia = Constellation("Cassiopeia",
-                           eta = System("&eta; Cassiopeia",
-                                        A = Star("&eta; Cassiopeia A"),
-                                        B = Star("&eta; Cassiopeia B")))
+Cassiopeia.eta = System("&eta; Cassiopeia",
+                        A = Star("&eta; Cassiopeia A"),
+                        B = Star("&eta; Cassiopeia B"))
 Cassiopeia.eta.A.NeighbourTable(19.2, (10.1,2.1,16.2), "G0", 1.0, .85, .84)
 Cassiopeia.eta.B.NeighbourTable(19.2, (10.1,2.1,16.2), "M0", .03, .52, .07)
 Luyten205_128 = Star("Luyten 205-128")
@@ -315,6 +310,7 @@ VB10.A.NeighbourTable(19.6, (6.2,-18.5,1.7), "M4", None, .39, .43)
 VB10.B.NeighbourTable(19.6, (6.2,-18.5,1.7), "M5", .007, None, .008)
 m45deg13677 = Star("-45&deg; 13677")
 m45deg13677.NeighbourTable(19.9, (7.5,-11.8,-14.1), "M0", .00002)
+Eridanus.s82 = Star("82 Eridani"),
 Eridanus.s82.NeighbourTable(20.3, (9.6,11.2,-13.9), "G5")
 Wolf630 = System("Wolf 630",
                  A = Star("Wolf 630 A"),
@@ -327,7 +323,7 @@ Wolf630.C.NeighbourTable(20.3, (-5.8,-19.2,-2.9))
 Wolf630.D.NeighbourTable(20.3, (-5.8,-19.2,-2.9), "M4")
 m11deg3759 = Star("-11&deg; 3759")
 m11deg3759.NeighbourTable(20.4, (-15.7,-12.3,-4.4), "M4")
-Hydra = Constellation("Hydra", beta = Star("&beta; Hydri"))
+Hydra.beta = Star("&beta; Hydri")
 Hydra.beta.NeighbourTable(20.5, (4.4,.4,-20.0), "G1", None, None, 1.66)
 p45Fu46 = System("+45 Fu46", A = Star("+45 Fu46 A"), B = Star("+45 Fu46 B"))
 p45Fu46.A.NeighbourTable(21.0, (-3.1,-14.4,15.0), "M3", None, .31)
@@ -339,5 +335,5 @@ p19deg5116.A.NeighbourTable(21.0, (19.5,-3.4,7.1), "M4")
 p19deg5116.B.NeighbourTable(21.0, (19.5,-3.4,7.1), "M6")
 
 
-del Discovery, Spin, Orbit, Star, Constellation, System, \
+del Discovery, Spin, Orbit, Star, System, \
     Quantity, tophat, kilo, mega, giga, micro, year, AU
