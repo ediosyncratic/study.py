@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.27 2007-06-03 16:41:11 eddy Exp $
+$Id: particle.py,v 1.28 2007-08-07 21:56:29 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -601,7 +601,13 @@ class Family (Object):
     is easy to detect and its charge is Millikan's quantum.  The neutrino is
     named for the lepton in its family (i.e. electron neutrino, muon neutrino or
     tau neutrino).  The quarks are named independently and there's some
-    contention over the third family quark-names. """
+    contention over the third family quark-names.
+
+    http://golem.ph.utexas.edu/category/2007/06/this_weeks_finds_in_mathematic_14.html
+    lists four force bosons along with the three families, alongside a table,
+    suggestively lining up each boson with a particle type; although I would be
+    inclined to line up gamma (the photon) with the charted leptons, W or Z with
+    neutrinos, the other of these and the gluon with the quarks.\n"""
 
     def __init__(self, neutrino, lepton, neg, pos):
 	self.neutrino, self.lepton = neutrino, lepton
@@ -631,7 +637,6 @@ def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
     return unit * val
 
 def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, under=below):
-
     """Deciphering Kaye&Laby p449.
 
     Positional arguments are as follows:
