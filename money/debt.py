@@ -1,6 +1,6 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.6 2007-06-03 16:43:44 eddy Exp $
+$Id: debt.py,v 1.7 2007-08-12 17:21:35 eddy Exp $
 """
 from datetime import date, timedelta
 from study.snake.lazy import Lazy
@@ -133,22 +133,25 @@ class Mortgage (Lazy):
     taxes, so .72 * .0425 is the effective interest rate.
     """
 
-    def __init__(self, debt, monthly=None, growth=.05, duration=5):
+    def __init__(self, debt, admin, monthly=None, growth=.05, duration=5):
         """Initialize a Mortgage object.
 
-        Required first argument, debt, is a Debt object describing the money
-        owed.  Optional arguments:
+        Required arguments:
+          debt -- a Debt object describing the money owed
+          admin -- monthly administrative fee
 
-          monthly -- payment (in debt's currency) per month (default: None).
+        Optional arguments:
+          monthly -- monthly payment (default: None).
           growth -- annual rate of growth of monthly payment (default: 5%).
           duration -- number of years over which the mortgage is to be repayed
-                      (default: 5), ignored if monthly is suupplied.
+                      (default: 5), ignored if monthly is supplied.
 
-        Each argument appears as an eponymous attribute; the unsupplied or
-        ignored one is lazily computed from the supplied one.  Any monthly
+        Both monthly and admin are to be given in debt's currency.  Each
+        argument appears as an eponymous attribute; the unsupplied or ignored
+        one is lazily computed from the supplied one.  Any monthly
         'administrative fee' should not be included in monthly.\n"""
         
-        self.debt, self.rate = debt, (1+growth)**(.5/6)
+        self.debt, self.rate, self.admin = debt, (1+growth)**(.5/6), admin
         if monthly is None: self.duration = duration
         else: self.monthly = monthly
 
@@ -169,6 +172,34 @@ class Mortgage (Lazy):
         moons, debt = int(self.duration * 12 + .5), self.debt
         if -1e-4 < self.rate - debt.factor < 1e-4: return debt.amount * self.rate / moons
         return debt.amount * (debt.factor -self.rate) / (1 -(self.rate/debt.factor) ** moons)
+
+    def paid(self, when, what):
+        """Revise to reflect actual payments made
+
+        Requires two arguments:
+          when -- date of the payment
+          what -- amount (in same units as used for debt)
+        """
+
+        self.debt = self.debt.repay(what - self.admin, when)
+
+    def rerate(self, date, rate, payment=None, period=None):
+        """Revise to reflect a change of interest rate on a given date.
+
+        Required arguments:
+          rate -- the new interest rate
+          date -- a datetime object indicating when this takes effect
+        Optional arguments:
+          payment -- None (default) or the new monthly payment
+          period -- None (default: year) or a datetimediff describing the period
+                    to which the new rate applies (so, by default, rate is taken
+                    to be an annual rate of interest).
+
+        If payment is not specified, it is lazily computed, based on the prior
+        duration (which may have been computed from the prior payment).
+        """
+
+        self.debt = self.debt.rerate(rate, date)
 
 def affordable(monthly, duration, interest=.0425 * .72, inflate=.05):
     """How big a debt can one pay off in a given time with given available cash ?
