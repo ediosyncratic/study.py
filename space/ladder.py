@@ -2,7 +2,7 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: ladder.py,v 1.6 2007-08-14 06:20:03 eddy Exp $
 """
 from math import exp
 from home import Earth
@@ -55,24 +55,30 @@ class Ladder (Object):
       thin = (: A(u)/A(1) &larr;u; b&lt;u&lt;B :)
       shrink = volume / R / A(1)
       load = S.A(b)/g/D/volume = (b/v)**2 * thin(b) / shrink
-
-    """
+    This last is called Q in ladder.html\n"""
 
     __obinit = Object.__init__
 
     def __init__(self, S, D, top=1, planet=Earth, bot=None, Q=Quantity, **what):
 	"""Initialises a ladder object.
 
-	First two arguments describe mechanical properties of the material of
-	which the ladder is to be built; first is its ultimate tensile stress,
-	second is its density.  Optional third argument, top, specifies the
-	outer radial coordinate of your ladder; default is 1 but values nearer
-	1.3 would be more realistic; top can be given either as the
-	dimensionless radial coordinate or as a length, in which case it'll be
-	divided by the synchronous orbital radius.  Optional fourth argument is
-	the planet for which you are building a ladder; default is Earth.
-	Optional fifth argument, bot, is the inner radial coordinate of the
-	ladder; default uses the planet's surface radius. """
+        Required arguments, describing mechanical properties of the material of
+	which the ladder is to be built (to be spacified as Quantity objects,
+	see study.value.quantity):
+          S -- ultimate tensile stress
+          D -- density
+
+        Optional arguments:
+          top -- the outer radial coordinate of your ladder; default is 1 but
+	         values nearer 1.3 would be more realistic.
+          planet -- the Planet for which you are building a ladder; default is Earth.
+          bot -- the inner radial coordinate of the ladder; default uses the
+	         planet's surface radius.
+
+        Both top and bot; may be given either as dimensionless radial
+        coordinates or as lengths (that is, Quantity objects with dimensions of
+        length), in which case they're divided by the synchronous orbital
+        radius.\n"""
 
 	apply(self.__obinit, (), what)
 	self.stress, self.density = S, D
@@ -82,15 +88,19 @@ class Ladder (Object):
 	# __kk *must* be a Quantity for thin's use of evaluate ...
 
 	if bot is None: bot = surf.radius / self.R
-        try: top + 1
-        except TypeError:
-            try: top + self.R
-            except TypeError:
-                raise TypeError("Ladder's top should be specified as either a length or a dimensionless radial co-ordinate in units of synchronous orbital radius.",
-                                top)
-            top = top / self.R
+	self.__ends = (self.__radial(bot), self.__radial(top))
 
-	self.__ends = (bot, top)
+    def __radial(self, value):
+        try: value + 1
+        except TypeError:
+            try: value + self.R
+            except TypeError: pass
+            else: return value / self.R
+        else: return value
+
+        raise TypeError("Ladder() top or bot radial parameter",
+                        value,
+ "length or the dimensionless result of dividing a length by synchronous orbital radius")
 
     def thin(self, u, e=exp):
 	"""Area of ladder at radial coordinate u, in units of that at orbit. """
