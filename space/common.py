@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.9 2007-04-01 09:40:13 eddy Exp $
+$Id: common.py,v 1.10 2007-08-19 11:15:53 eddy Exp $
 """
 from study.value.units import tophat, arc, pi, Object, second
 
@@ -81,6 +81,15 @@ class Orbit (Round):
         time-average of the radius of the orbit; it is also [2] the
         eccentricity-adjusted radius whose cube is proportional to the square of
         the orbit's period.
+
+        Some day I should go over to using a vector to encode the eccentricity -
+        see [2]'s Q, whose magnitude is the scalar eccentricity.  The vector to
+        use is obtained as follows: multiply the velocity of the orbiting body
+        (relative to the body it orbits) by the semi-latus recum; divide by J,
+        the total angular momentum times by the sum of the inverses of the
+        masses; and subtract a unit vector perpendicular to the radius, in the
+        forward direction of the orbit.  This vector is constant and in the
+        direction of the orbit's velocity at closest approach.
 
         [1] http://csep10.phys.utk.edu/astr161/lect/history/kepler.html
         [2] http://www.chaos.org.uk/~eddy/physics/cocentric.html
