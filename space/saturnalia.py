@@ -1,7 +1,10 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Saturn.
 
-$Id: saturnalia.py,v 1.7 2007-03-24 22:42:21 eddy Exp $
+Saturn has sixty moons:
+http://www.sciencedaily.com/releases/2007/07/070719194206.htm
+
+$Id: saturnalia.py,v 1.8 2007-10-24 22:58:08 eddy Exp $
 """
 
 from study.value.units import mega, metre, km, tophat
@@ -75,20 +78,21 @@ SAOmoon(Saturn, _kav, "S10", 17452, 860.03)
 SAOmoon(Saturn, Discovery("Holman", 2000), "S11", 17874, 888.54)
 SAOmoon(Saturn, _glad, "S12", 19747, 1038.11)
 
+# http://antwrp.gsfc.nasa.gov/apod/ap20071024.html
 Ring("Saturn's D Ring", Saturn, 67 * mega * metre, 74.5 * mega * metre)
 Ring("Saturn's C Ring", Saturn, 74.5 * mega * metre, 92 * mega * metre,
      Columbo=Hoop("Columbo Gap", Saturn, 77.8 * mega * metre, width=100 * km),
      Maxwell=Hoop("Maxwell Gap", Saturn, 87.5 * mega * metre, width=270 * km))
-Ring("Saturn's B Ring", Saturn, 92 * mega * metre, 117.5 * mega * metre)
-Ring("The Cassini Division", Saturn, 117.5 * mega * metre, 122.2 * mega * metre,
+Ring("Saturn's B Ring", Saturn, 92 * mega * metre, 117.58 * mega * metre)
+Ring("The Cassini Division", Saturn, 117.58 * mega * metre, 122.2 * mega * metre,
      width = 4.7 * mega * metre,
      note="gap between rings, not actually a ring; and not actually quite empty, either",
-     Huygens=Hoop("Huygens Gap", Saturn, 117.68 * mega * metre, width=(362.5 + tophat * 77.5) * km)) # width "285-440" km
-Ring("Saturn's A Ring", Saturn, 122.2 * mega * metre, 136.8 * mega * metre,
+     Huygens=Hoop("Huygens Gap", Saturn, 117.58 * mega * metre, width=(362.5 + tophat * 77.5) * km)) # width "285-440" km
+Ring("Saturn's A Ring", Saturn, 122.2 * mega * metre, 136.78 * mega * metre,
      Encke=Hoop("Encke Division", Saturn, 133.57 * mega * metre, width=325 * km),
      Keeler=Hoop("Keeler Gap", Saturn, 136.53 * mega * metre, width=35 * km))
-Ring("Saturn's F Ring", Saturn, 140.0775 * mega * metre, 140.3425 * mega * metre,
-     # radius 140.21 Mm, width 30 to 500 km
+Ring("Saturn's F Ring", Saturn, 140.0875 * mega * metre, 140.3525 * mega * metre,
+     # radius 140.22 Mm, width 30 to 500 km
      width = (265 + tophat * 235) * km)
 Ring("Saturn's E Ring", Saturn, 180 * mega * metre, 480 * mega * metre)
 # Average thickness: c. 100 m.  If all gathered together, they'd form a body
