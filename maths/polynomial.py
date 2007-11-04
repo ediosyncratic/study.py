@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.19 2007-06-03 16:42:30 eddy Exp $
+$Id: polynomial.py,v 1.20 2007-11-04 21:48:24 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -27,12 +27,11 @@ class Polynomial (Lazy):
       sign -- like cmp(self, 0) but None when ill-defined or variable
       isreal -- are all coefficients real ?
       factors -- tuple of normalised irreducible factors and an optional scalar
+      roots -- inputs at which the polynomial is zero (or very nearly so)
 
-    Note that a poly with true isreal considers positive-definite quadratic
-    factors to be irreducible; assigning isreal = None will persuade a poly to
-    believe quadratic factors are reducible.  The value of p.assquares is of
-    form (bok, rem) with rem either zero or of odd degree and p-rem equal to
-    reduce(lambda y, (x, v): y + x*x*v, bok.items(), 0).
+    The value of p.assquares is of form (bok, rem) with rem either zero or of
+    odd degree and p-rem equal to reduce(lambda y, (x, v): y + x*x*v,
+    bok.items(), 0).
 
     The value of sign may presently sometimes be None when it needn't be; I've
     yet to find an example, but the computation in use only deals with `easy
@@ -46,8 +45,7 @@ class Polynomial (Lazy):
       hcf([poly, ...]) -- yields highest common factor of arbitrarily many
       integral([start=0, base=0]) -- integration
       unafter(poly) -- input to poly yielding self as output
-      seek_root([guess=0, tol=1e-6]) -- find an input mapped to zero
-      seek_factor([guess=None]) -- find a factor, if possible
+      Weierstrass([tol=1e-6]) -- finds roots
 
     See individual methods' docs for details.\n"""
 
@@ -237,7 +235,7 @@ class Polynomial (Lazy):
 
     del conjug8
 
-    def _lazy_get__powers_(self, ig):
+    def _lazy_get__powers_(self, ignored):
 	keys = self.__coefs.keys()
 	keys.sort()
         keys.reverse()
@@ -609,11 +607,10 @@ class Polynomial (Lazy):
 
         return 1
 
-    def _lazy_get__zero_(self, ig):
+    def _lazy_get_isreal_(self, ignored): return self.__pure_real()
+    def _lazy_get__zero_(self, ignored):
         try: return self.__coefs.values()[0] * 0
         except IndexError: return 0
-
-    def _lazy_get_isreal_(self, ignored): return self.__pure_real()
 
     def _lazy_get_sign_(self, ignored):
         if self.rank < 0: return 0 # definitely everywhere zero
@@ -629,117 +626,71 @@ class Polynomial (Lazy):
 
         return None # this is over-cautious
 
+    def Weierstrass(self, tol=1e-6):
+        """Seeks roots by the method of Weierstrass, a.k.a. Durand-Kerner method.
+
+        Single optional argument, tol, is a tolerance for determining
+        convergence, with default one part in a million: the iteration converges
+        when the largest change in any estimated root, divided by the largest
+        modulus root estimate, is less than tol.  Returns a list of length
+        self.rank, each entry in which is a root.
+
+        See [[Wikipedia:Durand-Kerner method]].  We know, aside from an over-all
+        scaling, self(x) = product(: x-r[i] &larr;i :) for some list r of self's
+        roots, albethey unknown; we can re-arrange this, for any j in len(r),
+        to: r[j] = x -self(x)/product(: x-r[i] &larr;i, i != j :) for all x.
+        Furthermore, if we take this expression as a function in x computed
+        using only approximations to the r[i], i != j, we still find the
+        function evaluates, near r[j], to r[j].  We can thus make up some stray
+        numbers to use as an initial list r, then compute revised values for
+        each r[j] from these and iterate until the values are stable.  The
+        iteration step has to be modified for repeated roots, of course.\n"""
+
+        # Initialize r arbitrarily but reasonably diversely:
+        k = (2j -.1) ** (1./self.rank)
+        r = map(lambda i, k=k**2: k**(2 * i + 1), range(self.rank))
+        lead = 1. / self.__coefs[self.rank] # Scales self so leading coefficient is 1
+
+        # Ensure ensible tol, initialize k so first iteration goes ahead
+        tol = abs(tol)
+        k = 1 + tol
+        while k > tol:
+            p, d, m, i = [], 0, 0, 0
+
+            while i < self.rank:
+                x, e, n, j = r[i], self(r[i]) * lead, 0, 0
+                while j < self.rank:
+                    if j == i or r[j] == x: n += 1
+                    else: e /= x - r[j]
+                    j += 1
+
+                if n > 1: e = e ** (1./n)
+                else: assert n == 1
+
+                a = abs(e)
+                if a > d: d = a
+
+                p.append(x - e)
+                a = abs(p[i])
+                if a > m: m = a
+
+                i += 1
+
+            if m == 0: m = 1
+            r, k = p, d * 1. / m
+
+        return tuple(r)
+
     from cardan import cubic
-    def __cubic_root(self, cub=cubic):
-        # for cubics, we know how to be exact ...
-        ans = apply(cub, map(self.coefficient, (3, 2, 1, 0)))
-
-        # Prefer real answers:
-        nice = filter(lambda x: (x + 0j).imag == 0, ans)
-        if nice:
-            ans = nice
-            # Prefer whole answers:
-            nice = filter(lambda x: x == long(x), ans)
-            if nice: ans = nice
-
-        # Prefer bigger answers:
-        hi, ans = ans[0], ans[1:]
-        for lo in ans:
-            if abs(lo) > abs(hi): hi = lo
-
-        return hi
-    del cubic
-
-    def seek_root(self, guess=0, tol=1e-6):
-        """Find an input which self maps to zero.
-
-        Optional arguments:
-
-          guess -- where to start searching [default: 0]
-          tol -- tolerance [default: 1e-6]; if abs(self(x)) < tol, x is a root
-
-        These are ignored if self is a quadratic or a real cubic; cardan.py's
-        tools then provide for exact solution.  Otherwise, Newton-Raphson is
-        deployed.  If self is everywhere or nowhere zero, ValueError is raised;
-        this can only happen for constant polynomials. """
-
-        if self.rank < 1:
-            raise ValueError, 'constant function is either nowhere or everywhere zero'
-
+    def _lazy_get_roots_(self, ignored, cub=cubic):
+        if self.rank < 1: return ()
         if self.rank < 3 or (self.rank == 3 and self.__pure_real()):
-            # Exploit exact solution:
-            return self.__cubic_root()
+            # for cubics, we know how to be exact ...
+            return apply(cub, map(self.coefficient, (3, 2, 1, 0)))
 
-        if self.coefficient(0) == 0: return 0 # easy special case to spot ;^)
-
-        if self.normalised.sign and (guess + 0j).imag == 0:
-            guess = guess + 1j # a pure real start point won't work
-
-        grade, off = self.derivative, self(guess)
-        while abs(off) > tol:
-            d = grade(guess)
-            #print 'Trying:', guess, '->', off, '@', d
-            if d: guess = guess - off * 1. / d
-            else: # at a stationary point
-                try: guess = wobble + guess
-                except NameError:
-                    if not self.isreal or self.sign: spin = 1 +1j
-                    else: spin = -2
-                    #print 'Spinning:', spin
-                    wobble = spin
-                    guess = guess + wobble
-                wobble = wobble * spin
-                #print 'Wobbling:', wobble
-
-            off = self(guess)
-
-        return guess
-
-    def seek_factor(self, guess=None):
-        # do newton-raphson in the vector space of quadratic factors
-        # stay within real if all coefficients are real
-        if self.rank < 2: return self.normalised
-        try:
-            if guess.rank < 1: guess = None
-        except AttributeError: guess = None
-
-        if guess is None:
-            try: root = self.seek_root()
-            except ValueError:
-                assert self.rank == 2 and self.isreal
-                return self.normalised
-
-            if self.isreal:
-                try:
-                    if root.imag:
-                        guess = Polynomial({2: 1,
-                                            1: -2 * root.real,
-                                            0: root.real**2 +root.imag**2})
-                except AttributeError: pass
-
-            if guess is None:
-                guess = Polynomial({1: 1, 0: -root})
-
-        tiny = 1e-6 * self._bigcoef
-        index = range(guess.rank) # not including rank itself;
-        # leave guess' 1st coefficient alone; and r's rank is less than that of guess.
-        while 1:
-            r = self % guess
-            if r.rank < 0: return guess # exact factor
-            if r._bigcoef < tiny: return guess # pretty close
-            small = 1e-3 * min(r._bigcoef, guess._bigcoef)
-
-            matrix = []
-            for i in index:
-                q = guess + Polynomial({i: small})
-                d = (r - self % q) / small
-                row = []
-                for j in index:
-                    row.append(d.coefficient(j))
-                matrix.append(row)
-
-            raise NotImplementedError, 'Need to divide vector by matrix'
-            guess = guess - r / matrix # implement this ...
+        # Otherwise, be as exact as we know how to be:
+        return self.Weierstrass(1e-9)
+    del cubic
 
     def _lazy_get__bigcoef_(self, ignored):
         return max(map(abs, self.__coefs.values()))
@@ -750,45 +701,9 @@ class Polynomial (Lazy):
         return None
 
     def _lazy_get_factors_(self, ignored):
-        ans = []
-        while self.rank > 0:
-            #print ans, self
-
-            bok, rem = self.assquares
-            if rem:
-                if bok:
-                    f = apply(rem.hcf, bok.keys())
-                    if f.rank > 0:
-                        f = f.normalised
-                        ans, self = ans + list(f.factors), self / f
-                        continue
-
-            else:
-                row = bok.keys() # assert: non-empty
-                f = apply(row[0].hcf, row[1:])
-                if f.rank > 0:
-                    f = f.normalised
-                    ans, self = ans + list(2 * f.factors), self / f / f
-                    continue
-
-                if len(bok) == 2:
-                    (X, a), (Y, b) = bok.items()
-                    if b < 0 < a: X, a, Y, b = Y, b, X, a
-                    if a < 0 < b: # difference of two squares
-                        b, a = b**.5, (-a)**.5
-                        # self = (b.Y)**2 -(a.X)**2
-                        X, Y = (b*Y -a*X).normalised, (b*Y +a*X).normalised
-                        ans, self = ans + list(X.factors + Y.factors), self / X / Y
-                        continue
-
-            f = self.seek_factor()
-            while 1:
-                new, rem = divmod(self, f)
-                if not rem.__istiny(self._bigcoef): break
-                ans.append(f)
-                self = new
-
-        if self != 1: ans.append(self.coefficient(0))
-        return tuple(ans)
+        ans = map(lambda x: Polynomial(-x, 1), self.roots)
+        lead = self.__coefs[self.rank]
+        if lead != 1: ans.append(lead)
+        return ans
 
 del types, Lazy
