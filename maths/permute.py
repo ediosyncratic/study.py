@@ -258,6 +258,19 @@ def cycle(row, by=1):
 
     by = -by % len(row)
     return row[by:] + row[:by]
+
+def period(p):
+    """Computes the period of the permutation p.
+
+    See http://www.research.att.com/~njas/sequences/A000793 and
+    http://mathworld.wolfram.com/LandausFunction.html for Landau's function,
+    which gives the maximal period among permutations of each length.  This is
+    equally the maximum, over partitions of the length, of the lowest common
+    multiple of the lengths of the parts.\n"""
+    q, i = compose(p, p), 1
+    while q != p:
+        q, i = compose(q, p), 1+i
+    return i
 
 def order(row, cmp=cmp):
     """Returns a permutation which will sort a sequence.
@@ -326,6 +339,7 @@ def sort(row, cmp=cmp):
 
 class Iterator:
     # for a rather elegant application, see queens.py's derived class
+    # TODO: turn into a python iterator with __iter__().
     """Iterator over permutations.
 
     Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
