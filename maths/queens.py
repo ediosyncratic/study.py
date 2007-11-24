@@ -12,13 +12,16 @@ allowing black and white squares to swap), one of which is symmetric under a
 half turn of the board: [2, 4, 1, 7, 0, 6, 3, 5].
 
 The problem naturally generalizes to other sizes than 8, although 8 is the
-natural size for a standard chess board.
+natural size for a standard chess board.  This module provides a plain Iterator
+over all solutions of a given size and a Unique iterator which skips equivalent
+solutions: two solutions are deemed equivalent if some symmetry of the chess
+board maps one onto another.
 
-$Id: queens.py,v 1.5 2007-11-24 15:33:39 eddy Exp $
+$Id: queens.py,v 1.6 2007-11-24 17:45:19 eddy Exp $
 """
 
 import permute
-class Permutation(permute.Permutation):
+class Solution(permute.Permutation):
     def __repr__(self):
         try: ans = self.__repr
         except AttributeError:
@@ -26,7 +29,7 @@ class Permutation(permute.Permutation):
                 lambda i, n=len(self)-1: ' ' * i + '#' + ' ' * (n-i), self))
         return ans
 
-    def queenly(self):
+    def peaceful(self):
         i = len(self) - 1
         while i:
             j, n = i, self[i]
@@ -41,36 +44,39 @@ def Iterator(size=8):
     """Iterates over all solutions to the `n queens' problem.
 
     They are explored in lexical order.  Value yielded at each step is a
-    Permutation object but with a custom repr() as a picture (and a method,
-    queenly, which shall return True).\n"""
+    Solution object - this is a Permutation with a custom repr() as a picture
+    (and a method, peaceful, which shall return True).\n"""
 
-    for it in permute.Iterator(size, Permutation):
-        if it.queenly(): yield it
+    for it in permute.Iterator(size, Solution):
+        if it.peaceful(): yield it
 
     raise StopIteration
 
-def unique(size=8):
-    def entwist(r, seq, n):
-	s = map(lambda i: n-i, r)
-	if s not in seq: seq.append(s[:]) # copy before reversing !
-	s.reverse()
-	if s not in seq:
-	    seq.append(s)
-	    s = map(lambda i: n-i, s)
-	    if s not in seq: seq.append(s)
+def Unique(size=8):
+    """Like Iterator, q.v., but skips essentially equivalent solutions."""
+    def entwist(seq, r, n):
+        seq.append(r)
+	r = map(lambda i: n-i, r) # top-bottom reflection
+	if r not in seq: seq.append(r[:]) # copy before reversing !
+	r.reverse() # left-right reflection
+	if r not in seq:
+	    seq.append(r)
+	    r = map(lambda i: n-i, r) # top-bottom reflection
+	    if r not in seq: seq.append(r)
+            # r.reverse() would restore its initial value
 
-    u, a = [], []
+    def equivalents(r, n, add=entwist):
+        row = []
+        add(row, r, n)
+        r = r.inverse # diagonal reflection
+        if r not in row:
+            add(row, r, n)
+        return tuple(row)
+
+    a = ()
     for r in Iterator(size):
 	if r not in a:
-	    u.append(r)
-	    new = [ r ]
-	    entwist(r, new, size)
+	    yield r
+	    a = a + equivalents(r, size)
 
-	    r = r.inverse
-	    if r not in new:
-		new.append(r)
-		entwist(r, new, size)
-
-	    a = a + new
-
-    return u
+    raise StopIteration
