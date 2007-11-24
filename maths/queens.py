@@ -14,7 +14,7 @@ half turn of the board: [2, 4, 1, 7, 0, 6, 3, 5].
 The problem naturally generalizes to other sizes than 8, although 8 is the
 natural size for a standard chess board.
 
-$Id: queens.py,v 1.4 2007-11-24 15:25:40 eddy Exp $
+$Id: queens.py,v 1.5 2007-11-24 15:33:39 eddy Exp $
 """
 
 import permute
@@ -60,13 +60,13 @@ def unique(size=8):
 	    if s not in seq: seq.append(s)
 
     u, a = [], []
-    for r in map(list, Iterator(size)):
+    for r in Iterator(size):
 	if r not in a:
-	    u.append(tuple(r))
+	    u.append(r)
 	    new = [ r ]
 	    entwist(r, new, size)
 
-	    r = list(permute.invert(r))
+	    r = r.inverse
 	    if r not in new:
 		new.append(r)
 		entwist(r, new, size)
