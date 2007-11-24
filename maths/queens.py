@@ -11,79 +11,66 @@ distinct solutions (once one takes accounts of the symmetries of a chess board,
 allowing black and white squares to swap), one of which is symmetric under a
 half turn of the board: [2, 4, 1, 7, 0, 6, 3, 5].
 
-$Id: queens.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
+The problem naturally generalizes to other sizes than 8, although 8 is the
+natural size for a standard chess board.
+
+$Id: queens.py,v 1.4 2007-11-24 15:25:40 eddy Exp $
 """
 
 import permute
+class Permutation(permute.Permutation):
+    def __repr__(self):
+        try: ans = self.__repr
+        except AttributeError:
+            ans = self.__repr = '\n'.join(map(
+                lambda i, n=len(self)-1: ' ' * i + '#' + ' ' * (n-i), self))
+        return ans
 
-class Iterator (permute.Iterator):
-    """Iterates over all solutions to the `eight queens' problem.
+    def queenly(self):
+        i = len(self) - 1
+        while i:
+            j, n = i, self[i]
+            while j:
+                j -= 1
+                if self[j] - n in (j - i, i - j): # same diagonal
+                    return False
+            i -= 1
+        return True
 
-    They are explored in lexical order.  Same API as permute.Iterator (q.v.),
-    providing a picture as repr(). """
+def Iterator(size=8):
+    """Iterates over all solutions to the `n queens' problem.
 
-    __init = permute.Iterator.__init__
-    def __init__(self):
-	self.__init(8)
-	while self.live and self.__bad(): self.__step()
+    They are explored in lexical order.  Value yielded at each step is a
+    Permutation object but with a custom repr() as a picture (and a method,
+    queenly, which shall return True).\n"""
 
-    __step = permute.Iterator.step
-    def step(self):
-	self.__step()
-	while self.live and self.__bad(): self.__step()
+    for it in permute.Iterator(size, Permutation):
+        if it.queenly(): yield it
 
-    def __bad(self):
-	i, p = 7, self.permutation
-	while i:
-	    j, n = i, p[i]
-	    while j:
-		j = j-1
-		if p[j] - n in (j-i, i-j): # same diagonal
-		    return 1
+    raise StopIteration
 
-	    i = i-1
-
-	return None
-
-    def __repr__(self): return show(self.permutation)
-
-def show(it):
-    return '\n'.join(map(lambda n: ' ' * n + '#' + ' ' * (7-n), it))
-
-def all():
-    q, a = Iterator(), []
-    while q.live:
-	a.append(q.permutation)
-	q.step()
-
-    global all
-    def all(r=a): return r
-    return a
-
-def unique():
-    def entwist(r, seq):
-	s = map(lambda i: 7-i, r)
+def unique(size=8):
+    def entwist(r, seq, n):
+	s = map(lambda i: n-i, r)
 	if s not in seq: seq.append(s[:]) # copy before reversing !
 	s.reverse()
 	if s not in seq:
 	    seq.append(s)
-	    s = map(lambda i: 7-i, s)
+	    s = map(lambda i: n-i, s)
 	    if s not in seq: seq.append(s)
 
     u, a = [], []
-    for r in map(list, all()):
+    for r in map(list, Iterator(size)):
 	if r not in a:
 	    u.append(tuple(r))
 	    new = [ r ]
-	    entwist(r, new)
+	    entwist(r, new, size)
 
 	    r = list(permute.invert(r))
 	    if r not in new:
 		new.append(r)
-		entwist(r, new)
+		entwist(r, new, size)
 
 	    a = a + new
 
-    global unique
-    def unique(r=u): return r
     return u
