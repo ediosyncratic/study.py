@@ -103,32 +103,6 @@ permutations with the same length as p, hence order() would, on permutations,
 serve as invert().  There is, however, a cheaper answer: see invert().
 """ +
 
-"""
-Iteration
-=========
-
-To iterate over permutations it suffices to specify a well-ordering of
-permutations - i.e. a choice of one of them as `first', combined with a `next'
-opertion which will, starting from the first, iterate over all candidates.  An
-obvious well-ordering to use is the one obtained from `lexicographic order', in
-which one compares two sequences by finding the first entry in which they differ
-and comparing those.
-
-Among permutations of any given length, this makes the identity `less than' all
-others, so it's our `first' permutation.  Note that a reverse-sorted (big values
-before little ones) sequence is later than any other sequence with the same
-entries.  To find the `next' permutation, in the lexicographic order, one must
-change as late a chunk of the permutation as possible.  To this end, find the
-longest reverse-sorted tail of the permutation: no shuffling of only that can
-yield a later permutation, so our next permutation must bring in at least the
-previous entry; since the previous entry (by construction) is less than the
-first entry in the reverse-sorted tail, shuffling it into the tail can produce a
-later entry.  A little thought will then reveal that we should swap it with the
-smallest entry in the tail bigger than it, then reverse (i.e. forward-sort) the
-thus-amended tail.  This is the .step() method used by the Iterator() class.
-""" )
-
-
 def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
     # The identity permutation on empty (i.e. 0) has 0 fixed points, so qualifies ...
     """Returns the number of permutations of num without fixed points.
@@ -199,6 +173,21 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
 
 # well, that was pretty much number theory.
 # now for some permutations, per se.
+
+class Permutation (tuple, Lazy):
+    __upinit = tuple.__init__
+    def __init__(self, perm): self.__upinit(perm)
+    def __getattr__(self, key):
+        if key == 'inverse':
+            self.inverse = invert(self.permutation)
+            return self.inverse
+
+        if key == 'inverse'[:len(key)]: return self.inverse
+        raise AttributeError, key
+
+    def permute(self, seq):
+        """Apply current permutation to a sequence."""
+        return permute(seq, self.permutation)
 
 def permute(*indices):
     """Returns row permuted by a sequence of indices.
@@ -337,95 +326,74 @@ def sorted(row, cmp=cmp):
 def sort(row, cmp=cmp):
     row[:] = sorted(row, cmp)
 
-class Iterator:
-    # for a rather elegant application, see queens.py's derived class
-    # TODO: turn into a python iterator with __iter__().
-    """Iterator over permutations.
+"""
+Iteration
+=========
 
-    Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
-    some n; does so in lexicographic order.  Attribute .live will be true until
-    all permutations have been stepped over.
+To iterate over permutations it suffices to specify a well-ordering of
+permutations - i.e. a choice of one of them as `first', combined with a `next'
+opertion which will, starting from the first, iterate over all candidates.  An
+obvious well-ordering to use is the one obtained from `lexicographic order', in
+which one compares two sequences by finding the first entry in which they differ
+and comparing those.
 
-    Methods:
+Among permutations of any given length, this makes the identity `less than' all
+others, so it's our `first' permutation.  Note that a reverse-sorted (big values
+before little ones) sequence is later than any other sequence with the same
+entries.  To find the `next' permutation, in the lexicographic order, one must
+change as late a chunk of the permutation as possible.  To this end, find the
+longest reverse-sorted tail of the permutation: no shuffling of only that can
+yield a later permutation, so our next permutation must bring in at least the
+previous entry; since the previous entry (by construction) is less than the
+first entry in the reverse-sorted tail, shuffling it into the tail can produce a
+later entry.  A little thought will then reveal that we should swap it with the
+smallest entry in the tail bigger than it, then reverse (i.e. forward-sort) the
+thus-amended tail.  This is the .step() method used by the Iterator() class.
+""" )
 
-	.step() advances the iterator, setting .live when appropriate.
+def Iterator(size, P=Permutation):
+    # for a rather elegant application, see queens.py's derived iterator
+    """Iterator over permutations of given length.
 
-	.restart() resets the iterator to its initial condition
-
-	.permute(sequence) returns the result of applying the iterator's current
-	permutation to the given sequence.
+    Required first argument is the length, n, of the permutations.  Optional
+    second argument is a callable taking a list (which the callable must not
+    modify) which represents the permutation; what the callable returns is what
+    this Iterator yields; default is Permutation.
 
     Illustrative usage::
 
-        it = permute.Iterator(len(word))
-        while it.live:
+        for it in permute.Iterator(len(word)):
             anagram = ''.join(it.permute(word))
             if dictionary.has_key(anagram): print anagram
-            it.step()
 
-    The current permutation and its inverse are available, as tuples, under any
-    name that's a non-empty initial chunk of 'permutation' or 'inverse', as
-    appropriate; e.g. .p, .perm, .permutation, .i, .inv and .inverse all work.
-    [Note that `permute' is *not* an initial chunk of `permutation'.]  These are
-    re-computed every time they are asked for: if you intend to use either,
-    particularly .inverse, several times in an iteration, you should save its
-    value the first time to avoid re-computation.\n"""
+    Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
+    some n; does so in lexicographic order.  Yields a Permutation object at each
+    step, this object has attributes inverse and permutation (any initial
+    sub-sequence of either name is recognized) plus a method permute(seq) which
+    returns the result of applying its permutation to the given sequence.\n"""
 
-    def __init__(self, size):
-        """Initialise permutation iterator.
+    if size < 0:
+        raise StopIteration
 
-        Single argument is the size of the permutation, i.e. the length of the
-        sequences it'll permute. """
+    row = range(size)
+    while True:
+        i = size -1
+        while i > 0 and row[i-1] > row[i]: i = i-1
+        if i < 1: # row is entirely in decreasing order: that's our last permutation.
+            raise StopIteration
 
-        if size < 0:
-            self.live = None
-	    self.step = self.restart = lambda : None # no-op
-        else:
-            self.__row = range(size)
-            self.live = 1
+        i, j = i-1, size -1
 
-    def __getattr__(self, key):
-	if key and self.live:
-	    if key == 'permutation'[:len(key)]: return tuple(self.__row)
-	    if key == 'inverse'[:len(key)]: return invert(self.__row)
-
-        raise AttributeError, key
-
-    def permute(self, seq):
-        """Apply current permutation to a sequence."""
-	if not self.live: raise AttributeError('permutation', 'exhausted iterator')
-        return permute(seq, self.__row)
-
-    def restart(self):
-	try: del self.step
-	except AttributeError: pass
-	self.__row = range(len(self.__row))
-	self.live = 1
-
-    def step(self):
-        """Advances iterator.
-
-        Sets live to a false value if iterator was, before the call to step(),
-        on the last permutation.\n"""
-
-        i = len(self.__row) -1
-        while i > 0 and self.__row[i-1] > self.__row[i]: i = i-1
-
-        if i < 1:
-            # row is entirely in decreasing order: that's our last permutation.
-            self.live = None
-	    self.step = lambda : None # no-op
-            return
-
-        i, j = i-1, len(self.__row) -1
         # row[i+1:] is in decreasing order but row[i] < row[i+1]
         # Find smallest row[j] > row[i] with j > i:
-        while self.__row[j] < self.__row[i]: j = j-1
+        while row[j] < row[i]: j = j-1
         # swap i <-> j:
-        self.__row[j], self.__row[i] = self.__row[i], self.__row[j]
+        row[j], row[i] = row[i], row[j]
 
         # row[i+1:] is still in decreasing order: reverse it
-        i, j = 1+i, len(self.__row) -1
+        i, j = 1+i, size -1
         while i < j:
-            self.__row[j], self.__row[i] = self.__row[i], self.__row[j]
+            row[j], row[i] = row[i], row[j]
             i, j = 1+i, j-1
+
+        yield P(row)
