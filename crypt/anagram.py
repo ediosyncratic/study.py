@@ -2,7 +2,7 @@
 
 Can surely be done better !
 
-$Id: anagram.py,v 1.2 2007-03-25 07:46:22 eddy Exp $
+$Id: anagram.py,v 1.3 2007-11-24 15:21:42 eddy Exp $
 """
 
 class OrdBok:
@@ -43,9 +43,8 @@ from study.maths.permute import Iterator
 def anagrams(text, dict=OrdBok()):
     jam = ''.join(text.split())
     loop, ans = Iterator(len(jam)), []
-    loop.step() # discard identity, i.e. given text
-    while loop.live:
-        dict.parse(''.join(loop.permute(jam)), ans)
-        loop.step()
+    loop.next() # discard identity, i.e. given text
+    for it in loop:
+        dict.parse(''.join(it.permute(jam)), ans)
 
     return ans
