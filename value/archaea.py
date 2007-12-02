@@ -73,7 +73,17 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.3 2007-04-20 11:52:54 eddy Exp $
+$Id: archaea.py,v 1.4 2007-12-02 21:13:31 eddy Exp $
+
+  You, in this country, are subjected to the British insularity in weights and
+  measures; you use the foot, inch and yard. I am obliged to use that system,
+  but must apologize to you for doing so, because it is so inconvenient, and I
+  hope Americans will do everything in their power to introduce the French
+  metrical system. ... I look upon our English system as a wickedly,
+  brain-destroying system of bondage under which we suffer. The reason why we
+  continue to use it, is the imaginary difficulty of making a change, and
+  nothing else; but I do not think in America that any such difficulty should
+  stand in the way of adopting so splendidly useful a reform. -- Lord Kelvin.
 """
 
 URLs = """Interesting URLs:
@@ -418,6 +428,7 @@ pottle = gallon / 2             # and a piggin is about 2 gallons
 gill = noggin = Quantity(1, pint / 4, # gill confirmed by Nick
                          US = pint.US / 4)
 # but gill = pint / 2 in North England, where noggin is used (KDWB)
+# Wikipedia's article on the gallon gives gill = gallon/32
 cup = pint / 2
 floz = ounce.fluid = Quantity(1, gill / 5, US = gill.US / 4)
 teacup = pint / 3
@@ -580,6 +591,7 @@ See dir(bushel.US) for details.
     rice = 45 * pound)
 peck.US = bushel.US / 4
 gallon.US.dry = peck.US / 2
+# Wikipedia gives the US dry gallon as 1/8 US Winchester bushel
 quart.US.dry = gallon.US.dry / 4
 pint.US.dry = quart.US.dry / 2
 US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
