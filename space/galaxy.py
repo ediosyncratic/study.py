@@ -1,10 +1,13 @@
 # -*- coding: iso-8859-1 -*-
 """Galaxies
 
+Local group:
+http://www.atlasoftheuniverse.com/galaxies.html
+
 For the Canes I group:
 http://www.atlasoftheuniverse.com/galgrps/cvni.html
 
-$Id: galaxy.py,v 1.6 2007-07-11 06:48:45 eddy Exp $
+$Id: galaxy.py,v 1.7 2007-12-02 21:10:30 eddy Exp $
 """
 
 from study.value.units import Quantity, tophat, \
