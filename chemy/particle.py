@@ -17,11 +17,11 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.28 2007-08-07 21:56:29 eddy Exp $
+$Id: particle.py,v 1.29 2007-12-02 20:06:49 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
-from study.value.units import tophat, pi, \
+from study.value.units import tophat, pi, arc, \
      harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
      gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
 from physics import sample, Quantum, Vacuum, Thermal
@@ -280,7 +280,7 @@ class Particle (Object):
         """de Broglie wave period along world-line: h/c/c/mass"""
         return k / self.restmass
 
-    def _lazy_get_energy_(self, ignored):
+    def _lazy_get_energy_(self, ignored, h=Quantum.h, P=Quantum.Planck):
 
         try: m = self.__dict__['mass']
         except KeyError: pass
@@ -288,10 +288,10 @@ class Particle (Object):
 
         try: f = self.__dict__['frequency']
         except KeyError: pass
-        else: return Quantum.h * f
+        else: return h * f
         try: f = self.__dict__['nu']
         except KeyError: pass
-        else: return Quantum.Planck * f
+        else: return Planck * f
 
         raise AttributeError('energy', 'mass', 'frequency', 'nu')
 
@@ -302,13 +302,13 @@ class Particle (Object):
         """Charge-to-mass ratio"""
         return self.charge / self.mass
 
-    def _lazy_get_frequency_(self, ignored):
-        return self.energy / Quantum.h
+    def _lazy_get_frequency_(self, ignored, h=Quantum.h):
+        return self.energy / h
 
-    def _lazy_get_nu_(self, ignored):
+    def _lazy_get_nu_(self, ignored, h=Quantum.Planck):
         try: return self.frequency / turn
         except AttributeError: pass
-        return self.energy / Quantum.Planck
+        return self.energy / h
 
     def _lazy_get_momentum_(self, ignored, hbar=Quantum.hbar, h=Quantum.h):
         try: k = self.__dict__['wavevector']
@@ -324,8 +324,8 @@ class Particle (Object):
     def _lazy_get_wavevector_(self, ignored, hbar=Quantum.hbar):
         return self.momentum / hbar
 
-    def _lazy_get_wavelength_(self, ignored):
-        return Quantum.h / self.momentum
+    def _lazy_get_wavelength_(self, ignored, h=Quantum.h):
+        return h / self.momentum
 
     def _lazy_get_restmass_(self, ignored, csqr = Vacuum.c**2):
         return (self.mass**2 - abs(self.momentum)**2 / csqr)**.5
@@ -423,21 +423,21 @@ from the second of which I took the extra-visible spectral data below.
     __energy = Particle._lazy_get_energy_
     __momentum = Particle._lazy_get_momentum_
 
-    def _lazy_get_energy_(self, ignored):
+    def _lazy_get_energy_(self, ignored, c=Vacuum.c):
         try: return self.__energy(ignored)
         except AttributeError: pass
 
         try: p = self.__momentum(ignored)
         except AttributeError: pass
-        else: return abs(p) * Vacuum.c
+        else: return abs(p) * c
 
         raise AttributeError('energy', 'mass', 'momentum', 'nu', 'wavelength', 'wavevector')
 
-    def _lazy_get_momentum_(self, ignored):
+    def _lazy_get_momentum_(self, ignored, c=Vacuum.c):
         try: return self.__momentum(ignored)
         except AttributeError: pass
 
-        return self.energy / Vacuum.c
+        return self.energy / c
 
 def photon(lo, hi, name, **what):
     what['name'] = name
@@ -486,7 +486,25 @@ we're seeing, counting inwards from the most easily dislodged ones.
 
 visible.also(spectrum=(visible.red, visible.orange, visible.yellow,
                        visible.green, visible.cyan, visible.blue,
-                       visible.indigo, visible.violet))
+                       visible.indigo, visible.violet),
+             rainbow=Quantity(138.7 + 1.4 * tophat, arc.degree,
+                              """The angle through which a rainbow turns visible light.
+
+This varies with the colour of the light, red being turned least and blue most.
+Since the angle exceeds a quarter turn, the arc of a (pure water) rainbow
+appears centred on the direction opposite to the light source (generally the
+sun), at an angle ranging from 40.6 (violet) to 42 (red) degrees from that
+direction.  The spray-bow resulting from sea-spray is tighter - sea water
+droplets turn light through a larger angle than pure water droplets.
+""",
+                              secondary=Quantity(128.5 + 3 * tophat, arc.degree,
+                                                 """The angle through which a secondary rainbow turns visible light.
+
+Compare visible.rainbow, the primary angle: for the secondary rainbow, red (130
+degrees) is turned more than violet (127 degrees); since this range is less than
+that of the primary rainbow (but still more than a quarter turn), the secondary
+bow appears outside the primary.
+""")))
 
 _unit = .5 + tophat
 radio = Photon(name="radio", frequency = Quantity(3 * _unit, giga * Hertz))
@@ -772,6 +790,6 @@ radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron
 radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
 Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
 
-del sample, Quantum, Vacuum, Thermal, tophat, pi, Quantity, Decay, \
+del sample, Quantum, Vacuum, Thermal, tophat, pi, arc, Quantity, Decay, \
     harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
     gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
