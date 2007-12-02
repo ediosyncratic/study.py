@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.20 2007-11-04 21:48:24 eddy Exp $
+$Id: polynomial.py,v 1.21 2007-12-02 21:08:09 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -705,5 +705,49 @@ class Polynomial (Lazy):
         lead = self.__coefs[self.rank]
         if lead != 1: ans.append(lead)
         return ans
+
+    def resultant(self, other):
+        return reduce(lambda x, y: x * y, map(other, self.roots),
+                      self.__coefs[self.rank] ** other.rank)
+
+    def __Sylvester(self, i):
+        ans = []
+        while i > 0:
+            i -= 1
+            if ans: row = row[:-1] + row[-1:]
+            else: row = map(self.coefficient, range(self.rank, -1, -1)) + [ 0 ] * i
+            ans.append(tuple(row))
+
+        return tuple(ans)
+
+    def Sylvester(self, other):
+        return self.__Sylvester(other.rank) + other.__Sylvester(self.rank)
+
+    # assert: self.resultant(other) == determinant(self.Sylvester(other))
+
+    def Bezout(self, other):
+        """The B&eacute;zout matrix of two polynomials.
+
+        See http://en.wikipedia.org/wiki/Bezout_matrix
+        """
+        n, i, ans = max(self.rank, other.rank), 0, []
+        while i < n:
+            j, row = 0, []
+            while j < n:
+                s, k = 0, 0
+
+                while k <= i and j + k < n:
+                    s += self.coefficient(j + k + 1) * other.coefficient(i - k)
+                    s -= other.coefficient(j + k + 1) * self.coefficient(i - k)
+                    k += 1
+
+                row.append(s)
+                j += 1
+
+            ans.append(tuple(row))
+            i += 1
+
+        # assert: determinant(ans) == self.resultant
+        return tuple(ans)
 
 del types, Lazy
