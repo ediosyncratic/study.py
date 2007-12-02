@@ -1,6 +1,14 @@
 """Integration made easy.
 
-$Id: integrate.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+Potentially useful formula (from the method of exhaustion):
+
+integral(: f(x).dx &larr;x; a &le;x&leb :)
+= sum(: 2**(1+n) * sum(: (-1)**m f(a +(b-a)*(m+1)/2**(1+n)) &larr;m :2**(1+n) -2)
+        &larr;n :{naturals})*(b-a)
+
+see: http://en.wikipedia.org/wiki/Method_of_exhaustion
+
+$Id: integrate.py,v 1.6 2007-12-02 21:06:46 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
