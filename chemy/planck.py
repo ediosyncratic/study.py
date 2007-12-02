@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Planck's units, and kindred systems of units.
 
-$Id: planck.py,v 1.4 2007-03-31 11:07:04 eddy Exp $
+$Id: planck.py,v 1.5 2007-12-02 20:18:03 eddy Exp $
 """
 from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 
@@ -14,8 +14,8 @@ class Planckoid (Object):
     Planck instance of this class over-rides these (as explained in its own
     documentation, q.v.) to be faithful to what Plank actually used.  The unit
     of speed is (unless over-ridden by key-word argument) the speed of light;
-    the eot (energy over time) attribute used to obtain temperature from energy
-    is (again, unless over-ridden) Boltzmann's constant.
+    the eot (energy over temperature) attribute used to obtain temperature from
+    energy is (again, unless over-ridden) Boltzmann's constant.
 
     The constructor's parameters, given in the following order or via key-words,
     are used to initialize eponymous attributes, with the indicated defaults:
@@ -41,7 +41,7 @@ class Planckoid (Object):
         apply(self.__upinit, args, what)
 
     speed = Vacuum.c    # fabric of space-time
-    eot = Thermal.k     # energy over time
+    eot = Thermal.k     # energy over temperature
 
     def _lazy_get_tom_(self, ig):       return self.geoid / self.speed**3
     def _lazy_get_charge_(self, ig):    return (self.action / self.impedance)**.5
