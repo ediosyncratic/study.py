@@ -4,13 +4,13 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
+$Id: physics.py,v 1.4 2007-12-02 20:16:04 eddy Exp $
 """
 from study.value.units import *
 
 Quantum = Object(
     Planck = Quantity(sample(662.606876, .000052), 1e-36 * Joule * second / turn,
-                   doc = """Angular Planck's constant
+                   """Angular Planck's constant
 
 Planck's constant is definitively given by the equation E = h.f relating the
 frequency, f, of electromagnetic radiation to the amount of energy in parcels
@@ -26,12 +26,12 @@ widely accepted usage which takes h without the turn divisor, I'll reserve the
 name h for h*turn and use the name Planck for the `correct' quantity, with the
 turn unit in it. """),
     Millikan = Quantity(sample(160.210, .007), zepto * Coulomb,
-                        doc = """Millikan's Quantum; size of electron charge"""))
+                        """Millikan's Quantum; size of electron charge"""))
 
-Quantum.also(h = Quantity(Quantum.Planck, turn, doc="""Planck's constant
+Quantum.also(h = Quantity(turn, Quantum.Planck, """Planck's constant
 
 See Quantum.Planck's __doc__ for details. """),
-             hbar = Quantity(Quantum.Planck, radian, doc="""Dirac's constant
+             hbar = Quantity(radian, Quantum.Planck, """Dirac's constant
 
 See Quantum.Planck's __doc__ for details. """))
 
@@ -40,7 +40,7 @@ mol.charge.observe(mol.Avogadro * Quantum.Millikan)
 Vacuum = Object(
     c = second.light / second, # given exactly as an integer, these days.
     permeability = Quantity(.4 * pi, micro * Henry / metre, # definition
-                            doc = """Magnetic permeability of free space.
+                            """Magnetic permeability of free space.
 
 The magnetic force per unit length between two long parallel wires a distance R
 apart carrying currents j and J is j*J/R times the magnetic permeability of the
@@ -48,7 +48,7 @@ medium between them. """))
 
 Vacuum.also(
     Z0 = Quantity(Vacuum.c, Vacuum.permeability,
-                  doc="""Impedance of free space, Z0.
+                  """Impedance of free space, Z0.
 
 This is the square root of the ratio of the vacuum's magnetic permeability and
 electric permittivity, whose product is 1/c/c.  Thus:
@@ -71,14 +71,14 @@ of Z0 and epsilon0 are also exact.\n"""),
 
 Vacuum.also(
     impedance = Vacuum.Z0,
-    permittivity = Quantity(1 / Vacuum.Z0, 1 / Vacuum.c,
-                            doc="""Electrical permittivity of free space.
+    permittivity = Quantity(1 / Vacuum.c, 1 / Vacuum.Z0,
+                            """Electrical permittivity of free space.
 
 The electrostatic force between two point charges q and Q a distance R apart is
 q*Q / (4 * pi * R**2) divided by the permittivity of the medium between the
 charges. """),
     alpha = Quantity(Quantum.Millikan**2 / 2, Vacuum.Z0 / Quantum.h,
-                     doc="""The fine structure constant.
+                     """The fine structure constant.
 
 The fine structure constant arises naturally in the perturbation expansions of
 various physical quantities.  It is a dimensionless quantity which expresses the
@@ -119,7 +119,7 @@ masses divided by the square of the distance between them, multiplied by
 Newton's constant, which is normally called G.\n"""),
 
         Hubble = Quantity(2.3 * (1 + tophat * .1), atto * Hertz,
-                          doc = """Hubble's constant.
+                          """Hubble's constant.
 
 This describes the rate of expansion of the universe: it is the velocity
 difference between widely-separated parts of the universe divided by the
@@ -171,7 +171,7 @@ Cosmos.Hubble.also(length = Vacuum.c / Cosmos.Hubble,
                    time = 1 / Cosmos.Hubble)
 
 Cosmos.also(kappa = Quantity(8 * pi, Cosmos.G / Vacuum.c**3,
-                             doc="""Einstein's constant of gravitation.
+                             """Einstein's constant of gravitation.
 
 One side of Einstein's field equation for general relativity is constructed out
 of the the metric of space-time (describing distances), the Ricci tensor (which
@@ -183,7 +183,7 @@ constant divided by a suitable power of the speed of light.  Thus &kappa; has
 the dimensions of a length per mass, give or take some factors of velocity
 (which is nominally dimensionless, like angles).\n"""),
             qperm = Quantity(1, (4 * pi * Cosmos.G * Vacuum.permittivity)**.5,
-                             doc="""The Einstein/Maxwell Charge-to-Mass ratio.
+                             """The Einstein/Maxwell Charge-to-Mass ratio.
 
 The free-field equations of general relativity with an electromagnetic field can
 be put in a form which doesn't involve the usual electromagnetic and
@@ -221,18 +221,20 @@ also emerges as a natural way of comparing the strengths of the two fields; two
 objects, each of mass one million tonnes and carrying 86.2 milli Coulombs of
 charge (almost 0.9 micro-moles of electrons), of equal sign, would repel one
 another electrostatically with a force equal to that with which they would
-attract one another gravitationally.
+attract one another gravitationally (regardless of the distance between them).
 
 This ratio is equally the Planck charge (see planck.Planck) divided by the
-Planck mass.  Note the non-involvement of Planck's constant.  Contrast with the
-charge-to-mass ratios of the proton (95.79 MC/kg) and electron (-175.9 GC/kg),
-roughly 1e19/9 and 2e21 times as big.  Even the Beauty+2.Truth equivalent of the
-proton only gets down to around 1 MC/kg, around 1e16 times as high as the
-Einstein-Maxwell charge-to-mass ratio.  One electron's charge is worth the mass
-of over a million million million nucleons; the mass of a mole of nucleons is
-worth only a bit over half a million electrons' charge.\n"""),
+Planck mass; but note the non-involvement of Planck's constant.  Contrast with
+the charge-to-mass ratios of the proton (95.79 MC/kg) and electron (-175.9
+GC/kg), roughly 1e19/9 and 2e21 times as big.  Even the Beauty+2.Truth
+equivalent of the proton only gets down to around 1 MC/kg, around 1e16 times as
+high as the Einstein-Maxwell charge-to-mass ratio.  One electron's charge is
+worth the mass of over a million million million nucleons; the mass of a mole of
+nucleons (or, indeed, of Hydrogen) is worth only a bit over half a million
+electrons' charge.\n"""),
+            
             Schwarzschild = Quantity(2, Cosmos.G / Vacuum.c**2,
-                                     doc="""Schwarzschild's factor.
+                                     """Schwarzschild's factor.
 
 The Schwarzschild radius of a black hole of mass m is 2.G.m/c/c; outside
 this radius, the radial co-ordinate is spatial and the time-wards co-ordinate
@@ -240,10 +242,10 @@ is time-like, as one would expect; inside, they swap.\n"""))
 
 Thermal = Object(
         k = Quantity(sample(13.8054, .0018), yocto * Joule / Kelvin,
-                     doc = """Boltzmann constant"""),
+                     """Boltzmann constant"""),
         Stefan = Quantity(sample(56.7032, .0125),
                           nano * Watt / (metre * Kelvin**2)**2,
-                          doc = """Stefan-Boltzmann constant
+                          """Stefan-Boltzmann constant
 
 The total radiant power output per unit area from a black body at temperature T
 is given by sigma T**4 where sigma is the Stefan-Boltzmann constant,
@@ -256,7 +258,7 @@ specific to black holes).
 """))
 Thermal.also(Boltzmann = Thermal.k,
              Hawking = Quantity(1,  Quantum.hbar / Cosmos.kappa / Thermal.k,
-                                doc="""The Hawking radiation constant.
+                                """The Hawking radiation constant.
 
 A black hole radiates away energy after the manner of a black body of
 temperature T given by
