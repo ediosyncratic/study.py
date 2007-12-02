@@ -7,5 +7,8 @@ Fragments available:
  morse -- using dots and dashes to represent text
  radix050 -- an archaic base-fourty text encoding
 
-$Id: __init__.py,v 1.1 2007-03-24 16:04:35 eddy Exp $
+See also:
+ urllib -- standard python module, provides {un,}quote{,_plus} for %xx {en,de}coding.
+
+$Id: __init__.py,v 1.2 2007-12-02 21:05:23 eddy Exp $
 """
