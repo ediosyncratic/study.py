@@ -199,6 +199,27 @@ def perfect():
 
         i += 1
 
+def Collatz(n):
+    """Iterator for the Collatz conjecture's sequence for n.
+
+    It is conjectured that, whatever positive integer n you give to this
+    function, the resulting sequence shall ultimately terminate (by yielding 1).
+    It is known (by experiment) that the conjecture is good up to n = 10 * 2**58
+    (and, hence, also good for any n which is just a power of 2 times some
+    positive integer less than this limit).
+
+    The function iterated is, with Z+ = {positive integers}, the union of (: n
+    &larr; 2.n :Z+) and (: 6.j+4 &larr;2.j+1 :Z+).  The conjecture effectively
+    says that its transitive closure subsumes ({1}:|Z+).\n"""
+
+    yield n
+    while n != 1:
+        if n % 2: n = 3 * n + 1
+        else: n = n / 2
+        yield n
+
+    raise StopIteration
+
 def sqrt(val):
     """Returns the highest natural whose square does not exceed val"""
     if val < 0: # Every natural's square exceeds val.
