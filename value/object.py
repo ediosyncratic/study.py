@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.10 2007-06-03 16:48:45 eddy Exp $
+$Id: object.py,v 1.11 2007-12-02 21:15:20 eddy Exp $
 """
 
 def aslookup(whom):
@@ -53,6 +53,7 @@ class Object (Lazy):
 
     def copy(self, *args): return apply(self.__class__, args, self.__star())
     def _lazy_get_dir_(self, ignored): return self.__star()
+    def help(self): print self.__doc__
 
     def __ephem(self):
         # Ensure _lazy_preserve_ is held locally and return it.
