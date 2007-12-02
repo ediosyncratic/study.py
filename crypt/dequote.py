@@ -6,7 +6,7 @@ Contents:
   decode(infile, outfile) -- does decoding
   main(programname, args, logstream) -- command-line interface
 
-$Id: dequote.py,v 1.1 2007-03-08 23:33:44 eddy Exp $
+$Id: dequote.py,v 1.2 2007-12-02 21:06:07 eddy Exp $
 """
 import string
 
@@ -105,10 +105,3 @@ def main(myname, args, log):
     except IOError, (n, reason):
 	log.write('IO %d: ' % n + reason + '\n')
 	return 2
-
-_rcs_log = """
-  $Log: dequote.py,v $
-  Revision 1.1  2007-03-08 23:33:44  eddy
-  Initial revision
-
-"""
