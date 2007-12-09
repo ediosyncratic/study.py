@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.14 2007-03-24 16:53:35 eddy Exp $
+$Id: SI.py,v 1.15 2007-12-09 15:56:21 eddy Exp $
 """
 from quantity import *
 
@@ -107,6 +107,7 @@ T = Tesla = Weber / m**2        # Magnetic flux density
 # More properties of the mole:
 mol.also(
     Avogadro = Quantity(sample(602.2045, .003), zetta / mol, "Avogadro's number"),
+    # 24! * 0.970596 / Mole
     charge = Quantity(sample(96.48456, .00027),
                       kilo * Coulomb / mol,
                       doc="""Faraday's Constant
