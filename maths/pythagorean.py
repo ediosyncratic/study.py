@@ -8,7 +8,7 @@ is a right-angle triangle, as may be verified by summing the squares of
 the later two and comparing to the square of the first
 (see http://www.chaos.org.uk/~eddy/math/pythagoras.html#Whole).
 
-$Id: pythagorean.py,v 1.4 2007-03-24 15:49:46 eddy Exp $
+$Id: pythagorean.py,v 1.5 2007-12-27 12:36:07 eddy Exp $
 """
 
 def whole(i, j):
@@ -87,7 +87,7 @@ def raysvg(bok, height=1024, base=10, maxp=3, font=14):
                 cut, d = (top * base ** maxp) / c, maxp
                 while cut % base == 0: cut, d = cut / base, d - 1
                 s = cut * 1. / base ** d
-                text.append('   <line x1="0" y1="0" x2="%.*f" y2="%.*f" /><text x="%.*f" y="%.*f"> %d: [%d, %d] *%.*f </text>'
+                text.append('   <line x1="0" y1="0" x2="%.*f" y2="%.*f" /><text x="%.*f" y="%.*f"> %d: [%d, %d] &times; %.*f </text>'
                             % (d, a * s, d, c * s, d, a * s + 1, d, c * s, h, a, c, d, s))
                 top = s * c
         text.append('')
