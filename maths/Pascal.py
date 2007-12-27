@@ -1,6 +1,6 @@
 """Combinatorics.
 
-$Id: Pascal.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
+$Id: Pascal.py,v 1.3 2007-12-27 12:28:20 eddy Exp $
 """
 
 def factorial(num, cache=[1]):
@@ -58,8 +58,7 @@ class Pascal:
     module's export: it is over-ridden by a curried form of chose(), below.\n"""
 
     __values = {}
-    def __getitem__(self, key):
-	n, m = key	# keys to this object should be pairs of naturals
+    def __getitem__(self, (n, m)): # keys to this object should be pairs of naturals
         try: val = self.__lookup(n, m)
         except RuntimeError, what:
             print what
