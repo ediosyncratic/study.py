@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.5 2007-12-29 03:57:08 eddy Exp $
+$Id: physics.py,v 1.6 2007-12-29 04:32:27 eddy Exp $
 """
 from study.value.units import *
 
@@ -195,15 +195,15 @@ gravitational constants:
 where R is the Ricci tensor, L is the cosmological constant and f is the result
 of multiplying the relativistic electromagnetic tensor (usually called F, which
 encodes E and B.c), by the charge-to-mass ratio, sqrt(4.pi.G/epsilon0), given
-here.
+here, then dividing by the square of the speed of light.
 
   The use, here, of /g\\ means the same as contracting via g's inverse; while
   the use of /g means the same as contracting with g's inverse (on the right).
   The d^ operator is the natural antisymmetric derivative operator on
-  alternating forms on the tangents of a smooth manifold.  Since F has the
-  dimensions of force per unit charge, this gives f the dimensions of force per
-  unit mass, i.e. accelleration, which is equivalent (because we work modulo
-  factors of c) to the inverse of time (or of length).
+  alternating forms on the tangents of a smooth manifold.
+
+  Since F has the dimensions of force per unit charge, this gives f the
+  dimensions of force per unit mass over squared speed, i.e. inverse length.
 
   Note that R -f/g\\f is parallel to (i.e. a scalar multiple of) g; and that the
   only thing the last equation above adds to this - given that trace(g/g) is the
@@ -211,11 +211,11 @@ here.
   trace(R/g) = L/(1/2 -1/dim) is constant; for dim = 4, this is 4.L.
 
 If we add in charges and currents as sources for the electromagnetic field, the
-second equation above becomes d^(mu(g\\f/g)) = mu(j), with mu =
-sqrt(-det(g)). and j equal to the conventional 4-vector current density times a
-scalar, roughly 9.731 (m/s)**3 /Amp, obtained by dividing the charge-to-mass
-ratio by the permittivity of free space.  The thus-scaled j is, consequently,
-aside from a factor of the cube of a velocity, the inverse of an area.
+second equation above becomes d^(mu(g\\f/g)) = mu(j), with mu = sqrt(-det(g))
+and j equal to the conventional 4-vector current density times a scalar, roughly
+9.731 (m/s)**3 /Amp, obtained by dividing the charge-to-mass ratio by the
+permittivity of free space.  The thus-scaled j is, consequently, aside from a
+factor of the cube of a velocity, the inverse of an area.
 
 If we compare Newton's and Coulomb's force laws for gravity and electrostatics,
 respectively, this charge-to-mass ratio (about 86.16 nano Coulombs per tonne)
