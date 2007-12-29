@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.4 2007-12-02 20:16:04 eddy Exp $
+$Id: physics.py,v 1.5 2007-12-29 03:57:08 eddy Exp $
 """
 from study.value.units import *
 
@@ -189,39 +189,42 @@ The free-field equations of general relativity with an electromagnetic field can
 be put in a form which doesn't involve the usual electromagnetic and
 gravitational constants:
 
-   (D/g\\D)a = 0
-   (d^a)/g\\(d^a) -g.trace((d^a)/g\\(d^a)/g)/4 = -R +g.(trace(R/g)/4 -L)
+   d^f = 0, d^((sqrt(-det(g)))(g\\f/g)) = 0
+   f/g\\f -g.trace(f/g\\f/g)/4 = R -g.(trace(R/g)/2 -L)
 
-where R is the Ricci tensor, L is the cosmological constant and a is the result
-of multiplying Maxwell's co-vector potential, usually called A, by the
-charge-to-mass ratio, sqrt(4.pi.G/epsilon0), given here.
+where R is the Ricci tensor, L is the cosmological constant and f is the result
+of multiplying the relativistic electromagnetic tensor (usually called F, which
+encodes E and B.c), by the charge-to-mass ratio, sqrt(4.pi.G/epsilon0), given
+here.
 
   The use, here, of /g\\ means the same as contracting via g's inverse; while
   the use of /g means the same as contracting with g's inverse (on the right).
-  The D/g\\D operator is the usual `box' (or box-squared) operator equivalent to
-  the del-squared operator in three dimensions.  Since (modulo factors of c) A
-  has the dimensions of energy per unit charge, this gives a the dimensions of
-  energy per unit mass, i.e. the square of a velocity, which is implicitly
-  dimensionless (because we're working modulo factors of c).
+  The d^ operator is the natural antisymmetric derivative operator on
+  alternating forms on the tangents of a smooth manifold.  Since F has the
+  dimensions of force per unit charge, this gives f the dimensions of force per
+  unit mass, i.e. accelleration, which is equivalent (because we work modulo
+  factors of c) to the inverse of time (or of length).
 
-  Note that R + (d^a)/g\\(d^a) is parallel to (i.e. a scalar multiple of) g; and
-  that this says everything the second equation above says - because trace(g/g)
-  is 4 (or, rather, the dimension of space-time) and trace commutes with scaling
-  - whence, in particular, we can infer that L is zero.
+  Note that R -f/g\\f is parallel to (i.e. a scalar multiple of) g; and that the
+  only thing the last equation above adds to this - given that trace(g/g) is the
+  dimension of space-time, dim, and trace commutes with scaling - is that
+  trace(R/g) = L/(1/2 -1/dim) is constant; for dim = 4, this is 4.L.
 
 If we add in charges and currents as sources for the electromagnetic field, the
-first equation above becomes (D/g\\D)a = g.j with j equal to the conventional
-4-vector current times a scalar, roughly 9.731 (m/s)**3 /Amp, obtained by
-dividing the charge-to-mass ratio by the permittivity of free space.  The
-thus-scaled j is, consequently, the cube of a velocity - i.e. dimensionless.
+second equation above becomes d^(mu(g\\f/g)) = mu(j), with mu =
+sqrt(-det(g)). and j equal to the conventional 4-vector current density times a
+scalar, roughly 9.731 (m/s)**3 /Amp, obtained by dividing the charge-to-mass
+ratio by the permittivity of free space.  The thus-scaled j is, consequently,
+aside from a factor of the cube of a velocity, the inverse of an area.
 
 If we compare Newton's and Coulomb's force laws for gravity and electrostatics,
-respectively, this charge-to-mass ratio (about 86.2 nano Coulombs per tonne)
+respectively, this charge-to-mass ratio (about 86.16 nano Coulombs per tonne)
 also emerges as a natural way of comparing the strengths of the two fields; two
 objects, each of mass one million tonnes and carrying 86.2 milli Coulombs of
-charge (almost 0.9 micro-moles of electrons), of equal sign, would repel one
-another electrostatically with a force equal to that with which they would
-attract one another gravitationally (regardless of the distance between them).
+uniformly distributed charge (almost 0.9 micro-moles of electrons), of equal
+sign, would repel one another electrostatically with a force equal to that with
+which they would attract one another gravitationally (regardless of the distance
+between them).
 
 This ratio is equally the Planck charge (see planck.Planck) divided by the
 Planck mass; but note the non-involvement of Planck's constant.  Contrast with
