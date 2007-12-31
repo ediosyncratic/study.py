@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.6 2007-12-29 04:32:27 eddy Exp $
+$Id: physics.py,v 1.7 2007-12-31 10:49:52 eddy Exp $
 """
 from study.value.units import *
 
@@ -202,8 +202,9 @@ here, then dividing by the square of the speed of light.
   The d^ operator is the natural antisymmetric derivative operator on
   alternating forms on the tangents of a smooth manifold.
 
-  Since F has the dimensions of force per unit charge, this gives f the
+  Since F/g has the dimensions of force per unit charge, this gives f/g the
   dimensions of force per unit mass over squared speed, i.e. inverse length.
+  The cosmological constant has dimensions of an inverse area.
 
   Note that R -f/g\\f is parallel to (i.e. a scalar multiple of) g; and that the
   only thing the last equation above adds to this - given that trace(g/g) is the
@@ -213,9 +214,9 @@ here, then dividing by the square of the speed of light.
 If we add in charges and currents as sources for the electromagnetic field, the
 second equation above becomes d^(mu(g\\f/g)) = mu(j), with mu = sqrt(-det(g))
 and j equal to the conventional 4-vector current density times a scalar, roughly
-9.731 (m/s)**3 /Amp, obtained by dividing the charge-to-mass ratio by the
-permittivity of free space.  The thus-scaled j is, consequently, aside from a
-factor of the cube of a velocity, the inverse of an area.
+0.3612e-24 / Amp, obtained by dividing the charge-to-mass ratio by the
+permittivity of free space and then by the cube of the speed of light.  The
+thus-scaled j is, consequently, the inverse of an area.
 
 If we compare Newton's and Coulomb's force laws for gravity and electrostatics,
 respectively, this charge-to-mass ratio (about 86.16 nano Coulombs per tonne)
