@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.25 2007-07-08 02:25:30 eddy Exp $
+$Id: home.py,v 1.26 2008-01-05 13:13:57 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -262,9 +262,13 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
 
             Spin(Quantity(day * (1 - day / year.sidereal),
                           doc="""Rotational period of Earth wrt the fixed stars""",
-                          sample = (23 * hour + 56 * minute + 4 * second,),
+                          sample = (24 * hour - 4 * minute + 4 * second,),
                           fullname="Sidereal Day"),
-                 23.4, axis = 'Polaris'),
+                 # Tilt varies between 22.1 and 24.5 degrees in 41 k yr cycle,
+                 # due to reach a minimum in c. 1000 AD;
+                 23.44, # currently decreasing
+                 # its direction varies on a 26 k yr cycle (precession).
+                 axis = 'Polaris'),
             # need to also describe precession; see doc of year.sidereal
 
             # Ocean
@@ -316,6 +320,9 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
             rainfall = .125e18 * kg / year,
             flattening = 1 / 298.25,
             albedo = .39, # so 61% of incident radiation is absorbed
+            # but total solar power available at surface is 1/8 of that in space:
+            # http://www.physorg.com/news117649731.html
+            # This may be about which frequencies solar panels can use.
             nature = { 'Land': .292, 'Ocean': .708 },
             material = "basalt, granite, water",
             magnetism = Object(
@@ -337,8 +344,29 @@ Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
                    sample = [ 8.3 * minute.light,
                               #' Somewhere, I've also seen .155 * tera * metre
                               .149600 * tera * metre ]), # K&L, NASA and some other source ...
-          Spin(year.sidereal, 0, plane='Ecliptic'),
-          .0167, # eccentricity; c.f. perihelion & apehelion, below.
+          # Perihelion (currently) happens at the beginning of January;
+          # varies with Milankovitch cycle, on periods O(10 k yr).
+          Spin(year.sidereal, 0,
+               """The angular velocity of the Earth's orbit.
+
+I've used the inclination of this as my presumed origin for directions of
+orbital tilts and the Earth's axial spin; I should probably define orbital tilts
+relative to the invariable plane, perpendicular to the total angular momentum of
+the solar system, so roughly Jupiter's orbital plane.  Spin of each body could
+be relative to its orbit's tilt, but perhaps the invariable plane would be
+better even for these.  Earth crosses the invariable plane on January 9th and
+July 9th.
+
+Earth's orbital inclination varies on a 70 k yr cycle; but a 100 k yr cycle
+relative to the invariable plane (?).\n"""
+               plane='Ecliptic'),
+          Quantity(16.7, milli,
+                   """Eccentricity of Earth's orbit.
+
+This varies between .005 and .058, with a mean of .028; about .012 of this
+variation happens on a period of 413 k yr, but there are other terms varying on
+other time-scales.  Perihelion happens on about January 3rd, apehelion about
+July 4th.\n"""),
           __doc__ = """The Earth's orbit about the Sun.
 
 The plane of this orbit is known as the ecliptic: all other orbits' inclinations
