@@ -1,11 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.27 2008-01-19 21:26:55 eddy Exp $
+$Id: home.py,v 1.28 2008-01-19 21:35:46 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
-     micro, kilo, mega, giga, tera, peta, arc, radian, pi, \
+     micro, milli, kilo, mega, giga, tera, peta, arc, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
 from study.value.archaea import mile
@@ -347,7 +347,7 @@ Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
           # Perihelion (currently) happens at the beginning of January;
           # varies with Milankovitch cycle, on periods O(10 k yr).
           Spin(year.sidereal, 0,
-               """The angular velocity of the Earth's orbit.
+               __doc__ = """The angular velocity of the Earth's orbit.
 
 I've used the inclination of this as my presumed origin for directions of
 orbital tilts and the Earth's axial spin; I should probably define orbital tilts
@@ -358,7 +358,7 @@ better even for these.  Earth crosses the invariable plane on January 9th and
 July 9th.
 
 Earth's orbital inclination varies on a 70 k yr cycle; but a 100 k yr cycle
-relative to the invariable plane (?).\n"""
+relative to the invariable plane (?).\n""",
                plane='Ecliptic'),
           Quantity(16.7, milli,
                    """Eccentricity of Earth's orbit.
@@ -518,6 +518,6 @@ Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
 del body, Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
-    Sample, qSample, Quantity, Object, tophat, micro, kilo, mega, giga, tera, peta, \
+    Sample, qSample, Quantity, Object, tophat, micro, milli, kilo, mega, giga, tera, peta, \
     kg, metre, mile, arc, radian, pi, Kelvin, year, day, hour, minute, second, \
     litre, bar, Watt, Tesla, Ampere, Gauss
