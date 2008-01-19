@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.21 2007-07-08 10:01:40 eddy Exp $
+$Id: body.py,v 1.22 2008-01-19 22:00:01 eddy Exp $
 """
 
 class Satellites:
@@ -90,7 +90,8 @@ course !), though ideally a more selective purge could be used.\n"""
         return self.__carry
 
     def __getitem__(self, ind):
-        if ind < 0 or ind >= len(self.__all()): raise IndexError, ind
+        if isinstance(ind, slice): pass
+        elif ind < 0 or ind >= len(self.__all()): raise IndexError, ind
         return self.__all()[ind]
 
     def __repr__(self): return `self.__all()`
@@ -459,12 +460,17 @@ class Star (Body, Round):
 
 del Spin, year, Quantity, second, metre, turn, pi
 
-class Galaxy (Body, Round): instance = {}
-class Group (Object): instance = {} # of galaxies
+class Galaxy (Body, Round):
+    instance = {}
 
-class Constellation (Object): instance = {} # of stars
-class System (Object): instance = {} # solar system of possibly several stars
+    def AtlasOfUniverseLG(self, name, (l, b), distance, diameter, type, alias, year):
+        pass
+
+# need a plural class to collect members together in a .parts thing.
+class Group (Object): instance = {} # of galaxies
 class Cluster (Object): instance = {} # lots of stars
+class Constellation (Object): instance = {} # of (apparent) stars
+class System (Object): instance = {} # solar system of possibly several stars
 
 class Hoop (Object, Round):
     instance = {}
