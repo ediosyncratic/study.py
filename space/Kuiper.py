@@ -1,7 +1,9 @@
 # -*- coding: iso-8859-1 -*-
 """Kuiper Belt and Oort Cloud objects of our Solar system.
 
-$Id: Kuiper.py,v 1.13 2007-07-08 10:53:24 eddy Exp $
+See also:
+http://space.newscientist.com/article/dn13029-voyager-2-probe-reaches-solar-system-boundary.html
+$Id: Kuiper.py,v 1.14 2008-01-19 22:00:38 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, upward, \
@@ -71,17 +73,17 @@ ape.observe(130 * tera * metre)
 ape.observe(84 * giga * mile)
 peri = Quantity(76 + 14 * tophat, AU)
 Sedna = MinorPlanet('Sedna',
-                  surface=Spheroid((950 + 300 * tophat) * mile,
-                                   # surface temperature is "about" -400 F.
-                                   temperature=Fahrenheit(-400 + 20 * tophat),
-                                   # it "likely rotates once every approximately 40 days"
-                                   #' suggesting that it's tidally locked to a moon
-                                   spin=Spin(Quantity(40 + 10 * tophat, day))),
-                  orbit=Orbit(Sun,
-                              .5 * (ape.best + peri.best) + (ape.high - peri.low) * tophat,
-                              Spin(10.5 * kilo * year),
-                              perihelion=peri, apehelion=ape),
-                  discovery=Discovery(
+                    surface=Spheroid((950 + 300 * tophat) * mile,
+                                     # surface temperature is "about" -400 F.
+                                     temperature=Fahrenheit(-400 + 20 * tophat),
+                                     # it "likely rotates once every approximately 40 days"
+                                     #' suggesting that it's tidally locked to a moon
+                                     spin=Spin(Quantity(40 + 10 * tophat, day))),
+                    orbit=Orbit(Sun,
+                                .5 * (ape.best + peri.best) + (ape.high - peri.low) * tophat,
+                                Spin(10.5 * kilo * year),
+                                perihelion=peri, apehelion=ape),
+                    discovery=Discovery(
     "Michael Brown (Caltech), Chadwick Trujillo (Gemini Observatory), David Rabinowitz (Yale)",
     2004, telescope="Samuel Oschin", observatory="Palomar",
     note="""2003 VB12, a.k.a. Sedna
