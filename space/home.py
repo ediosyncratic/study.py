@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.26 2008-01-05 13:13:57 eddy Exp $
+$Id: home.py,v 1.27 2008-01-19 21:26:55 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -68,7 +68,7 @@ MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
 # <bootstrap> some of Sun's data are given in units of Earth's ... but Earth's
 # orbit can't be specified until Sun has been created.
 def load_rubble(): # lazy satellite loader for Sun
-    import inner, outer, Kuiper, asteroids
+    import inner, outer, Kuiper, asteroid
 
 Sun = body.Star(
     'Sun', load_rubble, type='G2 V',
