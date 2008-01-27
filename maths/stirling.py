@@ -38,13 +38,11 @@ For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
   log(chose(n+m,m))
   = (n+m+.5)*log(n+m) -(n+.5)*log(n) -(m+.5)*log(m) -.5*log(2*pi) +(1/n +1/m -1/(n+m))/12
   = .5 * log((1/n +1/m)/2/pi) +n*log(1+m/n) +m*log(1+n/m) +(1+n/m+m/n)/(n+m)/12
+
+$Id: stirling.py,v 1.5 2008-01-27 02:03:44 eddy Exp $
 """
 
-_rcs_id_ = """
-$Id: stirling.py,v 1.4 2007-03-09 00:01:03 eddy Exp $
-"""
-
-import math
+import math, cmath
 roottwopi = math.sqrt(2 * math.pi) # I del this later
 
 def factorial(n):
@@ -79,7 +77,7 @@ def lngamma(x,
 			  0.1208650973866179e-2, -0.5395239384953e-5],
 	    sum=1.000000000190015,
 	    scale=roottwopi,
-	    log=math.log):
+	    log=cmath.log):
     """Lanczos's approximation to log(Gamma).
 
     This works by taking Stirling's formula, with Gamma(1+n) = n!, and putting
@@ -107,7 +105,7 @@ def lngamma(x,
 
     return base + log(scale * sum)
 
-def gamma(x, exp=math.exp, special=math.sqrt(math.pi/4)):
+def gamma(x, exp=cmath.exp, special=math.sqrt(math.pi/4)):
     result = 1
 
     # coerce to real part between 1 and 2
@@ -124,15 +122,55 @@ def gamma(x, exp=math.exp, special=math.sqrt(math.pi/4)):
 
     if x in (1, 2): return result
     if x == 1.5: return result * special
-    else: return result * exp(lngamma(x))
+    ans = result * exp(lngamma(x))
+    try:
+        if ans.imag == 0: return ans.real
+    except AttributeError: pass
+    return ans
 
 def gactorial(x):
     try: return gamma(x+1)
     except ZeroDivisionError:
-	raise ZeroDivisionError, 'The factorial function has a pole at each negative integer'
+	raise ZeroDivisionError('The factorial function has a pole at each negative integer', x)
 
+def chose(n, m):
+    """Uses gamma(1+x) = x! to generalise chose(n, m) = n!/m!/(n-m)!
+
+    This gets complicated by the case where n is a negative integer: n! is
+    infinite.  If m is an integer, at least one of m! and (n-m)! is also
+    infinite and we have to resolve cancelling infinities; otherwise, then the
+    result is infinite.
+
+    When n<0 and m are integers, if 0 > m > n then both m! and (n-m)! are
+    infinite so we should expect the answer 0, matching the n>0 case's value for
+    0 > m or m > n.  For m <= n < 0, we have n!/m!/(n-m)! with n-m > 0 and n!/m!
+    = 1/(n-1)/(n-1)/.../(1+m)/m = (-1)**(n-m) * (-n)!/(-m)!; for n < 0 <= m we
+    likewise have n!/m!/(n-m)! = (-1)**m * (-n)!/m!/(m-n)!
+
+    Note that the values for -ve integer inputs fail to abide by the recurrence
+    relation chose(n,m) = chose(n-1,m) +chose(n-1,m-1); and that the (otherwise
+    smooth) function is not continuous at these points (except in the 0 > m > n
+    case): if n tends to a negative integer faster than m tends to an integer >=
+    0 or <= n, the value of chose(n, m) diverges.\n"""
+
+    try: num = gactorial(n)
+    except ZeroDivisionError: pass
+    else:
+        try: return num / gactorial(m) / gactorial(n-m)
+        except ZeroDivisionError: return 0
+    assert n < 0 and n == long(n)
+    try: den = gactorial(m) * gactorial(n-m)
+    except ZeroDivisionError: pass
+    else: raise ZeroDivisionError('chose(n, m) has a pole, for non-integer m, at each negative integer n', n, m)
+    assert m == long(m)
+    if 0 > m > n: return 0
+    if m < 0: den, m, n = gactorial(n - m), -m, -n
+    else: den, m, n = gactorial(m), m-n, -n
+    while m > n: den, m = -den * m, m - 1
+    if 1/den == 1./den: return 1/den
+    return 1./den
 
-def expterm(x, n, scale=1, exp=math.exp): # returns pow(x,n)/n!
+def expterm(x, n, scale=1, exp=cmath.exp): # returns pow(x,n)/n!
     while n >= 1: scale, n = scale * x * 1. / n, n-1
     while n < 0:
 	n = n + 1
@@ -145,7 +183,7 @@ def expterm(x, n, scale=1, exp=math.exp): # returns pow(x,n)/n!
 def sphere(dim, radius=1., pi=math.pi):
     return expterm(pi * radius**2, dim / 2.)
 
-del roottwopi, math
+del roottwopi, math, cmath
 
 # test code
 def error(x):
@@ -159,21 +197,3 @@ def errorln(x):
 def gerror(x):
     f = lnfactorial(x)
     return abs(lngamma(1+x) - f) / f
-
-
-_rcs_log_ = """
-$Log: stirling.py,v $
-Revision 1.4  2007-03-09 00:01:03  eddy
-Note contrary rumours.
-
-Revision 1.3  2005/01/17 22:27:48  eddy
-Added comment taken from HAKMEM note
-
-Revision 1.2  2003/10/11 15:15:38  eddy
-Made gamma cope better with complex (comparison has changed behaviour; it's
-now not OK to ask whether greater/less than one), told it about special case
-at 1.5 (since that happens to be analytically exact, and relevant to sphere).
-
-Revision 1.1  2003/09/21 16:29:14  eddy
-Initial revision
-"""
