@@ -39,7 +39,7 @@ For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
   = (n+m+.5)*log(n+m) -(n+.5)*log(n) -(m+.5)*log(m) -.5*log(2*pi) +(1/n +1/m -1/(n+m))/12
   = .5 * log((1/n +1/m)/2/pi) +n*log(1+m/n) +m*log(1+n/m) +(1+n/m+m/n)/(n+m)/12
 
-$Id: stirling.py,v 1.5 2008-01-27 02:03:44 eddy Exp $
+$Id: stirling.py,v 1.6 2008-01-27 23:14:57 eddy Exp $
 """
 
 import math, cmath
@@ -144,14 +144,14 @@ def chose(n, m):
     When n<0 and m are integers, if 0 > m > n then both m! and (n-m)! are
     infinite so we should expect the answer 0, matching the n>0 case's value for
     0 > m or m > n.  For m <= n < 0, we have n!/m!/(n-m)! with n-m > 0 and n!/m!
-    = 1/(n-1)/(n-1)/.../(1+m)/m = (-1)**(n-m) * (-n)!/(-m)!; for n < 0 <= m we
-    likewise have n!/m!/(n-m)! = (-1)**m * (-n)!/m!/(m-n)!
+    = n.(n-1)...(m+1) = (-1)**(n-m) * (-(m+1))!/(-(n+1))! so chose(n, m) =
+    (-1)**(n-m)*chose(-(m+1), -(n+1)).  For n < 0 <= m we likewise have
+    n!/m!/(n-m)! = (-1)**m * (m-1-n)!/m!/(-(1+n))! = (-1)**m * chose(m-1-n, m).
 
-    Note that the values for -ve integer inputs fail to abide by the recurrence
-    relation chose(n,m) = chose(n-1,m) +chose(n-1,m-1); and that the (otherwise
-    smooth) function is not continuous at these points (except in the 0 > m > n
-    case): if n tends to a negative integer faster than m tends to an integer >=
-    0 or <= n, the value of chose(n, m) diverges.\n"""
+    Note that chose(-1, -1) +chose(-1, 0) is 2 instead of 1 = chose(0, 0):
+    otherwise, the recurrence relation chose(n,m) = chose(n-1,m) +chose(n-1,m-1)
+    is honoured; and that chose is badly behaved near the tidy values derived
+    above.  See http://www.chaos.org.uk/~eddy/math/antiPascal.html\n"""
 
     try: num = gactorial(n)
     except ZeroDivisionError: pass
@@ -164,11 +164,9 @@ def chose(n, m):
     else: raise ZeroDivisionError('chose(n, m) has a pole, for non-integer m, at each negative integer n', n, m)
     assert m == long(m)
     if 0 > m > n: return 0
-    if m < 0: den, m, n = gactorial(n - m), -m, -n
-    else: den, m, n = gactorial(m), m-n, -n
-    while m > n: den, m = -den * m, m - 1
-    if 1/den == 1./den: return 1/den
-    return 1./den
+    if m >= 0 > n: return (-1)**m * chose(m-1-n, m)
+    assert 0 > n >= m and n == long(n)
+    return (-1)**(n-m) * chose(-m-1, -n-1)
 
 def expterm(x, n, scale=1, exp=cmath.exp): # returns pow(x,n)/n!
     while n >= 1: scale, n = scale * x * 1. / n, n-1
