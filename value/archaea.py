@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.4 2007-12-02 21:13:31 eddy Exp $
+$Id: archaea.py,v 1.5 2008-02-01 21:59:53 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -324,6 +324,8 @@ French = Object(pied = foot.French,
                 point = point.French,
                 toise = 6 * foot.French,
                 arpent = (180 * foot.French)**2)
+
+foot.SI = nano * second.light
 
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
