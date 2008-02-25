@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.15 2007-12-09 15:56:21 eddy Exp $
+$Id: SI.py,v 1.16 2008-02-25 01:24:40 eddy Exp $
 """
 from quantity import *
 
@@ -74,13 +74,18 @@ rad = radian = base_unit('rad', 'Radian',
                         """The SI supplementary unit of angle.
 
 The angle subtended at the centre of a circle by an arc of the circumference
-equal in length to the radius of the circle.""")
+equal in length to the radius of the circle.  Equal to turn/2/pi.""")
 
 sr = steradian = base_unit('sr', 'Steradian',
                           """The SI supplementary unit of solid angle.
 
 The unit of solid angle is the solid angle subtended at the center of a sphere
-of radius r by a portion of the surface of the sphere having area r*r.""")
+of radius r by a portion of the surface of the sphere having area r*r.  By
+considering the case of small square solid angles, it may readilly be seen that
+solid angle is simply the square of angle; indeed, the steradian is simply the
+square of the radian, sr = rad**s; see, e.g.,
+http://www.chaos.org.uk/~eddy/math/angle.html
+""")
 
 # Composite SI units
 stere = metre**3                # c.f. litre
