@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.38 2007-07-07 15:21:57 eddy Exp $
+$Id: sample.py,v 1.39 2008-04-03 06:36:43 eddy Exp $
 """
 
 class _baseWeighted:
@@ -92,6 +92,10 @@ class curveWeighted (Lazy, _baseWeighted):
     attribute with a suitable meaning. """
 
     tophat = {-1./6: 1, 1./6: 1} # produces uniform distribution from -.5 to +.5
+    gausish = { 0: .382, # approximate a gaussian with mean 0 and standard deviation 1
+                1: .242, -1: .242,
+                2: .0608, -2: .0608,
+                3: .0062, -3: .0062 }
 
     def reach(self, low=None, high=None, share=1e-6):
         """Ensure self's weights stretch as far as low and high, if non-None.
@@ -658,7 +662,9 @@ class repWeighted (curveWeighted):
         if int(hat / ans) is 10: return 10 * ans
         return ans
 
-    # how far can we get with separating this from the interpolation kit ?
+    # How far can we get with separating this from the interpolation kit ?
+    # TODO: allow specification of a number format; may include the "use
+    # multiples of three as exponents" magic from qSample; and/or base.
     def round(self, estim=None):
         """Returns a rounding-string for estim.
 
@@ -1757,12 +1763,21 @@ Notice that gr.copy(lambda x: x**2-x-1) and gr**2-gr-1 will have quite
 different weight dictionaries !
 """
 
+Sample.gausish = Sample(Weighted.gausish, best=0,
+                        __doc__="""Roughly normal distribution.
+
+This (piecewise constantly) approximates a gaussian with mean zero and standard
+deviation 1.  It is intended for use with data which have been given as mean and
+standard deviation; multiply by the latter and add the former.
+""")
+
 Sample.tophat = Sample(Weighted.tophat, best=0,
                        __doc__="""Unit width zero-centred error bar.
 
 Also known as 0 +/- .5, which can readily be used as a simple way to implement
 a+/-b as a + 2*b*tophat.  For asymmetric error bars, use Sample.upward, which
 has best estimate zero, like tophat, but is uniformly distributed on the
-interval from zero to one.""")
+interval from zero to one.
+""")
 
 Sample.upward = Sample(Weighted.tophat, best=-.5) + .5
