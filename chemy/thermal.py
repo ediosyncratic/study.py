@@ -1,6 +1,6 @@
 """Description of thermal radiation.
 
-$Id: thermal.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
+$Id: thermal.py,v 1.5 2008-04-03 07:22:46 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
 from study.value.object import Object
@@ -10,8 +10,9 @@ import math # will del later
 # Experiment - due to move once a better home for it materialises
 class Radiator (Object):
     """Descriptor for a black-body radiator. """
+    __upinit = Object.__init__
     def __init__(self, temperature, *args, **what):
-        apply(Object.__init__, (self,) + args, what)
+        apply(self.__upinit, args, what)
         self.__temperature = temperature
 
     def _lazy_get_total_(self, ignored, S=Thermal.Stefan):
@@ -57,25 +58,38 @@ class Radiator (Object):
         else: return base * c**2 / wavelength**5
 
 del math, Object, Quantum
-from study.value.units import Kelvin
+from study.value.units import Kelvin, Centigrade
 
 def radiator(temperature, *args, **what):
     """Wrap Radiator with provision for -ve temperatures (in Centigrade).
 
     This isn't the right way to wrap it, but if any wrapping's to be done, it
-    should be done here, not by bodging Radiator's __init__ method ! """
+    should be done here, not by bodging Radiator's __init__ method !\n"""
 
-    try: T = temperature + 273.15
-    except TypeError: # temperature has units
-        if temperature / Kelvin > 0: T = temperature
-        else:
-            T = temperature + 273.15 * Kelvin
-            if T / Kelvin < 0:
-                raise ValueError, 'Negative temperature, even after coercion by 273.15 K'
-    else:
+    try:
         if temperature > 0: T = temperature * Kelvin
-        elif T < 0:
-            raise ValueError, 'Negative temperature, even after coercion by 273.15 K'
-        else: T = T * Kelvin
+        else: T = Centigrade(temperature)
+    except TypeError: # temperature has units, so > 0 check bombed.
+        if temperature / Kelvin > 0: T = temperature # TypeError if wrong units
+        else: T = temperature + Centigrade(0)
+
+    if T / Kelvin < 0:
+        raise ValueError, 'Negative temperature, even after Centigrade coercion'
 
     return apply(Radiator, (T,) + args, what)
+
+from study.value.sample import Sample
+from study.value.quantity import tophat, gausish
+Human = Radiator(Kelvin * (309.5 + tophat),
+                 oral=Centigrade(gausish * .5 + 36.8),
+                 axillary=Centigrade(Sample(Sample.tophat * .9 + 36.45, best=36.6)),
+                 __doc__="""Human body as a radiator.
+
+The human body maintains a roughly constant temperature, so naturally radiates
+as a body of that temperature, in so far as it's exposed.  Skin temperature is
+doubtless less than one would measure in an arm-pit (an 'axillary' measurement,
+commonly used in Russia and Poland), which is about .2 K lower than oral
+measurement (common in the anglophone world); which, in turn, is about .5 K
+below anal measurements; while core temperatures are presumed to be higher yet
+than this.
+""")
