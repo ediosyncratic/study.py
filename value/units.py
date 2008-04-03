@@ -3,7 +3,7 @@
 
 See SI.py for base units and archaea.py for more arcane units (and references).
 
-$Id: units.py,v 1.29 2007-04-08 12:27:23 eddy Exp $
+$Id: units.py,v 1.30 2008-04-03 06:45:20 eddy Exp $
 """
 from SI import *
 
@@ -115,7 +115,7 @@ year.tropical.document("""The tropical year.
 This is the time between successive vernal equinoxes.  It differs from the
 sidereal year because of the precession of the equinoxes: the equinoctial points
 move 50.27 seconds of arc per year westwards round the plane of the ecliptic.
-""")
+""") # so a period of c. 25.78 millennia
 
 year.sidereal.document("""The sidereal year: Earth's orbital period.
 
@@ -202,8 +202,8 @@ Several units of temperature share this name, qualified by the originators of
 the respective units.  A Swede called Celsius invented a unit which France (and
 hence SI) adopted; a Frenchman called Réaumur invented one which the Germans
 adopted (until they switched over to SI); and a German called Fahrenheit
-invented (before these others, the thermometer and) a unit which some backwards
-parts of the anglophone world still use to this day.\n""")
+invented (before these others, the thermometer and) various units, one of which
+remains in use in some backwards parts of the anglophone world.\n""")
 
 degree.__dict__['Réaumur'] = degree.Reaumur
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
