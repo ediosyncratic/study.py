@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.47 2007-07-08 02:09:23 eddy Exp $
+$Id: quantity.py,v 1.48 2008-04-03 06:40:14 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -797,6 +797,7 @@ def base_unit(nom, fullname, doc, **what):
     _terse_dict[nom] = result
     return result
 
+gausish = Quantity(Sample.gausish, doc=Sample.gausish.__doc__)
 tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__)
 upward = Quantity(Sample.upward)
 # 0 +/- .5: scale and add offset to taste, e.g.:
