@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.7 2007-12-31 10:49:52 eddy Exp $
+$Id: physics.py,v 1.8 2008-04-20 14:15:17 eddy Exp $
 """
 from study.value.units import *
 
@@ -140,7 +140,7 @@ See also planets.universe\n"""),
         temperature = Quantity(2.7248 + tophat * .0004, Kelvin,
                                """Cosmic Microwave Background Temperature.
 
-The after-glow of the Big Band shows itself as an almost uniform background glow
+The after-glow of the Big Bang shows itself as an almost uniform background glow
 in the sky with the spectrum of an ideal black body (one which absorbs light
 perfectly, regardless of the light's colour) at a temperature of 2.725 Kelvin.
 
