@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.28 2008-01-19 21:35:46 eddy Exp $
+$Id: home.py,v 1.29 2008-04-20 14:16:26 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -20,8 +20,9 @@ Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metr
                        age = Quantity(13.7 * (1 + .02 * tophat), giga * year,
                                       """The age of our universe.
 
-Compare with Hubble's constant (q.v.) and note that multiplying the two together
-gives an answer just a little bit less than 1.\n"""),
+This is only about 60 mega years short of 2**201 Planck times.  Compare with
+Hubble's constant (q.v.) and note that multiplying the two together gives an
+answer just a little bit less than 1.\n"""),
                        temperature = Cosmos.temperature,
                        composition = { 'dark energy': .73,
                                        'cold dark matter': .23,
@@ -153,7 +154,7 @@ del load_rubble
 
 ua = AU = AstronomicalUnit = Quantity(
     93, mega * mile,
-    nom = 'ua',
+    nom = 'ua', # unite astronomique ?
     fullname = 'Astronomical Unit',
     doc = """The typical distance between Earth and Sun.
 
@@ -210,16 +211,18 @@ parsec = Quantity(radian / arc.second, AU,
 
 The parsec is defined to be the distance at which one Astronomical Unit (q.v.)
 subtends an angle of one second of arc (of which 3600 make one degree); this
-makes it about a fifth of a million AU, which is about 3.26 light years.  This
-choice of unit arises naturally from determining the distance from Earth to a
-star by measuring parallax - the direction to the star, as the Earth goes around
-its orbit, will vary by the angle subtended by two AU (the diameter of Earth's
-orbit) at the distance between Earth and the star; and actual stars vary in
-direction by up to of order one arc second.  Dividing two arc seconds by a
+makes it about a fifth of a million AU, which is about 3.26 light years.
+
+This choice of unit arises naturally from determining the distance from Earth to
+a star by measuring parallax - the direction to the star, as the Earth goes
+around its orbit, will vary by the angle subtended by two AU (the diameter of
+Earth's orbit) at the distance between Earth and the star; and actual stars vary
+in direction by up to of order one arc second.  Dividing two arc seconds by a
 star's observed angle of variation yields the number of parsecs to the star; the
 nearest stars are modest multiples of a parsec away.
 
-See the doc string of AU for further details. """)
+See the doc string of AU for further details.
+""")
 
 parsec.observe(30.857 * peta * metre) # Kaye & Laby
 # some other source alleged 3.26 * year.light, which is about the same.
@@ -265,7 +268,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                           sample = (24 * hour - 4 * minute + 4 * second,),
                           fullname="Sidereal Day"),
                  # Tilt varies between 22.1 and 24.5 degrees in 41 k yr cycle,
-                 # due to reach a minimum in c. 1000 AD;
+                 # due to reach a minimum in c. 1000 AD; (eh ? ten thousand ?)
                  23.44, # currently decreasing
                  # its direction varies on a 26 k yr cycle (precession).
                  axis = 'Polaris'),
