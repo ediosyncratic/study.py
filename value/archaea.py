@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.6 2008-04-21 23:39:52 eddy Exp $
+$Id: archaea.py,v 1.7 2008-04-21 23:41:24 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -328,12 +328,12 @@ French = Object(pied = foot.French,
 foot.SI = Quantity(nano, second.light, """The SI foot, or light nanosecond.
 
 In one nanosecond, light travels a distance firmly within the range of lengths
-know, among various nations' diverse archaic units, as a foot.  The Swedish foot
-(or 'fot' in Swedish) is less than 1% shorter; most others are slightly longer.
-Given that the metre is now defined in terms of the light second, it violates
-the spirit of SI to retain it; it should be replaced by the light second and
-units derived therefrom.  The light nanosecond thus presents itself naturally as
-a replacement unit, the 'SI foot'.
+known, among various nations' diverse archaic units, as a foot.  The Swedish
+foot (or 'fot' in Swedish) is less than 1% shorter; most others are slightly
+longer.  Given that the metre is now defined in terms of the light second, it
+violates the spirit of SI to retain it; it should be replaced by the light
+second and units derived therefrom.  The light nanosecond thus presents itself
+naturally as a replacement unit, which would naturally be called the 'SI foot'.
 """)
 
 # Archaic units of mass:
