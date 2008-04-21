@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.5 2008-02-01 21:59:53 eddy Exp $
+$Id: archaea.py,v 1.6 2008-04-21 23:39:52 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -325,7 +325,16 @@ French = Object(pied = foot.French,
                 toise = 6 * foot.French,
                 arpent = (180 * foot.French)**2)
 
-foot.SI = nano * second.light
+foot.SI = Quantity(nano, second.light, """The SI foot, or light nanosecond.
+
+In one nanosecond, light travels a distance firmly within the range of lengths
+know, among various nations' diverse archaic units, as a foot.  The Swedish foot
+(or 'fot' in Swedish) is less than 1% shorter; most others are slightly longer.
+Given that the metre is now defined in terms of the light second, it violates
+the spirit of SI to retain it; it should be replaced by the light second and
+units derived therefrom.  The light nanosecond thus presents itself naturally as
+a replacement unit, the 'SI foot'.
+""")
 
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
@@ -534,6 +543,7 @@ Norse.also(alen = 2 * Norse.fot,
 line.Norsk = Norse.linje = Norse.tom / 12
 foot.Norsk, inch.Norsk = Norse.fot, Norse.tom
 ell.Norsk, fathom.Norsk = Norse.alen, Norse.favn
+# unse ~ ounce
 
 mil = Quantity(10, kilo * metre,
                """The Norwegian mil, 10 km.
