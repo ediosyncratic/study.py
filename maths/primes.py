@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.17 2007-06-03 16:42:41 eddy Exp $
+$Id: primes.py,v 1.18 2008-05-04 13:41:54 eddy Exp $
 """
 
 checking = None
@@ -280,12 +280,12 @@ class _Prime(lazyTuple):
 	              to use a fresh empty dictionary: this is what factorise()
 	              returns.
 
-	The result of factorise() is always a dictionary: its prodict() is num,
-	its keys are primes, -1 or 0 and its values are positive integers.  The
-	key -1 is present precisely if num is negative, in which case its
-	multiplicity is 1 (not, for instance, 3 or 5).  The key 0 only appears
-	when num is 0, in which case the result is {0: 1}.  Note that 1 =
-	prodict({}) so I don't need to make a special case of 1 ;^)
+	The result of factorise() is always a dictionary: its prodict() is N =
+	num*prodict(gather), its keys are primes, -1 or 0 and its values are
+	positive integers.  The key -1 is present precisely if N is negative, in
+	which case its multiplicity is 1 (not, for instance, 3 or 5).  The key 0
+	only appears when N is 0, in which case the result is {0: 1}.  Note that
+	1 = prodict({}) so I don't need to make a special case of 1 ;^)
 
 	If num is a positive integer, factorise(num) is a dictionary whose keys
 	are its prime factors: the value for each key is its multiplicity as a
@@ -307,19 +307,20 @@ class _Prime(lazyTuple):
 	See also: Factorise() (which is packaging) and prodict().
 	"""
 
+	# Only accept integers !
+	if num / (1L + abs(num)):
+            raise TypeError, ('Trying to factorise a non-integer', num)
+
 	# Can't use {} as gather's default, as we modify it !
 	if gather is None: result = {}
 	else:
             result = gather
-            if result.get(0, 0): return result
+            if result.get(0, 0): num = 0
 
 	if num < 0:
-	    result[-1] = (result.get(-1, 0) + 1) % 2
+            if result.get(-1, 0) % 2: del result[-1]
+            else: result[-1] = 1
 	    num = -num
-
-	# Only accept integers !
-	if num / (1L + abs(num)):
-            raise TypeError, ('Trying to factorise a non-integer', num)
 
 	if num == 0:
             result.clear()
@@ -362,6 +363,7 @@ class _Prime(lazyTuple):
                 else:
                     assert p > 1
 
+        # else: nothing to do
 	return result
 
     def __reduce(self, n, p):
@@ -492,7 +494,7 @@ class cachePrimes(_Prime, Lazy):
 
     def get_cache(self):
 	"""Returns true if it got anything out of the caches."""
-        print 'Getting cache'
+        # print 'Getting cache'
 	size = len(self._item_carrier)
 	for name, pair in self._caches.items():
 	    if pair[0] <= size:
@@ -601,6 +603,7 @@ class cachePrimes(_Prime, Lazy):
 	  block -- self[at:to]
 	"""
 
+        # print 'Caching primes'
 	import os
 	name = os.path.join(self.prime_cache_dir,
 			    name) # implicitly tests isabs(name).
@@ -734,7 +737,9 @@ def factors(num):
 
     If num is negative, -1 is listed with multiplicity 1, as is its product with
     each positive factor.  This is not wholly satisfactory, but it's not quite
-    clear what's saner. """
+    clear what's saner.  (Perhaps each negative factor's nominal multiplicity
+    should be the largest odd number not greater than the matching positive
+    factor's multiplicity.)\n"""
 
     if num < 0:
 	num = -num
