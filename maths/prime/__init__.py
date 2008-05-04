@@ -12,15 +12,15 @@ together and add one to obtain a number which is not a multiple of any of the
 given primes; when it is written as a product of primes, the primes used are
 thus not in your set.
 
-To determine whether a number is a prime, one must check to see if any integer
-divides it.  Since only smaller numbers *can* divide it, one only needs to check
-smaller numbers.  Since any divisor's divisors shall divide it, we only need to
-check *primes* smaller than our candidate prime.  Furthermore, if n does have a
-prime then it is n = i * j for some i and j; and min(i, j) is then sure to be no
-greater than the square root of n; if min(i, j) is not the given prime, then any
-prime factor of it is also necessarily no greater than n's square root.  Thus we
-only actually have to check for prime divisors up to (and including) the square
-root of our candidate prime.
+To determine whether a positive number is a prime, one must check to see if any
+integer greater than 1 divides it.  Since only smaller numbers *can* divide it,
+one only needs to check smaller numbers.  Since any divisor's divisors shall
+divide it, we only need to check *primes* smaller than our candidate prime.
+Furthermore, if n does have a factor then it is n = i * j for some i and j; and
+min(i, j) is then sure to be no greater than the square root of n; any prime
+factor of min(i, j) is thus necessarily no greater than n's square root.  Thus
+we only actually have to check for divisors among the primes whose squares are
+less than the candidate.
 
 When checking a range of integers to determine which of them are primes, it is
 efficient to check them all at once, using a technique discovered in antiquity
@@ -33,17 +33,33 @@ When you have done this for all relevant primes, any numbers that remain
 unmarked must be primes; the non-primes fall through the holes in the sieve,
 leaving only the primes.
 
-When checking an individual number, to determine whether it is a prime, one can
-also resort to some clever number-theoretic tricks, which provide tests which
-will, with high probability, spot a non-prime with much less computational
-effort than would be needed to actually find a divisor.  These depend on raising
-randomly chosen values to carefully chosen powers modulo the alleged prime (or
-possibly some related numbers, I'm not familiar with the details) and checking
-the results against the value that should result if the number were a prime; for
-example, for any prime p and natural n which is not a multiple of p, n**(p-1) is
-1 plus a multiple of p.  However, these techniques are not (yet) used here,
-since my interest is principally in factorising values, rather than determining
-whether they are primes.
+When checking an individual number, to determine whether it is a prime, I first
+iterate through the already-known primes with squares less than it, checking
+each as a candidate factor.  If we find a factor, it's not prime.  If all primes
+up to its square root are known and we find no factor, it's prime.  Otherwise,
+for all numbers below some cut-off, we know whether or not they're prime; our
+candidate exceeds the square of that cut-off.  We may know some primes beyond
+that cut-off, so it's worth checking all of these (even those whose squares
+exceed our candidate) before going onwards.  Lacking a factor at this point, we
+begin (or resume) work on sieving the numbers between the cut-off and some new
+cut-off whose square is slightly above our candidate.  When we've finished
+sieving out multiples, in this range, of the prime p we know all primes up tp
+p*p; as this extends our list of known primes, we check our candidate against
+new entries; if we find a factor, we suspend the sieve (leave it to be resumed
+next time we need to extend our range).
+
+One can also resort to some clever number-theoretic tricks, which provide
+computationally cheap tests which will, with probability very close to one
+(closer than the probability of a determinist check completing without being
+perturbed by cosmic rays or other hardware errors), spot a non-prime with much
+less computational effort than would be needed to actually find a divisor.
+These depend on raising randomly chosen values to carefully chosen powers modulo
+the alleged prime (or possibly some related numbers, I'm not familiar with the
+details) and checking the results against the value that should result if the
+number were a prime; for example, for any prime p and natural n which is not a
+multiple of p, n**(p-1) is 1 modulo p.  However, these techniques are not (yet)
+used here, since my interest is principally in factorising values, rather than
+determining whether they are primes.
 
 Various potential improvements on existing ../primes.py:
 
@@ -94,10 +110,17 @@ Special cases:
     least as far as 42.  Note that pow(2,32)+1 is 641*6700417
 
   * When is pow(2,n)-1 a prime ?  Never with n even; and n=1 gives 1.  When n is
-    in (3,5,7,13,17,19,31) and then no more, at least as far as 60.  Observe
-    31=pow(2,5)-1, 17=pow(2,4)+1, 7=pow(2,3)-1, 5=pow(2,2)+1, with pow(2,1)-1=1.
+    in (3,5,7,13,17,19,31) and then no more, at least as far as 60
+    - Observe 31=pow(2,5)-1, 17=pow(2,4)+1, 7=pow(2,3)-1, 5=pow(2,2)+1, with
+      pow(2,1)-1=1.
     - So when is pow(2, pow(2,i)+pow(-1,i))-1 a prime ?  For i=1 we get 1 which
       we ignore, then for i in (2,3,4,5,6) we get primes.
+
+  * For prime p, if p**2 + n is prime for some natural n then: n is not 0; for q
+    in {2, 3}, (n+1)%q is not zero unless p == q; otherwise, n is even, n%6
+    isn't 2 and, for n <= 210, I've found it easy to find moderately large
+    members of {primes p: p**2+n is prime}, so I conjecture that this set is
+    infinite.
 
 Things to do once stuff is into CVS:
  * general TODOs
@@ -110,7 +133,7 @@ Things to do once stuff is into CVS:
  * size() should return size added when load()ing self, not size of self
  * efficiency TODOs (c.f. Sequence pass-through; and integrate slicer with Master)
 
-$Id: __init__.py,v 1.3 2007-12-02 21:09:05 eddy Exp $
+$Id: __init__.py,v 1.4 2008-05-04 13:55:48 eddy Exp $
 """
 
 from sequence import primes
