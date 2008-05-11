@@ -1,6 +1,6 @@
 """Description of thermal radiation.
 
-$Id: thermal.py,v 1.5 2008-04-03 07:22:46 eddy Exp $
+$Id: thermal.py,v 1.6 2008-05-11 16:16:25 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
 from study.value.object import Object
@@ -12,7 +12,7 @@ class Radiator (Object):
     """Descriptor for a black-body radiator. """
     __upinit = Object.__init__
     def __init__(self, temperature, *args, **what):
-        apply(self.__upinit, args, what)
+        self.__upinit(*args, **what)
         self.__temperature = temperature
 
     def _lazy_get_total_(self, ignored, S=Thermal.Stefan):
@@ -76,12 +76,12 @@ def radiator(temperature, *args, **what):
     if T / Kelvin < 0:
         raise ValueError, 'Negative temperature, even after Centigrade coercion'
 
-    return apply(Radiator, (T,) + args, what)
+    return Radiator(T, *args, **what)
 
 from study.value.sample import Sample
-from study.value.quantity import tophat, gausish
+from study.value.quantity import tophat, gaussish
 Human = Radiator(Kelvin * (309.5 + tophat),
-                 oral=Centigrade(gausish * .5 + 36.8),
+                 oral=Centigrade(gaussish * .5 + 36.8),
                  axillary=Centigrade(Sample(Sample.tophat * .9 + 36.45, best=36.6)),
                  __doc__="""Human body as a radiator.
 
