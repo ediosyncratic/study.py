@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Planck's units, and kindred systems of units.
 
-$Id: planck.py,v 1.5 2007-12-02 20:18:03 eddy Exp $
+$Id: planck.py,v 1.6 2008-05-11 16:13:55 eddy Exp $
 """
 from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 
@@ -29,16 +29,16 @@ class Planckoid (Object):
       arearate -- area / time
       magneton -- arearate * charge = charge * action / mass
 
-    plus charge, momentum, length, mass, energy, torque, time, current,
-    temperature, force, acceleration with their conventional meanings.\n"""
+    plus charge, momentum, length, mass, energy, torque, time, current, force,
+    temperature, acceleration with their conventional meanings.\n"""
 
     __upinit = Object.__init__
     def __init__(self, geoid=Cosmos.G * 8 * pi, action=Quantum.h,
                  impedance=Vacuum.impedance, *args, **what):
-        what.update({ 'impedance': impedance, # electromagnetic field
-                      'action': action, # quantum of action
-                      'geoid': geoid }) # Newton's constant, suitably scaled #'
-        apply(self.__upinit, args, what)
+        what.update(impedance=impedance, # electromagnetic field
+                    action=action, # quantum of action
+                    geoid=geoid) # Newton's constant, suitably scaled #'
+        self.__upinit(*args, **what)
 
     speed = Vacuum.c    # fabric of space-time
     eot = Thermal.k     # energy over temperature
@@ -54,13 +54,13 @@ class Planckoid (Object):
     def _lazy_get_arearate_(self, ig):  return self.length * self.speed
     def _lazy_get_current_(self, ig):   return self.charge / self.time
     def _lazy_get_magneton_(self, ig):  return self.charge * self.arearate
-    def _lazy_get_temperature_(self, ig): return self.energy / self.eot
     def _lazy_get_force_(self, ig):     return self.momentum / self.time
-    def _lazy_get_acceleration(self, ig): return self.speed / self.time
+    def _lazy_get_temperature_(self, ig): return self.energy / self.eot
+    def _lazy_get_acceleration_(self, ig): return self.speed / self.time
 
-# Planck's units (c.f. Hartree's in /usr/share/misc/units):
+# Planck's units (c.f. Hartree's in /usr/share/misc/units.dat):
 Planck = Planckoid(Cosmos.G, Quantum.h, Vacuum.impedance / 4 / pi,
-    __doc__ = """Planck's units.
+                   __doc__ = """Planck's units.
 
 When Planck discovered his solution to the problem then known as the
 `ultraviolet catastrophe' and hence discovered the physical constant named after
