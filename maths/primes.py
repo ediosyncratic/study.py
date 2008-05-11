@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.18 2008-05-04 13:41:54 eddy Exp $
+$Id: primes.py,v 1.19 2008-05-11 20:10:24 eddy Exp $
 """
 
 checking = None
@@ -573,6 +573,7 @@ class cachePrimes(_Prime, Lazy):
 	except OverflowError: pass
 	return self.__high_water + self.__step
 
+    def __del__(self): self.persist()
     def persist(self, name='c', force=None):
 	"""Records `most' of what the primes module knows in files for later reference.
 
