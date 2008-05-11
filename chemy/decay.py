@@ -23,7 +23,7 @@ modest half-life, during which this intermediate can run into the third party.
 Description of reactions/decays is thus quite a subtle problem.  Which is my
 excuse for the present implementation being over-simple ...
 
-$Id: decay.py,v 1.5 2007-06-03 16:40:30 eddy Exp $
+$Id: decay.py,v 1.6 2008-05-11 15:47:38 eddy Exp $
 """
 import math # del it later
 _ln2 = math.log(2)
@@ -65,9 +65,9 @@ def ratedDecay(source, halflife, *procs):
       times the proportion of decays that follow that process.
     """
 
-    scale = reduce(lambda x, y: x + y[0], procs, 0) * halflife / _ln2
+    scale = sum(map(lambda x: x[0], procs)) * halflife / _ln2
     procs = tuple(map(lambda p, s=scale: (p[0] / s,) + tuple(p[1:]), procs))
-    return apply(Decay, (source,) + procs)
+    return Decay(source, *procs)
 
 from study.snake.lazy import Lazy
 from study.value.units import second
@@ -110,7 +110,7 @@ class Decay (Lazy):
         row, rate = [], 0 / second
         for proc in procs:
             rate = rate + proc[0] # raising TypeError if not number/second
-            row.append(apply(self.__Decay, (source,) + proc))
+            row.append(self.__Decay(source, *proc))
         self.processes, self.rate = tuple(row), rate
 
     class __Decay (Lazy):
@@ -119,14 +119,14 @@ class Decay (Lazy):
             if energy is not None: self.energy = energy
 
         def _lazy_get_energy_(self, ignored):
-            return self.source.energy - reduce(lambda x: x.energy, self.__bits)
+            return self.source.energy - sum(map(lambda x: x.energy, self.__bits))
 
         def _lazy_get_fragments_(self, ignored):
             """Mapping from particles emitted to likely kinetic energy.
 
             Assumes kinetic energy is distributed in proportion to rest mass. """
 
-            bok, scale = {}, self.energy / reduce(lambda x: x.mass, self.__bits)
+            bok, scale = {}, self.energy / sum(map(lambda x: x.mass, self.__bits))
             for bit in self.__bits:
                 bok[bit] = scale * bit.mass
             return bok
