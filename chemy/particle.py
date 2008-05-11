@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.30 2008-05-11 13:19:34 eddy Exp $
+$Id: particle.py,v 1.31 2008-05-11 15:36:50 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -791,9 +791,38 @@ Phys. Rev.  D 66 (2002) 010001).\n"""),
 # pion, mass = 273.2 * electron.mass, charges 0, +1, -1.
 
 # Some atom-scale constants:
-radiusBohr = Vacuum.epsilon0 * (Quantum.h / Quantum.Millikan)**2 / pi / electron.mass
-radiusBohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
-Rydberg = (Photon.speed / Quantum.h / (2 / electron.mass +2 / proton.mass)) * Vacuum.alpha**2
+Bohr = Quantity(Vacuum.epsilon0 / pi / electron.mass, (Quantum.h / Quantum.Millikan)**2,
+                """The Bohr radius.
+
+This is a length-scale that arises naturally in the description of electron
+orbitals within atoms, defined by epsilon0 * (h/e)**2 / pi / m, where m is the
+mass of the electron.  See also Rydberg, which is alpha/4/pi/Bohr.
+""")
+Bohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
+Bohr.also(radius = Bohr)
+
+Rydberg = Quantity(0.5 * Vacuum.alpha**2 / Quantum.h,
+                   Vacuum.c / (1 / electron.mass + 1 / proton.mass),
+                   """Rydberg's constant.
+
+This is the inverse wavelength (a.k.a. spatial frequency) of a photon emitted
+when a previously free electron falls into the ground state orbital of a
+hydrogen atom (or, for an atom of atomic number Z, an orbital in shell Z, except
+that we should then use the mass of the nucleus in place of the proton mass in
+the formula used here).  For details, see
+http://www.chaos.org.uk/~eddy/physics/atom.xhtml#Solved
+
+See also Rydberg.energy and Bohr.radius
+""")
+Rydberg.also(frequency=Rydberg * Vacuum.c,
+             energy=Quantity(Rydberg, Vacuum.c * Quantum.h,
+                             """The Rydberg energy
+
+This is (at least for the Hydrogen atom) the natural unit for energies of atomic
+energy levels: (c*alpha)**2 times half the effective mass of the electron, the
+inverse of the sum of inverses of masses of the electron and nucleus.
+"""))
+Rydberg.energy.observe(13.605698 * Quantum.Millikan * Volt)
 
 del sample, Quantum, Vacuum, Thermal, tophat, pi, arc, Quantity, Decay, \
     harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
