@@ -2,7 +2,7 @@
 
 c.f. polynomial, using only one free variable.
 
-$Id: multinomial.py,v 1.5 2007-06-03 16:42:19 eddy Exp $
+$Id: multinomial.py,v 1.6 2008-05-11 16:28:46 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from polynomial import unNaturalPower
@@ -27,53 +27,53 @@ class Multinomial (Lazy):
         self.__coefs = bok # dictionary { (int, ...): scalars }
 
     def __add__(self, whom):
-        try: sum = whom.__coefs.copy()
-        except AttributeError: sum = {(): whom}
+        try: tot = whom.__coefs.copy()
+        except AttributeError: tot = {(): whom}
 
         zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, zero) + v
+            tot[k] = tot.get(k, zero) + v
 
-        return Multinomial(sum)
+        return Multinomial(tot)
 
     __radd__ = __add__
 
     def __sub__(self, whom):
-        sum, zero = self.__coefs.copy(), self._zero
+        tot, zero = self.__coefs.copy(), self._zero
 
         try: bok = whom.__coefs
-        except AttributeError: sum[()] = sum.get((), zero) - whom
+        except AttributeError: tot[()] = tot.get((), zero) - whom
         else:
             for k, v in bok.items():
-                sum[k] = sum.get(k, zero) - v
+                tot[k] = tot.get(k, zero) - v
 
-        return Multinomial(sum)
+        return Multinomial(tot)
 
     def __rsub__(self, whom):
-        try: sum = whom.__coefs.copy()
-        except AttributeError: sum = {(): whom}
+        try: tot = whom.__coefs.copy()
+        except AttributeError: tot = {(): whom}
 
         zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, zero) - v
+            tot[k] = tot.get(k, zero) - v
 
-        return Multinomial(sum)
+        return Multinomial(tot)
 
     def addboks(key, cle): # tool func for __mul__
-        sum = [0] * max(len(key), len(cle))
+        tot = [0] * max(len(key), len(cle))
 
         i = len(key)
         while i > 0:
             i = i - 1
-            sum[i] = key[i]
+            tot[i] = key[i]
 
         i = len(cle)
         while i > 0:
             i = i - 1
-            sum[i] = sum[i] + cle[i]
+            tot[i] = tot[i] + cle[i]
 
-        while sum and sum[-1] == 0: sum = sum[:-1]
-        return tuple(sum)
+        while tot and tot[-1] == 0: tot = tot[:-1]
+        return tuple(tot)
 
     def __mul__(self, whom, add=addboks):
 	term = {}
@@ -85,20 +85,30 @@ class Multinomial (Lazy):
             zero = self._zero * whom._zero
 	    for key, val in self.__coefs.items():
 		for cle, lue in bok.items():
-                    sum = add(key, cle)
-                    term[sum] = term.get(sum, zero) + val * lue
+                    tot = add(key, cle)
+                    term[tot] = term.get(tot, zero) + val * lue
 
         return Multinomial(term)
 
     del addboks
     __rmul__ = __mul__
 
-    def __pow__(self, whom):
+    def __pow__(self, n, mod=None):
         result = 1
+        if mod is None:
+            x = self
+            def step(b, x, r):
+                if b: r *= x
+                return x * x, r
+        else:
+            x = self % mod
+            def step(b, x, r, m=mod):
+                if b: r = (r * x) % m
+                return (x * x) % m, r
 
-        while whom >= 1:
-            if whom % 2: result = result * self
-            self, whom = self * self, whom / 2
+        while n >= 1:
+            n, b = divmod(n, 2)
+            x, r = step(b, x, r)
 
         return result
 
@@ -161,7 +171,6 @@ class Multinomial (Lazy):
     def __neg__(self): return 0 - self
 
     def __repr__(self): return self._repr
-    __str__ = __repr__
     variablenames = 'zyxwvutsrqpnmlkhgfdcba' # skip o,i,j,e [0, sqrt(-1), exp]
 
     def _lazy_get_rank_(self, ig):
@@ -172,7 +181,7 @@ class Multinomial (Lazy):
         return not filter(lambda x, r=self.rank: x != r, self._ranks)
 
     def _lazy_get_profile_(self, ig):
-        return tuple(apply(map, [lambda *x: max((0,) + filter(None, x))] + self.__coefs.keys()))
+        return tuple(map(* [lambda *x: max((0,) + filter(None, x))] + self.__coefs.keys()))
 
     # support ...
 
@@ -224,12 +233,10 @@ class Multinomial (Lazy):
 
     del format, powname
 
-    def sum(seq): return reduce(lambda a, b: a+b, seq, 0)
-
-    def _lazy_get__ranks_(self, ign, sum=sum):
+    def _lazy_get__ranks_(self, ign):
         return tuple(map(sum, self.__coefs.keys()))
 
-    def keyorder(that, this, sum=sum):
+    def keyorder(that, this):
         sign = cmp(sum(this), sum(that)) or cmp(len(this), len(that))
         if sign: return sign
 
@@ -240,8 +247,6 @@ class Multinomial (Lazy):
             if sign: return sign
 
         return 0
-
-    del sum
 
     def _lazy_get__powers_(self, id, order=keyorder):
         row = self.__coefs.keys()

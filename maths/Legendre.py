@@ -2,7 +2,7 @@
 
 See http://www.chaos.org.uk/~eddy/math/smooth/harmony.html
 
-$Id: Legendre.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
+$Id: Legendre.py,v 1.4 2008-05-11 16:21:52 eddy Exp $
 """
 from polynomial import Polynomial
 
@@ -30,7 +30,7 @@ class Legendre (Polynomial):
         assert q + j == b
         k.append(last)
 
-        self.__upinit(map(lambda x, n=apply(hcf, tuple(k)): x // n, k))
+        self.__upinit(map(lambda x, n=hcf(*k): x // n, k))
 
     del hcf, factorial
 

@@ -7,7 +7,7 @@ ccomps and gvcolorize) for visualisation of graphs.  Things to play at:
   * .h file inclusion hierarchy; CPP sensitive ?
   * C function call hierarchy
 
-$Id: graph.py,v 1.4 2002-10-08 22:06:15 eddy Exp $
+$Id: graph.py,v 1.5 2008-05-11 16:23:52 eddy Exp $
 """
 
 class Partition:
@@ -364,7 +364,7 @@ class Graph:
         try: indices = map(self.__nodes.index, nodes)
         except ValueError: return None
 
-        return apply(self.__connect.joined, indices)
+        return self.__connect.joined(*indices)
 
     def peercount(self, node):
         try: nod = self.__nodes.index(node)
@@ -393,7 +393,7 @@ class Graph:
                 all = all + self.peers(node)
 
         # build a graph out of them:
-        ans = apply(Graph, tuple(all))
+        ans = Graph(*all)
         for a, b in self.__edges:
             assert (a in all) == (b in all), 'I thought we had a partition here !'
             if a in all: ans.join(a, b)
@@ -409,7 +409,7 @@ class Graph:
         that). """
 
         # build a graph using only the given nodes:
-        ans = apply(Graph, nodes)
+        ans = Graph(*nodes)
         for a, b in self.__edges:
             if a in nodes and b in nodes: ans.join(a, b)
 
@@ -418,7 +418,10 @@ class Graph:
 
 """
  $Log: graph.py,v $
- Revision 1.4  2002-10-08 22:06:15  eddy
+ Revision 1.5  2008-05-11 16:23:52  eddy
+ Modern python.
+
+ Revision 1.4  2002/10/08 22:06:15  eddy
  Major over-haul, largely for docs.  Added ADT baseclass Partition.  Made
  initialisers take an initial size.  New peercount(node) method.
  Changed Graph more drastically; nodes, edges and partition are now

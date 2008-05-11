@@ -1,6 +1,6 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.8 2007-06-03 16:44:08 eddy Exp $
+$Id: Huffman.py,v 1.9 2008-05-11 16:20:45 eddy Exp $
 """
 from study.snake.lazy import Lazy
 
@@ -136,12 +136,10 @@ class Huffman (Lazy):
             its.sort(lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
             fmt = map(lambda (k, v): '%%%ds' % max(len(k), len(v)), its)
             ans = '\n'.join(map(lambda x, f=' | '.join(fmt): f % x,
-                                apply(map, [ lambda *args: args ] + its)))
+                                map(* [ lambda *args: args ] + its)))
             self.__repr = ans
 
         return ans
-
-    __str__ = __repr__
 
     def _lazy_get__block_map_(self, ig, possible=lambda (k, v): v):
         """Mapping from possible blocks to their probabilities. """
@@ -227,7 +225,7 @@ class Huffman (Lazy):
 
         while len(forest) > 1:
             forest.sort(weigh)
-            forest = [ apply(Tree, forest[:len(sym)]) ] + forest[len(sym):]
+            forest = [ Tree(* forest[:len(sym)]) ] + forest[len(sym):]
 
         code = {}
         if forest:

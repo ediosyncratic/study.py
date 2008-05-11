@@ -41,7 +41,7 @@ our integral of p up to X pretty close to
 
  (beta*X)**alpha / alpha / gamma(alpha)
 
-$Id: gamma.py,v 1.6 2007-06-03 16:42:06 eddy Exp $
+$Id: gamma.py,v 1.7 2008-05-11 16:23:31 eddy Exp $
 """
 
 from integrate import Integrator
@@ -150,7 +150,7 @@ class Gamma (Integrator, Lazy):
 	if start < -start: start = 0 * start
 	if stop < -stop: stop = 0 * stop
 	if start == stop: return 0 * self.beta # need correct dimensions
-	if stop < start: return -apply(self.between, (stop, start) + args, what)
+	if stop < start: return -self.between(stop, start, *args, **what)
 
 	if self.alpha < 1 and start == 0:
 	    # bodge round initial pole
@@ -159,9 +159,9 @@ class Gamma (Integrator, Lazy):
 	    try: off = what['offset']
 	    except KeyError: what['offset'] = eps
 	    else: what['offset'] = eps + off
-	    return eps + apply(self.__between, (start + cut, stop) + args, what)
+	    return eps + self.__between(start + cut, stop, *args, **what)
 
-	return apply(self.__between, (start, stop) + args, what)
+	return self.__between(start, stop, *args, *what)
 
     def _lazy_get_mean_(self, ignored):
         """Mean of the gamma distribution.
