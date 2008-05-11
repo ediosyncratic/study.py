@@ -88,7 +88,7 @@ class Permutation (tuple, Lazy):
         call, mainly for ease of reading when a function yields a permutation
         which is being called; order(seq).permute(seq) is more readable, IMO,
         than order(seq)(seq).\n"""
-        return apply(permute, seqs + (self,))
+        return permute(* seqs + (self,))
 
     permute = __call__
 
