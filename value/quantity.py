@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.48 2008-04-03 06:40:14 eddy Exp $
+$Id: quantity.py,v 1.49 2008-05-11 15:39:45 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -71,14 +71,8 @@ Ki, Mi, Gi = kibi, mebi, gibi
 # unit but use gramme as base for naming of masses below 1e-3 kg and tonne for
 # naming of masses above 1e3 kg.  How silly is that ?
 
-import string
-def _cleandoc(text, strip=string.strip):
-    if text: text = strip(text)
-    if text: return text + '\n'
-
-def _massage_text(text, times,
-                  _e2q=_exponent_to_quantifier,
-                  split=string.split, a2i=string.atoi):
+def massage_text(text, times,
+                 _e2q=_exponent_to_quantifier):
     """Computes the representation of qSample.
 
     Arguments (both required, none more allowed):
@@ -95,7 +89,7 @@ def _massage_text(text, times,
     [quantifier].  If the exponent is given as [e[sign]digits] and the
     representation is exact, the e will be an E, e.g. the integer 4000 is 4E3.
     Exact numbers will also elide their decimal point if it is the last
-    character of the mantissa, rough ones are less likely to. """
+    character of the mantissa, rough ones are less likely to.\n"""
 
     # Extract the sign, if present, and set it aside; we'll put it back as we return
     if text[:1] in '-+': sign, text = text[:1], text[1:]
@@ -103,16 +97,16 @@ def _massage_text(text, times,
 
     # Snip apart mantissa (head) and exponent (tail):
     glue = 'e'
-    try: head, tail = split(text, 'e')
+    try: head, tail = text.split('e')
     except ValueError:
-        try: head, tail = split(text, 'E')
+        try: head, tail = text.split('E')
         except ValueError: head, tail = text, '0'
         else: glue = 'E' # value is exact
 
     # Decode (string) tail as an (integer) exponent:
-    exponent = a2i(tail)
+    exponent = int(tail)
     # Snip apart the mantissa (head) at the dot (if any):
-    try: up, down = split(head, '.')
+    try: up, down = head.split('.')
     except ValueError: up, down = head, ''
     # up is the whole part, down the fractional part
 
@@ -155,23 +149,50 @@ def _massage_text(text, times,
     return sign + head + tail
 
 del _exponent_to_quantifier
-
 from sample import Sample
 
 class qSample (Sample):
     # Massage Sample's answers, which use any integer for the exponent
     # and put digits.[digits] between 1 and 10.
     _lazy_get__sample_repr_ = Sample._lazy_get__repr_
-    def _lazy_get__repr_(self, ignored, mash=_massage_text):
+    def _lazy_get__repr_(self, ignored, mash=massage_text):
         return mash(self._sample_repr, ' * ')
-    def _lazy_get__str_(self, ignored, mash=_massage_text):
+    def _lazy_get__str_(self, ignored, mash=massage_text):
         return mash(self._sample_repr, ' ')
 
     # Sample's .low and .high are boundary weights, decidedly *inside* true bounds.
     def _lazy_get_high_(self, ignored): return self.span[1]
     def _lazy_get_low_(self, ignored): return self.span[0]
 
-del _massage_text
+del massage_text
+
+def indent(line, tabwidth=8):
+    dent = i = 0
+    while line[i].isspace():
+        if line[i] == '\t': dent = (1 + dent // tabwidth) * tabwidth
+        elif line[i] == ' ': dent += 1
+        # else: erm ... try not to think about it.
+        i += 1
+    return dent
+
+def _cleandoc(text, dent=indent):
+    if text:
+        text = text.strip()
+
+        if '\n' in text:
+            # Remove any ubiquitous common indent (and any dangling hspace):
+            lines = map(lambda x: x.rstrip(), text.split('\n'))
+            ind, i = min(map(dent, filter(None, lines[1:]))), 1
+            while i < len(lines):
+                # Canonicalize surviving indentation to spaces while we're at it.
+                if lines[i]: lines[i] = ' ' * (dent(lines[i]) - ind) + lines[i].lstrip()
+                i += 1
+            text = '\n'.join(lines)
+
+        if text: return text + '\n'
+    # else: implicitly return None.
+
+del indent
 
 # lazy-evaluators for special attributes of quantities of specific types
 def scalar():
@@ -373,7 +394,7 @@ class Quantity (Object):
         effectively multiplicatively. """
 
         # Initialise self as an Object:
-        apply(self.__obinit, args, what)
+        self.__obinit(*args, **what)
 
         # massage the arguments: first mix scale and units
         if isinstance(units, Quantity):
@@ -419,7 +440,7 @@ class Quantity (Object):
 
         what, units = self.__scale, self.__units
         if isinstance(what, qSample):
-            what = apply(Sample, (what.mirror,), what.dir)
+            what = Sample(what.mirror, **what.dir)
         return Quantity(what, units)
 
     def __name(self, nom=None, fullname=None):
@@ -435,8 +456,27 @@ class Quantity (Object):
         if old: self.__doc__ = old + '\n' + doc
         else:   self.__doc__ = doc
 
-    def observe(self, what): self.__scale.update(self.__addcheck_(what, 'observe'))
-    # TODO: need a .merge(self, other) yielding result of merging two Quantities.
+    # TODO: need (?) a .merge(self, other) yielding result of merging two Quantities.
+    def observe(self, what, doc=None):
+        """Incorporate information from a measurement of this quantity.
+
+        Required argument, what, is a Quantity or, of self is dimensionless, a
+        Sample, sample.Weighted or simple numeric value.  A simple numeric value
+        is used as a candidate best estimate.  Otherwise, the spread of the
+        supplied value is suitably combined with self's prior spread and any
+        best estimate it supplies is used as a candidate best estimate.
+
+        Optional argument, doc, is a documentation string to be added to self's;
+        any documentation string on what is also added, after doc.  For example,
+        the passed doc value might indicate why the observation is relevant to
+        the quantity self represents, while what.__doc__ indicates how that
+        value was obtained.\n"""
+
+        self.__scale.update(self.__addcheck_(what, 'observe'))
+        if doc is not None: self.document(doc)
+        # NB: don't use inherited what.__doc__, it may come from class, albeit not Quantity.
+        try: self.document(what.__dict__['__doc__'])
+        except KeyError: pass
 
     __obcopy = Object.copy
     def copy(self, func=None):
@@ -444,11 +484,8 @@ class Quantity (Object):
 
     def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
-        h = hash(self.__scale)
-        for k, v in self.__units.items():
-            h = h ^ v ^ hash(k)
-
-        return h
+        return reduce(lambda p, (k, v): p ^ v ^ hash(k),
+                      self.__units.items(), hash(self.__scale))
 
     __lazy_late_ = Object._lazy_late_
     def _lazy_late_(self, key):
@@ -602,7 +639,8 @@ class Quantity (Object):
         return self._quantity(ot / self.__scale, subdict(her, self.__units))
     __rtruediv__ = __rdiv__
 
-    def __pow__(self, what, grab=unpack):
+    def __pow__(self, what, mod=None, grab=unpack):
+        assert mod is None
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
@@ -705,8 +743,7 @@ class Quantity (Object):
     def unit_string(self, scale='',
                     times='.', divide='/',
                     Times=None, Divide=None,
-                    lookemup=lambda r: r,
-                    join=string.joinfields):
+                    lookemup=lambda r: r):
         """Generates representations of a quantity.
 
         All arguments are optional and should be given by name when given.
@@ -752,14 +789,14 @@ class Quantity (Object):
 
             # This might be a better place for the milli * kilogramme bodge ...
             row = lookemup(pows[p])
-            lang, top, bot = len(row), join(row, times), ''
+            lang, top, bot = len(row), times.join(row), ''
 
             # ... do the promised folding:
             try: wor = lookemup(pows[-p])
             except KeyError: pass
             else:
                 if wor:
-                    bot = divide + join(wor, divide)
+                    bot = divide + divide.join(wor)
                     lang = lang + len(wor)
 
             if lang > 1 and p != 1: more = '(%s%s)' % (top, bot)
@@ -790,14 +827,14 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
 
-del string, kind_prop_lookup
+del kind_prop_lookup
 
 def base_unit(nom, fullname, doc, **what):
-    result = apply(Quantity, (1, {nom:1}, doc, nom, fullname), what)
+    result = Quantity(1, {nom:1}, doc, nom, fullname, **what)
     _terse_dict[nom] = result
     return result
 
-gausish = Quantity(Sample.gausish, doc=Sample.gausish.__doc__)
+gaussish = Quantity(Sample.gaussish, doc=Sample.gaussish.__doc__)
 tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__)
 upward = Quantity(Sample.upward)
 # 0 +/- .5: scale and add offset to taste, e.g.:
