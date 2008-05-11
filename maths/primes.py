@@ -19,7 +19,7 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.19 2008-05-11 20:10:24 eddy Exp $
+$Id: primes.py,v 1.20 2008-05-11 22:14:03 eddy Exp $
 """
 
 checking = None
@@ -637,6 +637,34 @@ primes = cachePrimes()
 factorise = primes.factorise
 # The following should survive as prime.tool:
 is_prime = primes.__contains__
+
+def Sisyphus():
+    """An iterator that'll ensure primes grows indefinitely.
+
+    If you've got spare clock cycles to burn, and disk you'd be happy to fill up
+    by expanding your cache of known primes, iterate Sisyphus.  For example:
+      for it in Sisyphus: pass
+    shall always find more work to do.  Note that this function is called once
+    to create one eponymous iterator (making this function inaccessible
+    thereafter), so you can interrupt an iteration of it at any point without
+    losing (much) state; simply begin iterating it again later and it'll start
+    off on the iteration in which you interrupted it.
+
+    The iterator this function returns is, in fact, the witness to a proof that
+    there is no greatest prime: its i-th iteration takes the product of the
+    first i primes, adds one and factorises the result.  Since this cannot have
+    any of the first i primes as a factor (it's equal to 1 modulo each of them),
+    all of its prime factors must exceed all of the first i primes.  This being
+    true for all i, we may infer that, no matter how may primes we find, there
+    are always some more to be found.\n"""
+
+    n = 1
+    for p in primes:
+        n *= p
+        yield n+1, primes.factorise(n+1) # all factors are > p
+        primes.persist()
+
+Sisyphus = Sisyphus()
 
 def prodict(dict):
     """Returns the product of a factorisation dictionary.
