@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.21 2007-12-02 21:08:09 eddy Exp $
+$Id: polynomial.py,v 1.22 2008-05-11 15:42:48 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -151,6 +151,7 @@ class Polynomial (Lazy):
         if scale == 1: return self
 	return self / scale
 
+    variablename = 'z' # over-ride to taste
     def __repr__(self):
         try: return self.__repr
         except AttributeError: pass
@@ -164,9 +165,6 @@ class Polynomial (Lazy):
 
         self.__repr = ans
         return ans
-
-    __str__ = __repr__
-    variablename = 'z'
 
     def format(num, names, depth):
         try:
@@ -353,7 +351,8 @@ class Polynomial (Lazy):
 
         return val ** exp
 
-    def __root(self, num, ratio=divide, root=scalarroot):
+    def __root(self, num, mod=None, ratio=divide, root=scalarroot):
+        # TODO: support equality modulo mod
         # solve self = ans ** num
         assert num > 0 == self.rank % num
 
@@ -387,46 +386,57 @@ class Polynomial (Lazy):
         except (TypeError, AttributeError): pass
         return val
 
-    def __pow__(self, other, int=whole,
+    def __pow__(self, other, mod=None, int=whole,
                 ok=lambda i, t=(types.IntType, types.LongType): type(i) in t):
+        if mod is None:
+            wer, result = self, 1
+            def step(b, x, r):
+                if b: r *= x
+                return x * x, r
+        else:
+            wer, result = self % mod, 1 % mod
+            def step(b, x, r, m=mod):
+                if b: r = (r * x) % mod
+                return (x * x) % mod, r
+
 	# Require other to be natural
-	result, wer = 1, self
         try:
             if other.rank < 1: other = other.coefficient(0)
             # For some bizarre reason, x**0 isn't evaluated as x.__pow__(0) !
             # When evaluating x ** 0 I find other == Polynomial(0) instead.
         except AttributeError: pass
-
         try:
             if other < 0: raise TypeError
-            if self.rank < 0: return self # zero**+ve is zero
+            if wer.rank < 0: return self # zero**+ve is zero
             m = 0
             if not ok(other):
                 i = int(other)
                 if i == other: other = i
-                else:
+                elif mod is None:
                     # bad, unless we're very lucky
                     i = other * self.rank
                     if i != int(i): raise TypeError
                     m = 1L
+                else: m = 1L
 
         except (AttributeError, TypeError, ValueError):
             raise unNaturalPower, other
 
         if m:
             # OK, we *might* be able to get away with this ...
-            while 1:
+            if mod is None: stop = wer.rank
+            else: stop = wer.rank * mod.rank # wild guess
+            while m < stop:
                 m = 1 + m
                 i = m * other
                 if i == int(i): break
-            assert m <= self.rank
+            else: raise unNaturalPower(other)
             # ... other is i/m; see if we have an m-th root:
-            other, wer = int(i), self.__root(m) # will ValueError if not possible
-
+            other, wer = int(i), self.__root(m, mod) # will ValueError if not possible
 
 	while other >= 1:
-	    if other % 2: result = result * wer
-	    wer, other = wer * wer, other / 2
+            other, b = divmod(other, 2)
+            wer, result = step(b, wer, result)
 
 	return result
 
@@ -686,7 +696,7 @@ class Polynomial (Lazy):
         if self.rank < 1: return ()
         if self.rank < 3 or (self.rank == 3 and self.__pure_real()):
             # for cubics, we know how to be exact ...
-            return apply(cub, map(self.coefficient, (3, 2, 1, 0)))
+            return cub(*map(self.coefficient, (3, 2, 1, 0)))
 
         # Otherwise, be as exact as we know how to be:
         return self.Weierstrass(1e-9)
