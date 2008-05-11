@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.40 2008-05-11 12:40:13 eddy Exp $
+$Id: sample.py,v 1.41 2008-05-11 14:37:08 eddy Exp $
 """
 
 class _baseWeighted:
@@ -990,6 +990,15 @@ class joinWeighted (curveWeighted):
         return self.decompose(map(middle, filter(None, parts)))
 
     def __combine(self, dict, func):
+        """Generate coarsely combined distribution.
+
+        This just combines each weight point of self with each in dict, giving
+        each the product of weights.  This naive approach isn't good enough:
+        combining a narrow tophat with a broad one yields an answer with four
+        equally weighted points, one pair close together at each end of a broad
+        interval; which our piece-wise constant interpolator understands as two
+        narrow spikes at either end of a low trough.\n"""
+        # TODO: fix that !
         ans = self._weighted_({})
 
         for key, val in self.items():
@@ -1005,7 +1014,6 @@ class joinWeighted (curveWeighted):
             except AttributeError: count = self.__detail
             else: count = max(det, self.__detail)
 
-        # That's generated our coarse distribution: condense it.
         return self.__combine(dict, func).condense(count)
 
     # Comparison: which is probably greater ?
@@ -1500,14 +1508,14 @@ class Sample (Object):
         # and: self.__dict__.update(what)
         # but hopefully that's all redundant ...
 
-        hit = None # have we invalidated stuff computed from __weights ?
+        hit = False # have we invalidated stuff computed from __weights ?
 
         # Is __weigh bogus ?  If so, note anything of interest from it and forget it.
         if len(self.__weigh) < 2:
             for k in self.__weigh.keys():
                 if k not in self.__best: self.__best.append(k)
             del self.__weigh
-            hit = 1
+            hit = True
 
         elif len(self.__weigh) <= len(self.__best):
             for k, v in self.__weigh.items():
@@ -1515,21 +1523,21 @@ class Sample (Object):
             else:
                 # weigh is just bests, as set below when no distribution available
                 del self.__weigh
-                hit = 1
+                hit = True
 
         # Extract useful information from other:
         if isinstance(other, Sample):
-            if self.__update(other.__weigh): hit = 1
-            if self.__better(other.best): hit = 1
+            if self.__update(other.__weigh): hit = True
+            if self.__better(other.best): hit = True
 
         elif isinstance(other, curveWeighted):
-            if self.__update(other): hit = 1
+            if self.__update(other): hit = True
 
         else:
             # theoretically, if other is a dict or seq, wrap it as a Weighted
             # and .__update() with it; but I don't think that happens !
             other / 2.3, other - 1.7 # if non-number, these will error for us
-            if self.__better(other): hit = 1
+            if self.__better(other): hit = True
 
         # If that's not given us a distribution, use fall-back bogus one:
         try: self.__weigh
