@@ -36,7 +36,7 @@ contains no integer <= q with B(0) empty and each B(1+i) obtained from B(i) as
 follows: let S(i) = s -sum(: 2**p &larr;p |B(i))**2 and select the highest
 integer n for which
 
-$Id: search.py,v 1.5 2007-03-08 23:58:23 eddy Exp $
+$Id: search.py,v 1.6 2008-05-11 19:49:43 eddy Exp $
 """
 
 # I'll use complex numbers as a handy model of two dimensions
@@ -47,7 +47,7 @@ def cross(x, y): return x.real * y.imag - x.imag * y.real
 # of a 3-D vector cross product.
 from cmath import exp
 radix = exp(2j)
-if 0:
+if False:
     # not used, can't remember what I was playing with these for ...
     from cmath import log, exp
     def polar(x):   # needs: from cmath import log
@@ -57,7 +57,7 @@ if 0:
         return r, 0
     def ampliphase(r, theta):       # needs: from cmath import exp
         return r * exp(1j * theta)
-    # apply(ampliphase, (polar(x),)) yields x
+    # ampliphase(polar(x)) yields x
 
 def debase(v, a, b):
     """Express a vector in terms of a basis.
@@ -371,27 +371,3 @@ def text_search(sought, text, skip = 0):
 				else: return end - length
 			end = end + 1
 	else: return -1
-
-"""
- $Log: search.py,v $
- Revision 1.5  2007-03-08 23:58:23  eddy
- I seem to have tweaked the algorithm (2006-06-20).
-
- Revision 1.4  2005/01/17 22:24:56  eddy
- Added comment taken from HAKMEM note
-
- Revision 1.3  2004/04/25 13:40:47  eddy
- Doc fix.
-
- Revision 1.2  2003/07/21 21:27:28  eddy
- I seem to have made a bunch of changes a while back; broke out Newton and
- triangulate methods as separate tools of Search (renamed from _Search),
- notably for use in rummage(); refined triangulation quite a bit.  Fixed
- getattr (can't use __... names as strings), tweaked lots of docs.  Made
- gradient coerce real values to complex when necessary.  Made polar an aside
- and added its inverse, ampliphase to the aside.
-
- Initial Revision 1.1  1999/10/24 15:27:59  eddy
-
-  Originally written for boat.py's sake in Summer '98
-"""
