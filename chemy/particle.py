@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.29 2007-12-02 20:06:49 eddy Exp $
+$Id: particle.py,v 1.30 2008-05-11 13:19:34 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -58,7 +58,7 @@ class Particle (Object):
         except KeyError: pass # self will be deemed primitive
         else: del what['constituents']
 
-	apply(self.__obinit, args, what)
+	self.__obinit(*args, **what)
 
         self._store_as_(name, self.__class__)
 	self.__name = name
@@ -121,13 +121,13 @@ class Particle (Object):
         return sum
 
     def bindingenergy(self, *primitives):
-        return self.__bindener(apply(self.constituents, primitives))
+        return self.__bindener(self.constituents(*primitives))
 
     def bindingfraction(self, *primitives):
-        return apply(self.bindingenergy, primitives) / self.energy
+        return self.bindingenergy(*primitives) / self.energy
 
     def bindingenergyper(self, *primitives):
-        bok = apply(self.constituents, primitives)
+        bok = self.constituents(*primitives)
         return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
 
     class __ItemCarrier (Lazy):
@@ -137,7 +137,7 @@ class Particle (Object):
             # Only relevant to Quark and its bases:
             ali.update({'top': 'truth', 'bottom': 'beauty'})
             what['lazy_aliases'] = ali
-            apply(self.__upinit, args, what)
+            self.__upinit(*args, **what)
 
         # Only relevant to Lepton and its bases:
         def _lazy_get_positron_(self, ignored):
@@ -371,7 +371,7 @@ from the second of which I took the extra-visible spectral data below.
     def __init__(self, *args, **what):
         try: what['name']
         except KeyError: args = ('photon',) + args
-        apply(self.__upinit, args, what)
+        self.__upinit(*args, **what)
 
     def __repr__(self):
         # Use name if it has a personal one:
@@ -442,7 +442,7 @@ from the second of which I took the extra-visible spectral data below.
 def photon(lo, hi, name, **what):
     what['name'] = name
     what['wavelength'] = Quantity(.5 * (hi + lo) + tophat * (hi - lo), nano * metre)
-    return apply(Photon, (), what)
+    return Photon(**what)
 
 visible = photon(380, 700, 'visible',
                  doc="""Visible light.
@@ -558,6 +558,9 @@ class Neutrino (Fermion):
         # forward modified name to Fermion et al.
         self.__store_as('%s neutrino' % name, Fermion)
 
+    # http://physicsworld.com/cws/article/news/32861;jsessionid=7F62EB73BA3BDB0E6DEBCFB01B56F9F3
+    # magnetic dipole should allegedly be proportional to mass
+
     _charge = 0
     def _lazy_get_symbol_(self, ignored):
         lep = self.family.lepton
@@ -644,7 +647,7 @@ class Family (Object):
 
 del Lazy
 
-def below(val, unit=tophat*(1-nano)+.5*(1+nano)):
+def below(val, unit=tophat*(1-femto)+.5*(1+femto)):
     """Returns a sample from `almost zero' up to a given value.
 
     Required argument is the upper bound on some quantity: optional second
@@ -677,6 +680,8 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, un
                   dQuark(mnom, mass=mm*kilo*mev),
                   uQuark(pnom, mass=pm*kilo*mev))
 
+# physicsworld article cited in class Neutrino says neutrino mass <= 1 eV;
+# that's less than the K&L's data, given here:
 table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1./6e28),
                    'down', sample(0.35, .005), 'up', sample(0.35, .005)),
           KLfamily(.52, 'muon', '&mu;', sample(105.65932, .00029), mega / sample(2.19709, 5e-5),
@@ -685,7 +690,7 @@ table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1.
                    'beauty', sample(4.7, .05), 'truth', sample(40, 10)) )
 # NB: the error bars on quark masses other than truth's are my interpolation
 # from K&L's truncation of the numbers.
-del below
+del below, KLfamily
 
 # Make electron a primary export:
 electron = Lepton.item.electron
@@ -703,14 +708,14 @@ class Baryon (Fermion, Hadron):
     # http://pdg.lbl.gov/2005/listings/bxxxcomb.html
     __upinit = Fermion.__init__
     def __init__(self, name, mass, doc, **what):
-        what.update({'name': name, 'mass': mass, 'doc': doc})
-        apply(self.__upinit, (), what)
+        what.update(name=name, mass=mass, doc=doc)
+        self.__upinit(**what)
 
 class Nucleon (Baryon):
     __upinit = Baryon.__init__
     def __init__(self, u, d, name, mass, doc, **what):
         what['constituents'] = { Quark.item.up: u, Quark.item.down: d}
-        apply(self.__upinit, (name, mass, doc), what)
+        self.__upinit(name, mass, doc, **what)
 
     mass = Quantity(1 / mol / mol.Avogadro, gram,
                     doc="""Atomic Mass Unit, AMU.
