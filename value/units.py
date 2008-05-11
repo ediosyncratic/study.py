@@ -3,7 +3,7 @@
 
 See SI.py for base units and archaea.py for more arcane units (and references).
 
-$Id: units.py,v 1.30 2008-04-03 06:45:20 eddy Exp $
+$Id: units.py,v 1.31 2008-05-11 15:34:14 eddy Exp $
 """
 from SI import *
 
@@ -164,8 +164,7 @@ Ci = Curie = 37 * giga * Becquerel
 R = Roentgen = Quantity(.258, milli * Coulomb / kilogramme,
                        fullname='Röentgen') # also Rontgen ?
 Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
-# see also particle.py for the electron-Volt, eV
-Rydberg = 2.17977 * atto * Joule # 13.605698 eV
+# see also particle.py for the electron-Volt, eV, and Rydberg'c constant.
 
 # Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(101325, Pascal,
