@@ -13,8 +13,8 @@ from study.value.units import milli, second, minute, day, year
 from decay import ratedDecay
 
 def decay(what, halflife, *modes):
-    what.decays = apply(ratedDecay, (what, halflife) +
-                        tuple(map(lambda m: (m[0], m[1] * eV) + tuple(m[2:]), modes)))
+    what.decays = ratedDecay(what, halflife,
+                             *map(lambda m: (m[0], m[1] * eV) + tuple(m[2:]), modes))
 
 def photon(erg):
     return Photon(energy= erg * eV)

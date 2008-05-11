@@ -13,7 +13,7 @@ For data, see (inter alia): http://www.webelements.com/
 TODO: convert to use a minimalist constructor with source-specific data-supply
 methods; this module can be converted with minimal entanglement with others.
 
-$Id: element.py,v 1.13 2008-04-20 22:20:58 eddy Exp $
+$Id: element.py,v 1.14 2008-05-11 15:49:08 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -25,12 +25,11 @@ class Nucleus (Particle): _namespace = 'Nucleus.item'
 class bNucleus (Boson, Nucleus): 'Bosonic nucleus'
 class fNucleus (Fermion, Nucleus): 'Fermionic nucleus'
 def nucleus(Q, N, name, **what):
-    what.update({'name': name,
-                 'constituents': { proton: Q, neutron: N }})
+    what.update(name=name, constituents={ proton: Q, neutron: N })
 
     try: klaz = [ bNucleus, fNucleus ][(Q + N) % 2]
     except IndexError, TypeError: klaz = Nucleus # e.g. when N is a Sample
-    return apply(klaz, (), what)
+    return klaz(**what)
 
 class Atom (Particle):
     _namespace = 'Atom.item'
@@ -46,11 +45,11 @@ def atom(Q, N, name, symbol, doc, **what):
                 raise KeyError
         except KeyError: n.__doc__ = ndoc
 
-    what.update({'name': name, 'symbol': symbol, '__doc__': doc,
-                 'constituents': {n: 1, electron: Q}})
+    what.update(name=name, symbol=symbol, __doc__=doc,
+                constituents={n: 1, electron: Q})
     try: klaz = {0: bAtom, 1: fAtom}[N % 2]
     except KeyError: klaz = Atom
-    return apply(klaz, (), what)
+    return klaz(**what)
 
 class Substance (Object): pass
 # should really have
@@ -73,7 +72,7 @@ class Temperatures (Object):
         assert(melt is None or boil is None or melt + 0 * Kelvin <= boil)
         if melt is not None: what['melt'] = melt
         if boil is not None: what['boil'] = boil
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
 
     def __str__(self):
         bok = {}
@@ -191,7 +190,7 @@ class Element (Substance):
         what['atomic number'] = Z
         if A is not None: what['relative atomic mass'] = A
         if T is not None: what['temperature'] = T
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
         self.Z = Z
         if A is not None: self.A = A
 
@@ -307,7 +306,7 @@ class Element (Substance):
             else: bok[n] = bun
 
         if bok: base = (bok,) + base
-        try: apply(S, base, what)
+        try: S(*base, **what)
         except TypeError:
             raise AttributeError("I don't know enough about myself to describe my atom", self)
 
@@ -335,11 +334,8 @@ class Element (Substance):
         table reuses the name of its first element.  Each group has a .leader
         element, which is the first in the group (except that H is ignored).\n"""
 
-        def __init__(self, number):
-            self.__num, self.__seq = number, []
-
+        def __init__(self, number): self.__num, self.__seq = number, []
         def __repr__(self): return self.name
-        __str__ = __repr__
 
         def _lazy_get_name_(self, ig, N=Noble,
                             latin=('VIII', 'VII', 'VI', 'V', 'IV', 'III', 'II', 'I')):
@@ -493,10 +489,10 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
     try: temp['sublime'] = what['sublime']
     except KeyError: pass
     else: del what['sublime']
-    if temp: T = apply(Temperatures, (), temp)
+    if temp: T = Temperatures(**temp)
     else: T = None
 
-    ans = apply(Element, (name, symbol, Z, A, T), what)
+    ans = Element(name, symbol, Z, A, T, **what)
 
     try: isos[:]
     except TypeError:
