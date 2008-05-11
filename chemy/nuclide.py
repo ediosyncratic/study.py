@@ -5,6 +5,8 @@ Kaye and Laby.  In any case, I suspect I mis-understood the source, so the
 result is somewhat suspect.  In places it conflicts with my Nuffield Advanced
 Science data book (NAS); where the latter enabled me to make sense of what I'd
 got, I adapted to suit it.
+
+$Id: nuclide.py,v 1.3 2008-05-11 15:51:33 eddy Exp $
 """
 
 from element import Isotope, alpha
