@@ -1,6 +1,6 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.4 2007-06-03 16:39:59 eddy Exp $
+$Id: atomic.py,v 1.5 2008-05-11 15:40:45 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
@@ -22,7 +22,7 @@ class Laguerre (Polynomial):
             last = last * (j * (j+1) - L) / (j - n)
 
         assert last == 0
-        self.__upinit(map(lambda x, e=apply(hcf, tuple(f)): x // e, f))
+        self.__upinit(map(lambda x, e=hcf(*f): x // e, f))
 
     del hcf, factorial
 
@@ -30,6 +30,7 @@ class Laguerre (Polynomial):
         return ((self * linear)**2).Gamma ** .5
 
 del Polynomial
+
 from study.snake.lazy import Lazy
 
 class Radial (Lazy):
@@ -48,11 +49,10 @@ class Radial (Lazy):
         r = r * self.__frac
         # maybe use .evaluate() ...
         return self.__poly(2*r) / r.exp / self.scale
-
-del Lazy
+
 from study.maths.Legendre import Spherical
 
-class Orbit:
+class Orbit (Lazy):
     def __init__(self, n, b, j, Z=1):
 
         """Initialize a dimensionless quantum orbit in a Coulomb field.
@@ -77,7 +77,7 @@ class Orbit:
         self.n, self.l, self.j, self.Z = n, b, j, Z
 
     def _lazy_get_Energy_(self, ig):
-        """In units of the Rydberg energy"""
+        """In units of particle.Rydberg.energy (q.v.)"""
         return self.__radial.Energy
 
     def __call__(self, r, phi, theta):
@@ -94,3 +94,5 @@ class Orbit:
         Bohr radius as unit of length.\n"""
 
         return self.__angular(phi, theta) * self.__radial(r)
+
+del Lazy
