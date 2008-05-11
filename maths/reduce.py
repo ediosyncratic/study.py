@@ -8,7 +8,7 @@ describes the kind of one of the given values by the powers of the 'base kinds'
 that make up the value's kind.  The standard base units (i.e. canonical basis)
 may then be inferred from the values by using the linear system's inverse.
 
-$Id: reduce.py,v 1.12 2007-06-03 16:43:10 eddy Exp $
+$Id: reduce.py,v 1.13 2008-05-11 19:48:21 eddy Exp $
 """
 
 import natural, permute
@@ -80,6 +80,7 @@ class System (Lazy):
         of 1.  The sequences are not modified.  The new object retains copies of
         them, so subsequent modifications to them shall not affect the new
         object.\n"""
+        # TODO: cope with the case where span(rows) has dimension < n
 
         self.__ca = n, len(rows) # numbers of vectors: in canonical basis; and available
         self.problem = self.__ingest(n, rows)
@@ -111,9 +112,9 @@ class System (Lazy):
     def obtain(self, row, scale=1):
         """Find how to combine availables to yield a given member of our linear space.
 
-        Singe argument, row, is a member of the linear space; returns a sequence
-        of coefficients which, if fed to .contract(), would yield this row as
-        output.\n"""
+        Required argument, row, is a member of the linear space; returns a
+        sequence of coefficients which, if fed to .contract(), would yield this
+        row as output.\n"""
 
         n = self.__ca[0]
         if len(row) > 1 + n:
@@ -176,12 +177,12 @@ class System (Lazy):
 
         dim, ava = self.__ca
         i, j, k, co = 0, 0, 0, []
-        while i < dim:
+        while i < dim and j < len(can):
             row = can[j]
             if row[i]:
                 j += 1
                 how[i].append(row[i])
-                f = apply(gcd, how[i])
+                f = gcd(*how[i])
                 if f and how[i][-1] < 0: f = -f
                 if f > 1 or f < 0:
                     k = len(how[i])
@@ -219,7 +220,7 @@ class System (Lazy):
                 raise ValueError('zero denominator on row', row)
             else:
                 # The two prior cases make f be 0 or 1, so don't need this:
-                f = apply(gcd, r)
+                f = gcd(*r)
                 if r[n] < 0: f = -f
                 if f > 1 or f < 0:
                     i = len(r)
@@ -270,11 +271,11 @@ class System (Lazy):
 
         return tot, den
 
-    def denominate(pairs, scale lcm=natural.lcm, gcd=natural.hcf):
-        den = apply(lcm, map(lambda (n, d): d, pairs))
+    def denominate(pairs, scale, lcm=natural.lcm, gcd=natural.hcf):
+        den = lcm(*map(lambda (n, d): d, pairs))
         ans = map(lambda (n, d), s=den: n * s / d, pairs) + [ den * scale ]
 
-        f = apply(gcd, ans)
+        f = gcd(*ans)
         if ans[-1] < 0: f = -f
         if f > 1 or f < 0:
             i = len(ans)
@@ -295,6 +296,8 @@ class System (Lazy):
 
     def __obtain(self, row, scale=1, comb=denominate, dot=dragwith):
         """As for .obtain(), but with row of correct length and scale separate."""
+        # Unfortunately, inadequate to the case where the span of our system
+        # isn't the whole space, even though row is within it.
         return comb(map(lambda j, r=row, d=dot, m=self.inverse: d(m, j, r),
                         range(len(self.inverse[0]))), scale)
 
@@ -473,7 +476,7 @@ class System (Lazy):
                 k -= 1
                 row[k] = row[k] * nj - top[k] * ni
 
-        f = apply(gcd, self.__matrix[j] + self.__result[j])
+        f = gcd(* self.__matrix[j] + self.__result[j])
         r = filter(None, self.__matrix[j])
         if r and r[0] < 0: f = -f
         if f > 1 or f < 0:
