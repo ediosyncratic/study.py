@@ -1,18 +1,17 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 
-$Id: common.py,v 1.10 2007-08-19 11:15:53 eddy Exp $
+$Id: common.py,v 1.11 2008-05-11 19:53:03 eddy Exp $
 """
 from study.value.units import tophat, arc, pi, Object, second
 
 class Discovery (Object):
     __upinit = Object.__init__
     def __init__(self, who, year, **what):
-        what.update({ 'year': year, 'who': who })
-        apply(self.__upinit, (), what)
+        what.update(year=year, who=who)
+        self.__upinit(**what)
 
     def __repr__(self): return '%s (%d)' % (self.who, self.year)
-    __str__ = __repr__
 
 class Spin (Object):
     __upinit = Object.__init__
@@ -32,7 +31,7 @@ class Spin (Object):
 
         Takes arbitrary keyword arguments after the manner of Object (q.v.).
         """
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
         self.period, self.tilt = self.__time(period), tilt
 
     def __time(self, t, zero=0 * second): return t + zero
@@ -47,7 +46,7 @@ class Spin (Object):
 class Round (Object): # handy base-class for round things
     __upinit = Object.__init__
     def __init__(self, radius, spin, **what):
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
         self.radius, self.spin = radius, spin
 
     def _lazy_get_circumference_(self, ignored, twopi=2*pi): return twopi * self.radius
@@ -113,7 +112,7 @@ class Orbit (Round):
             # ideally invent a suitable error bar ...
             eccentricity.document("""Eccentricity guessed from error bar on radius.  Not to be trusted !""")
 
-        apply(self.__upinit, (radius, self.__spin(spin, ws, tilt)), what)
+        self.__upinit(radius, self.__spin(spin, ws, tilt), **what)
         self.centre, self.eccentricity = centre, eccentricity
 
     def __spin(self, maybe, ws, tilt, squish=lambda x, tp=2*pi: tp/x):
@@ -167,7 +166,7 @@ class Spheroid (Object):
     # a bit like Round (q.v.) but lumpier ...
     __upinit = Object.__init__
     def __init__(self, major, minor=None, minim=None, **what):
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
         if minor is None: minor = major
         if minim is None: minim = minor
         self.__semis = major, minor, minim
@@ -194,7 +193,7 @@ class SurfacePart (Object):
             what[part.name], part.__parent = part, self
             part.borrow(self)
 
-        apply(self.__upinit, (), what)
+        self.__upinit(**what)
 
     pro_rata = ( 'rainfall', ) # anything else roughly proportional to area ...
     def proportion(self, prop):
@@ -233,9 +232,9 @@ class Surface (Spheroid, Round, SurfacePart):
     def __init__(self, radius, gravity, spin, *parts, **what):
         try: nim = (1 - what['flattening']) * radius
         except KeyError: nim = None
-        apply(self.__blinit, (radius, None, nim))
-        apply(self.__spinit, parts)
-        apply(self.__upinit, (radius, spin), what)
+        self.__blinit(radius, None, nim)
+        self.__spinit(*parts)
+        self.__upinit(radius, spin, **what)
         self.gravity = self.g = gravity
 
     def _lazy_get_area_(self, ignored, fp=4*pi): return fp *  self.radius ** 2

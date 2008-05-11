@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
 
-$Id: rock.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: rock.py,v 1.6 2008-05-11 19:55:16 eddy Exp $
 """
 
 from study.value.units import tophat, mega, day, km, metre, kg, litre
@@ -22,7 +22,7 @@ def NASAorbit(planet, sma, per, tilt = 90 * (.5 + tophat),
     if per < 0: tilt, per = tilt + 90, -per
     # no error bars supplied, but all periods gave two decimal places
     # sma is really radius / (1 - eccentricity), but endure it and let per's error-bar infect it
-    return apply(O, (planet, sma * Mm, S(u * (per + centi), tilt)), what)
+    return O(planet, sma * Mm, S(u * (per + centi), tilt), **what)
 
 def NASAdata(what, found, mass, rho, skin, shell, m=kg, d=kg/litre):
     what['discovery'] = found
@@ -32,21 +32,21 @@ def NASAdata(what, found, mass, rho, skin, shell, m=kg, d=kg/litre):
 
 def NASAtrojan(name, found, boss, phase, shell, skin=None, mass=None, rho=None, P=Planet, **what):
     NASAdata(what, found, mass, rho, skin, shell)
-    what.update({ 'boss': boss })
+    what.update(boss=boss)
 
     # there may be a better way to encode this ...
-    ans = apply(P, (name, shell, boss.orbit), what)
+    ans = P(name, shell, boss.orbit, **what)
     boss.Lagrange[phase].append(ans)
     return ans
 
 def NASAmoon(name, planet, found, sma, per, shell, skin=None, mass=None, rho=None, P=Planet, **what):
     NASAdata(what, found, mass, rho, skin, shell)
-    return apply(P, (name, shell, NASAorbit(planet, sma, per)), what)
+    return P(name, shell, NASAorbit(planet, sma, per), **what)
 
 def NamedOrbit(name, planet, sma, per, P=Planetoid, **what):
     # No data bon the bodies themselves, but good data on name and discovery
     what['orbit'] = NASAorbit(planet, sma, per, name=name)
-    return apply(P, (name,), what)
+    return P(name, **what)
 
 def SAOmoon(planet, found, nom, sma, per, name=None, P=Planetoid):
     # Names are catalogue numbers and we have no data on the bodies themselves ...

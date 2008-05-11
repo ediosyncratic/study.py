@@ -18,7 +18,7 @@ is thus made available to the infrastructure tracking the overall powers of two
 encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
 accompanying the fractional value.
 
-$Id: bigfloat.py,v 1.14 2007-06-03 16:48:29 eddy Exp $
+$Id: bigfloat.py,v 1.15 2008-05-11 19:56:26 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from types import FloatType
@@ -167,7 +167,8 @@ class BigFloat (Lazy):
         if gap > 100L * cen: return long(val * 10. ** (100L * cen))
         return long(val * 10. ** gap) * 10L**(100L * cen - gap)
 
-    def __pow__(self, other, log=decade):
+    def __pow__(self, other, mod=None, log=decade):
+        assert mod is None
         if self.__scale == 0:
             if other > 0: return self
             if other < 0: return BigFloat.infinity
@@ -272,7 +273,7 @@ class BigComplex (Lazy):
 
     def _lazy_get_log_(self, ignored): return BigComplex(self.abs.log, self.phase)
 
-    def __pow__(self, other):
+    def __pow__(self, other): # third arg, if given, is to be reduced modulo.
         return (self.log * other).exp
 
     def __rpow__(self, other):

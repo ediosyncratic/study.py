@@ -2,7 +2,7 @@
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
 
-$Id: ladder.py,v 1.6 2007-08-14 06:20:03 eddy Exp $
+$Id: ladder.py,v 1.7 2008-05-11 19:54:41 eddy Exp $
 """
 from math import exp
 from home import Earth
@@ -80,7 +80,7 @@ class Ladder (Object):
         length), in which case they're divided by the synchronous orbital
         radius.\n"""
 
-	apply(self.__obinit, (), what)
+	self.__obinit(**what)
 	self.stress, self.density = S, D
 	sync, surf, densile = planet.synchronous, planet.surface, S / D
 	self.spin, self.R = surf.spin, sync.radius

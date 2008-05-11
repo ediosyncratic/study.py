@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.22 2008-01-19 22:00:01 eddy Exp $
+$Id: body.py,v 1.23 2008-05-11 19:52:08 eddy Exp $
 """
 
 class Satellites:
@@ -109,7 +109,7 @@ class Object (object.Object):
 
     __space_upinit = object.Object.__init__
     def __init__(self, name, satelload=None, __doc__=None, **what):
-        apply(self.__space_upinit, (), what)
+        self.__space_upinit(**what)
         self.name = name
         self.__load_satellites = satelload
 	try: what['orbit'].centre.satellites.insert(None, self)
@@ -215,7 +215,7 @@ class Body (Object):
     instance = {}
     __upinit = Object.__init__
     def __init__(self, *args, **what):
-        apply(self.__upinit, args, what)
+        self.__upinit(*args, **what)
 
         try: surface = self.surface
         except AttributeError: pass
@@ -360,9 +360,9 @@ class Body (Object):
     def orbiter(self, given, O=Orbit, S=Spin, **what):
         radius, period = self.__radius(given)
         if period is None:
-            return apply(O, (self, radius, None), what) # accept Orbit's guestimate of spin
+            return O(self, radius, None, **what) # accept Orbit's guestimate of spin
 
-        return apply(O, (self, radius, S(period)), what)
+        return O(self, radius, S(period), **what)
 
     def _lazy_get_synchronous_(self, ignored, path=Orbit):
 	"""Synchronous orbit. """
@@ -425,11 +425,11 @@ class Star (Body, Round):
         if spin is None: skin = Sf(Sol.surface.radius * size)
         else: skin = Sf(Sol.surface.radius * size, spin=Sp(dy * spin))
 
-        what.update({'type': type, 'distance': dist * ly,
-                     'ICRS2000_0': locn, # 'ICRS 2000.0' data
-                     'mass': mass * Sol.mass,
-                     'surface': skin,
-                     'luminosity': lum * Sol.luminosity })
+        what.update(type=type, distance=dist * ly,
+                    ICRS2000_0=locn, # 'ICRS 2000.0' data
+                    mass=mass * Sol.mass,
+                    surface=skin,
+                    luminosity=lum * Sol.luminosity)
 
         self.augment(what)
 
@@ -481,7 +481,7 @@ class Hoop (Object, Round):
         if tilt: tilt = tilt * tophat
         o = what['orbit'] = O(centre, radius, None, eccentricity, tilt)
         # It's important that we pass orbit via what ...
-        apply(self.__upinit, (name,), what)
+        self.__upinit(name, **what)
         self.borrow(o) # for Round
 
 del Orbit, Round
@@ -489,10 +489,10 @@ del Orbit, Round
 class Shell (Object, Spheroid):
     __obinit, __spinit = Object.__init__, Spheroid.__init__
     def __init__(self, name, centre, *radii, **what):
-        apply(self.__spinit, radii)
+        self.__spinit(**radii)
         what['centre'] = centre
         # what has to come this way so satelload reaches Object
-        apply(self.__obinit, (name,), what)
+        self.__obinit(name, **what)
 
 del Spheroid
 
@@ -500,10 +500,10 @@ class Ring (Hoop):
     # Share instance dictionary with other Hoop-based classes.
     __upinit = Hoop.__init__
     def __init__(self, name, centre, inner, outer, tilt=0, eccentricity=0, **what):
-        apply(self.__upinit, (name, centre,
-                              (inner.best + outer.best) * .5 + (outer.high - inner.low) * tophat,
-                              tilt, eccentricity),
-              what)
+        self.__upinit(name, centre,
+                      (inner.best + outer.best) * .5 + (outer.high - inner.low) * tophat,
+                      tilt, eccentricity,
+                      **what)
 
 
 class Planetoid (Body):
@@ -520,8 +520,8 @@ class Asteroid (MinorPlanet):
     instance = {}
     __upinit = MinorPlanet.__init__
     def __init__(self, name, orbit, mass, **what):
-        what.update({'orbit': orbit, 'mass': mass})
-        apply(self.__upinit, (name,), what)
+        what.update(orbit=orbit, mass=mass})
+        self.__upinit(name, **what)
 
 class DwarfAster (Asteroid, DwarfPlanet):
     __upname = Asteroid._name_as_
@@ -558,5 +558,5 @@ class Planet (Planetoid):
         Initialisation ensures that orbit.centre notices that the new Planet
         is one of its satellites. """
 
-        what.update({'orbit': orbit, 'surface': surface})
-        apply(self.__upinit, (name,), what)
+        what.update(orbit=orbit, surface=surface})
+        self.__upinit(name, **what)

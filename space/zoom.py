@@ -2,7 +2,7 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.11 2007-07-07 18:17:11 eddy Exp $
+$Id: zoom.py,v 1.12 2008-05-11 19:55:30 eddy Exp $
 """
 
 from study.value.units import Object, year, kg
@@ -36,7 +36,7 @@ class Zoom (Object):
 	`standard gravity'.  Must be a quantity with suitable units.  Further
 	arguments are as for an Object. """
 
-	apply(self.__obinit, args, what)
+	self.__obinit(*args, **what)
 	self.acceleration = a
 	self.__rate = a / self.__c
 

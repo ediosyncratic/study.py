@@ -1,6 +1,6 @@
 """Objects to describe values with namespaces.
 
-$Id: object.py,v 1.11 2007-12-02 21:15:20 eddy Exp $
+$Id: object.py,v 1.12 2008-05-11 19:56:51 eddy Exp $
 """
 
 def aslookup(whom):
@@ -51,7 +51,7 @@ class Object (Lazy):
     Inherits from Lazy and supports an attribute, dir, which is a copy of the
     object's namespace dictionary, omitting names which start with '_'. """
 
-    def copy(self, *args): return apply(self.__class__, args, self.__star())
+    def copy(self, *args): return self.__class__(*args, **self.__star())
     def _lazy_get_dir_(self, ignored): return self.__star()
     def help(self): print self.__doc__
 
@@ -105,7 +105,7 @@ class Object (Lazy):
             del what['lazy_aliases']
             self.__upinit(lazy_aliases=aliases)
 
-	apply(self.also, (), what)
+	self.also(**what)
 
         # now we prepare to replace self's lazy lookup method with one which
         # remembers to call the original before it's finished.

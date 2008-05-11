@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.29 2008-04-20 14:16:26 eddy Exp $
+$Id: home.py,v 1.30 2008-05-11 19:53:33 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -234,18 +234,18 @@ _square_kilo_mile = (kilo * mile)**2
 def IAcontinent(name, area=None, *parts, **what):
     if area is not None: what['area'] = area * _square_kilo_mile
     what['name'] = name
-    return apply(Continent, parts, what)
+    return Continent(*parts, **what)
 
 def IAisland(name, area=None, *parts, **what):
     if area is not None: what['area'] = area * _square_kilo_mile
     what['name'] = name
-    return apply(Island, parts, what)
+    return Island(*parts, **what)
 
 def IAocean(name, area=None, depth=None, *parts, **what):
     if area is not None: what['area'] = area * _square_kilo_mile
     if depth is not None: what['depth'] = depth * mile
     what['name'] = name
-    return apply(Ocean, parts, what)
+    return Ocean(*parts, **what)
 
 # My home planet:
 Earth = body.Planet(
@@ -425,7 +425,7 @@ del IAcontinent, IAisland, IAocean
 
 def KLsurface(radius, gravity, spin, S=Surface, G=Earth.surface, **what):
     """As Surface, but with radius and gravity scaled to Earth = 1."""
-    return apply(S, (radius * G.radius, gravity * G.gravity, spin), what)
+    return S(radius * G.radius, gravity * G.gravity, spin, **what)
 
 # Sol: reprise
 Sun.also(
@@ -486,7 +486,7 @@ def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **w
                  'density': density * d,
                  'surface': surface,
                  'orbit': orbit})
-    return apply(P, (name,), what)
+    return P(name, **what)
 
 # Kaye & Laby also give, for orbits, synodic periods and longitudes of node and
 # perihelion (closest approach).  Several of the following also get .observe
