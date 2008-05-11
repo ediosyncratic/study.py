@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.39 2008-04-03 06:36:43 eddy Exp $
+$Id: sample.py,v 1.40 2008-05-11 12:40:13 eddy Exp $
 """
 
 class _baseWeighted:
@@ -92,10 +92,11 @@ class curveWeighted (Lazy, _baseWeighted):
     attribute with a suitable meaning. """
 
     tophat = {-1./6: 1, 1./6: 1} # produces uniform distribution from -.5 to +.5
-    gausish = { 0: .382, # approximate a gaussian with mean 0 and standard deviation 1
-                1: .242, -1: .242,
-                2: .0608, -2: .0608,
-                3: .0062, -3: .0062 }
+    gaussish = { 0: .382, # approximate a gaussian with mean 0 and standard deviation 1
+                 1: .242, -1: .242,
+                 2: .0608, -2: .0608,
+                 3: .0062, -3: .0062 }
+    # Variance is 1.082, which is a fraction wide, but endurable.
 
     def reach(self, low=None, high=None, share=1e-6):
         """Ensure self's weights stretch as far as low and high, if non-None.
@@ -167,7 +168,7 @@ class curveWeighted (Lazy, _baseWeighted):
             # computes cut points and ensures they're floats.
             if len(row) < 2:
                 if not row: return ()
-                x = 1. * row[0]
+                x = 1. * row[0] # coerce it to real
                 return (x, x)
 
             assert not filter(lambda x: x < 0, map(lambda x, y: y - x, row[:-1], row[1:])), \
@@ -179,10 +180,9 @@ class curveWeighted (Lazy, _baseWeighted):
 
             return ( bot, ) + tuple(map(mean, row[:-1], row[1:])) + ( top, )
 
-        def _lazy_get_total_(self, ignored, add=lambda a, b: a+b):
-            return reduce(add, self.size, 0)
+        def _lazy_get_total_(self, ignored): return sum(self.size)
 
-        def split(self, weights, add=lambda a, b: a+b):
+        def split(self, weights):
             """Cuts the distribution into pieces in the proportions requested.
 
             Required argument, weights, is a list of non-negative values, having
@@ -193,7 +193,7 @@ class curveWeighted (Lazy, _baseWeighted):
             self.weigh(result) equals the re-scaled weights-list. """
 
             assert not filter(lambda x: x < 0, weights), 'weights cannot be negative'
-            scale = self.total / reduce(add, weights, 0.)
+            scale = self.total / sum(weights)
 
             cut, load = self.cuts, self.size
             ans, prior, i = [], cut[0], 0
@@ -281,35 +281,61 @@ class curveWeighted (Lazy, _baseWeighted):
             return tuple(result)
 
         def cross(self, other):
-            # see joinWeighted.cross() - experimental, 2003/April/20th.
+            """Compute a consensus from two distributions.
+
+            If we presume that each of self and other describes, for independent
+            sets of data, the likelihood distribution of some model parameter
+            given each set of data, then the likelihood distribution given both
+            sets of data is simply the pointwise product of the separate
+            distributions.  If the distributions were gaussians, the new
+            distribution would also be gaussian; its mean would be the weighted
+            average of the old means, each weighted by the other's variance; and
+            the new variance would be the inverse of the sum of inverses of
+            variances.
+
+            In practice, our piecewise constant distributions might not overlap,
+            so it's expeditious to mix the straight piecewise product of the
+            distributions with (an approximation to) the gaussian that we'd get
+            if both source distributions had been gaussians.\n"""
+
+            # Model each as gaussian, determine interpolator of product gaussian:
+            (mym, mys), (yom, yos) = self.gauss_data, other.gauss_data
+            mys, yos = mys**2, yos**2
+            v = 1/(1/mys +1/yos)
+            prod = Weighted(curveWeighted.gaussish).combine(
+                {((mym / mys + yom / yos)*v, v**.5): 1},
+                lambda k, (m, s): k*s + m).interpolator
+
+            # Don't let gaussian span zero if originals don't:
+            if self.cuts[0] > 0 and other.cuts[0] > 0 and prod.cuts[0] < 0:
+                rest = [0] + filter(lambda x: x > 0, prod.cuts)
+            elif self.cuts[-1] < 0 and other.cuts[-1] < 0 and prod.cuts[-1] > 0:
+                rest = filter(lambda x: x < 0, prod.cuts) + [0]
+            else: rest = prod.cuts
+            # Find the end-points of the intervals on which all three are constant:
             cuts = {}
-            for k in self.cuts: cuts[k] = None
-            for k in other.cuts: cuts[k] = None
+            for s in self.cuts, other.cuts, rest:
+                for k in s: cuts[k] = None
             cuts = cuts.keys()
             cuts.sort()
 
-            me, you = self.weigh(cuts), other.weigh(cuts)
-            assert me[0] == 0 == me[-1] and you[0] == 0 == you[-1]
-            me, you = me[1:-1], you[1:-1]
+            # Compute each distribution's weight in each interval:
+            me, you, its = self.weigh(cuts), other.weigh(cuts), prod.weigh(cuts)
+            assert me[0] == 0 == me[-1] and you[0] == 0 == you[-1] and its[0] == 0 == its[-1]
+            assert max(map(abs, (sum(me)-1, sum(you)-1))) < 1e-5
+            assert 0 < sum(its) < 1+1e-5 # may have been trimmed, so materially < 1
+            me, you, its = me[1:-1], you[1:-1], its[1:-1]
 
-            # <bodge> hmm ... but data are likely 95% confidence intervals, so
-            # let's spread an extra 5% around in everyone ...
-            w = cuts[-1] - cuts[0]
-            if w:
-                i, m, y = len(me), self.total * .05 / w, other.total * .05 / w
-                p, me, you = cuts[i], list(me), list(you)
-                while i > 0:
-                    i = i - 1
-                    n = cuts[i]
-                    h, p = p - n, n
-                    me[i], you[i] = me[i] + m * h, you[i] + y * h
-            # </bodge> Otherwise, when two sources of data contradict one
-            # another (e.g. K&L's value for fine structure and one computed from
-            # a definitive formula and values from assorted sources), bits comes
-            # out empty throughout.
-
-            bits = map(lambda x, y: x * y, me, you)
+            # Multiply self's and other's weights in each interval:
+            bits = map(lambda x, y, n=len(me): x * y * n, me, you)
             assert len(cuts) - 1 == len(bits) > 0
+            unit = sum(bits) # if me and you were uniform, this'd be 1
+            if unit < 1: # Add enough gaussian to bring it up to 1
+                bits = map(lambda x, z, t=1-unit: x + t * z, bits, its)
+                unit = sum(bits)
+            # (Could eliminate cuts between intervals of equal density.)
+
+            # Now turn this product distribution into a weight dictionary:
             bok = {}
             if len(bits) > 1:
                 bok[(cuts[0] + 2*cuts[1])/3.] = bits[0]
@@ -319,7 +345,8 @@ class curveWeighted (Lazy, _baseWeighted):
                     bok[k], bits = bits[0], bits[1:]
                 assert len(bits) == 0
             else:
-                assert len(cuts) == 2 # and I *think* its two entries are equal ...
+                assert len(cuts) == 2
+                assert cuts[0] == cuts[1] # conjecture !
                 bok[(cuts[0] + cuts[1])*.5] = 1. # any value will do ...
 
             return bok
@@ -327,7 +354,7 @@ class curveWeighted (Lazy, _baseWeighted):
         # The rest of interpolator (and curveWeighted) is toys; not needed in replacements.
         # dispersal, a.k.a. entropy or information content, computations:
 
-        def _lazy_get_entropoid_(self, ignored, log=math.log, add=lambda a, b: a+b,
+        def _lazy_get_entropoid_(self, ignored, log=math.log,
                                  each=lambda l, h, w, g=math.log: w * g(w / (h-l))):
             """entropoid = integral(: p.log(p) :)
 
@@ -347,7 +374,7 @@ class curveWeighted (Lazy, _baseWeighted):
             cut, siz = self.cuts, self.size
             if len(siz) < 2: return 0 # all zero, or a single spike
 
-            return reduce(add, map(each, cut[:-1], cut[1:], siz))
+            return sum(map(each, cut[:-1], cut[1:], siz))
 
         def _lazy_get_dispersal_(self, ignored, log=math.log):
             """Computes the dispersal (an analogue of entropy) of the distribution.
@@ -405,7 +432,7 @@ class curveWeighted (Lazy, _baseWeighted):
 
             A suitable unit must be independent of applying an overall scaling
             to self's weights or overall translation of self's cuts; a uniform
-            scaling of self's cuts should cale the unit proportionately.  Thus
+            scaling of self's cuts should scale the unit proportionately.  Thus
             the unit must be a `width' of the distribution, such as the total
             span or standard deviation.
 
@@ -450,9 +477,9 @@ class curveWeighted (Lazy, _baseWeighted):
             Since I like +ve dispersals, I've settled on standard deviation ...
             """
 
-            return self._deviation
+            return self.gauss_data[1]
 
-        def _lazy_get__deviation_(self, ignored, sqrt=math.sqrt):
+        def _lazy_get_gauss_data_(self, ignored, sqrt=math.sqrt):
             """standard deviation"""
 
             cut, siz = self.cuts, self.size
@@ -467,7 +494,8 @@ class curveWeighted (Lazy, _baseWeighted):
                 # which is w*(c**n + last * c**(n-1) + ... + last**(n-1) * c +last**n)/(1+n)
                 last, zero, one, two = c, zero + w, one + w*(c +last)/2, two + w*(c*c +last*c +last*last)/3
 
-            return sqrt(two/zero - (one/zero)**2)
+            mean = one/zero
+            return mean, sqrt(two/zero - mean**2)
 
     # end of inner class _lazy_get_interpolator_
     # Odd little fripperies that fascinate me, connected to entropoid, above:
@@ -553,7 +581,7 @@ class repWeighted (curveWeighted):
         weight which is to fall between the bounds; ignored (i.e. treated as 1)
         unless between 0 and 1.  Returns a 2-tuple (lo, hi) for which:
 
-            apply(self.between, self.bounds(f)) == f * self.total()
+            self.between(*self.bounds(f)) == f * self.total()
 
         Thus, for instance, 95% of a distribution lies between the two entries
         in the .bounds(0.95) of the distribution; 2.5% lies below the first
@@ -875,7 +903,10 @@ class joinWeighted (curveWeighted):
                 self[key] = self[key] + val
 
     def cross(self, other):
-        """Pointwise product of two distributions: `intersection'."""
+        """Pointwise product of two distributions.
+
+        This models set intersection and the inference of a combined likelihood
+        distribution from those due to two separate data-sets.\n"""
         assert len(self) > 1 < len(other), "delta functions aren't nice here"
         return self._weighted_(self.interpolator.cross(other.interpolator),
                                detail=max(self.__detail, other.__detail))
@@ -1135,7 +1166,7 @@ class statWeighted (_baseWeighted):
 
         return self.copy(scale = 1. / sum)
 
-    def total(self, add=lambda x, y: x + y): return reduce(add, self.values(), 0)
+    def total(self): return sum(self.values())
     def _total(self): return self.total(), # analogue for _mean, _variance, ...
 
     def _mean(self):
@@ -1182,7 +1213,7 @@ class statWeighted (_baseWeighted):
 from object import Object
 
 class _Weighted (Object, _baseWeighted):
-    """Base-class providing a form of weight-dictionary. """
+    """Mixin class providing a form of weight-dictionary."""
 
     # configure Object.copy()
     _borrowed_value_ = ('keys', 'values', 'items', 'has_key', 'get', 'update', 'clear'
@@ -1191,7 +1222,7 @@ class _Weighted (Object, _baseWeighted):
     __upinit = Object.__init__
     def __init__(self, weights, scale=1, *args, **what):
         assert not what.has_key('values'), what['values']
-        apply(self.__upinit, args, what)
+        self.__upinit(*args, **what)
         self.__weights = {}
         self.add(weights, scale)
 
@@ -1295,14 +1326,14 @@ class _Weighted (Object, _baseWeighted):
         which is what this does: if their __init__ has signature incompatible
         with that of _Weighted, they can override this method with something
         which works round that. """
-        return apply(self.__class__, args, what)
+        return self.__class__(*args, **what)
 
 class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     __joinit = joinWeighted.__init__
     __weinit = _Weighted.__init__
 
     def __init__(self, weights, scale=1, detail=5, *args, **what):
-        apply(self.__weinit, (weights, scale) + args, what)
+        self.__weinit(weights, scale, *args, **what)
         self.__joinit(detail)
 
 # That's built Weighted; now to build Sample, its client.
@@ -1376,7 +1407,7 @@ class Sample (Object):
         # massage best estimate:
         try:
             try: best = what['best']
-            except KeyError: best = apply(Object, args).best
+            except KeyError: best = Object(*args).best
             else: del what['best']
 
             if not weights:
@@ -1409,7 +1440,7 @@ class Sample (Object):
                 self.__best = map(flatten, best)
 
         # Finished massaging inputs: initialise self.
-        apply(self.__upinit, args, what)
+        self.__upinit(*args, **what)
         self.__weigh = self._weighted_(weights)
         self.__weigh.reach(what.get('low', None), what.get('high', None))
 
@@ -1435,7 +1466,7 @@ class Sample (Object):
         normalisation of the results. """
 
         if len(weights) < 2:
-            return apply(self.__better, tuple(weights.keys()))
+            return self.__better(*weights.keys())
         else:
             try: w = self.__weigh
             except AttributeError: self.__weigh = weights
@@ -1540,10 +1571,10 @@ class Sample (Object):
                 del bok[key]
 
         if func: bok['best'] = func(self.best)
-        return apply(self._sampler_, (self.__weigh.copy(func),), bok)
+        return self._sampler_(self.__weigh.copy(func), **bok)
 
     # Derived classes over-ride this to fiddle behaviour of sums, prods, etc.
-    def _sampler_(self, *args, **what): return apply(self.__class__, args, what)
+    def _sampler_(self, *args, **what): return self.__class__(*args, **what)
 
     # now define arithmetic, using join (see below)
 
@@ -1588,7 +1619,9 @@ class Sample (Object):
     __rtruediv__ = __rdiv__
 
     # For pow, expect simple argument:
-    def __pow__(self, what, f=_power): return self.join(f, what)
+    def __pow__(self, what, mod=None, f=_power):
+        assert mod is None
+        return self.join(f, what)
     # officially: (self, what [, modulo ]) ... for ternary pow().
     def __abs__(self): return self.copy(abs)
 
@@ -1763,7 +1796,7 @@ Notice that gr.copy(lambda x: x**2-x-1) and gr**2-gr-1 will have quite
 different weight dictionaries !
 """
 
-Sample.gausish = Sample(Weighted.gausish, best=0,
+Sample.gaussish = Sample(Weighted.gaussish, best=0,
                         __doc__="""Roughly normal distribution.
 
 This (piecewise constantly) approximates a gaussian with mean zero and standard
@@ -1781,3 +1814,4 @@ interval from zero to one.
 """)
 
 Sample.upward = Sample(Weighted.tophat, best=-.5) + .5
+# 1-upward behaves sensibly as downward ...
