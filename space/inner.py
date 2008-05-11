@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.7 2007-03-24 22:42:21 eddy Exp $
+$Id: inner.py,v 1.8 2008-05-11 19:54:22 eddy Exp $
 """
 
 from study.value.units import Object, Quantity, tophat, \
@@ -42,6 +42,7 @@ Mercury.orbit.precession = Quantity(.420 + .001 * tophat, arc.second / year)
 Venus = KLplanet('Venus',
                  # tilt of 177, i.e. nearly 180, means retrograde rotation ...
                  KLsurface(.949, .9, Spin((243.015 + tophat * .01) * day, 177.3),
+                           # But note that the *atmosphere* goes round every 96 hours
                            flattening = 0, material="basalt, granite?"),
                  Orbit(Sun, (108.21 + .01 * tophat) * giga * metre,
                        Spin(.615 * year, 3.394), .0068),
