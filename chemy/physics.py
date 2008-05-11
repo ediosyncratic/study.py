@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.8 2008-04-20 14:15:17 eddy Exp $
+$Id: physics.py,v 1.9 2008-05-11 14:59:08 eddy Exp $
 """
 from study.value.units import *
 
@@ -84,8 +84,8 @@ The fine structure constant arises naturally in the perturbation expansions of
 various physical quantities.  It is a dimensionless quantity which expresses the
 charge on the electron (Millikan's quantum) in terms of the natural unit of
 charge, sqrt(h/Z0), one can obtain (after the style of Planck's units, see
-below) from Planck's constant, h, and the impedance of free space, Z0.  The
-definitive formula for the fine structure constant is:
+planck.Planck) from Planck's constant, h, and the impedance of free space, Z0.
+The definitive formula for the fine structure constant is:
 
     e**2 / (4 * pi * epsilon0 * hbar * c)
 
