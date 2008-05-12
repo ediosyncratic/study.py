@@ -69,7 +69,7 @@ def gcd(a, b):
     elif a == 0: return b	# gcd(0,b) = abs(b)
     # gcd(a,0) falls out naturally in the following
 
-    # Euclid's algorithm:
+    # Euclid's algorithm (see also its extension, below):
     while b > 0: a, b = b, a % b
     return a
 
@@ -110,16 +110,15 @@ def hcf(*others):
     return this
 
 def lcm(*others):
-    """The smallest common multiple of its arguments.
+    """The smallest (non-negative) common multiple of its arguments.
 
     All arguments should be members of a linear space over the natural numbers,
     e.g. (optionally long) integers or polynomials with such coefficients.
     There may be arbitrarily many arguments.
 
-    If any entry is zero, so is the result: zero is a multiple of everything,
-    and is smaller than any other value; furthermore, nothing else is a multiple
-    of zero, so it is the only candidate.  The return when no arguments are
-    supplied is 1, to ensure that lcm is transitive.\n"""
+    If any entry is zero, so is the result: zero is a multiple of everything and
+    nothing else is a multiple of zero, so it is the only candidate.  The return
+    when no arguments are supplied is 1, to ensure that lcm is associative.\n"""
 
     this = 1
     for other in others:
@@ -131,21 +130,61 @@ def lcm(*others):
     if this < 0: return -this
     return this
 
+def Euclid(a, b):
+    """Solves a*i + b*j == hcf(a, b)
+
+    Takes two naturals (or members of a suitable ring), a and b; returns a tuple
+    h, i, j for which: a*i + b*j == h == hcf(a, b).  Uses the extended version
+    of Euclid's algorithm (which I re-invented, given that the clue is to rewind
+    the quotients from the divmod history in the familiar algorithm, while
+    mildly drunk, 2008/05/12).\n"""
+    # Use h, g as locals purely to preserve a, b for use in final assertions.
+    h, g = a, b
+    qs = [] # quotients
+    # rs, m = [], -2 # but read rs[-1] as b, rs[-2] as a
+    while g:
+        q, r = divmod(h, g) # divmod(rs[m], rs[m+1])
+        h, g = g, r # rs[m+1], rs[m+2]
+        qs.append(q)
+        # assert rs[m] == qs[m+2] * rs[m+1] + rs[m+2]
+        # m += 1; assert m+2 == len(q)
+        # assert rs[m+1] == rs[m-1] -qs[m+1] * rs[m]
+    # n = m # hereafter, references to m are "for all reasonable values of m"
+    # assert rs[n+1] == 0, h == rs[n] == hcf(*rs) == hcf(a, b)
+    # rs[n] == rs[n-1] * 0 + rs[n] * 1
+    # we want i, j = is[-2], js[-2] with rs[n] == rs[m] * is[m] + rs[m+1] * js[m]
+    # == (rs[m-1] -qs[m+1] * rs[m]) * js[m] + rs[m] * is[m]
+    # == rs[m-1] * js[m] + rs[m] * (is[m] -qs[m+1] * js[m])
+    # so is[m-1] == js[m], js[m-1] == is[m] -qs[m+1] * js[m] == js[m+1] -qs[m+1] * js[m]
+    # i.e. js[m-2] == js[m] -qs[m] * js[m-1]
+    # with js[n] == is[n-1] == 0, js[n-1] == 1
+    # we need qs[n] and earlier, i.e. qs[:1+n], which is qs[:-1]
+    qs.pop() # discard last quotient, rs[n-1] / rs[n]
+    i, j = 0, 1 # m = n, which is now len(qs) - 1
+    while qs:
+        # i, j are js[m], js[m-1]; we now use qs[m]
+        i, j = j, i - qs.pop() * j # js[m-1], js[m-2]
+        # m -= 1
+    # m == -1; i, j == js[-1], js[-2]
+
+    assert a*i + b*j == h == hcf(a, b), (a, b, i, j, h)
+    return h, i, j
+
 theorem = """Any rational whose square is an integer is, itself, an integer.
 
-As a special case, this tells us that the square root of 2 is irrational.
+As a special case, this tells us that the square root of 2 is 'irrational'.
 
 Proof:
 
   Suppose, for positive integers p, q, that the square of p/q is an integer, n.
   Thus p.p = q.q.n and n is positive.  There are positive integers m, r for
-  which m.r.r = n and m has no perfect square as a factor, yielding p.p =
+  which m.r.r = n and m has no perfect square > 1 as a factor, yielding p.p =
   (q.r).(q.r).m.
 
   Expressing p, q.r and m in terms of their prime factors we now find that every
-  prime factor of m has odd multiplicity as a factor of p.p, all of whose
-  factors have even multiplicity; thus m cannot have any prime factors, so m is
-  1 and p = q.r has q as a factor so p/q = r is a positive integer. """
+  prime factor of m has multiplicity 1 (which is odd) as a factor of p.p, all of
+  whose factors have even multiplicity; thus m has no prime factors, so m is 1
+  and p = q.r has q as a factor so p/q = r is a positive integer."""
 
 _early_primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
 def factorsum(N):
@@ -154,15 +193,14 @@ def factorsum(N):
     Thus N is perfect precisely if N == factorsum(N).
     """
 
-    # Find (upper bound on) highest proper factor of N:
+    # Find upper bound, i, on highest proper factor of N:
     for p in _early_primes:
         i, r = divmod(N, p)
         if r == 0: break
 
     S = 0 # sum proper factors:
     while i > 0:
-        if N % i == 0:
-            S += i
+        if N % i == 0: S += i
         i -= 1
 
     return S
