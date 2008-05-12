@@ -19,10 +19,50 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ...
 
-$Id: primes.py,v 1.20 2008-05-11 22:14:03 eddy Exp $
+$Id: primes.py,v 1.21 2008-05-12 08:04:48 eddy Exp $
 """
 
 checking = None
+
+from study.snake import prodict
+class Prodict (prodict.Prodict):
+    """A dictionary that thinks it describes a factorisation.
+
+    Keys are understood as factors; the value of each is understood as its
+    multiplicity.  Thus a prodict represents the integer given by its __long__
+    (q.v.).\n"""
+
+    def __long__(self):
+        return reduce(lambda a,b: a*b,
+                      map(pow, *map(lambda *args: args, *self.items())), 1)
+
+    def __int__(self): return int(long(self))
+    def __float__(self): return float(long(self))
+    def __complex__(self): return complex(long(self))
+
+    def __setitem__(self, k, v, up=prodict.Prodict.__setitem__):
+        if v < 0: raise ValueError('Negative power of factor', v, k)
+        up(self, k, v)
+
+    def __mul__(self, other, up=prodict.Prodict.__mul__):
+        try: return up(self, other)
+        except AttributeError: pass
+        # Interpret other as an integer; use its factorisation
+
+        bok = self.copy()
+        primes.factorise(other, bok)
+        return bok
+    __rmul__ = __mul__
+
+    def __div__(self, other, up=prodict.Prodict.__div__):
+        try: other.items
+        except AttributeError: other = primes.factorise(other)
+        return up(self, other)
+
+    def __rdiv__(self, other, up=prodict.Prodict.__rdiv__):
+        try: other.items
+        except AttributeError: other = primes.factorise(other)
+        return up(self, other)
 
 class lazyTuple:
     """Evaluation on demand of a (possibly infinite) tuple.
@@ -276,20 +316,22 @@ class _Prime(lazyTuple):
 
 	Optional argument:
 
-	    gather -- dictionary to which to add results, or None (the default)
-	              to use a fresh empty dictionary: this is what factorise()
-	              returns.
+	    gather -- dictionary (ideally a Prodict, q.v.) to which to add
+	              results, or None (the default) to use a fresh empty
+	              Prodict: this is what factorise() returns.
 
-	The result of factorise() is always a dictionary: its prodict() is N =
-	num*prodict(gather), its keys are primes, -1 or 0 and its values are
-	positive integers.  The key -1 is present precisely if N is negative, in
-	which case its multiplicity is 1 (not, for instance, 3 or 5).  The key 0
-	only appears when N is 0, in which case the result is {0: 1}.  Note that
-	1 = prodict({}) so I don't need to make a special case of 1 ;^)
+	The result of factorise() is always a Prodict: the number, N, that it
+        describes is num times the one gather, treated as a Prodict, described
+        when passed in.  The result's keys are primes, -1 or 0 and its values
+        are positive integers, indicating multiplicities.  The key -1 is present
+        precisely if N is negative, in which case its multiplicity is 1 (not,
+        for instance, 3 or 5).  The key 0 only appears when N is 0, in which
+        case the result is Prodict({0: 1}).  Note that 1 = int(Prodict({})) so I
+        don't need to make a special case of 1 ;^)
 
-	If num is a positive integer, factorise(num) is a dictionary whose keys
-	are its prime factors: the value for each key is its multiplicity as a
-	factor of num.  Thus, prodict(factorise(num)) is num.
+	If num is a positive integer, factorise(num) is a Prodict whose keys are
+	its prime factors: the value for each key is its multiplicity as a
+	factor of num.  Thus, int(factorise(num)) is num.
 
 	Zero is a special case (because it is a multiple of every number): its
 	given factorisation is { 0: 1 }.  Negative values are factorised as the
@@ -301,10 +343,10 @@ class _Prime(lazyTuple):
 	factorisations: it's much easier to factorise each of them in turn than
 	to factorise their product !
 
-	    out = {}
+	    out = Prodict({})
 	    for num in sequence: factorise(num, out)
 
-	See also: Factorise() (which is packaging) and prodict().
+	See also: Factorise() (which is packaging) and Prodict.
 	"""
 
 	# Only accept integers !
@@ -573,7 +615,6 @@ class cachePrimes(_Prime, Lazy):
 	except OverflowError: pass
 	return self.__high_water + self.__step
 
-    def __del__(self): self.persist()
     def persist(self, name='c', force=None):
 	"""Records `most' of what the primes module knows in files for later reference.
 
@@ -666,31 +707,6 @@ def Sisyphus():
 
 Sisyphus = Sisyphus()
 
-def prodict(dict):
-    """Returns the product of a factorisation dictionary.
-
-    Argument, dict, is a dictionary whose keys are multipliable and whose values
-    are powers to which one may sensibly raise these keys.  The result is the
-    same as would result from
-
-	answer = 1
-	for key, val in dict.items():
-	    answer = answer * pow(key, val)
-	return answer
-
-    This implementation uses reduce() and map().  This might be more efficient
-    than doing it as above, but I don't know.  It's only really here to give me
-    a handy way to do the inverse of factorise(), above.
-
-    See also, in module basEddy.quantity: adddict, subdict and scaledict.  They
-    and this may one day migrate elsewhere to be together.  We get:
-	* prodict(adddict(a,b)) = prodict(a) * prodict(b),
-	* prodict(subdict(a,b)) = prodict(a) / prodict(b),
-	* prodict(scaledict(d,n)) = pow(prodict(d), n).
-    """
-
-    return reduce(lambda a,b: a*b, map(pow, dict.keys(), dict.values()), 1)
-
 # Packaging.
 from types import TupleType, ListType, FloatType, IntType, LongType
 def Factorise(args=(), gather=None, cache=True):
@@ -714,14 +730,11 @@ def Factorise(args=(), gather=None, cache=True):
 	passing the key to Factorise().  If args is the empty tuple, Factorise
 	acts as if it'd been given the smallest natural number that the primes
 	module doesn't yet know about.  If args is an integer, Factorise()
-	behaves as primes.factorise(), so prodict(Factorise(())) will be this
-	`least unknown', but it'll be known by the time you've evaluated that.
+	behaves as primes.factorise(), so int(Factorise(())) will be this `least
+	unknown', but it'll be known by the time you've evaluated that.
 
-	See also: prodict() and primes.factorise().
+	See also: Prodict and primes.factorise().
 	"""
-
-	# Can't use {} as gather's default, as we modify it !
-	if gather is None: gather = {}
 
 	try:
 	    if len(args) > 1: seq = args
@@ -745,11 +758,12 @@ def Factorise(args=(), gather=None, cache=True):
 
 	else:
 	    # We did get a sequence argument: traverse it.
-	    result = gather
+            if gather is None: result = {}
+            else: result = gather
 	    for num in seq:
                 try: result[num]
                 except KeyError:
-		    result[num] = Factorise(num, cache=None)
+		    result[num] = Factorise(num, cache=False)
 
 	if cache: primes.persist()
 	return result
