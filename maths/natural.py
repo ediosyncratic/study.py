@@ -133,22 +133,15 @@ def lcm(*others):
 def Euclid(a, b):
     """Solves a*i + b*j == hcf(a, b)
 
-    Takes two naturals (or members of a suitable ring), a and b; returns a tuple
-    h, i, j for which: a*i + b*j == h == hcf(a, b).  Uses the extended version
-    of Euclid's algorithm.\n"""
-
-    # Use h, g as locals purely to preserve a, b for use in final assertions.
-    h, g, qs = a, b, []
-    while g:
-        h, (q, g) = g, divmod(h, g)
-        qs.append(q)
-
-    qs.pop()
-    i, j = 0, 1
-    while qs: i, j = j, i - qs.pop() * j
-
-    assert a*i + b*j == h == hcf(a, b), (a, b, i, j, h)
-    return h, i, j
+    Takes two naturals (or members of a suitable ring), a and b; returns a pair
+    i, j for which: a*i + b*j == hcf(a, b).  Uses the extended version of
+    Euclid's algorithm.  When the hcf is 1, we have (a*i) % b == 1 == (b*j) % a,
+    so i, j are multiplicative inverses of a, b modulo one another.\n"""
+    if b == 0: return a, 1, 0
+    q, r = divmod(a, b)
+    i, j = Euclid(b, r)
+    # hcf == i * b + j * (a - q * b) == j * a + (i - q * j) * b
+    return j, i - q * j
 
 theorem = """Any rational whose square is an integer is, itself, an integer.
 
