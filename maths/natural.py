@@ -137,7 +137,7 @@ def Euclid(a, b):
     i, j for which: a*i + b*j == hcf(a, b).  Uses the extended version of
     Euclid's algorithm.  When the hcf is 1, we have (a*i) % b == 1 == (b*j) % a,
     so i, j are multiplicative inverses of a, b modulo one another.\n"""
-    if b == 0: return a, 1, 0
+    if b == 0: return 1, 0
     q, r = divmod(a, b)
     i, j = Euclid(b, r)
     # hcf == i * b + j * (a - q * b) == j * a + (i - q * j) * b
