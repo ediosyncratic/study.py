@@ -1,6 +1,6 @@
 """Tool class useful in various contexts.
 
-$Id: prodict.py,v 1.2 2008-05-12 07:48:28 eddy Exp $
+$Id: prodict.py,v 1.3 2008-05-12 08:03:26 eddy Exp $
 """
 
 
@@ -42,30 +42,42 @@ class Prodict (dict):
             try: del self[k]
             except KeyError: pass
 
+    def __imul__(self, other):
+        for k, v in other.items():
+            self[k] = self[k] + v
+        return self
+
     def __mul__(self, other):
         bok = self.copy()
-        for k, v in other.items():
-            bok[k] = bok.get(k, 0) + v
-
+        bok *= other
         return bok
     __rmul__ = __mul__
 
+    def __idiv__(self, other):
+        for k, v in other.items(): self[k] = self[k] - v
+        return self
+    __itruediv__ = __idiv__
+
     def __div__(self, other):
         bok = self.copy()
-        for k, v in other.items(): bok[k] = bok.get(k, 0) - v
+        bok /= other
         return bok
+    __truediv__ = __div__
 
     def __rdiv__(self, other):
         bok = self.copy(other.copy())
-        for k, v in self.items(): bok[k] = bok.get(k, 0) - v
+        bok /= self
         return bok
+    __rtruediv__ = __rdiv__
 
-    def __pow__(self, n): # Third arg would be modulo
-        bok = self.copy()
-
+    def __ipow__(self, n):
         # Raising to zero power yields 1
         if n:
             for k in bok.keys(): bok[k] *= n
         else: bok.clear()
+        return self
 
+    def __pow__(self, n): # Third arg would be modulo
+        bok = self.copy()
+        bok **= n
         return bok
