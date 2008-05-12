@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.49 2008-05-11 15:39:45 eddy Exp $
+$Id: quantity.py,v 1.50 2008-05-12 08:09:29 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -304,54 +304,22 @@ kind_prop_lookup = {
     '(m/s)**2.kg' : energy }
 del scalar, angle, speed, mass, time, thermal
 
-def adddict(this, that):
-    cop = this.copy()
-    cop.update(that)
-    cop = cop.keys()
-    result = {}
+from study.snake import prodict
+class Prodict (prodict.Prodict):
+    def __pow__(self, n, mod=None, up=prodict.Prodict.__pow__):
+        assert mod is None
+        # Raising to zero power yields dimensionless 1
+        if n:
+            # Try to avoid fancy numbers as exponents for units ...
+            while True:
+                for k in ( 'best', 'median' ):
+                    try: n = getattr(n, k)
+                    except AttributeError: pass
+                    else: break
+                else: break
 
-    for key in cop:
-        try: it = this[key]
-        except KeyError: it = 0
-        try: at = that[key]
-        except KeyError: at = 0
-        sum = it + at
-        # leave out zero entries.
-        if sum: result[key] = sum
-
-    return result
-
-def subdict(this, that):
-    cop = this.copy()
-    cop.update(that)
-    cop = cop.keys()
-    result = {}
-
-    for key in cop:
-        try: it = this[key]
-        except KeyError: it = 0
-        try: at = that[key]
-        except KeyError: at = 0
-        sum = it - at
-        # leave out zero entries.
-        if sum: result[key] = sum
-
-    return result
-
-def scaledict(dict, scale):
-    result = {}
-
-    # Raising to power zero yields dimensionless.
-    if scale:
-        # Try to avoid fancy numbers as exponents for units ...
-        try: scale = scale.median
-        except AttributeError: pass
-
-        for key, val in dict.items():
-            if val:
-                result[key] = scale * val
-
-    return result
+        return up(self, n)
+del prodict
 
 from object import Object
 _terse_dict = {}
@@ -401,7 +369,9 @@ class Quantity (Object):
             if units.__scale is 1: units = units.__units
             else: scale, units = scale * units.__scale, units.__units
         if isinstance(scale, Quantity):
-            units, scale = adddict(units, scale.__units), scale.__scale
+            units, scale = scale.__units * units, scale.__scale
+        if not isinstance(units, Prodict):
+            units = Prodict(units)
 
         # massaging scale as a sample (so we can trust its str() to work).
         if not isinstance(scale, Sample):
@@ -622,21 +592,21 @@ class Quantity (Object):
 
     def __mul__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(self.__scale * ot, adddict(self.__units, her))
+        return self._quantity(self.__scale * ot, self.__units * her)
 
     def __rmul__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(ot * self.__scale, adddict(her, self.__units))
+        return self._quantity(ot * self.__scale, her * self.__units)
 
     def __div__(self, other, grab=unpack): 
         ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
-        return self._quantity(self.__scale / ot, subdict(self.__units, her))
+        return self._quantity(self.__scale / ot, self.__units / her)
     __truediv__ = __div__
 
     def __rdiv__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(ot / self.__scale, subdict(her, self.__units))
+        return self._quantity(ot / self.__scale, her / self.__units)
     __rtruediv__ = __rdiv__
 
     def __pow__(self, what, mod=None, grab=unpack):
@@ -644,7 +614,7 @@ class Quantity (Object):
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
-        return self._quantity(pow(self.__scale, wh), scaledict(self.__units, wh))
+        return self._quantity(pow(self.__scale, wh), self.__units ** wh)
 
     del unpack
 
@@ -669,7 +639,7 @@ class Quantity (Object):
 
     def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
     def _lazy_get_variance_(self, ignored):
-        return self._quantity(self.__scale.variance, scaledict(self.__units, 2))
+        return self._quantity(self.__scale.variance, self.__units ** 2)
 
     # lazy string and representation lookups:
 
@@ -820,9 +790,7 @@ class Quantity (Object):
         return head + tail
 
     # Methods for use by derived classes and kindred allies:
-    def _unit_order(self, unit):
-        try: return self.__units[unit]
-        except KeyError: return 0
+    def _unit_order(self, unit): return self.__units[unit]
 
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
