@@ -34,75 +34,74 @@ between successive terms of this sequence steadilly approaches the golden ratio.
 
 
 def fibonacci(what, was=0, result=1):
-	"""Computes Fibonacci's sequence.
+    """Computes Fibonacci's sequence.
 
-        Required first argument is the index into Fibonacci's sequence: it
-        should be an integer and may be negative.  (If it is not an integer, it
-        is effectively rounded towards zero.)  Optional second and third
-        arguments are the sequence's entries with indices 0 and 1 respectively;
-        their defaults are 0 and 1, respectively.
+    Required first argument is the index into Fibonacci's sequence: it should be
+    an integer and may be negative.  (If it is not an integer, it is effectively
+    rounded towards zero.)  Optional second and third arguments are the
+    sequence's entries with indices 0 and 1 respectively; their defaults are 0
+    and 1, respectively.
 
-	Defined here by: for all integers n, f(n+1) = f(n) + f(n-1).  For the
-	default initial entries, this gives f(-n) = f(n) for odd n, f(-n) =
-	-f(n) for even n; in particular, both f(-1) and f(1) are 1.  Note that
-	conventional definitions tend to index from 1 rather than zero and take
-	the first two entries to be 1: this helpfully matches what we get here,
-	since f(2) = f(1) + f(0) = 1 + 0 = 1.
+    Defined here by: for all integers n, f(n+1) = f(n) + f(n-1).  For the
+    default initial entries, this gives f(-n) = f(n) for odd n, f(-n) = -f(n)
+    for even n; in particular, both f(-1) and f(1) are 1.  Note that
+    conventional definitions tend to index from 1 rather than zero and take the
+    first two entries to be 1: this helpfully matches what we get here, since
+    f(2) = f(1) + f(0) = 1 + 0 = 1.
 
-	Performs its calculations assuming its data to be integers, so handles
-	overflow by coercing values to indefinite-precision integers (Python's
-	long integer type).  If actual initial values are floats, this handling
-	of overflow is probably wrong; you may be better off using
-	basEddy.bigfloat.BigFloat()s.\n"""
+    Performs its calculations assuming its data to be integers, so handles
+    overflow by coercing values to indefinite-precision integers (Python's long
+    integer type).  If actual initial values are floats, this handling of
+    overflow is probably wrong; you may be better off using
+    basEddy.bigfloat.BigFloat()s.\n"""
 
-	if -1 < what < 1: return was
-	while what > 1:
-		# f(j-1), f(j) = f(i), f(i) + f(i-1)
-		# j = 1+i
-		try: was, result = result, result + was
-		except OverflowError:
-			was, result = result, long(result) + was
-		what = what - 1
+    if -1 < what < 1: return was
+    while what > 1:
+        # f(j-1), f(j) = f(i), f(i) + f(i-1)
+	# j = 1+i
+	try: was, result = result, result + was
+	except OverflowError:
+		was, result = result, long(result) + was
+	what = what - 1
 
-	while what < -1:
-		# f(j), f(1+j) = f(1+i) - f(i), f(i)
-		# j = i-1
-		try: result, was = was - result, result
-		except OverflowError:
-			result, was = was - long(result), result
-		what = what + 1
+    while what < -1:
+        # f(j), f(1+j) = f(1+i) - f(i), f(i)
+	# j = i-1
+	try: result, was = was - result, result
+	except OverflowError:
+		result, was = was - long(result), result
+	what = what + 1
 
-	return result
+    return result
 
 def fibtimes((a,b), (c,d)):
-	"""A multiplication with which to speed Fibonacci computation.
+    """A multiplication with which to speed Fibonacci computation.
 
-	See: http://www.inwap.com/pdp10/hbaker/hakmem/hakmem.html
+    See: http://www.inwap.com/pdp10/hbaker/hakmem/hakmem.html
 
-	Define multiplication on ordered pairs
+    Define multiplication on ordered pairs
 
 	(A,B) (C,D) = (A C + A D + B C, A C + B D).
 
-	This is just (A X + B) * (C X + D) mod X^2 - X - 1, and so is
-	associative, etc. We note (A,B) (1,0) = (A + B, A), which is the
-	Fibonacci iteration. Thus, (1,0)^N = (FIB(N), FIB(N-1)), which can be
-	computed in log N steps by repeated squaring, for instance.\n"""
+    This is just (A X + B) * (C X + D) mod X^2 - X - 1, and so is associative,
+    etc. We note (A,B) (1,0) = (A + B, A), which is the Fibonacci
+    iteration. Thus, (1,0)^N = (FIB(N), FIB(N-1)), which can be computed in log
+    N steps by repeated squaring, for instance.\n"""
 
-	return a * (c + d) + b * c, a * c + b * d
+    return a * (c + d) + b * c, a * c + b * d
 
 def fibpow(n, a=1, b=0):
-	c, d = 0, 1 # the identity
-	while n > 0:
-		n, i = divmod(n, 2)
-		if i: c, d = fibtimes((a,b),(c,d))
-		a, b = fibtimes((a,b), (a,b))
-	return c, d
+    c, d = 0, 1 # the identity
+    while n > 0:
+	n, i = divmod(n, 2)
+	if i: c, d = fibtimes((a,b),(c,d))
+	a, b = fibtimes((a,b), (a,b))
+    return c, d
 
 def fastonacci(n, zero, one):
-	"""As for fibonacci, but computed in logarithmic time :-)
-	"""
+    """As for fibonacci, but computed in logarithmic time :-)"""
 
-	return fibtimes((zero, one), fibpow(n))[0]
+    return fibtimes((zero, one), fibpow(n))[0]
 
 # or ...
 class Fibonacci:
