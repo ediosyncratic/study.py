@@ -10,16 +10,17 @@ less.
 Building on that, this module also provides facilities for factorisation and
 multiplying back together again:
 
-  prodict(dict) -- product of pow(key, dict[key])
+  Prodict -- dictionary representing product of pow(key, dict[key])
 
-  factorise(numb) -- returns a dictionary, which prodict will map to numb: its
-  keys are irreducible (so generally primes, but -1, at least, may also appear).
+  factorise(numb) -- returns a Prodict, whose int() is numb: its keys are
+  irreducible (so generally primes, but -1, at least, may also appear).
 
 See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
-stuff with prime polynomials ...
+stuff with prime polynomials ... and there must be such a thing as complex
+primes.
 
-$Id: primes.py,v 1.21 2008-05-12 08:04:48 eddy Exp $
+$Id: primes.py,v 1.22 2008-05-12 08:07:19 eddy Exp $
 """
 
 checking = None
@@ -29,7 +30,7 @@ class Prodict (prodict.Prodict):
     """A dictionary that thinks it describes a factorisation.
 
     Keys are understood as factors; the value of each is understood as its
-    multiplicity.  Thus a prodict represents the integer given by its __long__
+    multiplicity.  Thus a Prodict represents the integer given by its __long__
     (q.v.).\n"""
 
     def __long__(self):
