@@ -1,6 +1,6 @@
 """Tool class useful in various contexts.
 
-$Id: prodict.py,v 1.3 2008-05-12 08:03:26 eddy Exp $
+$Id: prodict.py,v 1.4 2008-05-12 09:14:04 eddy Exp $
 """
 
 
@@ -73,8 +73,8 @@ class Prodict (dict):
     def __ipow__(self, n):
         # Raising to zero power yields 1
         if n:
-            for k in bok.keys(): bok[k] *= n
-        else: bok.clear()
+            for k in self.keys(): self[k] *= n
+        else: self.clear()
         return self
 
     def __pow__(self, n): # Third arg would be modulo
