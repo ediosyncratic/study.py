@@ -1,6 +1,6 @@
 """Base-class to mix in certain useful features to sequence types.
 
-$Id: sequence.py,v 1.1 2008-05-13 21:36:30 eddy Exp $
+$Id: sequence.py,v 1.2 2008-05-14 22:04:36 eddy Exp $
 """
 
 class Iterable (object):
@@ -176,6 +176,8 @@ class Slice (object):
 
         return Slice(s, hi, m)
 
+    del Euclid
+
     def __contains__(self, ind):
         step, lo = self.step, self.start
 
@@ -210,36 +212,5 @@ class Slice (object):
         return other == self.start
 
     def __ne__(self, other, hcf=gcd, lcm=lcm):
-        # true unless there's a common entry
-        if len(self) < 1: return True # empty :-)
-        if self.step == 0 or len(self) == 1: return other != self.start
-        if self < other or other < self: return True
-
-        try: a, o, e = other.start or 0, other.stop, other.step
-        except AttributeError: return not (other in self) # simple value
-        assert o != a, 'empty should have been both < and > self !'
-        if e is None: e = 1
-        if not e or len(other) == 1: return not(a in self)
-        if (a - self.start) % hcf(e, self.step): return False
-
-        if e == self.step:
-            if e > 0:
-                return ((o is None or self.start < o) and
-                        (self.stop is None or a < self.stop))
-            else: # assert: is is not zero
-                return ((o is None or self.start > o) and
-                        (self.stop is None or a > self.stop))
-
-        # TODO: avoid iterating
-        if e * self.step < 0:
-            for it in self:
-                if it in other: return False
-                if (a - it) * e > 0: break
-        elif self.stop is not None:
-            for it in self:
-                if it in other: return False
-        elif o is not None:
-            for it in other:
-                if it in self: return False
-        # else: infinitely many terms in each, going same way
-        return True
+        try: return len(self.trim(other)) == 0
+        except TypeError: return other not in self
