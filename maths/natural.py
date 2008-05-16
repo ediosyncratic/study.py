@@ -137,7 +137,7 @@ def Euclid(a, b):
     i, j for which: a*i + b*j == hcf(a, b).  Uses the extended version of
     Euclid's algorithm.  When the hcf is 1, we have (a*i) % b == 1 == (b*j) % a,
     so i, j are multiplicative inverses of a, b modulo one another.\n"""
-    if b == 0: return 1, 0
+    if b == 0: return cmp(a, 0), 0
     q, r = divmod(a, b)
     i, j = Euclid(b, r)
     # hcf == i * b + j * (a - q * b) == j * a + (i - q * j) * b
@@ -241,15 +241,22 @@ def sqrt(val):
         v >>= 2
         bit += 1
 
-    bb = 1 << (2 * bit)
-    while bit:
+    # input = val; assert v == 0 # hereafter, val stores input - v**2
+    bb = 1 << (2 * bit) # > val but <= val*4
+
+    while bit and val:
+        assert (v<<(1+bit)) +bb > val > 0 and bb == (1 << 2 * bit)
+        # i.e. (v + (1<<bit))**2 = input - val +(v<<(1+bit)) +bb > input > v**2
         bb >>= 2
         up = (v << bit) + bb
+        assert v & ((1 << bit) -1) == 0
         bit -= 1
-        if up <= val:
+        assert up == (v | (1<<bit))**2 - v**2
+        if up <= val: # (v + (1<<bit))**2 == input -val +up <= input
             v |= 1 << bit
             val -= up
 
+    # v**2 <= input < (1+v)**2
     return v
 
 # and now for something python-2.2-specific:
