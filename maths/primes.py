@@ -20,7 +20,7 @@ permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ... and there must be such a thing as complex
 primes.
 
-$Id: primes.py,v 1.22 2008-05-12 08:07:19 eddy Exp $
+$Id: primes.py,v 1.23 2008-05-17 22:08:15 eddy Exp $
 """
 
 checking = None
@@ -529,11 +529,10 @@ class cachePrimes(_Prime, Lazy):
 	"""Imports data from a file, preparatory to _load()ing."""
 
         obj = object()
-        obj.__dict__
         execfile(handle, obj.__dict__)
         return obj
 
-    del Dummy
+    del Dummy # Instances of the actual built-in object don't have a __dict__ !
 
     def get_cache(self):
 	"""Returns true if it got anything out of the caches."""
@@ -611,10 +610,19 @@ class cachePrimes(_Prime, Lazy):
 
     def _next_high(self):
 	try:
-	    while self.__step < self.__high_water / 8:
+            cut = min(self.__high_water >> 3, 1<<22)
+            while self.__step < cut:
 		self.__step = self.__step * 2
 	except OverflowError: pass
 	return self.__high_water + self.__step
+
+    __upgrow = _Prime.grow
+    def grow(self):
+        # Over-ride _Prime.grow so that we never hold too much uncached.
+        ans = self.__upgrow()
+        if len(self._item_carrier) > self._next_high():
+            self.persist()
+        return ans
 
     def persist(self, name='c', force=None):
 	"""Records `most' of what the primes module knows in files for later reference.
