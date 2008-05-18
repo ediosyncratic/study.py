@@ -24,159 +24,85 @@ the case of 1, since it has no other factor than itself, so it's probably
 simpler just to arbitrarily declare 0 and 1 special, rather than redefining
 'proper factor' !
 
-$Id: sieve.py,v 1.4 2008-05-18 19:45:57 eddy Exp $
+$Id: sieve.py,v 1.5 2008-05-18 21:15:11 eddy Exp $
 """
-from study.snake.lazy import Lazy
 
-class Sieve (Lazy):
+def mark(p, slab, base, off=0):
+    """Mark all multiples of p in slab.
+
+    Required arguments:
+      p -- a prime
+      slab -- a modifiable sequence
+      base -- a natural number
+
+    Optional argument
+      off -- length of previously-marked prefix of slab (default zero);
+             see note, below.
+
+    For each i in range(off, len(slab)), if slab[i] is None and i+base is a
+    multiple of p, mark sets slab[i] to p.  Raises StopIteration if every
+    non-prime in slab has least proper factor < p (i.e. it's pointless to try to
+    mark with p or any higher prime).
+
+    Note that, when off is non-zero, all entries in slab[:off] must be known to
+    be the true lowest proper factors of the corresponding naturals (entry [i]
+    corresponds to i+base); for this to be true, you must have scanned it with
+    all primes up to sqrt(base+off).\n"""
+
+    q, r = divmod(base+off, p)
+    if q < p: q = p
+    elif r: q += 1
+    n, span = q * p - base, len(slab)
+    if n >= span and q == p: raise StopIteration
+
+    while n < span:
+        if slab[n] is None: slab[n] = p
+        n += p
+
+def sieve(primes, start, span, head=()):
     """The Sieve of Eratosthenes.
 
-    Iterating over an instance provokes sieving, yielding each prime found in
-    the range sieved, until none remain.
+    Required arguments:
+      primes -- an iterable yielding all of the primes < start
+      start -- lowest natural in the range to be sieved
+      span -- number of naturals in the range to be sieved
 
-    Public attributes:
-      base -- start-point of the range being sieved
-      factors -- tuple whose [i] entry is None if .base+i is a prime, else the
-                 lowest proper factor of .base+i.
-      primes -- tuple of primes known to be in the range
+    Optional argument:
+      head -- tuple listing prior knowledge of least proper factors of an
+              initial sub-range of these naturals; default is empty
 
-    Only one iterator over an instance should ever be used; until it has
-    completed, .factors and .primes describe only the portion of the range for
-    which answers are known.\n"""
+    Returns a tuple whose [i] entry is None if start+i is prime, else the lowest
+    proper factor of start+i; if you passed head, you should assert that the
+    returned tuple's [:len(head)] agrees with head.
 
-    def __init__(self, primes, start, span, head=()):
-        """Prepare to sieve a specified range of naturals.
+    Note that 0 and 1 are deemed to be their own least proper factors; see file
+    comment.  A call with start == 0 should pass in head=(0,1) and can pass in
+    any empty sequence as primes; chose a suitably large span and get all the
+    primes up to it with sieve((), 0, span, (0,1)).\n"""
 
-        Required arguments:
-          primes -- an iterable yielding all of the primes < start
-          start -- lowest natural in the range to be sieved
-          span -- number of naturals in the range to be sieved
+    off = len(head)
+    slab = list(head) + [ None ] * (span - off)
+    try:
+        for p in primes: mark(p, slab, start, off)
 
-        Optional argument:
-          head -- tuple listing prior knowledge of least proper factors of an
-                  initial sub-range of these naturals; default is empty
+        i = 0
+        while i < span:
+            if slab[i] is None:
+                mark(i + start, slab, start, off)
+            i += 1
 
-        Note that 0 and 1 are deemed to be their own least proper factors; see
-        file comment.  An instance constructed with start == 0 should pass in at
-        least head=(0,1); and its primes must know to consult the sieve's
-        .primes to find which prime is next; chose a suitably large span and get
-        all the primes up to it with sieve(primes, 0, span, (0,1)).
+    except StopIteration: pass
+    return tuple(slab)
 
-        When head is non-empty, all entries in it must be known to be the true
-        lowest proper factors (with the above oddity for 0 and 1) of the
-        corresponding naturals (head[i] corresponds to i+start); for this to be
-        true, you must have sieved it with all primes <= sqrt(start+len(head)).\n"""
+def nondices(base, seq):
+    """Extracts the primes from an output of sieve (q.v.).
 
-        self.__slab = list(head) + [ None ] * (span - len(head))
-        self.base, self.factors, self.__src = start, tuple(head), iter(primes)
+    Required arguments:
+      base -- a natural number
+      seq -- a sequence for which seq[i] is None iff base+i is prime.
 
-    def __iter__(self):
-        for q in self.primes: yield q
-        stop = len(self.__slab)
-        while len(self.factors) < stop:
-            p = self.__src.next()
-            self.__mark(p)
-            for q in self.__grow(1+p): yield q
+    Returns a list of the primes >= base but < base + len(seq).\n"""
 
-        raise StopIteration
-
-    def primes(base, fs):
-        return tuple(map(lambda i, c=base: i+c,
-                         filter(lambda i, f=fs: f[i] is None,
-                                range(len(fs)))))
-
-    def _lazy_get_primes_(self, ig, extract=primes):
-        return extract(self.base, self.factors)
-
-    def __grow(self, p, extract=primes):
-        """Update now that everything up to p**2 is known.
-
-        Single input, p, is a number for which we know that .__slab is complete
-        for all entries corresponding to numbers less than the square of p.
-        Updates .factors to include these entries and .primes to include any
-        primes they imply.  Returns a tuple of the primes thus added.
-
-        Superficially, it would seem best to call this with the next prime after
-        the one most recently passed to .__mark(); that would advance our
-        knowledge of factors and primes as far as possible as soon as possible.
-        However, at the very start of our first Sieve, we need to register what
-        we learned, by __mark()ing 2, before we can ask for our next prime,
-        since the iterator for that has to look at our .primes (or .factors) to
-        work that out.  That means we can't yet know what the next prime is.  We
-        do, however, know that it's at least one more than the prime we just
-        __mark()ed - and this is entirely sufficient since, in fact, the worst
-        it does is delay registration of things we've learned but don't yet
-        need.\n"""
-
-        cut, was = p**2, len(self.factors)
-        if cut > was + self.base:
-            more = tuple(self.__slab[was:cut-self.base])
-            self.factors += more
-            more = extract(was + self.base, more)
-            self.primes += more
-            assert min(cut - self.base, len(self.__slab)) == len(self.factors)
-        else: more = ()
-        return more
-
-    del primes
-
-    def __mark(self, p):
-        """Mark all multiples of p in range.
-
-        Required argument, p, is a prime; for len(.factors) <= i < len(.__slab),
-        if i+.base is a multiple of p and .__slab[i] is None, set .__slab[i] to
-        p (i.e. mark i+.base as having p as its lowest proper factor).
-
-        For each i in range(len(.factors), len(.__slab)), if .__slab[i] is None
-        and i+base is a multiple of p, mark sets slab[i] to p.  Raises
-        StopIteration if every non-prime in slab has least proper factor < p
-        (i.e. it's pointless to try to mark with p or any higher prime).\n"""
-
-        q, r = divmod(self.base + len(self.factors), p)
-        if q < p: q = p
-        elif r: q += 1
-        n, span = q * p - self.base, len(self.__slab)
-
-        while n < span:
-            if self.__slab[n] is None: self.__slab[n] = p
-            n += p
-
-class Fake (object):
-    """A fake primes object to wrap a Sieve for testing.
-
-    See __main__ stanza below for illustrative (if pointless) usage.\n"""
-
-    def __init__(self, prior=()): self.__prior = prior
-    def wrap(self, other): self.__wrap, self.__i = other, 0
-
-    def __iter__(self):
-        for it in self.__prior: yield it
-        try: yield self.__wrap.primes[0]
-        except IndexError:
-            if not self.__wrap.base:
-                print 'boot-strap'
-                yield 2
-                assert self.__wrap.primes[0] == 2
-
-        i = 1
-        try:
-            while True:
-                yield self.__wrap.primes[i]
-                i += 1
-        except IndexError:
-            raise StopIteration
-
-if __name__ == '__main__':
-    # Not really intended for use, purely illustration; see Fake.
-    fake = Fake()
-    sieve = Sieve(fake, 0, 1024, (0,1))
-    fake.wrap(sieve)
-    map(None, sieve)
-    got = len(sieve.factors)
-
-    while True:
-        fake = Fake(fake)
-        sieve = Sieve(fake, got, 42*1024)
-        fake.wrap(sieve)
-        map(None, sieve)
-        got += len(sieve.factors)
+    return tuple(map(lambda i, b=base: i+b,
+                     filter(lambda i, s=seq: s[i] is None,
+                            range(len(seq)))))
