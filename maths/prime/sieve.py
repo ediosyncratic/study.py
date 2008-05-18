@@ -1,6 +1,28 @@
 """The Sieve of Eratosthenes.
 
-$Id: sieve.py,v 1.1 2008-05-18 10:09:48 eddy Exp $
+When checking a range of integers to determine which of them are primes, it is
+efficient to check them all at once, using a technique discovered in antiquity
+and known as 'the sieve of Eratosthenes'.  The sieve works by, for each prime p
+whose square is not beyond the end of the range, running through the range of
+numbers marking each multiple of p as not a prime.  In fact it suffices to start
+with p*p or the smallest multiple of p in the range (if this is larger), since
+any earlier multiples of p shall be marked as multiples of some earlier prime.
+When you have done this for all relevant primes, any numbers that remain
+unmarked must be primes; the non-primes get caught in the sieve, letting only
+the primes fall through.
+
+One can, furthermore, use the sieve to discover the least proper factor of each
+non-prime, as a bonus: to mark a multiple of p as non-prime, simply label it p
+unless it already has a (smaller) label.
+
+For these purposes, we treat 0 and 1 as their own lowest proper factors even
+though they aren't proper factors by the usual definition (a factor of n is
+proper if it is neither n nor 1).  We can justify this for 0 by redefining
+proper factor in a way that doesn't affect anything but 0; if neither of
+naturals a and b is 1, then each is a proper factor of a*b.  We cannot salvage
+the case of 1, since it has no other factor than itself.
+
+$Id: sieve.py,v 1.2 2008-05-18 11:15:56 eddy Exp $
 """
 
 def mark(p, slab, base, off=0):
@@ -26,7 +48,7 @@ def mark(p, slab, base, off=0):
     all primes up to sqrt(base+off).\n"""
 
     q, r = divmod(base+off, p)
-    if q < p: q = p
+    if q < p: q = p # Potentially pause here to yield each prime < p*p
     elif r: q += 1
     n, span = q * p - base, len(slab)
     if n >= span and q == p: raise StopIteration
@@ -35,7 +57,6 @@ def mark(p, slab, base, off=0):
         if slab[n] is None: slab[n] = p
         n += p
 
-# The boot-strap call should be sieve((), 0, 0x80000, (0, 1))
 def sieve(primes, start, span, head=()):
     """The Sieve of Eratosthenes.
 
@@ -50,7 +71,12 @@ def sieve(primes, start, span, head=()):
 
     Returns a tuple whose [i] entry is None if start+i is prime, else the lowest
     proper factor of start+i; if you passed head, you should assert that the
-    returned tuple's [:len(head)] agrees with head.\n"""
+    returned tuple's [:len(head)] agrees with head.
+
+    Note that 0 and 1 are deemed to be their own least proper factors; see file
+    comment.  A call with start == 0 should pass in head=(0,1) and can pass in
+    any empty sequence as primes; chose a suitably large span and get all the
+    primes up to it with sieve((), 0, span, (0,1)).\n"""
 
     off = len(head)
     slab = list(head) + [ None ] * (span - off)
