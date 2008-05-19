@@ -2,8 +2,9 @@
 
   printmenu -- prints an unordered list in multi-column format
 
-$Id: show.py,v 1.1 2008-05-12 08:52:28 eddy Exp $
+$Id: show.py,v 1.2 2008-05-19 04:31:12 eddy Exp $
 """
+from row import transpose
 
 def printmenu(menu=None, width=72):
     """Pretty-prints the known errors.
