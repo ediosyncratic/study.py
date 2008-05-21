@@ -83,6 +83,17 @@ recording this factor's index in primes, instead of the factor itself).  We thus
 need to record only N(n)/P(n) times as much information as we otherwise would;
 at n = 7, this is 0.18; we need less than a fifth as much disk space (and
 memory) to do the job.
+
+For reduction modulo 30, the first case where we have a multiple of 8 as our
+number of primes, and for the earlier cases, the list of values coprime to our
+modulus is conveniently just the list of primes up to it.  This happens because
+the square of the next prime is bigger than it, 7*7 > 5*3*2, but this never
+happens again:7*5*3*2 = 210 > 121 = 11*11 and the product is growing roughly
+combinatorially, while the square is roughly quadratically, which is
+comparatively slow.  So 30 is the last time that the simple list of primes up to
+the modulus suffices as the list of coprimes.
+
+$Id: octet.py,v 1.2 2008-05-21 07:44:42 eddy Exp $
 """
 
 def coprimes(primes):
