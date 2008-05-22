@@ -21,7 +21,8 @@ Note that Numeric python's numarray infrastructure provides for quite a lot of
 the same things as the following.\n"""
 
 from study.snake.lazy import Lazy
-class Permutation (tuple, Lazy):
+from study.snake.sequence import Tuple
+class Permutation (Tuple, Lazy):
     """Immutable sequence type representing a permutation.
 
     Theory
@@ -65,7 +66,7 @@ class Permutation (tuple, Lazy):
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
-    __upinit = tuple.__init__
+    __upinit = Tuple.__init__
     def __init__(self, perm):
         """Initialize a permutation.
 
