@@ -1,8 +1,8 @@
-"""Base-class to mix in certain useful features to sequence types.
+"""Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.4 2008-05-22 06:57:41 eddy Exp $
+$Id: sequence.py,v 1.5 2008-05-22 07:17:35 eddy Exp $
 """
-
+
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
 
