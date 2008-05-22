@@ -180,7 +180,7 @@ class Permutation (Tuple, Lazy):
     def cycle(self, by=1):
         return Permutation(cycle(self, by))
 
-del Lazy
+del Lazy, Tuple
 
 def Iterator(size, P=Permutation):
     # for a rather elegant application, see queens.py's derived iterator
