@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.6 2008-05-22 07:43:44 eddy Exp $
+$Id: sequence.py,v 1.7 2008-05-22 08:00:05 eddy Exp $
 """
 
 class Tuple (object):
@@ -25,6 +25,15 @@ class Tuple (object):
     def __mul__(self, other): return self._tuple_(self.__tuple * other)
     def __rmul__(self, other): return self._tuple_(other * self.__tuple)
     def __repr__(self): return `self.__tuple`
+    # It is also absurd that tuple doesn't support index:
+    def index(self, val): return list(self.__tuple).index(val)
+    # and throw in something suitable in place of sort:
+    def order(self, are=cmp): return self.__order(are)
+    def __order(self, par):
+        from study.maths import permute
+        def order(who, p=permute.order, are=cmp): return p(who.__tuple, are)
+        Tuple.__order = order
+        return permute.order(self.__tuple, par)
 
     def _tuple_(self, val):
         """Pseudo-constructor.
