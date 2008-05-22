@@ -1,6 +1,6 @@
 """Base-class to mix in certain useful features to sequence types.
 
-$Id: sequence.py,v 1.3 2008-05-22 06:50:44 eddy Exp $
+$Id: sequence.py,v 1.4 2008-05-22 06:57:41 eddy Exp $
 """
 
 class Iterable (object):
@@ -224,6 +224,6 @@ class Slice (object):
 
         return other == self.start
 
-    def __ne__(self, other, hcf=gcd, lcm=lcm):
+    def __ne__(self, other):
         try: return len(self.trim(other)) == 0
         except TypeError: return other not in self
