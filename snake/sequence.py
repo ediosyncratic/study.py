@@ -1,6 +1,6 @@
 """Base-class to mix in certain useful features to sequence types.
 
-$Id: sequence.py,v 1.2 2008-05-14 22:04:36 eddy Exp $
+$Id: sequence.py,v 1.3 2008-05-22 06:50:44 eddy Exp $
 """
 
 class Iterable (object):
@@ -178,15 +178,28 @@ class Slice (object):
 
     del Euclid
 
-    def __contains__(self, ind):
+    def index(self, ind):
         step, lo = self.step, self.start
+        if step: q, r = divmod(ind - lo, step)
+        else: q, r = 0, ind - lo
 
-        if step and (ind - lo) % step: return False
-        elif self.stop is None: return ind == lo or (ind - lo) * step > 0
-        elif self.stop == lo: return False
-        elif step > 0: return lo <= ind < self.stop
-        elif step < 0: return lo >= ind > self.stop
-        else: return ind == lo
+        if step and r: pass
+        elif self.stop is None:
+            if ind == lo: return 0
+            if (ind - lo) * step > 0: return q
+        elif self.stop == lo: pass
+        elif step > 0:
+            if lo <= ind < self.stop: return q
+        elif step < 0:
+            if lo >= ind > self.stop: return q
+        elif ind == lo: return q
+
+        raise ValueError('Not in range', ind, self)
+
+    def __contains__(self, ind):
+        try: self.index(ind)
+        except ValueError: return False
+        return True
 
     # Define comparison in terms of "is this true for all values in the slice ?"
     # Always make other be left operand of recursing compariisons, in case it's a slice.
