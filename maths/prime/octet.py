@@ -100,7 +100,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.3 2008-05-22 21:23:28 eddy Exp $
+$Id: octet.py,v 1.4 2008-05-22 22:17:09 eddy Exp $
 """
 
 def coprimes(primes):
@@ -145,9 +145,16 @@ class OctetType (Tuple):
         self.size = len(vals) / 8
 
     def index(self, p):
+        """Find where p is in self.
+
+        Returns that i for which self[i] is p, if any; otherwise, raises
+        ValueError(i) where i is the least for which self[i] > p or i is
+        len(self) if no entry in self is > p.  Given that self[-1]+1 is
+        self.modulus, when p is given modulo this modulus it can't cause
+        ValueError(len(self)).\n"""
         if self[0] == p: return 0
-        if p < self[0] or p > self[-1]:
-            raise ValueError
+        if p < self[0]: raise ValueError(0)
+        if p > self[-1]: raise ValueError(len(self))
 
         lo, hi = 0, len(self) - 1
         if self[hi] == p: return hi
@@ -157,15 +164,23 @@ class OctetType (Tuple):
             elif self[mid] < p: lo = mid
             else: return mid
 
-        raise ValueError(lo, hi)
+        raise ValueError(hi)
 
-    def next(self, given):
-        """Returns smallest of self's coprimes >= given"""
-        n, r = divmod(given, self.modulus)
-        try: self.index(r)
-        except ValueError, what: pass
-        else: return given # it's already coprime
-        return n * self.modulus + self[1+what.args[0]]
+    def iterate(self, start, offset=0):
+        n, r = divmod(start + offset, self.modulus)
+        try: i = self.index(r)
+        except ValueError, what:
+            i = what.args[0]
+            assert i  < len(self)
+            assert i == 0 or self[i-1] < r < self[i]
+
+        offset -= n * self.modulus
+        while True:
+            yield self[i] - offset
+            i += 1
+            if i >= len(self):
+                offset -= self.modulus
+                i -= len(self)
 
     def factor(self, k):
         for p in self.__primes:
@@ -246,15 +261,17 @@ class Sieve (Octet):
     def valid(self, ind): return ind < self.span.start + self.__valid
 
     def __iter__(self):
-        base = self.span.start
-        i, at = base, base + self.__offset
+        base, off = self.span.start, self.__offset
+        k = self.kind.iterate(base, off)
+        i, at = k.next(), base + off
+
         while i < self.span.stop:
             if i < self.__valid + base:
-                if self.prime(i): yield i + self.__offset
-                i += 1
+                if self.prime(i): yield i + off
+                i = k.next()
             else:
                 p = self.__src.next()
-                self.mark(p, self.__offset)
+                self.mark(p, off)
                 self.__valid = max(self.__valid, (p + 1) ** 2 - at)
 
         raise StopIteration
