@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.7 2008-05-22 08:00:05 eddy Exp $
+$Id: sequence.py,v 1.8 2008-05-22 08:06:58 eddy Exp $
 """
 
 class Tuple (object):
@@ -14,38 +14,31 @@ class Tuple (object):
 
     def __init__(self, vals): self.__tuple = tuple(vals)
     def __len__(self): return len(self.__tuple)
+    def __repr__(self): return `self.__tuple`
+    def __hash__(self): return hash(self.__tuple)
+    def __iter__(self): return iter(self.__tuple)
     def __contains__(self, val): return val in self.__tuple
+
     def __eq__(self, other): return other == self.__tuple
     def __ge__(self, other): return other <= self.__tuple
     def __le__(self, other): return other >= self.__tuple
     def __lt__(self, other): return other > self.__tuple
     def __gt__(self, other): return other < self.__tuple
     def __ne__(self, other): return other != self.__tuple
-    def __hash__(self): return hash(self.__tuple)
-    def __mul__(self, other): return self._tuple_(self.__tuple * other)
-    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
-    def __repr__(self): return `self.__tuple`
-    # It is also absurd that tuple doesn't support index:
-    def index(self, val): return list(self.__tuple).index(val)
-    # and throw in something suitable in place of sort:
-    def order(self, are=cmp): return self.__order(are)
-    def __order(self, par):
-        from study.maths import permute
-        def order(who, p=permute.order, are=cmp): return p(who.__tuple, are)
-        Tuple.__order = order
-        return permute.order(self.__tuple, par)
 
     def _tuple_(self, val):
         """Pseudo-constructor.
 
         Takes a sequence and returns an instance of Tuple.  If derived classes
         have constructors taking different parameter lists, they should
-        over-ride this with something suitable; if they don't support
-        arithmetic, they should over-ride it with something that raises an
+        over-ride this with something suitable; if they don't support arithmetic
+        and slicing, they should over-ride it with something that raises an
         error.  Otherwise, it uses the class of self to construct a new Tuple of
         suitable type.\n"""
         return self.__class__(val)
 
+    def __mul__(self, other): return self._tuple_(self.__tuple * other)
+    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
     def __add__(self, other):
         if isinstance(other, Tuple): other = other.__tuple
         return self._tuple_(self.__tuple + other)
@@ -55,8 +48,16 @@ class Tuple (object):
             return self._tuple_(self.__tuple[key])
         return self.__tuple[key]
 
-    def __iter__(self):
-        for it in self.__tuple: yield it
+    # It is also absurd that tuple doesn't support index:
+    def index(self, val): return list(self.__tuple).index(val)
+    # and throw in something suitable in place of sort:
+    def order(self, are=cmp): return self.__order(are)
+    def __order(self, par):
+        # boot-strap round the fact that permute.Permute inherits from Tuple
+        from study.maths import permute
+        def order(who, p=permute.order, are=cmp): return p(who.__tuple, are)
+        Tuple.__order = order
+        return permute.order(self.__tuple, par)
 
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
