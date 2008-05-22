@@ -1,6 +1,7 @@
 """Slice objects of the prime object.
 """
-from study.snake.sequence import Iterable, Slice
+from study.snake.sequence import Iterable
+from study.snake.interval import Slice
 
 class PrimeSlice (Iterable):
     def __init__(self, boss, seq, S=Slice(0, None, 1)):
