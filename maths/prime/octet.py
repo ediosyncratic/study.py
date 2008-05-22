@@ -41,6 +41,13 @@ C(i).
     N(n)*primes[n] members and C(1+n) leaves out N(n) of them, so has
     N(n)*(primes[n] -1) = N(1+n) members, which is what we set out to prove.
 
+One can actually use the same argument to show that, modulo the product of an
+arbitrary finite set of primes, all other primes fall in a set whose size is the
+product of the numbers one less than the primes in the given set of primes.  The
+primes for which the ratio p / (p-1) is highest are the smallest ones, so we
+gain the best ratio of modulus to size of candidate set by selecting an initial
+sequence of the primes, for given size of set of primes.
+
 Thus, for natural n and positive natural i, every prime between i*P(n) and
 (1+i)*P(n) is i*P(n) + c for some c in C(n); so we can record which numbers in
 this interval are prime by recording C(n) bits, each associated with one c in
@@ -93,21 +100,21 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.2 2008-05-21 07:44:42 eddy Exp $
+$Id: octet.py,v 1.3 2008-05-22 21:23:28 eddy Exp $
 """
 
 def coprimes(primes):
     """Determine the candidate primes modulo the product of some primes.
 
-    Required argument, primes, is a finite initial segment of the infinite
-    sequence of primes.  Returns a pair (prod, vals); prod is the product of the
-    primes, vals is a tuple of the values, modulo prod, coprime to prod;
-    i.e. the return is (P(n), C(n)) if the input has length n.
+    Required argument, primes, is a finite segment distinct primes.  Returns a
+    pair (prod, vals); prod is the product of the primes, vals is a tuple of the
+    values, modulo prod, coprime to prod; i.e. the return is (P(n), C(n)) if the
+    input is primes[:n].
 
     This implementation iteratively constructs each C(1+i) by generating Q(i)
-    and filtering out {primes[i] * c: c in C(i)}.\n"""
+    and filtering out {primes[i] * c: c in C(i)}, exactly according to the
+    process in the proof above (see file comment).\n"""
 
-    assert primes[0] == 2
     row, last = (0,), 1
     for p in primes:
         row = filter(lambda i, p=p: i % p != 0,
@@ -119,8 +126,10 @@ def coprimes(primes):
 
     return last, tuple(row)
 
-class OctetType (tuple):
-    __upinit = tuple.__init__
+from study.snake.sequence import Tuple
+
+class OctetType (Tuple):
+    __upinit = Tuple.__init__
     def __init__(self, ps):
         """Sets up a descriptor for a type of octet-based block.
 
@@ -133,7 +142,7 @@ class OctetType (tuple):
         self.__primes = tuple(ps)
         self.modulus, vals = coprimes(ps)
         self.__upinit(vals)
-        self.size = len(self) / 8
+        self.size = len(vals) / 8
 
     def index(self, p):
         if self[0] == p: return 0
@@ -141,21 +150,31 @@ class OctetType (tuple):
             raise ValueError
 
         lo, hi = 0, len(self) - 1
-        if self[-1] == p: return hi
+        if self[hi] == p: return hi
         while hi > 1 + lo:
             mid = (lo + hi) // 2
             if self[mid] > p: hi = mid
             elif self[mid] < p: lo = mid
             else: return mid
 
-        raise ValueError
+        raise ValueError(lo, hi)
+
+    def next(self, given):
+        """Returns smallest of self's coprimes >= given"""
+        n, r = divmod(given, self.modulus)
+        try: self.index(r)
+        except ValueError, what: pass
+        else: return given # it's already coprime
+        return n * self.modulus + self[1+what.args[0]]
 
     def factor(self, k):
         for p in self.__primes:
             if not k % p: return p
         return None
+
+del Tuple
 
-from study.snake.sequence import Slice
+from study.snake.interval import Slice
 
 class Octet (object):
     """Base class for octet-structured mappings from a range of naturals.
@@ -166,7 +185,8 @@ class Octet (object):
 
         Required arguments:
           kind -- an OctetType describing the representation to use
-          base -- beginning of the range of naturals to be described.
+          base -- beginning of the range of naturals to be described (relative
+                  to the base of some parent in the node hierarchy)
 
         Optional argument:
           count -- number of such blocks to be described; or None (default), to
@@ -188,10 +208,11 @@ class Octet (object):
 
         self.kind, self.span = kind, Slice(base, base + count * kind.modulus)
 
-    def keys(self): return range(self.span.start, self.span.stop)
-    def items(self): return map(lambda k, b=self: (k, b[k]), self.keys())
+    def keys(self, off=0): return range(self.span.start + off, self.span.stop + off)
+    def items(self, off=0): return map(lambda k, b=self, o=off: (k+o, b[k]), self.keys())
     def values(self): return map(lambda k, b=self: b[k], self.keys())
-    def __len__(self): return len(self.span)
+    # But you probably don't want to use those last three !
+    def __len__(self): return self.span.stop - self.span.start
 
 class Sieve (Octet):
     """Mixin to provide sieving for octets.
@@ -210,27 +231,31 @@ class Sieve (Octet):
     repeats the prior), it behaves the same as the non-sieving version of its
     class.\n"""
 
-    def __init__(self, primes, given=0):
+    def __init__(self, off, primes, given=0):
         """Initialize for sieving.
 
-        Required argument, primes, is an iterable whose iterator shall yield
-        every prime up to self.span.stop.  Optional second argument, given, is
-        the length of an initial portion of self.span for which full data is
-        already available when initialized.\n"""
-        self.__src, self.__valid = iter(primes), given
+        Required arguments:
+          off -- absolute integer offset relative to which self.span is given
+          primes -- an iterable whose iterator shall yield every prime up to
+                    off + self.span.stop.
+
+        Optional second argument, given, is the length of an initial portion of
+        self.span for which full data is already available when initialized.\n"""
+        self.__src, self.__valid, self.__offset = iter(primes), given, off
 
     def valid(self, ind): return ind < self.span.start + self.__valid
 
     def __iter__(self):
-        i = self.span.start
+        base = self.span.start
+        i, at = base, base + self.__offset
         while i < self.span.stop:
-            if i < self.__valid + self.span.start:
-                if self.prime(i): yield i
+            if i < self.__valid + base:
+                if self.prime(i): yield i + self.__offset
                 i += 1
             else:
                 p = self.__src.next()
-                self.mark(p)
-                self.__valid = max(self.__valid, (p + 1) ** 2 - self.span.start)
+                self.mark(p, self.__offset)
+                self.__valid = max(self.__valid, (p + 1) ** 2 - at)
 
         raise StopIteration
 
