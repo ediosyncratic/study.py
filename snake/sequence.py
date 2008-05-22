@@ -1,7 +1,53 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.5 2008-05-22 07:17:35 eddy Exp $
+$Id: sequence.py,v 1.6 2008-05-22 07:43:44 eddy Exp $
 """
+
+class Tuple (object):
+    """Pretend to be a tuple.
+
+    Infuriatingly, if a class inherits from tuple, whatever you pass to its
+    constructor is passed to tuple's constructor (which barfs if there are too
+    many arguments), before your __init__ can do anything about it; and __init__
+    can't usefully call tuple.__init__ later, to supply what you wanted it to
+    get.\n""" # How messed up is that ?
+
+    def __init__(self, vals): self.__tuple = tuple(vals)
+    def __len__(self): return len(self.__tuple)
+    def __contains__(self, val): return val in self.__tuple
+    def __eq__(self, other): return other == self.__tuple
+    def __ge__(self, other): return other <= self.__tuple
+    def __le__(self, other): return other >= self.__tuple
+    def __lt__(self, other): return other > self.__tuple
+    def __gt__(self, other): return other < self.__tuple
+    def __ne__(self, other): return other != self.__tuple
+    def __hash__(self): return hash(self.__tuple)
+    def __mul__(self, other): return self._tuple_(self.__tuple * other)
+    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
+    def __repr__(self): return `self.__tuple`
+
+    def _tuple_(self, val):
+        """Pseudo-constructor.
+
+        Takes a sequence and returns an instance of Tuple.  If derived classes
+        have constructors taking different parameter lists, they should
+        over-ride this with something suitable; if they don't support
+        arithmetic, they should over-ride it with something that raises an
+        error.  Otherwise, it uses the class of self to construct a new Tuple of
+        suitable type.\n"""
+        return self.__class__(val)
+
+    def __add__(self, other):
+        if isinstance(other, Tuple): other = other.__tuple
+        return self._tuple_(self.__tuple + other)
+
+    def __getitem__(self, key):
+        if isinstance(key, slice) or isinstance(key, Slice):
+            return self._tuple_(self.__tuple[key])
+        return self.__tuple[key]
+
+    def __iter__(self):
+        for it in self.__tuple: yield it
 
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
