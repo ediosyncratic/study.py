@@ -1,6 +1,6 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.7 2007-08-12 17:21:35 eddy Exp $
+$Id: debt.py,v 1.8 2008-05-31 11:14:39 eddy Exp $
 """
 from datetime import date, timedelta
 from study.snake.lazy import Lazy
@@ -48,11 +48,13 @@ class Debt (Lazy):
         return Debt(self.__asat(other.start) + other.amount,
                     self.currency, other.start, self.factor - 1)
 
-    def as_at(self, when):
+    def as_at(self, *what):
         """Return amount of debt at some specified date.
 
-        Sole argument, when, is a date(year, month, day) object.
-        """
+        Either pass a single argument, a date(year, month, day) object, or pass
+        the three, year month and day needed to create such an object.\n"""
+        if len(what) == 1: when = what
+        else: when = date(*what)
         return int(self.__asat(when))
 
     from math import log
@@ -124,6 +126,8 @@ class Debt (Lazy):
             left = self.__asat(when)
 
         return Debt(left, self.currency, when, rate, daily=self.__diem)
+
+del timedelta # but leave date in namespace, as it's useful to clients of this module
 
 class Mortgage (Lazy):
     """Description of a mortgage.
@@ -191,15 +195,17 @@ class Mortgage (Lazy):
           date -- a datetime object indicating when this takes effect
         Optional arguments:
           payment -- None (default) or the new monthly payment
-          period -- None (default: year) or a datetimediff describing the period
-                    to which the new rate applies (so, by default, rate is taken
-                    to be an annual rate of interest).
+          period -- None (default: year) or a timedelta describing the period to
+                    which the new rate applies (so, by default, rate is taken to
+                    be an annual rate of interest).
 
         If payment is not specified, it is lazily computed, based on the prior
         duration (which may have been computed from the prior payment).
         """
 
         self.debt = self.debt.rerate(rate, date)
+
+del Lazy
 
 def affordable(monthly, duration, interest=.0425 * .72, inflate=.05):
     """How big a debt can one pay off in a given time with given available cash ?
