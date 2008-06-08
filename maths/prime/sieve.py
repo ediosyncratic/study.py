@@ -24,7 +24,7 @@ the case of 1, since it has no other factor than itself, so it's probably
 simpler just to arbitrarily declare 0 and 1 special, rather than redefining
 'proper factor' !
 
-$Id: sieve.py,v 1.5 2008-05-18 21:15:11 eddy Exp $
+$Id: sieve.py,v 1.6 2008-06-08 23:44:46 eddy Exp $
 """
 
 def mark(p, slab, base, off=0):
@@ -94,15 +94,14 @@ def sieve(primes, start, span, head=()):
     except StopIteration: pass
     return tuple(slab)
 
-def nondices(base, seq):
+def nondices(seq, base=0):
     """Extracts the primes from an output of sieve (q.v.).
 
-    Required arguments:
-      base -- a natural number
-      seq -- a sequence for which seq[i] is None iff base+i is prime.
+    Required argument, seq, is a sequence for which seq[i] is None iff base+i is
+    prime; optional argument, base, defaults to 0.
 
     Returns a list of the primes >= base but < base + len(seq).\n"""
 
-    return tuple(map(lambda i, b=base: i+b,
-                     filter(lambda i, s=seq: s[i] is None,
-                            range(len(seq)))))
+    ans = filter(lambda i, s=seq: s[i] is None, range(len(seq)))
+    if b: ans = map(lambda i, b=base: i+b, ans)
+    return tuple(ans)
