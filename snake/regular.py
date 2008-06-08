@@ -1,13 +1,15 @@
-"""Descriptors for intervals: slices and ranges.
+"""Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.1 2008-06-05 07:25:48 eddy Exp $
+$Id: regular.py,v 1.2 2008-06-08 13:24:31 eddy Exp $
 """
 
 class Regular (object):
     """Base-class for arithmetic sub-sequences of the integers.
 
-    Derived classes must implement indexing, the index method and the attributes
-    of a slice: start, stop and step.  If endless, stop is None.\n"""
+    Derived classes must implement indexing, the index method, the attributes of
+    a slice - start, stop (None for endless) and step - and (where applicable) a
+    .last attribute.  For subtraction support, they must also support
+    negation.\n"""
 
     def __contains__(self, ind):
         try: self.index(ind)
@@ -89,7 +91,7 @@ class Regular (object):
         if self.stop is None: return False
         if no(other, self.start) or no(other, self.stop - self.step): return False
         if yes(other, self.stop): return True
-        return yes(other, self.__last())
+        return yes(other, self.last)
 
     def __gt__(self, other): return self.__cmp(other, lambda x, y: x >= y, lambda x, y: x < y)
     def __lt__(self, other): return self.__cmp(other, lambda x, y: x <= y, lambda x, y: x > y)
@@ -108,76 +110,98 @@ class Regular (object):
         try: return len(self.trim(other)) == 0
         except TypeError: return other not in self
 
-    def __last(self):
-        try: ans = self.__last_val
-        except AttributeError:
-            assert self.stop is not None, 'Condition should always be ensured by caller'
-            ans = self.start + ((self.stop - self.start) // self.step) * self.step
-            self.__last_val = ans
-        return ans
-
     def __add__(self, other):
+        """Adding arithmetic series.
+
+        This is only feasible if the result is also an arithmetic series.  When
+        other is a simple number, this is easy - just offset self.  If either
+        other or self is a series with only one value in it, we can replace it
+        with that one value.  If either series is empty, the result is empty.
+
+        Otherwise, the set of values self and other contain can only be an
+        arithmetic series if: one has, as step, a divisor of the step of the
+        second; and the former's length is enough that it straddles a full step
+        of the latter.  In this case, we return a series with the appropriate
+        members.\n"""
         try: ar, op, ep = other.start, other.stop, other.step
         except AttributeError:
-            if self.step == 1: return Interval(other + self.start, len(self))
+            if self.step == 1 and self.stop is not None:
+                return Interval(other + self.start, len(self))
             else:
                 if self.stop is None: op = None
-                else op = other + self.stop
+                else: op = other + self.stop
                 return Slice(other + self.start, op, self.step)
 
+        if op == ar or self.stop == self.start:
+            return Interval(self.start + ar, 0)
+        if ep == 0:
+            return self + ar
+        if self.step == 0:
+            return other + self.start
+
         if op is not None: # properly align it
-            if op == ar: return Interval(self.start + ar, 0)
-            if ep:
-                q, r = divmod(op - ar, ep)
-                if r: q += 1
-                if q < 0: q = 0
-                op = ar + q * ep
+            q, r = divmod(op - ar, ep)
+            if r: q += 1
+            if q < 1: return Interval(self.start + ar, 0)
+            if q == 1: return self + ar
+            op = ar + q * ep
 
-        if self.stop is not None: # likewise
-            if self.stop == self.start: return Interval(self.start + ar, 0)
-            if self.step:
-                q, r = divmod(self.stop - self.start, self.step)
+        stop = self.stop
+        if stop is not None: # align suitably
+            q, r = divmod(stop - self.start, self.step)
+            if r: q += 1
+            if q < 1: return Interval(self.start + ar, 0)
+            if q == 1: return other + self.start
+            stop = self.start + q * self.step
 
-        if abs(self.step) == 1 and len(self) >= abs(ep):
-            if self.step == 1:
-                if ep > 0:
-                    if self.stop is None or op is None:
-                        return Slice(self.start + ar, None, 1)
-                    return Interval(self.start + ar, self.stop + op - self.start - ar)
-                elif ep < 0:
-                    if self.stop is None:
-                        if op is None: raise ValueError('Need to represent all naturals !')
-                        return Slice(op - 1 + self.start, None, 1)
-                    elif op is None:
-                        return Slice(ar + self.stop - 1, None, -1)
-                    return Interval(
-            # TODO: finish me !
-            return Interval(
-                (other.step == 1 and len(other) >= self.step)):
-                return Interval(self.__start + other.__start, self.__span + other.__span)
-        return Interval(other + self.__start, self.__span)
+        if ep % self.step == 0 and len(self) >= abs(ep // self.step):
+            start, step = self.start, self.step
+        elif self.step % ep == 0 and len(other) >= abs(self.step // ep):
+            start, stop, step, ar, op, ep = ar, op, ep, self.start, stop, self.step
+        else:
+            raise ValueError, 'Unrepresentable sum of arithmetic series'
+
+        if step * ep > 0:
+            if stop is None or op is None:
+                return Slice(start + ar, None, step)
+        else:
+            assert step * ep < 0
+            if stop is None:
+                if op is None: raise ValueError, \
+                   'Sum of arithmetic series has neither upper nor lower bound'
+                return Slice(start + op - ep, None, step)
+            elif op is None:
+                return Slice(stop - step + ar, None, -step)
+
+        assert stop is not None and op is not None
+        if step == 1:
+            if ep > 0:
+                return Interval(start + ar, stop - start + op - ep - ar)
+            else:
+                return Interval(start + op - ep, stop - start + ar - op + ep)
+        elif step == -1:
+            if ep > 0:
+                return Interval(1 + stop + ar, start - stop + op - ep - ar)
+            else:
+                return Interval(1 + stop + op - ep, start - stop + ar - op + ep)
+
+        return Slice(ar + start, op - ep + stop, step)
+
     __radd__ = __add__
-
-    def __sub__(self, other):
-        if isinstance(other, Interval):
-            return Interval(self.start - other.__start - other.__span + 1,
-                            self.__span + other.__span)
-        return Interval(self.__start - other, self.__span)
-
-    def __rsub__(self, other):
-        if isinstance(other, Interval):
-            return Interval(other.__start - self.__start - self.__span + 1,
-                            self.__span + other.__span)
-        return interval(other - self.__start - self.__span + 1, self.__span)
+    def __sub__(self, other): return -other + self
+    def __rsub__(self, other): return -self + other
 
 class Interval (Regular):
     def __init__(self, start, span): self.__start, self.__span = start, span
     def __len__(self): return self.__span
+    def __repr__(self): return 'Interval(%s, %s)' % (self.__start, self.__span)
+    def __neg__(self): return Interval(-self.last, self.__span)
 
     def __iter__(self):
         i = 0
         while i < self.__span:
             yield i + self.__start
+            i += 1
 
         raise StopIteration
 
@@ -185,6 +209,7 @@ class Interval (Regular):
         if key == 'step': return 1
         if key == 'start': return self.__start
         if key == 'stop': return self.__start + self.__span
+        if key == 'last': return self.__start + self.__span - 1
         raise AttributeError(key)
 
     def __getitem__(self, ind):
@@ -209,11 +234,10 @@ class Slice (Regular):
     # Can't actually use slice as a base class, so fake it:
     def __init__(self, *args): self.__seq = slice(*args)
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
-    def __getattr__(self, key):
-        ans = getattr(self.__seq, key) # raises AttributeError if needed
-        if key == 'start' and ans is None: return 0
-        if key == 'step' and ans is None: return 1
-        return ans
+    def __neg__(self):
+        if self.stop is None: stop = None
+        else: stop = -self.stop
+        return Slice(-self.start, stop, -self.step)
 
     # Iteration:
     def __iter__(self):
@@ -236,14 +260,34 @@ class Slice (Regular):
 
         raise StopIteration
 
+    def __getattr__(self, key):
+        if key == 'last':
+            if self.__seq.step == 0 and self.__seq.stop != self.start:
+                return self.start # Sequence is actually infinite, yet has well-defined .last
+            if self.__seq.stop is None:
+                raise AttributeError, 'No last element in infinite Slice'
+            q = len(self)
+            if q > 0: return self.start + self.step * q
+            raise AttributeError, 'No last element in empty slice'
+
+        ans = getattr(self.__seq, key) # raises AttributeError if needed
+        if ans is None:
+            if key == 'start': return 0
+            elif key == 'step': return 1
+        return ans
+
     from infinite import Aleph0
     def __len__(self, infinity=Aleph0):
-        if self.stop is None or not self.step: return infinity
-        return divmod(self.stop - self.start, self.step)[0]
+        if self.__seq.stop is None: return infinity
+        if self.__seq.stop == self.start: q, r = -1, self.step
+        elif self.__seq.step == 0: return infinity
+        else: q, r = divmod(self.stop - self.start, self.step)
+        if r: q += 1
+        return max(q, 0)
     del Aleph0
 
     def __getitem__(self, key):
-        if isinstance(key, slice) or isinstance(key, Slice):
+        if isinstance(key, (slice, Slice)):
             # Presume key.start, key.stop are +ve (or None)
             # TODO: decide what, if anything, makes sense for -ve, esp. for mixed
             lo, step = self[key.start or 0], key.step
