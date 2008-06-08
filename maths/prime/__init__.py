@@ -38,7 +38,7 @@ p*p; as this extends our list of known primes, we check our candidate against
 new entries; if we find a factor, we suspend the sieve (leave it to be resumed
 next time we need to extend our range).
 
-One can also resort to some clever number-theoretic tricks, which provide
+One could also resort to some clever number-theoretic tricks, which provide
 computationally cheap tests which will, with probability very close to one
 (closer than the probability of a determinist check completing without being
 perturbed by cosmic rays or other hardware errors), spot a non-prime with much
@@ -50,6 +50,11 @@ number were a prime; for example, for any prime p and natural n which is not a
 multiple of p, n**(p-1) is 1 modulo p.  However, these techniques are not (yet)
 used here, since my interest is principally in factorising values, rather than
 determining whether they are primes.
+
+Note (see Eureka 45, The Riemann Hypothesis, Mark Coleman) that the number of
+primes <= x grows with x as x/ln(x) or, for better precision, integral(:
+dt/ln(t) &larr;t, 2<=t<=x :{reals}).  Consequently, the number of primes between
+t and t+N for N small compared to t is about N/ln(t).
 
 Various potential improvements on existing ../primes.py:
 
@@ -118,8 +123,10 @@ Various potential improvements on existing ../primes.py:
    - Change default prime cache dir; $STUDY_PRIME_DIR else ~/.study/prime/
    - Have separate least proper factor caches; STUDY_FACTOR_DIR defaults to
      ~/.study/factor/; and search $STUDY_FACTOR_PATH for read-only caches.
-   - Support (at least initially) an 'old-style cache dir' so we can digest old
-     data into new cache format; let it keep the old default.
+     + cope with the possibility that the user may chose to use one directory
+       to cache both kinds of data.
+   - Support (at least initially) digesting an old-style cache dir's data so
+     that we can save it into the new cache format.
      + although this lacks the proper factor information, it still lets us
        obtain that relatively cheaply
 
@@ -209,7 +216,7 @@ Special cases:
     this computer to handle with the old system.  Being able to cope with it is
     a crucial test of the new system.
 
-$Id: __init__.py,v 1.5 2008-06-05 05:32:26 eddy Exp $
+$Id: __init__.py,v 1.6 2008-06-08 23:27:05 eddy Exp $
 """
 
 failure_log = '''
