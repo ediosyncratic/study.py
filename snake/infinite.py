@@ -41,6 +41,11 @@ class Infinite:
     def __ge__(self, other): return self > other or self == other
     def __ne__(self, other): return self.__sign and not self == other
     def __nonzero__(self): return True
+    def __neg__(self): return Infinite(-self.__sign)
+    def __pos__(self): return self
+    def __abs__(self):
+        if self.__sign: return Infinite(1)
+        return 0
 
 class Aleph0 (Infinite):
     """A value to use as infinity.
