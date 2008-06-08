@@ -51,10 +51,9 @@ class Aleph0 (Infinite):
     I used a variant on the latter, but it would be nice to have a proper aleph
     null.\n"""
 
-    def __cmp__(self, other, huge=Infinite):
-        if isinstance(other, huge) and other > 0:
-            return 0
-        return 1
+    __slots__ = ()
+    __upinit = Infinite.__init__
+    def __init__(self): self.__upinit(1)
 
     def __coerce__(self, other, big=PosInf):
         # if isinstance(other, Infinite): ??? shouldn't happen ?
@@ -69,7 +68,7 @@ class Aleph0 (Infinite):
 
         For use as (for example) the length of an infinite sequence, self have
         to have a valid __int__, returning a value with nb_int filled in its
-        type object.  This isn't ideal, but it's the best I can do ..."""
+        type object.  This isn't ideal, but it's the best I can do ...\n"""
 
         return val
     del maxint
@@ -77,4 +76,3 @@ class Aleph0 (Infinite):
 Aleph0 = Aleph0()
 
 del PosInf
-del Infinite
