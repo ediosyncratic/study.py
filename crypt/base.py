@@ -7,29 +7,61 @@ tokens ...
 all giving longer initial sequences of 1s for the power of 3.
 
 All things considered, 3**5 and 2**8 are the pair to use; 8bits is a familiar unit,
-5 signs packed in a byte sounds cool.
+5 trits packed in a byte sounds cool.
 
-$Id: base.py,v 1.2 2007-03-08 23:24:06 eddy Exp $
+$Id: base.py,v 1.3 2008-06-08 21:24:03 eddy Exp $
 """
 
 class Base:
     """Handling of varied number base for python.
 
     Represents a base by a sequence of `digits' to use in that representation.
-    """
+    Note that
+      Base((zip(string.digits) + zip(string.lowercase, string.uppercase))[:n])
+    performs relates strings to numbers the same way as they python int()
+    function does when given second argument n; see intbase, below.\n"""
+
+    # TODO: (subclass to) handle exponent suffix, optionally with constraints
+    # such as: exponent must be a multiple of three; use case of exponent marker
+    # to indicate exact value.  Aim to replace study.value.qSample's bodgery.
+    # Alternate subclass: handle 'thousand separator' suitably.
 
     def __init__(self, digits='0123456789',
 		 offset=0, signif=None,
-		 plus='+', minus='-', point='.',
-		 ignore=','):
+		 plus=('', '+'), minus='-', fracsep='.',
+		 ignore=',', prefix=('',)):
+        """Set up a base.
+
+        Where the following refers to a 'character' you may equally supply a
+        string or other sequence of characters; for encoding, its first
+        character shall be used, but decoding shall deem all others in the
+        string equivalent to it (e.g. to treat letters case-insensitively).  See
+        below for examples.
+
+        Arguments are all optional: default set-up is for decimal.
+          digits -- sequence of characters to be used as digits, in increasing order
+          offset -- integer to be added to a digit to get its representation's
+                    index in digits
+          signif -- default number of significant figures to display (default is
+                    (the smaller of 100 and) whatever encodes the smallest
+                    representable fractional error on 1, i.e. C's DBL_EPSILON)
+          plus -- character indicating positive value (default: ('', '+'))
+          minus -- character indicating negative value (default: '-')
+          fracsep -- marker character between the whole and fractional part of a number
+          ignore -- character to be ignored in parsing (default ','); see
+                    Conway13 for an exotic use.
+          prefix -- sequence of strings; only a text beginning with one of these
+                    shall be decoded (skipping over this prefix); the first
+                    shall be used as prefix on every encoded value.\n"""
+
 	self.__digits, self.__ignore = digits, ignore
-	self.__plus, self.__minus, self.__point = plus, minus, point
+	self.__plus, self.__minus, self.__fracsep = plus, minus, fracsep
 	self.__base, self.__offset = len(digits), offset
 
 	if signif is None:
-	    err, signif = 1e-6, 0
-	    while err < 1 and signif < 100:
-		err, signif = self.__base * err, 1 + signif
+            # Compute minimal representable fractional error:
+            signif, err, frac = 0, 1, 1. / self.__base
+            while 1 + err != 1 and signif < 100: err, signif = err * frac, 1 + signif
 
 	self.__sigfig = signif
 
@@ -40,6 +72,9 @@ class Base:
     def __encode(self, index):
 	return self.__unique(self.__digits[int(index) + self.__offset])
 
+    # TODO: replace signif (passed to encode) with a test function which, given
+    # top and bottom of an interval, says whether the digit sequence denoting
+    # that interval is precise enough.
     def encode(self, number, signif=None):
 	if signif is None: signif = self.__sigfig
 
@@ -67,7 +102,7 @@ class Base:
 		whole, digit = whole + 1, digit - self.__base
 	    result, shunt = self.__encode(digit) + result, shunt - 1
 
-	if result: result = self.__unique(self.__point) + result
+	if result: result = self.__unique(self.__fracsep) + result
 
 	while whole:
 	    whole, digit = divmod(whole, self.__base)
@@ -78,14 +113,13 @@ class Base:
 	return sign + result
 
     def __decode(self, digit):
-	last = - self.__offset
+	ind = - self.__offset
 	for it in self.__digits:
-	    if digit in it: break
-	    last = last + 1
-	else:
-	    raise ValueError, ('Bad digit', digit, self.__digits)
+	    if digit in it:
+                return ind
+	    ind += 1
 
-	return last
+        raise ValueError, ('Bad digit', digit, self.__digits)
 
     def decode(self, given):
 	if given and (given[0] in self.__plus or given[0] in self.__minus):
@@ -93,7 +127,7 @@ class Base:
 	else:	sign = self.__unique(self.__plus)
 	result = 0
 
-	while given and given[0] not in self.__point:
+	while given and given[0] not in self.__fracsep:
 	    left, given = given[0], given[1:]
 	    if left in self.__ignore: continue
 	    left = self.__decode(left)
@@ -105,7 +139,7 @@ class Base:
 	if given: given, unit = given[1:], 1.
 	while given:
 	    left, given = given[0], given[1:]
-	    if left in self.__ignore: continue
+	    if left in self.__ignore: continue # perverse
 	    left, unit = self.__decode(left), unit / self.__base
 	    result = result + left * unit
 
@@ -120,26 +154,36 @@ class Base:
 
 binary = Base('01')
 signal = Base('T01', offset=1)
-octal = Base('01234567')
+octal = Base('01234567', prefix=('0',))
 decimal = Base()
 hexadecimal = Base(( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-		     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ))
+		     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ), prefix=('0x', '0X'))
 radix050 = Base((' ', 'aA', 'bB', 'cC', 'dD', 'eE', 'fF', 'gG', 'hH', 'iI',
 		 'jJ', 'kK', 'lL', 'mM', 'nN', 'oO', 'pP', 'qQ', 'rR', 'sS',
 		 'tT', 'uU', 'vV', 'wW', 'xX', 'yY', 'zZ', '$', '.', '?',
 		 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'))
+# Content-encoding: base64 ?
+
+import string
+def intbase(n, seq=list(string.digits) + map(lambda s: ''.join(s),
+                                             zip(string.lowercase, string.uppercase))):
+    """Returns the base comensurate with int(string, n)
+
+    Python's int() built-in, when given a second argument, takes that as base,
+    using the letters of the alphabet, case-insensitively, as extra digits
+    beyond 9, if needed.  For n from 2 to 36, intbase(n).decode(string) is thus
+    the same as int(string, n) and intbase(n).encode does the encoding to match.\n"""
+    if n < 2 or n > 36:
+        raise ValueError, 'int() base must be >= 2 and <= 36'
+    return Base(seq[:n])
+del string
 
 def Conway13(number, en=Base('0123456789+-.').encode, de=Base(ignore='+-.').decode):
     """The Conway Base 13 function (approximately).
 
-    Caricatures the meanest hairiest function I know how to integrate. """
+    Caricatures the meanest hairiest function I know how to integrate.  Encodes
+    using base 13, then judiciously ignores parts of the encoding when decoding
+    as base 10.  To do it properly for infinite precision you'd need to deal
+    with some complications, but this is only meant as a caricature ;->\n"""
 
     return de(en(number))
-
-_rcs_log = """
- $Log: base.py,v $
- Revision 1.2  2007-03-08 23:24:06  eddy
- Added intlen
-
- Initial Revision 1.1  2001/12/03 19:11:59  eddy
-"""
