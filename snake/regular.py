@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.2 2008-06-08 13:24:31 eddy Exp $
+$Id: regular.py,v 1.3 2008-06-09 06:47:54 eddy Exp $
 """
 
 class Regular (object):
@@ -20,9 +20,9 @@ class Regular (object):
     def trim(self, other, Euclid=Euclid):
         """Returns intersection of self and other.
 
-        Required single argument (do *not* pass any more) is another Slice (or
-        slice); returns a Slice describing the entries in this other that are
-        also in self (traversed in the same order as other gave them).\n"""
+        Required single argument (do *not* pass any more) is another Regular (or
+        a slice); returns a Regular describing the entries in this other that
+        are also in self.\n"""
         try: ar, op, ep = other.start or 0, other.stop, other.step
         except AttributeError: raise TypeError("Can't intersect", self, other)
         if ep is None: ep = 1
@@ -33,12 +33,12 @@ class Regular (object):
         if h: q, r = divmod(self.start - ar, h)
         elif self.start != ar or len(self) == 0 or len(other) == 0:
             return Interval(ar, 0)
-        else: return Slice(ar, op, h) # same as self or other
+        else: return self.__slice(ar, op, h) # same as self or other
 
         m = ep * self.step / h # lowest common multiple
         if self.step < 0: m = -m # so our result has the direction of other
         if r or self < other or self > other:
-            return Slice(ar+m, ar, m) # empty, but with right step
+            return self.__slice(ar+m, ar, m) # empty, but with right step
 
         s = q * i * ep + ar # in the same arithmetic sequence as the intersection
         assert s == self.start + q * j * self.step
@@ -47,9 +47,9 @@ class Regular (object):
         if m:
             q, r = divmod(s - ar, m)
             s -= q * m # so now s is ar + r, other's earliest s + k * m
-            if s not in other: return Slice(s, op, m) # empty
-        elif s in self and s in other: return Slice(s, s+1, m) # singleton
-        else: return Slice(s, s, m) # empty
+            if s not in other: return self.__slice(s, op, m) # empty
+        elif s in self and s in other: return self.__slice(s, s+1, m) # singleton
+        else: return self.__slice(s, s, m) # empty
         # intersection is now {s + k * m: lo <= k < hi} for some naturals lo, hi.
         if op is None: hi = None
         else: hi = (op - s) // m
@@ -73,8 +73,7 @@ class Regular (object):
         if hi is not None: hi = s + m * hi
         s += lo * m
 
-        if m == 1: return interval(s, hi - s)
-        return Slice(s, hi, m)
+        return self.__slice(s, hi, m)
 
     del Euclid
 
@@ -82,10 +81,8 @@ class Regular (object):
     def __cmp(self, other, no, yes):
         try: ar, op. ep = other.start, other.stop, other.step
         except AttributeError: pass
-        else:
-            if ep == 1: other = Interval(ar, op - ar)
-            else: other = Slice(ar, op, ep)
-            # Always make other be left operand of recursing compariisons:
+        else: other = self.__slice(ar, op, ep)
+        # Always make other be left operand of recursing compariisons:
 
         if yes(0, self.step): return yes(other, self.stop)
         if self.stop is None: return False
@@ -125,12 +122,9 @@ class Regular (object):
         members.\n"""
         try: ar, op, ep = other.start, other.stop, other.step
         except AttributeError:
-            if self.step == 1 and self.stop is not None:
-                return Interval(other + self.start, len(self))
-            else:
-                if self.stop is None: op = None
-                else: op = other + self.stop
-                return Slice(other + self.start, op, self.step)
+            if self.stop is None: op = None
+            else: op = other + self.stop
+            return self.__slice(other + self.start, op, self.step)
 
         if op == ar or self.stop == self.start:
             return Interval(self.start + ar, 0)
@@ -163,43 +157,50 @@ class Regular (object):
 
         if step * ep > 0:
             if stop is None or op is None:
-                return Slice(start + ar, None, step)
+                return self.__slice(start + ar, None, step)
         else:
             assert step * ep < 0
             if stop is None:
                 if op is None: raise ValueError, \
                    'Sum of arithmetic series has neither upper nor lower bound'
-                return Slice(start + op - ep, None, step)
+                return self.__slice(start + op - ep, None, step)
             elif op is None:
-                return Slice(stop - step + ar, None, -step)
+                return self.__slice(stop - step + ar, None, -step)
 
         assert stop is not None and op is not None
-        if step == 1:
-            if ep > 0:
-                return Interval(start + ar, stop - start + op - ep - ar)
-            else:
-                return Interval(start + op - ep, stop - start + ar - op + ep)
-        elif step == -1:
-            if ep > 0:
-                return Interval(1 + stop + ar, start - stop + op - ep - ar)
-            else:
-                return Interval(1 + stop + op - ep, start - stop + ar - op + ep)
-
-        return Slice(ar + start, op - ep + stop, step)
+        return self.__slice(ar + start, op - ep + stop, step)
 
     __radd__ = __add__
     def __sub__(self, other): return -other + self
     def __rsub__(self, other): return -self + other
+
+    def __neg__(self):
+        if self.stop is None: stop = None
+        else: stop = -self.stop
+        return self.__slice(-self.start, stop, -self.step)
+
+    @staticmethod
+    def __slice(start, stop, step):
+        if step == 1:
+            if stop is None: return Interval(start, None)
+            return Interval(start, stop - start)
+        elif step == -1 and stop is not None:
+            return Interval(stop + 1, start - stop)
+        return Slice(start, stop, step)
 
 class Interval (Regular):
     def __init__(self, start, span): self.__start, self.__span = start, span
-    def __len__(self): return self.__span
     def __repr__(self): return 'Interval(%s, %s)' % (self.__start, self.__span)
-    def __neg__(self): return Interval(-self.last, self.__span)
+
+    from infinite import Aleph0
+    def __len__(self, huge=Aleph0):
+        if self.__span is None: return huge
+        return self.__span
+    del Aleph0
 
     def __iter__(self):
         i = 0
-        while i < self.__span:
+        while self.__span is None or i < self.__span:
             yield i + self.__start
             i += 1
 
@@ -208,18 +209,26 @@ class Interval (Regular):
     def __getattr__(self, key):
         if key == 'step': return 1
         if key == 'start': return self.__start
-        if key == 'stop': return self.__start + self.__span
-        if key == 'last': return self.__start + self.__span - 1
+        if key == 'stop':
+            if self.__span is None: return None
+            return self.__start + self.__span
+        if key == 'last':
+            if self.__span is None:
+                raise AttributeError, 'No last element in infinite Interval'
+            return self.__start + self.__span - 1
+
         raise AttributeError(key)
 
     def __getitem__(self, ind):
-        if ind < 0 or ind >= self.__span: raise IndexError(ind, self.__span)
+        if ind < 0 or (self.__span is not None and ind >= self.__span):
+            raise IndexError(ind, self.__span)
         return ind + self.__start
 
     def index(self, ind):
         ans = ind - self.__start
         if ans < 0: raise ValueError(0, 'Not in range', ind, self)
-        if ans >= self.__span: raise ValueError(self.__span, 'Not in range', ind, self)
+        if self.__span is not None and ans >= self.__span:
+            raise ValueError('Not in range', ind, self)
         if ans != int(ans): raise ValueError(int(1+ans), 'Not in range', ind, self)
         return int(ans)
 
@@ -234,10 +243,6 @@ class Slice (Regular):
     # Can't actually use slice as a base class, so fake it:
     def __init__(self, *args): self.__seq = slice(*args)
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
-    def __neg__(self):
-        if self.stop is None: stop = None
-        else: stop = -self.stop
-        return Slice(-self.start, stop, -self.step)
 
     # Iteration:
     def __iter__(self):
