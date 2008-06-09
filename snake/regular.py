@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.3 2008-06-09 06:47:54 eddy Exp $
+$Id: regular.py,v 1.4 2008-06-09 06:58:06 eddy Exp $
 """
 
 class Regular (object):
@@ -16,66 +16,33 @@ class Regular (object):
         except ValueError: return False
         return True
 
-    from study.maths.natural import Euclid
-    def trim(self, other, Euclid=Euclid):
-        """Returns intersection of self and other.
+    # Iteration:
+    def __iter__(self):
+        val, step = self.start, self.step
 
-        Required single argument (do *not* pass any more) is another Regular (or
-        a slice); returns a Regular describing the entries in this other that
-        are also in self.\n"""
-        try: ar, op, ep = other.start or 0, other.stop, other.step
-        except AttributeError: raise TypeError("Can't intersect", self, other)
-        if ep is None: ep = 1
-
-        i, j = Euclid(ep, self.step)
-        j = -j
-        h = i * ep - j * self.step # highest common factor
-        if h: q, r = divmod(self.start - ar, h)
-        elif self.start != ar or len(self) == 0 or len(other) == 0:
-            return Interval(ar, 0)
-        else: return self.__slice(ar, op, h) # same as self or other
-
-        m = ep * self.step / h # lowest common multiple
-        if self.step < 0: m = -m # so our result has the direction of other
-        if r or self < other or self > other:
-            return self.__slice(ar+m, ar, m) # empty, but with right step
-
-        s = q * i * ep + ar # in the same arithmetic sequence as the intersection
-        assert s == self.start + q * j * self.step
-        # intersection is {s + k * m: lo <= k < hi} for some integers lo, hi
-        # what's the least ar + ep * n, for natural n, in that set ?
-        if m:
-            q, r = divmod(s - ar, m)
-            s -= q * m # so now s is ar + r, other's earliest s + k * m
-            if s not in other: return self.__slice(s, op, m) # empty
-        elif s in self and s in other: return self.__slice(s, s+1, m) # singleton
-        else: return self.__slice(s, s, m) # empty
-        # intersection is now {s + k * m: lo <= k < hi} for some naturals lo, hi.
-        if op is None: hi = None
-        else: hi = (op - s) // m
-        # 0, hi are now the lower and upper bounds imposed by other
-        assert hi > 0, 'We previously checked s is in other'
-        # So, how much of that is in self ?
-
-        if self.step * ep < 0:
-            ih = (self.start - self.step - s) // m
-            if self.stop is None: lo = s - m
-            else: lo = (self.stop - self.step - s) // m
+        if self.stop is None:
+            def check(ind): return True
+        elif self.stop == val:
+            def check(ind): return False
+        elif step > 0:
+            def check(ind, n=self.stop): return ind < n
+        elif step < 0:
+            def check(ind, n=self.stop): return ind > n
         else:
-            lo = (self.start - s) // m
-            if self.stop is None: ih = None
-            else: ih = (self.stop - s) // m
+            def check(ind): return True
 
-        lo = max(0, lo)
-        if hi is None: hi = ih
-        elif ih is None: pass
-        else: hi = min(hi, ih)
-        if hi is not None: hi = s + m * hi
-        s += lo * m
+        while check(val):
+            yield val
+            val = val + step
 
-        return self.__slice(s, hi, m)
+        raise StopIteration
 
-    del Euclid
+    def __sub__(self, other): return -other + self
+    def __rsub__(self, other): return -self + other
+    def __neg__(self):
+        if self.stop is None: stop = None
+        else: stop = -self.stop
+        return self.__slice(-self.start, stop, -self.step)
 
     # Define comparison in terms of "is this true for all values in self ?"
     def __cmp(self, other, no, yes):
@@ -171,13 +138,67 @@ class Regular (object):
         return self.__slice(ar + start, op - ep + stop, step)
 
     __radd__ = __add__
-    def __sub__(self, other): return -other + self
-    def __rsub__(self, other): return -self + other
 
-    def __neg__(self):
-        if self.stop is None: stop = None
-        else: stop = -self.stop
-        return self.__slice(-self.start, stop, -self.step)
+    from study.maths.natural import Euclid
+    def trim(self, other, Euclid=Euclid):
+        """Returns intersection of self and other.
+
+        Required single argument (do *not* pass any more) is another Regular (or
+        a slice); returns a Regular describing the entries in this other that
+        are also in self.\n"""
+        try: ar, op, ep = other.start or 0, other.stop, other.step
+        except AttributeError: raise TypeError("Can't intersect", self, other)
+        if ep is None: ep = 1
+
+        i, j = Euclid(ep, self.step)
+        j = -j
+        h = i * ep - j * self.step # highest common factor
+        if h: q, r = divmod(self.start - ar, h)
+        elif self.start != ar or len(self) == 0 or len(other) == 0:
+            return Interval(ar, 0)
+        else: return self.__slice(ar, op, h) # same as self or other
+
+        m = ep * self.step / h # lowest common multiple
+        if self.step < 0: m = -m # so our result has the direction of other
+        if r or self < other or self > other:
+            return self.__slice(ar+m, ar, m) # empty, but with right step
+
+        s = q * i * ep + ar # in the same arithmetic sequence as the intersection
+        assert s == self.start + q * j * self.step
+        # intersection is {s + k * m: lo <= k < hi} for some integers lo, hi
+        # what's the least ar + ep * n, for natural n, in that set ?
+        if m:
+            q, r = divmod(s - ar, m)
+            s -= q * m # so now s is ar + r, other's earliest s + k * m
+            if s not in other: return self.__slice(s, op, m) # empty
+        elif s in self and s in other: return self.__slice(s, s+1, m) # singleton
+        else: return self.__slice(s, s, m) # empty
+        # intersection is now {s + k * m: lo <= k < hi} for some naturals lo, hi.
+        if op is None: hi = None
+        else: hi = (op - s) // m
+        # 0, hi are now the lower and upper bounds imposed by other
+        assert hi > 0, 'We previously checked s is in other'
+        # So, how much of that is in self ?
+
+        if self.step * ep < 0:
+            ih = (self.start - self.step - s) // m
+            if self.stop is None: lo = s - m
+            else: lo = (self.stop - self.step - s) // m
+        else:
+            lo = (self.start - s) // m
+            if self.stop is None: ih = None
+            else: ih = (self.stop - s) // m
+
+        lo = max(0, lo)
+        if hi is None: hi = ih
+        elif ih is None: pass
+        else: hi = min(hi, ih)
+        if hi is not None: hi = s + m * hi
+        s += lo * m
+
+        return self.__slice(s, hi, m)
+
+    del Euclid
 
     @staticmethod
     def __slice(start, stop, step):
@@ -244,27 +265,6 @@ class Slice (Regular):
     def __init__(self, *args): self.__seq = slice(*args)
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
 
-    # Iteration:
-    def __iter__(self):
-        val, step = self.start, self.step
-
-        if self.stop is None:
-            def check(ind): return True
-        elif self.stop == val:
-            def check(ind): return False
-        elif step > 0:
-            def check(ind, n=self.stop): return ind < n
-        elif step < 0:
-            def check(ind, n=self.stop): return ind > n
-        else:
-            def check(ind): return True
-
-        while check(val):
-            yield val
-            val = val + step
-
-        raise StopIteration
-
     def __getattr__(self, key):
         if key == 'last':
             if self.__seq.step == 0 and self.__seq.stop != self.start:
@@ -311,10 +311,8 @@ class Slice (Regular):
         lo = self.start or 0
         if not key: return lo
 
-        if self.step is None: step = 1
-        else: step = self.step
-        ind = key * step + lo
-        if self.stop is None or (self.stop - ind) * step > 0:
+        ind = key * self.step + lo
+        if self.stop is None or (self.stop - ind) * self.step > 0:
             return ind
 
         raise IndexError(key)
