@@ -100,16 +100,16 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.5 2008-06-09 07:03:05 eddy Exp $
+$Id: octet.py,v 1.6 2008-06-09 07:28:30 eddy Exp $
 """
 
 def coprimes(primes):
     """Determine the candidate primes modulo the product of some primes.
 
-    Required argument, primes, is a finite segment distinct primes.  Returns a
-    pair (prod, vals); prod is the product of the primes, vals is a tuple of the
-    values, modulo prod, coprime to prod; i.e. the return is (P(n), C(n)) if the
-    input is primes[:n].
+    Required argument, primes, is a finite sequence of distinct primes.  Returns
+    a pair (prod, vals); prod is the product of the primes, vals is a tuple of
+    the values, modulo prod, coprime to prod; i.e. the return is (P(n), C(n)) if
+    the input is primes[:n].
 
     This implementation iteratively constructs each C(1+i) by generating Q(i)
     and filtering out {primes[i] * c: c in C(i)}, exactly according to the
@@ -142,7 +142,8 @@ class OctetType (Tuple):
         self.__primes = tuple(ps)
         self.modulus, vals = coprimes(ps)
         self.__upinit(vals)
-        self.size = len(vals) / 8
+        self.size, r = divmod(len(vals), 8)
+        assert r == 0
 
     def index(self, p):
         """Find where p is in self.
@@ -169,16 +170,15 @@ class OctetType (Tuple):
     def iterate(self, start):
         """Returns a perpetual iterator over candidates.
 
-        Required argument, start, is a natural you think might be a prime.
-
-        Each return from next() is the next value that has any chance of being a
-        prime, i.e. is coprime to self.modulus; this continues indefinitely, so
-        this iterator never terminates.\n"""
+        Required argument, start, is a natural you think might be a prime.  Each
+        yield is the next value that has any chance of being a prime, i.e. is
+        coprime to self.modulus; we never run out of such values, so this
+        iterator never terminates.\n"""
         n, r = divmod(start, self.modulus)
         try: i = self.index(r)
         except ValueError, what:
             i = what.args[0]
-            assert i  < len(self)
+            assert i < len(self)
             assert i == 0 or self[i-1] < r < self[i]
 
         base = n * self.modulus
@@ -209,8 +209,7 @@ class Octet (object):
 
         Required arguments:
           kind -- an OctetType describing the representation to use
-          base -- beginning of the range of naturals to be described (relative
-                  to the base of some parent in the node hierarchy)
+          base -- beginning of the range of naturals to be described
 
         Optional argument:
           count -- number of such blocks to be described; or None (default), to
