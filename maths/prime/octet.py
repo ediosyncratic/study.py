@@ -100,7 +100,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.4 2008-05-22 22:17:09 eddy Exp $
+$Id: octet.py,v 1.5 2008-06-09 07:03:05 eddy Exp $
 """
 
 def coprimes(primes):
@@ -166,36 +166,45 @@ class OctetType (Tuple):
 
         raise ValueError(hi)
 
-    def iterate(self, start, offset=0):
-        n, r = divmod(start + offset, self.modulus)
+    def iterate(self, start):
+        """Returns a perpetual iterator over candidates.
+
+        Required argument, start, is a natural you think might be a prime.
+
+        Each return from next() is the next value that has any chance of being a
+        prime, i.e. is coprime to self.modulus; this continues indefinitely, so
+        this iterator never terminates.\n"""
+        n, r = divmod(start, self.modulus)
         try: i = self.index(r)
         except ValueError, what:
             i = what.args[0]
             assert i  < len(self)
             assert i == 0 or self[i-1] < r < self[i]
 
-        offset -= n * self.modulus
+        base = n * self.modulus
         while True:
-            yield self[i] - offset
+            yield self[i] + base
             i += 1
             if i >= len(self):
-                offset -= self.modulus
+                base += self.modulus
                 i -= len(self)
 
     def factor(self, k):
+        i = 0
         for p in self.__primes:
-            if not k % p: return p
+            if not k % p: return i
+            i += 1
         return None
 
 del Tuple
 
-from study.snake.interval import Slice
+from study.snake import interval
 
 class Octet (object):
     """Base class for octet-structured mappings from a range of naturals.
     """
 
-    def __init__(self, kind, base, count=None, data=None):
+    def __init__(self, kind, base, count=None, data=None, gap=interval.Interval):
         """Set up to describe a range of the naturals..
 
         Required arguments:
@@ -221,57 +230,64 @@ class Octet (object):
         elif count is None:
             raise ValueError('I need to know how big to be', count, data)
 
-        self.kind, self.span = kind, Slice(base, base + count * kind.modulus)
+        self.kind, self.span = kind, gap(base, count * kind.modulus)
 
-    def keys(self, off=0): return range(self.span.start + off, self.span.stop + off)
-    def items(self, off=0): return map(lambda k, b=self, o=off: (k+o, b[k]), self.keys())
-    def values(self): return map(lambda k, b=self: b[k], self.keys())
+    def keys(self): return range(self.span.start, self.span.stop)
+    def items(self): return map(lambda k, b=self: (k, b[k]), self.span)
+    def values(self): return map(lambda k, b=self: b[k], self.span)
     # But you probably don't want to use those last three !
-    def __len__(self): return self.span.stop - self.span.start
+    def __len__(self): return len(self.span)
 
 class Sieve (Octet):
     """Mixin to provide sieving for octets.
 
     Derived classes need to implement __getitem__, which should raise
     LookupError rather than report a value p as prime, unless .valid(p); also a
-    mark(p) method, which updates information on primes or factors to record the
-    multiples of p, and a prime(i) method, which returns true if i is a prime.
-    The last two may sensibly be inherited from a base class.
+    mark(p, ind) method, which updates information on primes or factors to
+    record the multiples of p (ind is p's index as a prime), and a prime(i)
+    method, which returns true if i is a prime.  The last two may sensibly be
+    inherited from a base class.
 
-    An instance of this class, when iterated, yields all the primes in its span
+    An instance of this class, when iterated, yields all the primes in its .span
     (note that this is different to the usual default for mappings, including
-    Octet, which is to iterate the keys(), which is the whole span), including
-    any in the initial data whose length was given to the constructor.  After an
-    iteration of it has completed, aside from any further iteration (which just
-    repeats the prior), it behaves the same as the non-sieving version of its
-    class.\n"""
+    Octet, which is to iterate the keys(), which is the whole span in our case),
+    including any in the initial data whose length was given to the constructor.
+    After an iteration of it has completed, aside from any further iteration
+    (which just repeats the prior), it behaves the same as the non-sieving
+    version of its class.\n"""
 
-    def __init__(self, off, primes, given=0):
+    def __init__(self, primes, given=0):
         """Initialize for sieving.
 
-        Required arguments:
-          off -- absolute integer offset relative to which self.span is given
+        Required argument:
           primes -- an iterable whose iterator shall yield every prime up to
-                    off + self.span.stop.
+                    self.span.stop.
 
-        Optional second argument, given, is the length of an initial portion of
+        Optional third argument, given, is the length of an initial portion of
         self.span for which full data is already available when initialized.\n"""
-        self.__src, self.__valid, self.__offset = iter(primes), given, off
+
+        def src(p = iter(primes)):
+            i = 0
+            while True:
+                yield i, p.next()
+                i += 1
+
+        self.__src, self.__valid = src, given
 
     def valid(self, ind): return ind < self.span.start + self.__valid
 
     def __iter__(self):
-        base, off = self.span.start, self.__offset
-        k = self.kind.iterate(base, off)
-        i, at = k.next(), base + off
+        base = self.span.start
+        k = self.kind.iterate(base)
+        i, at = k.next(), base
 
         while i < self.span.stop:
             if i < self.__valid + base:
-                if self.prime(i): yield i + off
+                if self.prime(i): yield i
                 i = k.next()
             else:
-                p = self.__src.next()
-                self.mark(p, off)
+                ind, p = self.__src.next()
+                self.mark(p, ind)
                 self.__valid = max(self.__valid, (p + 1) ** 2 - at)
 
         raise StopIteration
@@ -310,7 +326,7 @@ class FlagOctet (Octet):
             if flag: self.__flags[byte] = chr(1 << bit | ord(self.__flags[byte]))
             else: self.__flags[byte] = chr(ord(self.__flags[byte]) & ~(1 << bit))
 
-    def __find(self, key):
+    def __find(self, key, bad=interval.Regular):
         """Identify which bit describes a given key.
 
         Single argument, key, should be a natural.  If it's a slice (or Slice),
@@ -320,7 +336,7 @@ class FlagOctet (Octet):
         handled by this class.  Otherwise, the (byte, bit) returned indicates
         that the given key is the natural associated with 1<<bit &
         ord(self.__flags[byte]).\n"""
-        if isinstance(key, slice) or isinstance(key, Slice):
+        if isinstance(key, (slice, bad)):
             raise TypeError("Can't slice a mapping", key)
 
         if key not in self.span:
@@ -330,7 +346,7 @@ class FlagOctet (Octet):
         byte, bit = divmod(self.kind.index(r), 8)
         return q * self.kind.size + byte, bit
 
-    def mark(self, p):
+    def mark(self, p, ignored):
         """Marks relevant multiples of p as non-primes."""
         f, z, t = self.__flags, self.span.start, self.kind
         m, s = t.modulus, t.size
@@ -364,11 +380,14 @@ class FlagSieve (FlagOctet, Sieve):
         raise LookupError('Too early to be sure', ind)
 
 class FactorOctet (Octet):
-    """A mapping from a range of naturals to least proper factor or None.
-    """
+    """A mapping object storing factor information.
+
+    The keys supported are all the naturals in some range; each is mapped to the
+    least index, into primes, of a factor of the given natural; or, if there is
+    no such index, to None.\n"""
     __upinit = Octet.__init__
     def __init__(self, kind, base, count=None, data=()):
-        """Set up a multi-byte flag octet.
+        """Set up a multi-byte factor octet.
 
         For arguments, see Octet.__init__, with the optional data being here a
         sequence containing (an initial portion of) the data for the blocks
@@ -398,7 +417,7 @@ class FactorOctet (Octet):
             if f[ind] is None or f[ind] > factor:
                 f[ind] = factor
 
-    def __find(self, key):
+    def __find(self, key, bad=interval.Regular):
         """Identify which entry in .__factors describes a given key.
 
         Single argument, key, should be a natural.  If it's a slice (or Slice),
@@ -407,7 +426,7 @@ class FactorOctet (Octet):
         not in .kind we raise ValueError, which should generally be caught and
         handled by this class.  Otherwise, returns i for which self.__factors[i]
         describes the given key.\n"""
-        if isinstance(key, slice) or isinstance(key, Slice):
+        if isinstance(key, (slice, bad)):
             raise TypeError("Can't slice a mapping", key)
 
         if key not in self.span:
@@ -416,15 +435,15 @@ class FactorOctet (Octet):
         q, r = divmod(key - self.span.start, self.kind.modulus)
         return q * self.kind.size + self.kind.index(r)
 
-    def flag(self):
+    def flag(self, seq=interval.Slice):
         """Re-express self's data in a FlagOctet.
 
         This discards knowledge of proper factors but yields a much more compact
         list of primes.\n"""
 
-        text = ''
+        text, ns = '', seq(0, len(self.kind), 8)
         for off in self.span.trim(slice(self.base, None, self.kind.modulus)):
-            for n in Slice(0, len(self.kind), 8):
+            for n in ns:
                 bit, byte = 1, 0
                 for flag in map(lambda p, o=off, s=self: self[p+o] is None, self.kind[n:n+8]):
                     if flag: byte |= bit
@@ -435,8 +454,8 @@ class FactorOctet (Octet):
         assert len(data) // self.kind.size == len(self.span) // self.kind.modulus
         return FlagOctet(self.kind, self.span.start, data=text)
 
-    def mark(self, p):
-        """Marks relevant multiples of p as such."""
+    def mark(self, p, i):
+        """Marks relevant multiples of a prime p with index i as such."""
         f, z, t = self.__flags, self.span.start, self.kind
         m, s = t.modulus, t.size
         for k in self.span.trim(slice(p*p, None, p)):
@@ -444,7 +463,7 @@ class FactorOctet (Octet):
             try: ind = q * s + t.index(r)
             except ValueError: pass
             else:
-                if f[ind] is None: f[ind] = p
+                if f[ind] is None: f[ind] = i
 
 class FactorSieve (FactorOctet, Sieve):
     __upinit = FactorOctet.__init__
@@ -459,3 +478,4 @@ class FactorSieve (FactorOctet, Sieve):
         if self.valid(ind) or val is not None: return val
         raise LookupError('Too early to be sure', ind)
 
+del interval
