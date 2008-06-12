@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.12 2008-06-12 07:25:39 eddy Exp $
+$Id: sequence.py,v 1.13 2008-06-12 07:37:29 eddy Exp $
 """
 
 class Tuple (object):
@@ -98,25 +98,26 @@ class Ordered (list):
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
-    entry; and duplication is silently ignored.  Entries must support comparison
-    with one another; they shall be kept in increasing order.  The comparison
-    may be customised in the same ways as are supported by the usual list.sort
-    method; and calling sort() can revise the customisation.  Slicing with a
-    reversed slice order yields a reverse-ordered slice.\n"""
+    entry; and duplication can be silently ignored.  Entries must support
+    comparison with one another; they shall be kept in increasing order.  The
+    comparison may be customised in the same ways as are supported by the usual
+    list.sort method; and calling sort() can revise the customisation.  Slicing
+    with a reversed slice order yields a reverse-ordered slice.\n"""
 
     __upinit = list.__init__
-    def __init__(self, val=None, reverse=False, key=None, cmp=None):
+    def __init__(self, val=None, unique=True, reverse=False, key=None, cmp=None):
         """Construct ordered list.
 
         All arguments are optional:
           val -- sequence of (or iterator over) initial entries
+          unique -- ignore duplicate entries
           reverse -- sort in reverse order (default: False)
           key -- name of attribute on which to compare or (default) None to use
                  values directly
           cmp -- comparison function or None (to use the default cmp)
         """
         self.__upinit()
-        self.__cmp, self.__key, self.__rev = cmp, key, reverse
+        self.__unique, self.__cmp, self.__key, self.__rev = unique, cmp, key, reverse
         if val is not None:
             for it in val: self.append(it)
 
@@ -128,7 +129,7 @@ class Ordered (list):
             return Ordered(self.__upget(key), rev, self.__key, self.__cmp)
         return self.__upget(key)
 
-    # TODO: setslice/setitem support
+    # TODO: setslice/setitem support; delete targetted parts, add new value(s)
 
     __upsort = list.sort
     def sort(self, cmp=None, key=None, reverse=False):
@@ -181,9 +182,10 @@ class Ordered (list):
 
         If value is equal to some entry in this list, return the index of that
         entry; otherwise, return the index at which it should be inserted.  A
-        return of -1 means 'after the end'.\n"""
-        if not self or self.__gt(0, value): return 0
-        if self.__lt(-1, value): return -1 # magic token for "after end"
+        return of -1 means 'after the end'; otherwise, only valid non-negative
+        indices into self are returned.\n"""
+        if not self or self.__lt(-1, value): return -1
+        if self.__gt(0, value): return 0
         lo, hi = 0, len(self) - 1
         while hi > 1 + lo:
             mid, ig = divmod(lo + hi, 2)
@@ -207,12 +209,13 @@ class Ordered (list):
         Should be called with one argument, the value to be added to the list.
         Supports being called like list.insert(ind, value), in which case it
         silently ignores the index, ind, and uses its second argument as the
-        value to insert.\n"""
+        value to insert.  Returns False if self ignores duplicates and the new
+        item was a duplicate; else True.\n"""
         if value is None: value = ind
         # Insert in correctly-ordered position.
         at = self.__locate(value)
         if at < 0: self.__listapp(value)
-        elif at < len(self) and self.__eq(at, value): return False
+        elif self.__unique and self.__eq(at, value): return False
         else: self.__listins(at, value)
         return True
 
