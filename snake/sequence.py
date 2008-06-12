@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.13 2008-06-12 07:37:29 eddy Exp $
+$Id: sequence.py,v 1.14 2008-06-12 07:44:20 eddy Exp $
 """
 
 class Tuple (object):
@@ -209,15 +209,14 @@ class Ordered (list):
         Should be called with one argument, the value to be added to the list.
         Supports being called like list.insert(ind, value), in which case it
         silently ignores the index, ind, and uses its second argument as the
-        value to insert.  Returns False if self ignores duplicates and the new
-        item was a duplicate; else True.\n"""
+        value to insert.  Returns True if self ignores duplicates and the new
+        item was a duplicate; else None.\n"""
         if value is None: value = ind
         # Insert in correctly-ordered position.
         at = self.__locate(value)
         if at < 0: self.__listapp(value)
-        elif self.__unique and self.__eq(at, value): return False
+        elif self.__unique and self.__eq(at, value): return True
         else: self.__listins(at, value)
-        return True
 
     insert = append
 
