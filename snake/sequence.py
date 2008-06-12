@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.11 2008-06-08 15:12:14 eddy Exp $
+$Id: sequence.py,v 1.12 2008-06-12 07:25:39 eddy Exp $
 """
 
 class Tuple (object):
@@ -99,11 +99,82 @@ class Ordered (list):
 
     Like a list except that you don't get to chose where in it to put each
     entry; and duplication is silently ignored.  Entries must support comparison
-    with one another; they shall be kept in increasing order.\n"""
+    with one another; they shall be kept in increasing order.  The comparison
+    may be customised in the same ways as are supported by the usual list.sort
+    method; and calling sort() can revise the customisation.  Slicing with a
+    reversed slice order yields a reverse-ordered slice.\n"""
 
     __upinit = list.__init__
-    def __init__(self, val=None):
-        self.__upinit(val or [])
+    def __init__(self, val=None, reverse=False, key=None, cmp=None):
+        """Construct ordered list.
+
+        All arguments are optional:
+          val -- sequence of (or iterator over) initial entries
+          reverse -- sort in reverse order (default: False)
+          key -- name of attribute on which to compare or (default) None to use
+                 values directly
+          cmp -- comparison function or None (to use the default cmp)
+        """
+        self.__upinit()
+        self.__cmp, self.__key, self.__rev = cmp, key, reverse
+        if val is not None:
+            for it in val: self.append(it)
+
+    __upget = list.__getitem__
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            if key.step is not None and key.step < 0: rev = not self.__rev
+            else: rev = self.__rev
+            return Ordered(self.__upget(key), rev, self.__key, self.__cmp)
+        return self.__upget(key)
+
+    # TODO: setslice/setitem support
+
+    __upsort = list.sort
+    def sort(self, cmp=None, key=None, reverse=False):
+        """Change sort criteria.
+
+        Parameters are all optional, with the usual semantics for list.sort(),
+        but each defaults to self's existing sort properties.  If given, cmp
+        replaces self's prior comparison function, if any (you can restore the
+        effect of no custom comparison by passing the built-in cmp function).
+        If key is omitted, self's existing key is preserved; if it is passed as
+        the empty string, any prior key is discarded and self uses values as
+        they are, rather than an attribute; otherwise, key replaces self's prior
+        key.  If reverse is true, it is combined with self's prior reversal
+        using xor (so reverse-sorting a reverse-sorted list yields a normally
+        sorted list, for example).\n"""
+
+        if cmp is None: cmp = self.__cmp
+        else: self.__cmp = cmp
+
+        if key is None: key = self.__key
+        elif key: self.__key = key
+        else: key = self.__key = None
+
+        self.__rev ^= reverse
+        self.__upsort(cmp, key, self.__rev)
+
+    def __ne(self, ind, val):
+        if self.__key:
+            ind, val = getattr(self[ind], self.__key), getattr(val, self.__key)
+        else: ind = self[ind]
+
+        if self.__cmp: return self.__cmp(ind, val)
+        else: return cmp(ind, val)
+
+    def __eq(self, ind, val):
+        return self.__ne(ind, val) == 0
+
+    def __lt(self, ind, val):
+        ans = self.__ne(ind, val)
+        if self.__rev: return ans > 0
+        return ans < 0
+
+    def __gt(self, ind, val):
+        ans = self.__ne(ind, val)
+        if self.__rev: return ans < 0
+        return ans > 0
 
     def __locate(self, value):
         """Where does value belong in this list ?
@@ -111,20 +182,20 @@ class Ordered (list):
         If value is equal to some entry in this list, return the index of that
         entry; otherwise, return the index at which it should be inserted.  A
         return of -1 means 'after the end'.\n"""
-        if not self or self[0] > value: return 0
-        if self[-1] < value: return -1 # magic token for "after end"
+        if not self or self.__gt(0, value): return 0
+        if self.__lt(-1, value): return -1 # magic token for "after end"
         lo, hi = 0, len(self) - 1
         while hi > 1 + lo:
             mid, ig = divmod(lo + hi, 2)
-            if self[mid] > value: hi = mid
-            elif self[mid] < value: lo = mid
+            if self.__gt(mid, value): hi = mid
+            elif self.__lt(mid, value): lo = mid
             else: return mid
 
         return hi
 
     def index(self, value):
         ind = self.__locate(value)
-        if ind < 0 or value != self[ind]:
+        if ind < 0 or self.__ne(ind, value):
             raise ValueError('Not in list', value)
         return ind
 
@@ -141,7 +212,7 @@ class Ordered (list):
         # Insert in correctly-ordered position.
         at = self.__locate(value)
         if at < 0: self.__listapp(value)
-        elif self[at] == value: return False
+        elif at < len(self) and self.__eq(at, value): return False
         else: self.__listins(at, value)
         return True
 
@@ -156,7 +227,7 @@ class Ordered (list):
             was = self[:]
             del self[:]
         else:
-            if self[at] == upto: at += 1
+            if self.__eq(at, upto): at += 1
             was = self[:at]
             if at > 0: del self[:at]
 
