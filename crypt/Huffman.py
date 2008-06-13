@@ -1,6 +1,6 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.9 2008-05-11 16:20:45 eddy Exp $
+$Id: Huffman.py,v 1.10 2008-06-13 07:37:51 eddy Exp $
 """
 from study.snake.lazy import Lazy
 
@@ -9,11 +9,12 @@ class Huffman (Lazy):
         """Initialize a Huffman encoder.
 
         First argument, P, is a mapping from symbols to their relative
-        frequencies; if a (not too long) sequence is supplied instead, it is
-        interpreted as a mapping from its indices (each represented as a digit,
-        letter or punctuator) to its entries.  (TODO: support non-string keys;
-        encode sequences of keys).  In principle, P is normalized to yield a
-        probability distribution.
+        frequencies (which must not be negative); if a (not too long) sequence
+        is supplied instead, it is interpreted as a mapping from its indices
+        (each represented as a digit, letter or punctuator) to its entries.
+        (TODO: support non-string keys; encode sequences of keys).  In
+        principle, P is normalized to yield a probability distribution, but this
+        is not actually necessary.
 
         Optional arguments:
 
@@ -76,6 +77,10 @@ class Huffman (Lazy):
 
             self.__distribution = bok
         else: self.__distribution = P
+
+        # Verify no negative weights:
+        bad = filter(lambda (x,y): y < 0, P.items())
+        if bad: raise ValueError('Negative token frequencies', dict(bad))
 
         # Input padding:
         if blank is not None:
@@ -211,21 +216,15 @@ class Huffman (Lazy):
                 i = i - 1
                 self.kids[i].mark(stem + sym[i], bok, sym)
 
-    def weigh(x, y):
-        gap = x.weight - y.weight
-        if gap < 0: return -1
-        elif gap > 0: return 1
-        return 0
-
-    def _lazy_get_mapping_(self, ig, Leaf=Leaf, Tree=Tree, weigh=weigh):
+    from study.snake.sequence import Ordered
+    def _lazy_get_mapping_(self, ig, Leaf=Leaf, Tree=Tree, List=Ordered):
         P, sym = self._block_map, self.__symbols
-        forest = []
+        forest = List(key='weight')
         for k, v in P.items():
             if v: forest.append(Leaf(k, v))
 
         while len(forest) > 1:
-            forest.sort(weigh)
-            forest = [ Tree(* forest[:len(sym)]) ] + forest[len(sym):]
+            forest[:len(sym)] = [ Tree(* forest[:len(sym)]) ]
 
         code = {}
         if forest:
@@ -233,4 +232,4 @@ class Huffman (Lazy):
 
         return code
 
-    del Leaf, Tree, weigh
+    del Leaf, Tree, Ordered
