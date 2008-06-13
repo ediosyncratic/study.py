@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.14 2008-06-12 07:44:20 eddy Exp $
+$Id: sequence.py,v 1.15 2008-06-13 07:26:43 eddy Exp $
 """
 
 class Tuple (object):
@@ -123,13 +123,32 @@ class Ordered (list):
 
     __upget = list.__getitem__
     def __getitem__(self, key):
+        """Get value(s) indicated by key.
+
+        If key is a slice, return an Ordered to hold it; if it's going in the
+        reverse direction, suitably reverse the order.\n"""
         if isinstance(key, slice):
             if key.step is not None and key.step < 0: rev = not self.__rev
             else: rev = self.__rev
             return Ordered(self.__upget(key), rev, self.__key, self.__cmp)
         return self.__upget(key)
 
-    # TODO: setslice/setitem support; delete targetted parts, add new value(s)
+    try: list.__setslice__
+    except AttributeError: pass
+    else: # list still has this deprecated method, so we need to over-ride it:
+        def __setslice__(self, i, j, val):
+            self.__setitem__(slice(i, j), val)
+
+    def __setitem__(self, key, val):
+        """Replace value(s) indicated by key with value(s) supplied as val.
+
+        This is interpreted as deletion of each replaced value and insertion of
+        each supplied value, potentially at a different location.\n"""
+        del self[key]
+        if isinstance(key, slice):
+            for it in val:
+                self.append(it)
+        else: self.append(val)
 
     __upsort = list.sort
     def sort(self, cmp=None, key=None, reverse=False):
