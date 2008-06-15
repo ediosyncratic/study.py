@@ -66,6 +66,8 @@ class Permutation (Tuple, Lazy):
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
+    __slots__ = ('inverse', 'period')
+
     __upinit = Tuple.__init__
     def __init__(self, perm):
         """Initialize a permutation.
@@ -159,7 +161,7 @@ class Permutation (Tuple, Lazy):
             raise ValueError, ('sequence is not a permutation', self)
 
         ans = Permutation(ans)
-        assert ans(self) == range(n) == self(ans)
+        assert ans(self) == range(len(self)) == self(ans)
         assert ans == order(self)
         ans.inverse = self
         return ans
@@ -265,8 +267,7 @@ def permute(*indices):
     which may be understood as the composite of the sequences, read as functions
     (see Theory sections in doc-strings in permute.py)."""
 
-    try: indices, ans = indices[:-1], indices[-1]
-    except IndexError: return indices # empty tuple; no sequences given !
+    indices, ans = indices[:-1], indices[-1] # IndexError if no sequences given !
 
     while indices:
         indices, last = indices[:-1], indices[-1]
@@ -284,8 +285,7 @@ def compose(*perms):
     with the two loops rolled out the other way (to implement the
     identity-default behaviour by catching IndexErrors). """
 
-    try: n = max(map(len, perms))
-    except ValueError: return perms # empty tuple: no permutations given
+    n = max(map(len, perms)) # IndexError if no permutations given !
 
     result, i = [], 0
     while i < n:
@@ -297,7 +297,7 @@ def compose(*perms):
         result.append(k)
         i += 1
 
-    return tuple(result)
+    return Permutation(result)
 
 def cycle(row, by=1):
     """Permutes a sequence cyclicly.
