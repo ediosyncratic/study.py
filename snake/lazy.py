@@ -1,9 +1,9 @@
 """Lazy toys.
 
-$Id: lazy.py,v 1.4 2007-03-24 16:30:15 eddy Exp $
+$Id: lazy.py,v 1.5 2008-06-15 22:53:52 eddy Exp $
 """
 # This is in the same spirit as cacheing, but quite independent.
-class Lazy:
+class Lazy (object):
     """Helper class for lazy evaluation.
 
     Provides a __getattr__ which revises the object (via setattr) so that
@@ -166,9 +166,9 @@ class Lazy:
 
 	See the doc of your object's methods for definitive truth about either
 	_lazy_late_() or _lazy_early_().  Class designers, likewise, think
-	about how far you want to interact with these idioms. """
+	about how far you want to interact with these idioms.\n"""
 
-	if lazy_source is not None: self._lazy_early_ = source
+	if lazy_source is not None: self._lazy_early_ = lazy_source
 
 	if lazy_aliases is not None:
 
