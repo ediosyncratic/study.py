@@ -1,6 +1,6 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.10 2008-06-13 07:37:51 eddy Exp $
+$Id: Huffman.py,v 1.11 2008-06-15 16:06:52 eddy Exp $
 """
 from study.snake.lazy import Lazy
 
@@ -9,12 +9,13 @@ class Huffman (Lazy):
         """Initialize a Huffman encoder.
 
         First argument, P, is a mapping from symbols to their relative
-        frequencies (which must not be negative); if a (not too long) sequence
-        is supplied instead, it is interpreted as a mapping from its indices
-        (each represented as a digit, letter or punctuator) to its entries.
-        (TODO: support non-string keys; encode sequences of keys).  In
+        frequencies; if a sequence is supplied instead, it is interpreted as a
+        mapping from its indices to its entries.  If every key of P is a
+        character (i.e. a single-character string, whether 8-bit or unicode),
+        the 'messages' to be encoded are taken to be strings; otherwise, they
+        are sequences (e.g. lists or tuples) of the tokens used as keys.  In
         principle, P is normalized to yield a probability distribution, but this
-        is not actually necessary.
+        is not actually necessary, as long as it has no negative values.
 
         Optional arguments:
 
@@ -59,24 +60,17 @@ class Huffman (Lazy):
             try: P[:] # sequence
             except: raise ValueError(P,
                                      'Probability distribution must be mapping or sequence')
-            # Concoct representation for P's indices:
-            import string
-            keys = string.digits
-            for more in ( string.lowercase, string.uppercase, string.punctuation, ' ' ):
-                if len(P) > len(keys):
-                    keys = keys + more
-                else: break
-
-            if len(P) > len(keys):
-                raise ValueError(P, 'Sequence too long for fall-back handling', keys)
-
             # Convert P to a mapping:
             bok = {}
             for i in range(len(P)):
-                bok[keys[i]] = P[i] # raises exception if P is not a sequence ...
+                bok[i] = P[i] # raises exception if P is not a sequence ...
 
             self.__distribution = bok
         else: self.__distribution = P
+
+        # Are our symbols strings or are we working with sequences ?
+        self.__str = len(filter(lambda x: not(isinstance(x, basestring) and len(x) == 1),
+                                P.keys())) == 0
 
         # Verify no negative weights:
         bad = filter(lambda (x,y): y < 0, P.items())
@@ -96,25 +90,31 @@ class Huffman (Lazy):
             except AttributeError:
                 raise ValueError(self.__block_size,
                                  'Cannot pad message to multiple of block size: no blank')
-            message = message + (self.__block_size - rem) * pad
+            if self.__str:
+                message = message + (self.__block_size - rem) * pad
+            else:
+                message = tuple(message) + (self.__block_size - rem) * (pad,)
+        elif not self.__str:
+            message = tuple(message)
 
         txt, n, code = '', self.__block_size, self.mapping
         try:
             while message:
                 message, txt = message[n:], txt + code[message[:n]]
         except KeyError:
-            raise ValueError(message,
-                             'Unable to encode this message',
-                             code)
+            raise ValueError('Unable to encode', message, code)
+
         return txt
 
     def decode(self, txt):
-        message, code = '', self.reverse
+        code = self.reverse
+        if self.__str: message = ''
+        else: message = ()
         try:
             while txt:
                 i = 1
-                while not code.has_key(txt[:i]) and txt[i:]: i = 1 + i
-                if not code.has_key(txt[:i]) and not txt[i:]:
+                while not code.has_key(txt[:i]) and i < len(txt): i = 1 + i
+                if not code.has_key(txt[:i]) and i >= len(txt):
                     try: pad = self.__tail
                     except AttributeError: pass
                     else:
@@ -139,33 +139,40 @@ class Huffman (Lazy):
         except AttributeError:
             its = self.mapping.items()
             its.sort(lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
+            if not self.__str: its = map(lambda (k, v): (str(k), v), its)
             fmt = map(lambda (k, v): '%%%ds' % max(len(k), len(v)), its)
             ans = '\n'.join(map(lambda x, f=' | '.join(fmt): f % x,
-                                map(* [ lambda *args: args ] + its)))
+                                map(lambda *args: args, *its)))
             self.__repr = ans
 
         return ans
 
     def _lazy_get__block_map_(self, ig, possible=lambda (k, v): v):
-        """Mapping from possible blocks to their probabilities. """
-        bok = { '': 1 }
+        """Mapping from possible blocks to their probabilities."""
+        if self.__str:
+            bok = { '': 1 }
+            def add(seq, item): return seq + item
+        else:
+            bok = { (): 1 }
+            def add(seq, item): return seq + (item,)
+
         N, dist = self.__block_size, filter(possible, self.__distribution.items())
         while N > 0:
             N = N - 1
             old = filter(possible, bok.items())
 
             bok = {}
-            for s, q in dist:
-                for k, v in old:
-                    bok[k + s] = q * v
+            for k, v in old:
+                for s, q in dist:
+                    bok[add(k, s)] = q * v
 
-        return bok
+        return bok # { block => probability }
 
     def _lazy_get_reverse_(self, ig):
         bok = {}
         for k, v in self.mapping.items():
             bok[v] = k
-        return bok
+        return bok # { 'code' => block }, block is tuple or string of length .__block_size
 
     def _lazy_get_length_(self, ig):
         """Expected output length per input token."""
@@ -206,8 +213,8 @@ class Huffman (Lazy):
             bok[self.key] = stem
 
     class Tree:
-        def __init__(self, *kids):
-            self.kids = kids
+        def __init__(self, kids):
+            self.kids = tuple(kids)
             self.weight = sum(map(lambda x: x.weight, kids))
 
         def mark(self, stem, bok, sym):
@@ -224,12 +231,12 @@ class Huffman (Lazy):
             if v: forest.append(Leaf(k, v))
 
         while len(forest) > 1:
-            forest[:len(sym)] = [ Tree(* forest[:len(sym)]) ]
+            forest[:len(sym)] = [ Tree(forest[:len(sym)]) ]
 
         code = {}
         if forest:
             forest[0].mark('', code, sym)
 
-        return code
+        return code # { block => 'code' }, block is tuple or string of length .__block_size
 
     del Leaf, Tree, Ordered
