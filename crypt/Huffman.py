@@ -1,11 +1,13 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.11 2008-06-15 16:06:52 eddy Exp $
+$Id: Huffman.py,v 1.12 2008-06-15 16:49:34 eddy Exp $
 """
 from study.snake.lazy import Lazy
+nice = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
+                      map(chr, range(32, 126))))
 
 class Huffman (Lazy):
-    def __init__(self, P, N=1, blank=None, symbols='01', tail=None):
+    def __init__(self, P, symbols=nice, N=1, blank=None, tail=None):
         """Initialize a Huffman encoder.
 
         First argument, P, is a mapping from symbols to their relative
@@ -13,15 +15,21 @@ class Huffman (Lazy):
         mapping from its indices to its entries.  If every key of P is a
         character (i.e. a single-character string, whether 8-bit or unicode),
         the 'messages' to be encoded are taken to be strings; otherwise, they
-        are sequences (e.g. lists or tuples) of the tokens used as keys.  In
+        are sequences (e.g. lists or tuples) of the tokens used as keys.  (If
+        what you really want is to encode non-string sequences of single
+        characters, either ''.join() them or include a key of P with frequency
+        zero - so that it'll be ignored - which isn't a single character.)  In
         principle, P is normalized to yield a probability distribution, but this
         is not actually necessary, as long as it has no negative values.
 
         Optional arguments:
 
-          N -- the number of such symbols to be handled in each block: only
-               messages which are a multiple of this block size can be encoded
-               by the resulting Huffman encoder (default: 1).
+          symbols -- the alphabet to use for the encoded message (default: the
+                     nicely printable characters - see below).
+
+          N -- the number (default: 1) of input symbols to be handled in each
+               block: only messages which are a multiple of this block size can
+               be encoded by the resulting Huffman encoder.
 
           blank -- None (the default), to enforce the message length limit
                    detailed above for N; or a key (or index) of P with which a
@@ -29,13 +37,34 @@ class Huffman (Lazy):
                    the block size; in the latter case, the decoder shall always
                    strip up to N-1 of these blanks from each message.
 
-          symbols -- the alphabet to use for the encoded message (default: '01').
-
           tail -- entry in symbols which is apt to be lost from the end of an
                   encoded text (e.g. because it's the blank of a down-stream
                   Huffman); when decoding, enough of these shall be appended, if
-                  needed.  Default, None, means to omit such bodging.
-        """
+                  needed.  Default, None, means to omit such bodgery.
+
+        The compressed form is, in all cases, a string; if you pass symbols='01'
+        you can subsequently read each eight output characters as a binary
+        number (see base.binary in this sub-package) and, via chr, convert it to
+        an octet stream; or you could pass ''.join(map(chr, range(256))) to get
+        directly to such a stream (albeit probably less efficiently, at least if
+        len(P) < 256).  Likewise, you could use symbols='01' and read each six
+        characters as a single base-64 token and use base64-encoding; this is
+        somewhat more robust than the full octet range, for various purposes
+        (e.g. it can be transmitted over media on which a parity bity is needed
+        to detect transmission errors).
+
+        However, since we're actually working in python, the default used here
+        is so chosen as to ensure that any encoded string's repr is only two
+        bytes longer than it (due to a single quote at start and end - but no
+        character in between needs to be represented by an escape sequence); the
+        encoded strings can be saved to file as python strings and robustly
+        transmitted over channels which use parity checks; they can also be
+        split into lines of some convenient length by the insertion of '\n'
+        characters without danger of being chnaged by any software that strips
+        or reformats spaces (since it contains no spaces); when the '\n' breaks
+        are subsequently removed, the result should decode safely.  These
+        constraints allow us 92 symbols, yielding a symbol set a bit over 8%
+        more efficient than using base64 encoding.\n"""
 
         # Block size:
         if N != int(N) or N < 1:
@@ -204,7 +233,7 @@ class Huffman (Lazy):
 
     del log
 
-    # Computing an optimal encoding:
+    # Computing an optimal encoding (Huffman's algorithm):
     class Leaf:
         def __init__(self, key, weight):
             self.key, self.weight = key, weight
@@ -240,3 +269,5 @@ class Huffman (Lazy):
         return code # { block => 'code' }, block is tuple or string of length .__block_size
 
     del Leaf, Tree, Ordered
+
+del nice, Lazy
