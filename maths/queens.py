@@ -17,11 +17,12 @@ over all solutions of a given size and a Unique iterator which skips equivalent
 solutions: two solutions are deemed equivalent if some symmetry of the chess
 board maps one onto another.
 
-$Id: queens.py,v 1.6 2007-11-24 17:45:19 eddy Exp $
+$Id: queens.py,v 1.7 2008-06-15 17:58:30 eddy Exp $
 """
 
 import permute
 class Solution(permute.Permutation):
+    __slots__ = ( '__repr', )
     def __repr__(self):
         try: ans = self.__repr
         except AttributeError:
