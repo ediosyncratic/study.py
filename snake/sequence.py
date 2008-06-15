@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.15 2008-06-13 07:26:43 eddy Exp $
+$Id: sequence.py,v 1.16 2008-06-15 17:59:34 eddy Exp $
 """
 
 class Tuple (object):
@@ -12,6 +12,7 @@ class Tuple (object):
     can't usefully call tuple.__init__ later, to supply what you wanted it to
     get.\n""" # How messed up is that ?
 
+    __slots__ = ('__tuple',)
     def __init__(self, vals): self.__tuple = tuple(vals)
     def __len__(self): return len(self.__tuple)
     def __repr__(self): return `self.__tuple`
@@ -58,13 +59,15 @@ class Tuple (object):
         # boot-strap round the fact that permute.Permute inherits from Tuple
         from study.maths import permute
         def order(who, p=permute.order, are=cmp): return p(who.__tuple, are)
-        Tuple.__order = order
+        Tuple.__order = order # over-writing this boot-strap implementation
         return permute.order(self.__tuple, par)
 
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
 
     Implements map, reduce, sum, product and filter as methods of the iterable.\n"""
+
+    __slots__ = ()
     def map(self, func):
         ans = []
         for p in self:
@@ -94,7 +97,7 @@ class WrapIterable (Iterable):
     def __iter__(self): return iter(self.__seq)
     def __getattr__(self, key): return getattr(self.__seq, key)
 
-class Ordered (list):
+class Ordered (list): # list as base => can't use __slots__
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
@@ -213,6 +216,10 @@ class Ordered (list):
             else: return mid
 
         return hi
+
+    def __contains__(self, value):
+        ind = self.__locate(value)
+        return not ( ind < 0 or self.__ne(ind, value) )
 
     def index(self, value):
         ind = self.__locate(value)
