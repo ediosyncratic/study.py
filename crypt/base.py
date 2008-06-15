@@ -9,7 +9,7 @@ all giving longer initial sequences of 1s for the power of 3.
 All things considered, 3**5 and 2**8 are the pair to use; 8bits is a familiar unit,
 5 trits packed in a byte sounds cool.
 
-$Id: base.py,v 1.3 2008-06-08 21:24:03 eddy Exp $
+$Id: base.py,v 1.4 2008-06-15 09:16:53 eddy Exp $
 """
 
 class Base:
@@ -123,8 +123,8 @@ class Base:
 
     def decode(self, given):
 	if given and (given[0] in self.__plus or given[0] in self.__minus):
-		sign, given = given[0], given[1:]
-	else:	sign = self.__unique(self.__plus)
+            negate, given = given[0] in self.__minus, given[1:]
+	else: negate = False
 	result = 0
 
 	while given and given[0] not in self.__fracsep:
@@ -143,7 +143,7 @@ class Base:
 	    left, unit = self.__decode(left), unit / self.__base
 	    result = result + left * unit
 
-	if sign in self.__minus: return -result
+	if negate: return -result
 	return result
 
     def intlen(self, i):
