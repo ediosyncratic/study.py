@@ -1,13 +1,17 @@
 """Implementing Huffman coding.
 
-$Id: Huffman.py,v 1.12 2008-06-15 16:49:34 eddy Exp $
+Provides:
+  Huffman -- class implementing Huffman encodings
+  alphabet -- default symbol set used by Huffman (q.v.) for encoded data
+
+$Id: Huffman.py,v 1.13 2008-06-18 06:56:26 eddy Exp $
 """
 from study.snake.lazy import Lazy
-nice = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
-                      map(chr, range(32, 126))))
+alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
+                          map(chr, range(32, 126))))
 
 class Huffman (Lazy):
-    def __init__(self, P, symbols=nice, N=1, blank=None, tail=None):
+    def __init__(self, P, symbols=alphabet, N=1, blank=None, tail=None):
         """Initialize a Huffman encoder.
 
         First argument, P, is a mapping from symbols to their relative
@@ -270,4 +274,4 @@ class Huffman (Lazy):
 
     del Leaf, Tree, Ordered
 
-del nice, Lazy
+del Lazy
