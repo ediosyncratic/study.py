@@ -4,13 +4,36 @@ Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
 
-$Id: Huffman.py,v 1.13 2008-06-18 06:56:26 eddy Exp $
+$Id: Huffman.py,v 1.14 2008-06-18 07:18:18 eddy Exp $
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
                           map(chr, range(32, 126))))
 
 class Huffman (Lazy):
+    """Implementation of Huffman encoding.
+
+    See __init__ for constructor documentation.  In particular: whether the
+    messages to be encoded are strings or sequences of some other type of token
+    depends on the frequency distribution passed to it; and whether the message
+    is encoded one token at a time or in blocks is controlled by its blocksize
+    parameter, N.  In the following, a 'message block' may be a single token or
+    a block of tokens, depending on this last.
+
+    Methods:
+      encode(message) -- encodes a message as a string
+      encode(text) -- decodes a string to recover the message
+
+    Lazily computed attributes:
+      .mapping -- { message blocks : encoded string fragment, ... }
+      .reverse -- reverse of .mapping
+      .length -- weighted average number of output characters per input token
+      .entropy -- entropy of the encoded strings, using the number of symbols in
+                  the encoded string alphabet as base for logarithms; this
+                  ensures that .entropy >= .length always.
+
+    Also supports representation by depicting .mapping as a table.\n"""
+
     def __init__(self, P, symbols=alphabet, N=1, blank=None, tail=None):
         """Initialize a Huffman encoder.
 
@@ -117,6 +140,10 @@ class Huffman (Lazy):
             self.__blank = blank
 
     def encode(self, message):
+        """Encode (compresses) a message.
+
+        Single parameter is the message; this is either a string or a sequence
+        of tokens, see constructor documentation.  Returns a string.\n"""
         rem = len(message) %  self.__block_size
         if rem:
             try: pad = self.__blank
@@ -140,6 +167,10 @@ class Huffman (Lazy):
         return txt
 
     def decode(self, txt):
+        """Decodes (uncompresses) a message.
+
+        Single parameter is a string, the encoded message.  Return value is a
+        string or tuple of tokens; see constructor documentation.\n"""
         code = self.reverse
         if self.__str: message = ''
         else: message = ()
@@ -168,6 +199,11 @@ class Huffman (Lazy):
         return message
 
     def __repr__(self):
+        """Representation.
+
+        The representation used here is simply a table, in two rows; the first
+        row shows the (blocks of) tokens recognised by the encoding, the second
+        shows the string encoding each below it.\n"""
         try: ans = self.__repr
         except AttributeError:
             its = self.mapping.items()
@@ -202,6 +238,7 @@ class Huffman (Lazy):
         return bok # { block => probability }
 
     def _lazy_get_reverse_(self, ig):
+        """.reverse maps encoded string fragments to decoded blocks.\n"""
         bok = {}
         for k, v in self.mapping.items():
             bok[v] = k
@@ -258,6 +295,9 @@ class Huffman (Lazy):
 
     from study.snake.sequence import Ordered
     def _lazy_get_mapping_(self, ig, Leaf=Leaf, Tree=Tree, List=Ordered):
+        """.mapping maps (blocks of) tokens to encoded string fragments.
+
+        Computing this is the heart of the Huffman encoding.\n"""
         P, sym = self._block_map, self.__symbols
         forest = List(key='weight')
         for k, v in P.items():
