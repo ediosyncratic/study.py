@@ -4,7 +4,7 @@ Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
 
-$Id: Huffman.py,v 1.14 2008-06-18 07:18:18 eddy Exp $
+$Id: Huffman.py,v 1.15 2008-06-19 07:52:24 eddy Exp $
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
@@ -208,7 +208,10 @@ class Huffman (Lazy):
         except AttributeError:
             its = self.mapping.items()
             its.sort(lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
-            if not self.__str: its = map(lambda (k, v): (str(k), v), its)
+            if not self.__str:
+                if self.__block_size == 1:
+                    its = map(lambda ((k,), v): (k, v), its)
+                its = map(lambda (k, v): (str(k), v), its)
             fmt = map(lambda (k, v): '%%%ds' % max(len(k), len(v)), its)
             ans = '\n'.join(map(lambda x, f=' | '.join(fmt): f % x,
                                 map(lambda *args: args, *its)))
