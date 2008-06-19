@@ -85,11 +85,9 @@ reduce the amount of memory needed to record a proper factor of each non-prime;
 if a number isn't equivalent, mod P(n), to a member of C(n), then we can find a
 factor of it easilly, since we only have to check primes[:n].  Otherwise, we
 need to record an actual proper factor; by always chosing its least proper
-factor, we can keep the memory overhead low (we could make it slightly lower by
-recording this factor's index in primes, instead of the factor itself).  We thus
-need to record only N(n)/P(n) times as much information as we otherwise would;
-at n = 7, this is 0.18; we need less than a fifth as much disk space (and
-memory) to do the job.
+factor, we can keep the memory overhead low.  We thus need to record only
+N(n)/P(n) times as much information as we otherwise would; at n = 7, this is
+0.18; we need less than a fifth as much disk space (and memory) to do the job.
 
 For reduction modulo 30, the first case where we have a multiple of 8 as our
 number of primes, and for the earlier cases, the list of values coprime to our
@@ -100,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.6 2008-06-09 07:28:30 eddy Exp $
+$Id: octet.py,v 1.7 2008-06-19 07:19:40 eddy Exp $
 """
 
 def coprimes(primes):
@@ -129,6 +127,8 @@ def coprimes(primes):
 from study.snake.sequence import Tuple
 
 class OctetType (Tuple):
+    __slots__ = ('primes', 'moddulus', 'size')
+
     __upinit = Tuple.__init__
     def __init__(self, ps):
         """Sets up a descriptor for a type of octet-based block.
@@ -139,7 +139,7 @@ class OctetType (Tuple):
         assert tuple(ps[:3]) == (2, 3, 5), \
                "I need at least the first three primes to work with octets"
 
-        self.__primes = tuple(ps)
+        self.primes = tuple(ps)
         self.modulus, vals = coprimes(ps)
         self.__upinit(vals)
         self.size, r = divmod(len(vals), 8)
@@ -173,7 +173,8 @@ class OctetType (Tuple):
         Required argument, start, is a natural you think might be a prime.  Each
         yield is the next value that has any chance of being a prime, i.e. is
         coprime to self.modulus; we never run out of such values, so this
-        iterator never terminates.\n"""
+        iterator never terminates; its values, modulo self.modulus, cycle
+        through the candidates iter(self) would yield.\n"""
         n, r = divmod(start, self.modulus)
         try: i = self.index(r)
         except ValueError, what:
@@ -190,10 +191,8 @@ class OctetType (Tuple):
                 i -= len(self)
 
     def factor(self, k):
-        i = 0
-        for p in self.__primes:
-            if not k % p: return i
-            i += 1
+        for p in self.primes:
+            if not k % p: return p
         return None
 
 del Tuple
@@ -242,10 +241,9 @@ class Sieve (Octet):
 
     Derived classes need to implement __getitem__, which should raise
     LookupError rather than report a value p as prime, unless .valid(p); also a
-    mark(p, ind) method, which updates information on primes or factors to
-    record the multiples of p (ind is p's index as a prime), and a prime(i)
-    method, which returns true if i is a prime.  The last two may sensibly be
-    inherited from a base class.
+    mark(p) method, which updates information on primes or factors to record the
+    multiples of p, and a prime(i) method, which returns true if i is a prime.
+    The last two may sensibly be inherited from a base class.
 
     An instance of this class, when iterated, yields all the primes in its .span
     (note that this is different to the usual default for mappings, including
@@ -265,13 +263,7 @@ class Sieve (Octet):
         Optional third argument, given, is the length of an initial portion of
         self.span for which full data is already available when initialized.\n"""
 
-        def src(p = iter(primes)):
-            i = 0
-            while True:
-                yield i, p.next()
-                i += 1
-
-        self.__src, self.__valid = src, given
+        self.__src, self.__valid = iter(primes), given
 
     def valid(self, ind): return ind < self.span.start + self.__valid
 
@@ -285,8 +277,8 @@ class Sieve (Octet):
                 if self.prime(i): yield i
                 i = k.next()
             else:
-                ind, p = self.__src.next()
-                self.mark(p, ind)
+                p = self.__src.next()
+                self.mark(p)
                 self.__valid = max(self.__valid, (p + 1) ** 2 - at)
 
         raise StopIteration
@@ -345,7 +337,7 @@ class FlagOctet (Octet):
         byte, bit = divmod(self.kind.index(r), 8)
         return q * self.kind.size + byte, bit
 
-    def mark(self, p, ignored):
+    def mark(self, p):
         """Marks relevant multiples of p as non-primes."""
         f, z, t = self.__flags, self.span.start, self.kind
         m, s = t.modulus, t.size
@@ -374,7 +366,7 @@ class FlagSieve (FlagOctet, Sieve):
     __upget = FlagOctet.__getitem__
     def __getitem__(self, ind):
         val = self.__upget(ind) # raises various excpetions if suitable
-        if self.valid(ind) or not val: return val
+        if not val or self.valid(ind): return val
         # else: we haven't yet found a factor, but there may be one
         raise LookupError('Too early to be sure', ind)
 
@@ -453,7 +445,7 @@ class FactorOctet (Octet):
         assert len(data) // self.kind.size == len(self.span) // self.kind.modulus
         return FlagOctet(self.kind, self.span.start, data=text)
 
-    def mark(self, p, i):
+    def mark(self, p):
         """Marks relevant multiples of a prime p with index i as such."""
         f, z, t = self.__flags, self.span.start, self.kind
         m, s = t.modulus, t.size
@@ -462,7 +454,7 @@ class FactorOctet (Octet):
             try: ind = q * s + t.index(r)
             except ValueError: pass
             else:
-                if f[ind] is None: f[ind] = i
+                if f[ind] is None: f[ind] = p
 
 class FactorSieve (FactorOctet, Sieve):
     __upinit = FactorOctet.__init__
