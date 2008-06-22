@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.17 2008-06-22 14:09:36 eddy Exp $
+$Id: sequence.py,v 1.18 2008-06-22 21:45:57 eddy Exp $
 """
 
 class Tuple (object):
@@ -101,28 +101,40 @@ class Ordered (list): # list as base => can't use __slots__
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
-    entry; and duplication can be silently ignored.  Entries must support
-    comparison with one another; they shall be kept in increasing order.  The
+    entry; and duplication can be silently ignored.  Entries (or their values of
+    the selected sort-key attribute) must support comparison with one another;
+    they shall be kept in increasing (or decreasing, if reversed) order.  The
     comparison may be customised in the same ways as are supported by the usual
-    list.sort method; and calling sort() can revise the customisation.  Slicing
-    with a reversed slice order yields a reverse-ordered slice.\n"""
+    list.sort method; calling sort() can revise the customisation and .reverse()
+    reverses it.  Slicing with a reversed slice order yields a reverse-ordered
+    slice; other operations that would normally yield a list yield an Ordered
+    (but see _ordered_) with the same sort properties as self.\n"""
 
     __upinit = list.__init__
-    def __init__(self, val=None, unique=True, reverse=False, key=None, cmp=None):
+    def __init__(self, val=None, reverse=False, key=None, cmp=None,
+                 attr=None, unique=False):
         """Construct ordered list.
 
         All arguments are optional:
-          val -- sequence of (or iterator over) initial entries
-          unique -- ignore duplicate entries
+          val -- sequence of (or iterator over) initial entries or (default) None
           reverse -- sort in reverse order (default: False)
-          key -- name of attribute on which to compare or (default) None to use
-                 values directly
-          cmp -- comparison function or None (to use the default cmp)
-        """
+          key -- function to apply to each entry to get sort value or (default)
+                 None to use the value as is
+          cmp -- comparison function or (default) None to use the built-in cmp
+          attr -- name of attribute on which to compare or (default) None to use
+                  values directly
+          unique -- ignore duplicate entries (default: False)
+
+        The last three determine the sort order of the list (and lists obtained
+        from it); if key is given, this attribute of each entry is used in place
+        of the entry when comparing; reverse has the same effect as composing
+        lambda x: -x after cmp.  If two entries compare equal in terms of these,
+        and unique is true, one of the entries is discarded; this is rarely
+        desirable when key is given.\n"""
         self.__upinit()
-        self.__unique, self.__cmp, self.__key, self.__rev = unique, cmp, key, reverse
-        if val is not None:
-            for it in val: self.append(it)
+        self.__unique, self.__attr = unique, attr
+        self.__cmp, self.__key, self.__rev = cmp, key, reverse
+        if val is not None: self.extend(val)
 
     __upget = list.__getitem__
     def __getitem__(self, key):
@@ -133,11 +145,22 @@ class Ordered (list): # list as base => can't use __slots__
         if isinstance(key, slice):
             if key.step is not None and key.step < 0: rev = not self.__rev
             else: rev = self.__rev
-            return Ordered(self.__upget(key), rev, self.__key, self.__cmp)
+            return self._ordered_(self.__upget(key), rev, self.__key, self.__cmp,
+                                  self.__attr, self.__unique)
+
         return self.__upget(key)
 
-    try: list.__setslice__
-    except AttributeError: pass
+    def _ordered_(self, *what):
+        """Create a new object like self, but with other init args.
+
+        Takes the same args as Ordered.__init__ (q.v.) but builds a new object
+        of the same kind as self - derived classes should over-ride this if they
+        change the signature of __init__.  Should normally be invoked indirectly
+        via slicing, e.g., self[:0] or self[:].\n"""
+        return self.__class__(*what)
+
+    try: __upsets = list.__setslice__ # used by multiplications
+    except AttributeError: __upsets = list.__setitem__
     else: # list still has this deprecated method, so we need to over-ride it:
         def __setslice__(self, i, j, val):
             self.__setitem__(slice(i, j), val)
@@ -153,20 +176,61 @@ class Ordered (list): # list as base => can't use __slots__
                 self.append(it)
         else: self.append(val)
 
+    def __add__(self, seq):
+        ans = self[:]
+        ans.extend(seq)
+        return ans
+    __radd__ = __add__
+    def extend(self, seq):
+        for it in seq: self.append(it)
+    def __iadd__(self, seq):
+        self.extend(seq)
+        return self
+
+    def __mul__(self, n):
+        if n < 1: return self[:0]
+        if self.__unique or n == 1: return self[:]
+
+        ans, i = self[:0], len(self)
+        while i > 0:
+            i -= 1
+            ans.__upsets(slice(0, 0), [ self[i] ] * n)
+
+        return ans
+
+    __rmul__ = __mul__
+    def __imul__(self, n):
+        if n < 1:
+            self[:] = []
+            return
+        if self.__unique or n == 1: return
+
+        i = len(self)
+        while i > 0:
+            i -= 1
+            if n == 2:
+                self.__listins(i, self[i])
+            else:
+                self.__upsets(slice(i, i), [ self[i] ] * (n - 1))
+
+        return self
+
     __upsort = list.sort
     def sort(self, cmp=None, key=None, reverse=False):
         """Change sort criteria.
 
         Parameters are all optional, with the usual semantics for list.sort(),
-        but each defaults to self's existing sort properties.  If given, cmp
+        but each defaults to self's corresponding sort property.  If given, cmp
         replaces self's prior comparison function, if any (you can restore the
         effect of no custom comparison by passing the built-in cmp function).
         If key is omitted, self's existing key is preserved; if it is passed as
-        the empty string, any prior key is discarded and self uses values as
-        they are, rather than an attribute; otherwise, key replaces self's prior
-        key.  If reverse is true, it is combined with self's prior reversal
-        using xor (so reverse-sorting a reverse-sorted list yields a normally
-        sorted list, for example).\n"""
+        None, any prior key is discarded and self uses values as they are,
+        subject to any attribute name look-up; otherwise, key replaces self's
+        prior key.  If reverse is true, it is combined with self's prior
+        reversal using xor (so reverse-sorting a reverse-sorted list yields a
+        normally sorted list, for example).  Since no list.sort() parameter
+        matches attribute look-up (for all that key may be used to do this),
+        nothing can change self's choice of delegating attribute.\n"""
 
         if cmp is None: cmp = self.__cmp
         else: self.__cmp = cmp
@@ -175,13 +239,22 @@ class Ordered (list): # list as base => can't use __slots__
         elif key: self.__key = key
         else: key = self.__key = None
 
+        if self.__attr is not None:
+            if key is None: key = lambda x, a=self.__attr: getattr(x, a)
+            else: key = lambda x, a=self.__attr, k=key: k(getattr(x, a))
+
         self.__rev ^= reverse
         self.__upsort(cmp, key, self.__rev)
 
+    def reverse(self):
+        self.sort(reverse=True)
+
     def __ne(self, ind, val):
-        if self.__key:
-            ind, val = getattr(self[ind], self.__key), getattr(val, self.__key)
+        if self.__attr:
+            ind, val = getattr(self[ind], self.__attr), getattr(val, self.__attr)
         else: ind = self[ind]
+        if self.__key:
+            ind, val = self.__key(ind), self.__key(val)
 
         if self.__cmp: return self.__cmp(ind, val)
         else: return cmp(ind, val)
