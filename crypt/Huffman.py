@@ -4,7 +4,7 @@ Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
 
-$Id: Huffman.py,v 1.16 2008-06-22 14:18:22 eddy Exp $
+$Id: Huffman.py,v 1.17 2008-06-22 21:46:26 eddy Exp $
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
@@ -306,7 +306,7 @@ class Huffman (Lazy):
 
         Computing this is the heart of the Huffman encoding.\n"""
         P, sym = self._block_map, self.__symbols
-        forest = List(key='weight', unique=False)
+        forest = List(attr='weight')
         for k, v in P.items():
             if v: forest.append(Leaf(k, v))
 
