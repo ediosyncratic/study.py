@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.16 2008-06-15 17:59:34 eddy Exp $
+$Id: sequence.py,v 1.17 2008-06-22 14:09:36 eddy Exp $
 """
 
 class Tuple (object):
@@ -13,7 +13,7 @@ class Tuple (object):
     get.\n""" # How messed up is that ?
 
     __slots__ = ('__tuple',)
-    def __init__(self, vals): self.__tuple = tuple(vals)
+    def __init__(self, vals=()): self.__tuple = tuple(vals)
     def __len__(self): return len(self.__tuple)
     def __repr__(self): return `self.__tuple`
     def __hash__(self): return hash(self.__tuple)
