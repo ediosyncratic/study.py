@@ -4,7 +4,7 @@ Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
 
-$Id: Huffman.py,v 1.15 2008-06-19 07:52:24 eddy Exp $
+$Id: Huffman.py,v 1.16 2008-06-22 14:18:22 eddy Exp $
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
@@ -230,7 +230,7 @@ class Huffman (Lazy):
 
         N, dist = self.__block_size, filter(possible, self.__distribution.items())
         while N > 0:
-            N = N - 1
+            N -= 1
             old = filter(possible, bok.items())
 
             bok = {}
@@ -253,7 +253,8 @@ class Huffman (Lazy):
         code = self.mapping
         all = tot = 0
         for k, v in P.items():
-            all, tot = all + v * len(code[k]), tot + v
+            if v:
+                all, tot = all + v * len(code[k]), tot + v
 
         return all * 1. / tot / self.__block_size
 
@@ -262,7 +263,8 @@ class Huffman (Lazy):
         """Entropy per symbol.
 
         Uses the number of distinct output symbols as base for logarithms; this
-        should ensure that length >= entropy.
+        should ensure that length >= entropy; if the difference is large, it may
+        be worth increasing the block size.
 
         In case the weights of our distribution don't add up to exactly 1, we
         adjust: we're computing sum(: log(k/p).p/k :) for some k we don't know
@@ -283,6 +285,7 @@ class Huffman (Lazy):
             self.key, self.weight = key, weight
 
         def mark(self, stem, bok, sym):
+            assert not bok.has_key(self.key), (self, bok)
             bok[self.key] = stem
 
     class Tree:
@@ -291,7 +294,8 @@ class Huffman (Lazy):
             self.weight = sum(map(lambda x: x.weight, kids))
 
         def mark(self, stem, bok, sym):
-            i = min(len(sym), len(self.kids))
+            i = len(self.kids)
+            assert i <= len(sym)
             while i > 0:
                 i = i - 1
                 self.kids[i].mark(stem + sym[i], bok, sym)
@@ -302,7 +306,7 @@ class Huffman (Lazy):
 
         Computing this is the heart of the Huffman encoding.\n"""
         P, sym = self._block_map, self.__symbols
-        forest = List(key='weight')
+        forest = List(key='weight', unique=False)
         for k, v in P.items():
             if v: forest.append(Leaf(k, v))
 
