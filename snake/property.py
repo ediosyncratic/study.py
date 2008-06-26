@@ -13,7 +13,7 @@ This module should eventually replace lazy.Lazy; it provides:
 
 See individual classes for details.
 
-$Id: property.py,v 1.2 2008-06-26 07:27:37 eddy Exp $
+$Id: property.py,v 1.3 2008-06-26 15:25:29 eddy Exp $
 """
 
 class docprop (property):
@@ -39,10 +39,17 @@ class dictprop (docprop):
     for the setting and deletion of the attribute; derived classes should call
     its getter to extract the attribute from that dictionary, if present
     (whether they do so before or after any other approach they have is their
-    own choice).  In support of this, its constructor takes the name of the
-    attribute it implements, as an extra first argument; but it doesn't need (or
-    accept) a setter or deleter function.  Like docprop, it is intended for use
-    as a decorator.\n"""
+    own choice).
+
+    In support of this, its constructor takes the name of the attribute it
+    implements, as an extra first argument; but it doesn't need (or accept) a
+    setter or deleter function.  Like docprop, it is intended for use as a
+    decorator (or a base for property classes to be used as such).
+
+    Because this class is intended as a mix-in for other property classes, so
+    that its attribute may be available even if not in __dict__, the deleter
+    does not raise AttributeError when the attribute is absent from __dict__;
+    the deletion is deemed fatuously successful in this case.\n"""
 
     __upinit = docprop.__init__
     def __init__(self, name, getit, doc=None):
