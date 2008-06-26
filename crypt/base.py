@@ -1,15 +1,6 @@
 """Playing with different number bases.
 
-Note: 3**5 is 243, aka 11110011, representable in 8 bits with 13, aka 1101, free
-tokens ...
-2**27 is 134217728, 3**17 is 129140163, aka 111101100101000010111000011.
-2**485 > 3**306, 2**1539 > 3**971, 2**2593 > 3**1636, ... 2**75235 > 3**47468,
-all giving longer initial sequences of 1s for the power of 3.
-
-All things considered, 3**5 and 2**8 are the pair to use; 8bits is a familiar unit,
-5 trits packed in a byte sounds cool.
-
-$Id: base.py,v 1.4 2008-06-15 09:16:53 eddy Exp $
+$Id: base.py,v 1.5 2008-06-26 05:48:37 eddy Exp $
 """
 
 class Base:
@@ -18,8 +9,8 @@ class Base:
     Represents a base by a sequence of `digits' to use in that representation.
     Note that
       Base((zip(string.digits) + zip(string.lowercase, string.uppercase))[:n])
-    performs relates strings to numbers the same way as they python int()
-    function does when given second argument n; see intbase, below.\n"""
+    relates strings to numbers the same way as the python int() function does
+    when given second argument n; see intbase, below.\n"""
 
     # TODO: (subclass to) handle exponent suffix, optionally with constraints
     # such as: exponent must be a multiple of three; use case of exponent marker
@@ -29,7 +20,7 @@ class Base:
     def __init__(self, digits='0123456789',
 		 offset=0, signif=None,
 		 plus=('', '+'), minus='-', fracsep='.',
-		 ignore=',', prefix=('',)):
+		 ignore=',', prefix=('',), doc=None):
         """Set up a base.
 
         Where the following refers to a 'character' you may equally supply a
@@ -52,11 +43,13 @@ class Base:
                     Conway13 for an exotic use.
           prefix -- sequence of strings; only a text beginning with one of these
                     shall be decoded (skipping over this prefix); the first
-                    shall be used as prefix on every encoded value.\n"""
+                    shall be used as prefix on every encoded value.
+          doc -- a documentation string for the base (or None).\n"""
 
 	self.__digits, self.__ignore = digits, ignore
 	self.__plus, self.__minus, self.__fracsep = plus, minus, fracsep
 	self.__base, self.__offset = len(digits), offset
+        if doc is not None: self.__doc__ = doc
 
 	if signif is None:
             # Compute minimal representable fractional error:
@@ -147,38 +140,79 @@ class Base:
 	return result
 
     def intlen(self, i):
-        """Number of characters this base needs to represent an integer encoded in i bytes"""
+        """len(self.encode(1L << (8*i)))
+
+        Number of characters this base needs to represent an integer encoded in
+        i octets (that is, 8-bit bytes)."""
         return len(self.encode(1L << (8*i)))
     # Also want to compute good k,n,d for which k + (i * n)/d >= intlen(i) with
     # the difference growing very slowly; c.f. ratio.{refine,approximate}
 
-binary = Base('01')
-signal = Base('T01', offset=1)
-octal = Base('01234567', prefix=('0',))
-decimal = Base()
+binary = Base('01', doc="Binary")
+signal = Base('T01', offset=1, doc="""Signed ternary.
+
+Base three, represented using digits 0, 1 and T for zero, plus one and minus
+one.  Thus 1T stands for two, 10 stands for three, 11 stands for four and five
+is represented as 1TT, i.e. nine minus three minus one.
+
+Note: 3**5 is 243, aka binary 11110011, representable in 8 bits with 13, aka
+binary 1101, free tokens ...
+
+2**27 is 134217728, 3**17 is 129140163, aka binary 111101100101000010111000011.
+2**485 > 3**306, 2**1539 > 3**971, 2**2593 > 3**1636, ... 2**75235 > 3**47468,
+all giving longer initial sequences of 1s for the power of 3 in binary.
+
+All things considered, 3**5 and 2**8 are the pair to use; 8 bits is a familiar
+unit, 5 trits packed in a byte should work reasonably well.
+""")
+octal = Base('01234567', prefix=('0',), doc="Octal")
+decimal = Base(doc="Decimal")
 hexadecimal = Base(( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-		     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ), prefix=('0x', '0X'))
+		     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ),
+                   prefix=('0x', '0X'), doc="Hexadecimal")
 radix050 = Base((' ', 'aA', 'bB', 'cC', 'dD', 'eE', 'fF', 'gG', 'hH', 'iI',
 		 'jJ', 'kK', 'lL', 'mM', 'nN', 'oO', 'pP', 'qQ', 'rR', 'sS',
 		 'tT', 'uU', 'vV', 'wW', 'xX', 'yY', 'zZ', '$', '.', '?',
-		 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'))
+		 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'),
+                doc="""Radix 050 (fourty)
+
+This encoding has some peculiar history I've forgotten; it uses space as zero,
+letters of the alphabet as digits for 1 through 26, '$.?' as the remaining
+digits up to 29 and the usual decimal digits for 30 through 39.  It is actually
+base fourty, as a result; but 'fourty' has traditionally been written in octal
+when speaking of this base, as 050, with the result that it is commonly called
+'base fifty'.
+""")
 # Content-encoding: base64 ?
 
 import string
-def intbase(n, seq=list(string.digits) + map(lambda s: ''.join(s),
-                                             zip(string.lowercase, string.uppercase))):
+def intbase(n,
+            seq=list(string.digits) + map(lambda s: ''.join(s),
+                                          zip(string.lowercase,
+                                              string.uppercase))):
     """Returns the base comensurate with int(string, n)
 
     Python's int() built-in, when given a second argument, takes that as base,
     using the letters of the alphabet, case-insensitively, as extra digits
     beyond 9, if needed.  For n from 2 to 36, intbase(n).decode(string) is thus
-    the same as int(string, n) and intbase(n).encode does the encoding to match.\n"""
+    the same as int(string, n) and intbase(n).encode does the encoding to match;
+    it uses lower-case where it uses letters (you can .upper() the result if you
+    want upper-case).\n"""
     if n < 2 or n > 36:
         raise ValueError, 'int() base must be >= 2 and <= 36'
-    return Base(seq[:n])
+    return Base(seq[:n], doc="""Base %d.
+
+    This is an instance of study.crypt.base.Base, generated by
+    study.crypt.base.intbase(%d).  It uses the letters of the alphabet (without
+    distinguishing lower-case from upper-case, and using lower-case when
+    encoding) to encode and decode numbers in the base which, when written in
+    base ten, is represented by %d.  Its .decode(x) is equivalent to python's
+    built-in int(x, %d).\n""" % (n, n, n, n))
 del string
 
-def Conway13(number, en=Base('0123456789+-.').encode, de=Base(ignore='+-.').decode):
+def Conway13(number,
+             en=Base('0123456789+-.').encode,
+             de=Base(ignore='+-.').decode):
     """The Conway Base 13 function (approximately).
 
     Caricatures the meanest hairiest function I know how to integrate.  Encodes
