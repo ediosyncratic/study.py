@@ -13,7 +13,7 @@ This module should eventually replace lazy.Lazy; it provides:
 
 See individual classes for details.
 
-$Id: property.py,v 1.1 2008-06-26 07:22:22 eddy Exp $
+$Id: property.py,v 1.2 2008-06-26 07:27:37 eddy Exp $
 """
 
 class docprop (property):
@@ -46,6 +46,8 @@ class dictprop (docprop):
 
     __upinit = docprop.__init__
     def __init__(self, name, getit, doc=None):
+        if doc is not None:
+            assert isinstance(doc, basestring), 'Pass me no setter'
         self.__upinit(getit, self.__set, self.__del, doc)
         self.__name = name
 
@@ -57,7 +59,8 @@ class dictprop (docprop):
         if self.__check is not None: self.__check(val)
         obj.__dict__[self.__name] = val
 
-    def __get__(self, obj, type=None):
+    def __get__(self, obj, mode=None):
+        assert mode is None
         try: return obj.__dict__[self.__name]
         except KeyError: raise AttributeError, self.__name
 
@@ -76,7 +79,8 @@ class recurseprop (property):
     going to work.\n"""
 
     __upget = property.__get__
-    def __get__(self, obj, type=None):
+    def __get__(self, obj, mode=None):
+        assert mode is None
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse_
         except AttributeError:
@@ -156,7 +160,8 @@ class lazyattr (attrstore, recurseprop):
     value).\n"""
 
     __upget = recurseprop.__get__
-    def __get__(self, obj, type=None):
+    def __get__(self, obj, mode=None):
+        assert mode is None
         # Do the lazy lookup:
         bok = self.cache(obj)
         try: ans = bok[self]
@@ -168,9 +173,10 @@ class lazyattr (attrstore, recurseprop):
 class lazyprop (lazyattr, dictprop):
     __lget = lazyattr.__get__
     __dget = dictprop.__get__
-    def __get__(self, obj, type=None):
-        try: return self.__dget(obj, type)
-        except AttributeError: return self.__lget(obj, type)
+    def __get__(self, obj, mode=None):
+        assert mode is None
+        try: return self.__dget(obj, mode)
+        except AttributeError: return self.__lget(obj, mode)
 
 import weakref
 class weakattr (attrstore, recurseprop):
@@ -183,7 +189,8 @@ class weakattr (attrstore, recurseprop):
     retrieved automatically from the weakref when available; else it is
     recomputed (and a fresh weakref cached).\n"""
     __upget = recurseprop.__get__
-    def __get__(self, obj, type=None, ref=weakref.ref):
+    def __get__(self, obj, mode=None, ref=weakref.ref):
+        assert mode is None
         bok = self.cache(obj)
         try: f = bok[self]
         except KeyError: ans = None
@@ -199,7 +206,8 @@ del weakref
 class weakprop (weakattr, dictprop):
     __wget = weakattr.__get__
     __dget = dictprop.__get__
-    def __get__(self, obj, type=None):
-        try: return self.__dget(obj, type)
-        except AttributeError: return self.__wget(obj, type)
+    def __get__(self, obj, mode=None):
+        assert mode is None
+        try: return self.__dget(obj, mode)
+        except AttributeError: return self.__wget(obj, mode)
 
