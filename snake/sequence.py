@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.18 2008-06-22 21:45:57 eddy Exp $
+$Id: sequence.py,v 1.19 2008-06-27 07:30:32 eddy Exp $
 """
 
 class Tuple (object):
@@ -257,7 +257,10 @@ class Ordered (list): # list as base => can't use __slots__
             ind, val = self.__key(ind), self.__key(val)
 
         if self.__cmp: return self.__cmp(ind, val)
-        else: return cmp(ind, val)
+        # cmp mishandles the case where <, > and == are all false, so hand-code:
+        elif ind < val: return -1
+        elif ind > val: reutrn +1
+        else: return 0 # even if not(ind == val)
 
     def __eq(self, ind, val):
         return self.__ne(ind, val) == 0
@@ -297,7 +300,7 @@ class Ordered (list): # list as base => can't use __slots__
     def index(self, value):
         ind = self.__locate(value)
         if ind < 0 or self.__ne(ind, value):
-            raise ValueError('Not in list', value)
+            raise ValueError('Not in list', value, ind)
         return ind
 
     __listins = list.insert
