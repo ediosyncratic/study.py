@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.4 2008-06-09 06:58:06 eddy Exp $
+$Id: regular.py,v 1.5 2008-06-27 07:23:58 eddy Exp $
 """
 
 class Regular (object):
@@ -49,9 +49,9 @@ class Regular (object):
         try: ar, op. ep = other.start, other.stop, other.step
         except AttributeError: pass
         else: other = self.__slice(ar, op, ep)
-        # Always make other be left operand of recursing compariisons:
+        # Always make other be left operand of recursing comparisons:
 
-        if yes(0, self.step): return yes(other, self.stop)
+        if yes(0, self.step): return yes(other, self.start)
         if self.stop is None: return False
         if no(other, self.start) or no(other, self.stop - self.step): return False
         if yes(other, self.stop): return True
