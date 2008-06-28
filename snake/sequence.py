@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.20 2008-06-28 05:51:27 eddy Exp $
+$Id: sequence.py,v 1.21 2008-06-28 11:45:34 eddy Exp $
 """
 
 class Tuple (object):
@@ -65,14 +65,24 @@ class Tuple (object):
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
 
-    Implements map, reduce, sum, product and filter as methods of the iterable.\n"""
+    Implements map, reduce, sum, product and filter as methods of the iterable;
+    map and filter return iterators - derived classes may wish to collect the
+    yielded entries into a sequence of some suitable type.\n"""
 
     __slots__ = ()
-    def map(self, func):
-        ans = []
+    def map(self, *funcs):
+        """Map self through a sequence of functions.
+
+        Takes arbitrarily many functions (None is interpreted as the identity
+        function) as positional parameters; calls the first on each entry in
+        self, passing the output of each as input to the next and yields
+        whatever results at the end of the chain.\n"""
         for p in self:
-            ans.append(func(p))
-        return ans
+            for f in funcs:
+                if f is not None: p = f(p)
+            yield p
+
+        raise StopIteration
 
     def reduce(self, func, init=0):
         for p in self:
@@ -82,22 +92,33 @@ class Iterable (object):
     def sum(self): return self.reduce(lambda x, y: x + y)
     def product(self): return self.reduce(lambda x, y: x * y, 1)
 
-    def filter(self, test=None):
-        if test is None: return self
-        ans = []
-        for p in self:
-            if test(p):
-                ans.append(p)
-        return ans
+    def filter(self, *tests):
+        """Filter self with test functions.
 
-    # The default __contains__ simply iterates over the list testing ==
+        Takes arbitrarily many functions (None is interpreted as the identity
+        function) as positional parameters; if any of these maps an entry of
+        self to a false value, that entry is ignored; each non-ignored entry in
+        self is yielded, in turn.  Note that self.filter() is just iter(self),
+        whereas self.filter(None) filters out false entries; there is no default
+        test function.\n"""
+        for p in self:
+            for t in tests:
+                if t is None:
+                    if not p: break
+                elif not t(p): break
+            else:
+                yield p
+
+        raise StopIteration
+
+    # The default __contains__ simply iterates, testing ==
 
 class WrapIterable (Iterable):
     def __init__(self, seq): self.__seq = seq
     def __iter__(self): return iter(self.__seq)
     def __getattr__(self, key): return getattr(self.__seq, key)
 
-class Ordered (list): # list as base => can't use __slots__
+class Ordered (Iterable, list): # list as base => can't use __slots__
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
@@ -149,6 +170,17 @@ class Ordered (list): # list as base => can't use __slots__
                                   self.__attr, self.__unique)
 
         return self.__upget(key)
+
+    __reduce = Iterable.reduce
+    def reduce(self, *what):
+        return self._ordered_(self.__reduce(*what),
+                              self.__rev, self.__key, self.__cmp,
+                              self.__attr, self.__unique)
+    __map = Iterable.map
+    def map(self, *what):
+        return self._ordered_(self.__map(*what),
+                              self.__rev, self.__key, self.__cmp,
+                              self.__attr, self.__unique)
 
     def _ordered_(self, *what):
         """Create a new object like self, but with other init args.
