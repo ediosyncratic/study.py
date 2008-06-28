@@ -98,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.7 2008-06-19 07:19:40 eddy Exp $
+$Id: octet.py,v 1.8 2008-06-28 05:50:48 eddy Exp $
 """
 
 def coprimes(primes):
@@ -197,13 +197,13 @@ class OctetType (Tuple):
 
 del Tuple
 
-from study.snake import interval
+from study.snake import regular
 
 class Octet (object):
     """Base class for octet-structured mappings from a range of naturals.
     """
 
-    def __init__(self, kind, base, count=None, data=None, gap=interval.Interval):
+    def __init__(self, kind, base, count=None, data=None, gap=regular.Interval):
         """Set up to describe a range of the naturals..
 
         Required arguments:
@@ -317,7 +317,7 @@ class FlagOctet (Octet):
             if flag: self.__flags[byte] = chr(1 << bit | ord(self.__flags[byte]))
             else: self.__flags[byte] = chr(ord(self.__flags[byte]) & ~(1 << bit))
 
-    def __find(self, key, bad=interval.Regular):
+    def __find(self, key, bad=regular.Regular):
         """Identify which bit describes a given key.
 
         Single argument, key, should be a natural.  If it's a slice (or Slice),
@@ -408,7 +408,7 @@ class FactorOctet (Octet):
             if f[ind] is None or f[ind] > factor:
                 f[ind] = factor
 
-    def __find(self, key, bad=interval.Regular):
+    def __find(self, key, bad=regular.Regular):
         """Identify which entry in .__factors describes a given key.
 
         Single argument, key, should be a natural.  If it's a slice (or Slice),
@@ -426,7 +426,7 @@ class FactorOctet (Octet):
         q, r = divmod(key - self.span.start, self.kind.modulus)
         return q * self.kind.size + self.kind.index(r)
 
-    def flag(self, seq=interval.Slice):
+    def flag(self, seq=regular.Slice):
         """Re-express self's data in a FlagOctet.
 
         This discards knowledge of proper factors but yields a much more compact
@@ -469,4 +469,4 @@ class FactorSieve (FactorOctet, Sieve):
         if self.valid(ind) or val is not None: return val
         raise LookupError('Too early to be sure', ind)
 
-del interval
+del regular

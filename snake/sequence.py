@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.19 2008-06-27 07:30:32 eddy Exp $
+$Id: sequence.py,v 1.20 2008-06-28 05:51:27 eddy Exp $
 """
 
 class Tuple (object):
@@ -44,7 +44,7 @@ class Tuple (object):
         if isinstance(other, Tuple): other = other.__tuple
         return self._tuple_(self.__tuple + other)
 
-    from interval import Slice
+    from regular import Slice
     def __getitem__(self, key, S=Slice):
         if isinstance(key, slice) or isinstance(key, S):
             return self._tuple_(self.__tuple[key])
