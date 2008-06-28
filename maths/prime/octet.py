@@ -98,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.8 2008-06-28 05:50:48 eddy Exp $
+$Id: octet.py,v 1.9 2008-06-28 13:32:35 eddy Exp $
 """
 
 def coprimes(primes):
@@ -196,6 +196,18 @@ class OctetType (Tuple):
         return None
 
 del Tuple
+def OctetType(n, cache={}, klaz=OctetType):
+    try: ans = cache[n]
+    except KeyError:
+        try: primes = cache['primes']
+        except KeyError:
+            try: from study.maths.prime import primes
+            # TODO: arrange that we can boot-strap without this:
+            except ImportError:
+                primes = (2, 3, 5, 7, 11, 13, 17, 19, 23)
+                assert n <= len(primes), 'Inadequate boot-strap'
+            else: cache['primes'] = primes
+        cache[n] = ans = klaz(primes[:n])
 
 from study.snake import regular
 
