@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.21 2008-06-28 11:45:34 eddy Exp $
+$Id: sequence.py,v 1.22 2008-06-28 12:03:04 eddy Exp $
 """
 
 class Tuple (object):
@@ -66,8 +66,11 @@ class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
 
     Implements map, reduce, sum, product and filter as methods of the iterable;
-    map and filter return iterators - derived classes may wish to collect the
-    yielded entries into a sequence of some suitable type.\n"""
+    map and filter take arbitrarily many functions and return iterators -
+    derived classes may wish to collect the yielded entries into a sequence of
+    some suitable type.  The mapwith method more closely matches the built-in
+    map function, but also returns an iterator (which may be worth wrapping,
+    too).\n"""
 
     __slots__ = ()
     def map(self, *funcs):
@@ -81,6 +84,30 @@ class Iterable (object):
             for f in funcs:
                 if f is not None: p = f(p)
             yield p
+
+        raise StopIteration
+
+    @staticmethod
+    def __endless(seq):
+        for it in seq: yield it
+        while True: yield None
+
+    def mapwith(self, func, *others):
+        """Map self and some other iterables through a function.
+
+        Required first parameter is a function (None is understood as a
+        surrogate for lambda *args: args); subsequent positional parameters are
+        arbitrarily many iterables.  Each of these other iterables is
+        effectively extended with arbitrarily many None if it runs out of
+        values.  For each entry in self, func is called with the entry in self
+        as first parameter and each subsequent parameter drawn from the matching
+        iterable; the function's return is yielded.  The result is thus similar
+        to using the builtin map(self, *others), except that it returns an
+        iterator over the values.\n"""
+
+        others = map(self.__endless, others)
+        for val in self:
+            yield func(val, *map(lambda x: x.next(), others))
 
         raise StopIteration
 
@@ -179,6 +206,11 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
     __map = Iterable.map
     def map(self, *what):
         return self._ordered_(self.__map(*what),
+                              self.__rev, self.__key, self.__cmp,
+                              self.__attr, self.__unique)
+    __mapwith = Iterable.mapwith
+    def mapwith(self, *what):
+        return self._ordered_(self.__mapwith(*what),
                               self.__rev, self.__key, self.__cmp,
                               self.__attr, self.__unique)
 
