@@ -71,37 +71,10 @@ also knows the range of prime indices it spans.
 TODO: what difference does it make to the cache objects if they're a modifiable
 cache ?  It affects whether things can be added, renamed, etc.
 
-TODO: I clearly need to think some more about the class hierarchy.  The entries
-in a directory need to look something like CacheNode (i.e. represent intervals
-and support comparison as such) and support a 'load-me' method (which looks to
-see if it's a file or a sub-directory).  The root's constructor can be as
-Interval(0, None) with a path-name and the machinery to read (and sort) its
-directory; every subordinate node needs to know who its parent is, what its
-relative name is and be an interval.  Mapping names to paths can be mediated by
-a .path(*args) method which delegates upwards to the root, which actually uses
-os.path.join; so leaves can self.path(), implicitly adding self.__name, and
-directories can self.path('__init__.py'), either adding self.__name or (for
-root) simply slapping it on the root directory.  So root doesn't descend from
-directory; I guess we need a base class shared by leaves and sub-directories;
-which has a base-class shared with roots.  Still, root and sub-directory deserve
-to have a common (probably mix-in) base-class that mediates directory listing
-and parsing; the .__up of any leaf or sub-directory is an instance of this.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-ReadCacheDir: can parse directories
-CacheNode: intervalish, has some conception of weakly-linked loaded object
-  CacheRootNode (ReadCacheDir): knows its directory; resolves path
-  CacheSubNode: knows its interval, parent and relative name
-    CacheSubDir (ReadCacheDir): delegates path
-    CacheFile: simple file
-
-A directory node always reads its __init__.py but only parses its listing when
-needed; a file node only reads its file when needed.  The directory thus wants
-to use a weakref for its Ordered listing (and any listings filtered therefrom)
-while a file wants to use a weakref to its pseudo-module object.
-
-$Id: cache.py,v 1.1 2008-06-26 07:36:59 eddy Exp $
+$Id: cache.py,v 1.2 2008-06-28 07:36:26 eddy Exp $
 """
 
 def read_cache(name, bok=None, glo={}):
@@ -120,15 +93,22 @@ def write_cache(name, __doc__=None, **what):
     # potentially: return size of file
 
 import os
-from study.snake.interval import Interval
+from study.snake.regular import Interval
 from study.snake.sequence import Ordered
-from study.snake.property import weakattr
+from study.snake.property import weakattr, lazyattr, lazyprop
+class Gap (Interval):
+    __upinit = Interval.__init__
+    def __init__(self, *what):
+        self.__upinit(*what)
+        self.prime = self.factor = False
 
 class ReadCacheDir (object):
-    def __init__(self):
-        # TODO: clean up
+    def __init__(self, Range=Interval):
         for k, v in read_cache(self.path('__init__.py')).items():
-            if k[0] != '_' or k == '__doc__':
+            if k == 'indices':
+                # saved to file as (start, span) twople.
+                setattr(self, k, Range(v[0], v[1])
+            elif k[0] != '_' or k == '__doc__':
                 setattr(self, k, v)
 
     @weakattr
@@ -147,6 +127,10 @@ class ReadCacheDir (object):
                 else: klaz = ReadCacheSubDir
                 ans.append(klaz(self, name, start, span, got.group(1)))
 
+        assert ans[0].start == 0, 'Directory lacks initial sub-range'
+        assert self.start + ans[-1].stop == self.stop, \
+               'Directory lacks final sub-range'
+
         return ans
 
     @weakattr
@@ -156,18 +140,112 @@ class ReadCacheDir (object):
     @weakattr
     def factors(self, ig=None):
         return filter(lambda i: i.factor, self.listing)
+
+    def get_primes(self, value, gap=None, index=None):
+        """Find a chunk or gap enclosing a designated integer.
+
+        Like get_factor (q.v.) except that it returns data on primes, and allows
+        value to be None, in which its (otherwise ignored and optional) third
+        argument, index, must be supplied: in this case, index must be a natural
+        and the effect is as if primes[index] had been passed as value.\n"""
+
+        if not self.prime:
+            assert isinstance(self, ReadCacheRoot)
+            return gap
+
+    def __bubble(self, tuple):
+        kid, off = tuple[:2]
+        off += self.start
+        try: return kid, off, tuple[2] + self.indices.start
+        except (AttributeError, IndexError): assert not kid.prime
+        return kid, off
+
+    def __prime_gap(self, what):
+        """Returns interval of primes spanning what.
+
+        Sole argument describes a natural (interpreted as a range of length one)
+        or a range of naturals, relative to the start of the interval self
+        describes; return is a range r for which primes[r.start] is not greater
+        than the start of the given range and primes[r.start] is greater than
+        every natural in the range; and r shall be the narrowest range for which
+        self can be sure this holds true.  If self has no information from which
+        to determine such a range, AttributeError is raised instead.\n"""
+        pass
+
+    def get_factors(self, value, gap=None, Range=Gap):
+        """Find a chunk or gap enclosing a designated integer.
+
+        Arguments:
+          value -- integer to be found in cache (required)
+          gap -- optional Gap around value else (default) None
+
+        Required first argument, value, is a natural number.  The return shall
+        describe an interval in which that natural falls.  The return is always
+        a tuple: its first member is either a Gap or a ReadCacheFile; the second
+        is a natural, the offset of the range described by the first relative to
+        the start of the range described by self; if present, the third is the
+        offset of the index-range of the first relative to the start of self's
+        index-range.  In the following, this tuple's first two entries are
+        called object and offset; and object.start <= value - offset <
+        object.stop shall always hold true.
+
+        When the cache contains data covering the interval requested, object
+        shall be a ReadCacheFile; its .content contains the namespace of its
+        cache file, which provides factor information, and its .next and .prev
+        attributes may be used to access the following or preceding chunk, if
+        available in this cache.
+
+        Otherwise, object shall be a Gap (recognizable as such by its lack of a
+        .content), describing a gap in self's range of covered values; if the
+        optional second argument gap is supplied, the returned Gap is its
+        intersection with the widest range of naturals about value in which self
+        has no data.  When gap is None, it is treated as if it were Gap(0,
+        None).  When object is a Gap, it may have an Interval as .indices,
+        indicating a range of prime indices spanning (but possibly wider than)
+        the indices of primes in the gap, relative to self.indices.start (if
+        known).\n"""
+
+        if not self.factor:
+            assert isinstance(self, ReadCacheRoot)
+            return gap
+
+        try: ind = self.factors.index(value)
+        except ValueError, what:
+            ind = what[2] # where in .factors our gap would be inserted
+            assert ind > 0, 'Directory lacks initial or final sub-range'
+            base = self.factors[ind-1].stop
+            assert base is not None, 'Badly sorted intervals'
+            kid = Range(base, self.factors[ind].start - base)
+            if gap is not None:
+                kid = gap.trim(kid)
+                kid = Range(kid.start, kid.stop - kid.start)
+            try: kid.indices = self.__prime_gap(kid)
+            except AttributeError: pass
+        else:
+            kid = self.factors[ind]
+            if isinstance(kid, ReadCacheDir):
+                return kid.__bubble(kid.get_factors(value - kid.start,
+                                                    gap - kid.start))
+            assert isinstance(kid, ReadCacheFile)
+
+        return kid, 0, 0
 
 class ReadCacheRoot (ReadCacheDir, Interval):
     __rcinit = ReadCacheDir.__init__
     __gapinit = Interval.__init__
     def __init__(self, path):
         self.__dir = path
-        self.__rcinit()
-        self.__gapinit(0, None)
+        self.__rcinit() # __init__.py must specify self.stop
+        self.__gapinit(0, self.stop)
 
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
     # May need __setattr__ to intercept some of __gapinit's setattr()
+
+    @lazyprop
+    def prime(self, ig=None): return len(self.primes) > 0
+    @lazyprop
+    def factor(self, ig=None): return len(self.factors) > 0
 
 class ReadCacheSubNode (Interval):
     __gapinit = Interval.__init__
@@ -191,8 +269,16 @@ class ReadCacheFile (ReadCacheNode):
     def content(self, ig=None):
         return read_cache(self.path())
 
+    @lazyattr
+    def next(self, ig=None):
+        pass # TODO: implement me
+
+    @lazyattr
+    def prev(self, ig=None):
+        pass # TODO: implement me
+
 
-del Interval Ordered, weakattr
+del Interval, Ordered, weakattr, lazyattr, lazyprop
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
