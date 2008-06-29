@@ -3,7 +3,7 @@
 
 See SI.py for base units and archaea.py for more arcane units (and references).
 
-$Id: units.py,v 1.31 2008-05-11 15:34:14 eddy Exp $
+$Id: units.py,v 1.32 2008-06-29 00:14:23 eddy Exp $
 """
 from SI import *
 
@@ -222,8 +222,11 @@ folk, notably dieticians (allegedly) use 'calorie' to mean kilo calorie.
 Values used here are taken from python's Scientific.Physics.PhysicalQuantities
 module.\n""")
 
-calorie.borrow((calorie.international + calorie.thermochemical) * .5 +
-               (calorie.international - calorie.thermochemical) * tophat)
+calorie = Quantity(1,
+                   (calorie.international + calorie.thermochemical) * .5 +
+                   (calorie.international - calorie.thermochemical) * tophat,
+                   None, None, None, None, # doc, nom, fullname, sample
+                   calorie)
 
 clausius = kilo * calorie / Kelvin
 
