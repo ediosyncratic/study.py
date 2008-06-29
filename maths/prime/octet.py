@@ -98,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.9 2008-06-28 13:32:35 eddy Exp $
+$Id: octet.py,v 1.10 2008-06-29 09:22:11 eddy Exp $
 """
 
 def coprimes(primes):
@@ -138,6 +138,8 @@ class OctetType (Tuple):
 
         assert tuple(ps[:3]) == (2, 3, 5), \
                "I need at least the first three primes to work with octets"
+        # ... actually, 17 and arbitrary others would suffice without them; and
+        # 2's not crucial.  But I want an initial chunk of primes, anyway.
 
         self.primes = tuple(ps)
         self.modulus, vals = coprimes(ps)
@@ -196,18 +198,12 @@ class OctetType (Tuple):
         return None
 
 del Tuple
-def OctetType(n, cache={}, klaz=OctetType):
-    try: ans = cache[n]
+def OctetType(ps, cache={}, klaz=OctetType):
+    ps = tuple(ps) # just to be sure ...
+    try: ans = cache[ps]
     except KeyError:
-        try: primes = cache['primes']
-        except KeyError:
-            try: from study.maths.prime import primes
-            # TODO: arrange that we can boot-strap without this:
-            except ImportError:
-                primes = (2, 3, 5, 7, 11, 13, 17, 19, 23)
-                assert n <= len(primes), 'Inadequate boot-strap'
-            else: cache['primes'] = primes
-        cache[n] = ans = klaz(primes[:n])
+        cache[ps] = ans = klaz(ps)
+    return ans
 
 from study.snake import regular
 
