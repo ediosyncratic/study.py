@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.23 2008-05-11 19:52:08 eddy Exp $
+$Id: body.py,v 1.24 2008-07-01 07:04:22 eddy Exp $
 """
 
 class Satellites:
@@ -23,7 +23,7 @@ In practice, the central body's lazy reset method is sensible for the former
 (provided we configure it to preserve its lazy satellites attribute, of
 course !), though ideally a more selective purge could be used.\n"""
 
-        # Use Ordered (see maths/prime/) for __carry ?
+        # Use Ordered (see study.snake.sequence) for __carry ?
         self.__cb, self.__carry = callback, []
         if fill is not None: self.__fill = fill
 
@@ -520,7 +520,7 @@ class Asteroid (MinorPlanet):
     instance = {}
     __upinit = MinorPlanet.__init__
     def __init__(self, name, orbit, mass, **what):
-        what.update(orbit=orbit, mass=mass})
+        what.update(orbit=orbit, mass=mass)
         self.__upinit(name, **what)
 
 class DwarfAster (Asteroid, DwarfPlanet):
@@ -558,5 +558,5 @@ class Planet (Planetoid):
         Initialisation ensures that orbit.centre notices that the new Planet
         is one of its satellites. """
 
-        what.update(orbit=orbit, surface=surface})
+        what.update(orbit=orbit, surface=surface)
         self.__upinit(name, **what)
