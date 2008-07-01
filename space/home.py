@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.30 2008-05-11 19:53:33 eddy Exp $
+$Id: home.py,v 1.31 2008-07-01 06:53:33 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -363,7 +363,7 @@ July 9th.
 Earth's orbital inclination varies on a 70 k yr cycle; but a 100 k yr cycle
 relative to the invariable plane (?).\n""",
                plane='Ecliptic'),
-          Quantity(16.7, milli,
+          Quantity(16.7 * milli, {},
                    """Eccentricity of Earth's orbit.
 
 This varies between .005 and .058, with a mean of .028; about .012 of this
