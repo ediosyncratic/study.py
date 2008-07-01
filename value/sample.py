@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.41 2008-05-11 14:37:08 eddy Exp $
+$Id: sample.py,v 1.42 2008-07-01 06:50:34 eddy Exp $
 """
 
 class _baseWeighted:
@@ -321,6 +321,8 @@ class curveWeighted (Lazy, _baseWeighted):
 
             # Compute each distribution's weight in each interval:
             me, you, its = self.weigh(cuts), other.weigh(cuts), prod.weigh(cuts)
+            me = map(lambda w, t=sum(self.size): w/t, me)
+            you = map(lambda w, t=sum(other.size): w/t, you)
             assert me[0] == 0 == me[-1] and you[0] == 0 == you[-1] and its[0] == 0 == its[-1]
             assert max(map(abs, (sum(me)-1, sum(you)-1))) < 1e-5
             assert 0 < sum(its) < 1+1e-5 # may have been trimmed, so materially < 1
