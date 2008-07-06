@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.5 2008-07-06 15:13:04 eddy Exp $
+$Id: cache.py,v 1.6 2008-07-06 21:28:38 eddy Exp $
 """
 
 import os
@@ -329,7 +329,13 @@ class CacheRoot (CacheDir, Node):
         of a .content).  In the latter case, if the optional second argument gap
         is supplied, the returned Gap is its intersection with the widest range
         of naturals about value in which self has no data.  When gap is None, it
-        is treated as if it were Gap(0, None).
+        is treated as if it were Gap(self, 0, None).
+
+        The return has, when available, a .indices attribute describing the
+        range of prime indices it spans; however, the returned index interval
+        may (e.g. in a factor-only cache, or when describing a gap) be wider
+        than the actual interval described by the return, if this is the best
+        available information.
 
         See also: get_primes().\n"""
 
@@ -344,7 +350,7 @@ class CacheRoot (CacheDir, Node):
         allows value to be None, in which case its (otherwise ignored and
         optional) third argument, index, must be supplied: in this case, index
         must be a natural and the effect is as if primes[index] had been passed
-        as value - noone can be expected to know primes[index] without calling
+        as value - no-one can be expected to know primes[index] without calling
         this function to get the cache object that tells us !\n"""
 
         if gap is None: gap = Range(self, 0, None, Hole(0, None))
