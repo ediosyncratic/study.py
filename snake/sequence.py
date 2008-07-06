@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.22 2008-06-28 12:03:04 eddy Exp $
+$Id: sequence.py,v 1.23 2008-07-06 11:54:46 eddy Exp $
 """
 
 class Tuple (object):
@@ -339,16 +339,24 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
         if self.__rev: return ans < 0
         return ans > 0
 
-    def __locate(self, value):
+    def __locate(self, value, lo=0, hi=-1):
         """Where does value belong in this list ?
+
+        Required argument, value, is the value whose position is to be
+        determined.  Optinal arguments lo (default: 0) and hi (default: -1)
+        constrain the range of answers; it shall be assumed that value belongs
+        in seq[lo:hi].
 
         If value is equal to some entry in this list, return the index of that
         entry; otherwise, return the index at which it should be inserted.  A
         return of -1 means 'after the end'; otherwise, only valid non-negative
         indices into self are returned.\n"""
-        if not self or self.__lt(-1, value): return -1
-        if self.__gt(0, value): return 0
-        lo, hi = 0, len(self) - 1
+        if not self or self.__lt(hi, value): return hi
+        if self.__gt(lo, value): return 0
+        if hi < lo:
+            assert hi == -1
+            hi += len(self)
+
         while hi > 1 + lo:
             mid, ig = divmod(lo + hi, 2)
             if self.__gt(mid, value): hi = mid
@@ -361,10 +369,22 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
         ind = self.__locate(value)
         return not ( ind < 0 or self.__ne(ind, value) )
 
-    def index(self, value):
-        ind = self.__locate(value)
+    def index(self, value, lo=0, hi=-1):
+        """Extends and optimises list.index
+
+        Required argument, value, is an entry to look for in this list.
+        Optional arguments lo (default: 0) and hi (default: -1) bound the range
+        in which to look for it; self[lo:hi] is searched instead of the whole of
+        self.  Exploits the fact that self is ordered so that the search only
+        needs O(log(len(self))) instead of O(len(self)) comparisons between
+        value and an entry in self.
+
+        On failure, i.e. when the given value is not in self[lo:hi], a
+        ValueError is raised, whose [0] entry is the index at which value would
+        be inserted; or -1 if it would be inserted after the last element.\n"""
+        ind = self.__locate(value, lo, hi)
         if ind < 0 or self.__ne(ind, value):
-            raise ValueError('Not in list', value, ind)
+            raise ValueError(ind, 'Not in list', value, lo, hi)
         return ind
 
     __listins = list.insert
