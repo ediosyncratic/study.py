@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.3 2008-07-06 12:11:59 eddy Exp $
+$Id: cache.py,v 1.4 2008-07-06 13:27:49 eddy Exp $
 """
 
 import os
@@ -141,7 +141,7 @@ class SubNode (Node):
         self.prime, self.factor = 'P' in types, 'F' in types
 
     @property
-    def octet(self, ig=None): return self.__up.octet
+    def root(self, ig=None): return self.__up.root
     def path(self, *tail): return self.__up.path(*tail)
 
     @lazyprop
@@ -173,8 +173,10 @@ class SubNode (Node):
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
-    def __init__(self, parent, start, span):
+    def __init__(self, parent, start, span, lo=None, hi=None,
+                 Range=Interval):
         self.__upinit(parent, start, span, '')
+        if lo is not None: self._indices = Range(lo, hi)
 
 class CacheDir (object):
     @weakattr
@@ -217,12 +219,11 @@ class CacheDir (object):
 
     @staticmethod
     def __findex(seq, index):
-        lo, lon, hi, hin = 0, seq[0].indices, len(seq) - 1, seq[-1].indices
-        # Take care to reference .indices on as few nodes as possible.
+        lo, lon, hi, hin = 0, seq[0]._indices, len(seq) - 1, seq[-1]._indices
+        # Take care to reference ._indices on as few nodes as possible.
         if lon.stop > index: return lo
         if hin.start <= index: return hi
         while hi > lo + 1:
-            if lon.stop == index: return lo + 1
             assert lon.stop < index < hin.start
             # linear-interpolate an estimate at the prime with this index:
             try: mid = seq.index(seq[lo].stop +
@@ -231,43 +232,63 @@ class CacheDir (object):
                                  1./(hin.start - lon.stop), lo, hi)
             except ValueError, what: mid = what.args[0]
             assert lo < mid < hi
-            midn = seq[mid].indices
+            midn = seq[mid]._indices
             if midn.start > index: hi, hin = mid, midn
             elif midn.stop <= index: lo, lon = mid, midn
-            else: return mid
+            elif index in midn: return mid
+            else: raise ValueError(mid)
 
         assert hi == lo + 1
         assert seq[lo].stop < seq[hi].start # it's a gap
         assert lon.stop <= index < hin.start
-        return hi
+        raise ValueError(hi)
 
     def __locate(self, seq, value, gap, index=None, Range=Gap):
 
         try:
             if value is None:
                 assert index is not None and self.prime
-                assert index in self.indices
+                assert index in self._indices
                 assert seq is self.primes
                 ind = self.__findex(seq, index)
             else:
                 ind = seq.index(value)
 
         except ValueError, what:
-            ind = what.args[0] # where in .factors our gap would be inserted
+            ind = what.args[0] # where in seq our gap would be inserted
             assert ind > 0, 'Directory lacks initial or final sub-range'
-            base = seq[ind-1].stop
-            assert base is not None, 'Badly sorted intervals'
-            kid = Range(base, seq[ind].start - base)
+
+            try:
+                lox = hix = None # in case all else fails
+                dex = self._indices
+                lox, hix = dex.start, dex.stop # in case the following fails:
+                lox, hix = seq[ind-1]._indices.stop, seq[ind]._indices.start
+                assert lox is not None, 'Badly sorted intervals'
+            except AttributeError: pass # missing ._indices
+
+            try:
+                dex = gap.indices - self.indices.start
+                if lox is None or dex.start > lox: lox = dex.start
+                if dex.stop is not None and (hix is None or dex.stop < hix):
+                    hix = dex.stop
+            except AttributeError: pass # missing gap.indices
+
+            lo, hi = seq[ind-1].stop, seq[ind].start
+            assert lo is not None, 'Badly sorted intervals'
             if gap is not None:
-                kid = gap.trim(kid)
-                kid = Range(kid.start, len(kid))
-            # ? TODO: provide kid._indices ?
+                if gap.start > lo: lo = gap.start
+                if gap.stop is not None and (hi is None or gap.stop < hi):
+                    hi = gap.stop
+
+            kid = Range(self, lo, hi - lo, lox, hix - lox)
+
         else:
             kid = seq[ind]
             if isinstance(kid, CacheDir):
-                ans = kid._get_factors(value - kid.start, gap - kid.start)
-                if isinstance(ans, CacheFile): return ans
-                return ans + kid.start
+                if value is not None: value -= kid.start
+                else: index -= kid._indices.start
+                return kid.__locate(seq, value, gap, index)
+
             assert isinstance(kid, CacheFile)
 
         return kid
@@ -295,6 +316,8 @@ class CacheRoot (CacheDir, Node):
         self.content # evaluate in order to force a _read
         self.__gapinit(0, self.stop)
 
+    @property
+    def root(self, ig=None): return self
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
 
@@ -332,7 +355,8 @@ class CacheRoot (CacheDir, Node):
         as value.\n"""
 
         # TODO: any special handling needed for value <= self.octet.primes[-1] ?
-        if gap is None: gap = Range(self, 0, None)
+        if gap is None: gap = Range(self, 0, None, 0, None)
+
         if not self.prime: return gap
         if value is not None: value /= self.octet.modulus
         return self._get_primes(self, value, gap, index)
