@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.4 2008-07-06 13:27:49 eddy Exp $
+$Id: cache.py,v 1.5 2008-07-06 15:13:04 eddy Exp $
 """
 
 import os
@@ -173,10 +173,9 @@ class SubNode (Node):
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
-    def __init__(self, parent, start, span, lo=None, hi=None,
-                 Range=Interval):
+    def __init__(self, parent, start, span, indices=None):
         self.__upinit(parent, start, span, '')
-        if lo is not None: self._indices = Range(lo, hi)
+        if indices is not None: self._indices = indices
 
 class CacheDir (object):
     @weakattr
@@ -243,7 +242,7 @@ class CacheDir (object):
         assert lon.stop <= index < hin.start
         raise ValueError(hi)
 
-    def __locate(self, seq, value, gap, index=None, Range=Gap):
+    def __locate(self, seq, value, gap, index=None, Range=Gap, Hole=Interval):
 
         try:
             if value is None:
@@ -259,28 +258,22 @@ class CacheDir (object):
             assert ind > 0, 'Directory lacks initial or final sub-range'
 
             try:
-                lox = hix = None # in case all else fails
+                dex = None # in case all else fails
                 dex = self._indices
-                lox, hix = dex.start, dex.stop # in case the following fails:
-                lox, hix = seq[ind-1]._indices.stop, seq[ind]._indices.start
+                lox = seq[ind-1]._indices.stop
                 assert lox is not None, 'Badly sorted intervals'
+                dex = Hole(lox, seq[ind]._indices.start - lox)
             except AttributeError: pass # missing ._indices
 
-            try:
-                dex = gap.indices - self.indices.start
-                if lox is None or dex.start > lox: lox = dex.start
-                if dex.stop is not None and (hix is None or dex.stop < hix):
-                    hix = dex.stop
-            except AttributeError: pass # missing gap.indices
+            try: dex = dex.trim(gap.indices - self.indices.start)
+            except AttributeError: pass # missing .indices
 
-            lo, hi = seq[ind-1].stop, seq[ind].start
+            lo = seq[ind-1].stop
             assert lo is not None, 'Badly sorted intervals'
-            if gap is not None:
-                if gap.start > lo: lo = gap.start
-                if gap.stop is not None and (hi is None or gap.stop < hi):
-                    hi = gap.stop
+            kid = Hole(lo, seq[ind].start - lo)
+            if gap is not None: kid = kid.trim(gap)
 
-            kid = Range(self, lo, hi - lo, lox, hix - lox)
+            kid = Range(self, kid.start, len(kid), dex)
 
         else:
             kid = seq[ind]
@@ -340,22 +333,21 @@ class CacheRoot (CacheDir, Node):
 
         See also: get_primes().\n"""
 
-        # TODO: any special handling needed for value <= self.octet.primes[-1] ?
         if gap is None: gap = Range(self, 0, None)
         if not self.factor: return gap
         return self._get_factors(self, value / self.octet.modulus, gap)
 
-    def get_primes(self, value, gap=None, index=None, Range=Gap):
+    def get_primes(self, value, gap=None, index=None, Range=Gap, Hole=Interval):
         """Find a cache file or gap enclosing a designated integer.
 
         Like get_factors (q.v.) except that it returns data on primes, and
         allows value to be None, in which case its (otherwise ignored and
         optional) third argument, index, must be supplied: in this case, index
         must be a natural and the effect is as if primes[index] had been passed
-        as value.\n"""
+        as value - noone can be expected to know primes[index] without calling
+        this function to get the cache object that tells us !\n"""
 
-        # TODO: any special handling needed for value <= self.octet.primes[-1] ?
-        if gap is None: gap = Range(self, 0, None, 0, None)
+        if gap is None: gap = Range(self, 0, None, Hole(0, None))
 
         if not self.prime: return gap
         if value is not None: value /= self.octet.modulus
