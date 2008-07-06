@@ -98,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.10 2008-06-29 09:22:11 eddy Exp $
+$Id: octet.py,v 1.11 2008-07-06 15:01:06 eddy Exp $
 """
 
 def coprimes(primes):
@@ -211,7 +211,7 @@ class Octet (object):
     """Base class for octet-structured mappings from a range of naturals.
     """
 
-    def __init__(self, kind, base, count=None, data=None, gap=regular.Interval):
+    def __init__(self, kind, base, data=None, count=None, gap=regular.Interval):
         """Set up to describe a range of the naturals..
 
         Required arguments:
@@ -219,9 +219,9 @@ class Octet (object):
           base -- beginning of the range of naturals to be described
 
         Optional argument:
+          data -- length, within range, for which data is already available.
           count -- number of such blocks to be described; or None (default), to
                    let it be determined by data.
-          data -- length, within range, for which data is already available.
 
         Given data, this computes a length sufficient to use all of it, rounding
         up to the next full block size for its kind if needed; if count is None
@@ -236,7 +236,8 @@ class Octet (object):
         elif count is None:
             raise ValueError('I need to know how big to be', count, data)
 
-        self.kind, self.span = kind, gap(base, count * kind.modulus)
+        self.kind, self._count = kind, count
+        self.span = gap(base, count * kind.modulus)
 
     def keys(self): return range(self.span.start, self.span.stop)
     def items(self): return map(lambda k, b=self: (k, b[k]), self.span)
@@ -295,7 +296,7 @@ class FlagOctet (Octet):
     """A mapping from a range of naturals to True if prime, else False.
     """
     __upinit = Octet.__init__
-    def __init__(self, kind, base, count=None, data=''):
+    def __init__(self, kind, base, data='', count=None):
         """Set up a multi-byte flag octet.
 
         For arguments, see Octet.__init__, with the optional data being here a
@@ -306,7 +307,7 @@ class FlagOctet (Octet):
         data.\n"""
 
         self.__upinit(kind, base, count, len(data) * 8)
-        self.__flags = data + '\0' * (count * kind.size - len(data))
+        self.__flags = data + '\xff' * (self._count * kind.size - len(data))
 
     def prime(self, i): return self[i]
     def __getitem__(self, key):
@@ -316,6 +317,7 @@ class FlagOctet (Octet):
         except ValueError: pass
         return False
 
+    # Only really of any use for importing data from some alien source
     def __setitem__(self, key, flag):
         try: byte, bit = self.__find(key)
         except ValueError:
@@ -363,12 +365,13 @@ class FlagSieve (FlagOctet, Sieve):
     Use this to find all the primes in a range of the naturals, given all the
     primes whose squares aren't beyond the end of the range.  More usually,
     however, I'll want to also know the least proper factor of each non-prime;
-    see FactorSieve, below.\n"""
+    see FactorSieve, below.  Arguments are as for Octet except that count is
+    required and comes before data.\n"""
 
     __upinit = FlagOctet.__init__
     __mixinit = Sieve.__init__
     def __init__(self, primes, kind, base, count, data=''):
-        self.__upinit(kind, base, count, data)
+        self.__upinit(kind, base, data, count)
         self.__mixinit(primes, 8 * len(data))
 
     __upget = FlagOctet.__getitem__
@@ -381,11 +384,10 @@ class FlagSieve (FlagOctet, Sieve):
 class FactorOctet (Octet):
     """A mapping object storing factor information.
 
-    The keys supported are all the naturals in some range; each is mapped to the
-    least index, into primes, of a factor of the given natural; or, if there is
-    no such index, to None.\n"""
+    The keys supported are all the naturals in some range; each is mapped to its
+    least proper factor; or, if it is a prime, to None.\n"""
     __upinit = Octet.__init__
-    def __init__(self, kind, base, count=None, data=()):
+    def __init__(self, kind, base, data=(), count=None):
         """Set up a multi-byte factor octet.
 
         For arguments, see Octet.__init__, with the optional data being here a
@@ -395,15 +397,19 @@ class FactorOctet (Octet):
         track of which parts are padding and which are real data.\n"""
 
         self.__upinit(kind, base, count, len(data))
-        self.__factors = list(data) + [ None ] * (count * kind.size * 8 - len(data))
+        self.__factors = list(data) + [ None ] * (self._count * kind.size * 8 - len(data))
 
     def prime(self, i): return self[i] is None
     def __getitem__(self, key):
         try: ind = self.__find(key)
-        except ValueError:
+        # don't bother to catch KeyError or TypeError
+        except ValueError: # from self.kind.index
+            if self.span.start == 0:
+                if key in self.kind.octet.primes: return None
             return self.kind.factor(key % self.kind.modulus)
         return self.__factors[ind]
 
+    # Only really of any use for importing data from some alien source
     def __setitem__(self, key, factor):
         try: ind = self.__find(key)
         except ValueError:
@@ -413,8 +419,12 @@ class FactorOctet (Octet):
             # else silently ignore marking non-prime as such.
         else:
             f = self.__factors
-            if f[ind] is None or f[ind] > factor:
-                f[ind] = factor
+            if factor is None:
+                assert f[ind] is None
+            else:
+                assert factor > 1
+                if f[ind] is None or f[ind] > factor:
+                    f[ind] = factor
 
     def __find(self, key, bad=regular.Regular):
         """Identify which entry in .__factors describes a given key.
@@ -449,9 +459,9 @@ class FactorOctet (Octet):
                     bit <<= 1
                 text += chr(byte)
 
-        assert len(data) % self.kind.size == 0 == len(self.span) % seld.kind.modulus
-        assert len(data) // self.kind.size == len(self.span) // self.kind.modulus
-        return FlagOctet(self.kind, self.span.start, data=text)
+        assert len(data) % self.kind.size == 0 == len(self.span) % self.kind.modulus
+        assert len(data) // self.kind.size == len(self.span) // self.kind.modulus == self._count
+        return FlagOctet(self.kind, self.span.start, text)
 
     def mark(self, p):
         """Marks relevant multiples of a prime p with index i as such."""
@@ -468,7 +478,7 @@ class FactorSieve (FactorOctet, Sieve):
     __upinit = FactorOctet.__init__
     __mixinit = Sieve.__init__
     def __init__(self, primes, kind, base, count, data=()):
-        self.__upinit(kind, base, count, data)
+        self.__upinit(kind, base, data, count)
         self.__mixinit(primes, len(data))
 
     __upget = FactorOctet.__getitem__
