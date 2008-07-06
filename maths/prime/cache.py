@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.6 2008-07-06 21:28:38 eddy Exp $
+$Id: cache.py,v 1.7 2008-07-06 22:03:47 eddy Exp $
 """
 
 import os
@@ -103,6 +103,24 @@ class Node (Interval):
 
         return bok
     del Bok
+
+    @weakattr
+    def content(self, ig=None):
+        return self._read(self._content_file)
+
+    @lazyattr
+    def span(self, ig=None):
+        """Absolute interval of naturals spanned by this Node.
+
+        Relies on derived classes to define ._span(range), which converts:
+          * from a range relative to the same base-point as self, measured in
+            units of this cache's octet
+          * to an actual range of naturals.
+
+        This is achieved in two phases: SubNode recursively adds directory
+        offsets to an interval, initially self, going up the directory hierarchy
+        to the root, which does the needed re-scaling.\n"""
+        return self._span(self)
 
     @lazyprop
     def _indices(self, ig=None): # Gap may have it set
@@ -141,35 +159,15 @@ class SubNode (Node):
         self.prime, self.factor = 'P' in types, 'F' in types
 
     @property
+    def parent(self, ig=None): return self.__up # read-only access
+    @property
     def root(self, ig=None): return self.__up.root
-    def path(self, *tail): return self.__up.path(*tail)
 
     @lazyprop
     def indices(self, ig=None):
         return self.__up.indices.start + self._indices
 
-    @lazyattr
-    def span(self, ig=None): return self._span(self)
-    def _span(self, gap): return self.__up._span(gap + self.start)
-
-    def _spanner(self, val): # for use by CacheFile
-        up = self
-        try:
-            while val not in up:
-                val += up.start
-                up = up.__up
-
-        except AttributeError: return None # root lacks this value
-
-        if self.prime:
-            assert not self.factor, 'I should be a file !'
-            ans = up._get_prime(val)
-        else:
-            assert self.factor
-            ans = up._get_factor(val)
-
-        if isinstance(ans, CacheFile): return ans
-        return None
+    def _span(self, gap): return self.__up._span(gap + self.__up.start)
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
@@ -178,9 +176,9 @@ class Gap (SubNode):
         if indices is not None: self._indices = indices
 
 class CacheDir (object):
-    @weakattr
-    def content(self, ig=None):
-        return self._read(self.path('__init__.py'))
+    @lazyattr
+    def _content_file(self, ig=None):
+        return self.path('__init__.py')
 
     @weakattr
     def listing(self, ig=None, get=os.listdir, seq=Ordered,
@@ -375,7 +373,6 @@ class CacheRoot (CacheDir, Node):
         return self._write(name, **what)
 
     def _span(self, gap, Range=Interval):
-        assert self.start == 0
         step = self.octet.modulus
         return Range(gap.start * step, len(gap) * step)
 
@@ -392,33 +389,63 @@ class CacheSubNode (SubNode):
         self.__gapinit(parent, start, span, types)
         self.__name = name
 
-    __path = SubNode.path
-    def path(self, *tail): return self.__path(self.__name, *tail)
+    def path(self, *tail): return self.parent.path(self.__name, *tail)
 
 class CacheSubDir (CacheDir, CacheSubNode):
     pass
 
 class CacheFile (CacheSubNode):
     @weakattr
-    def content(self, ig=None):
-        return self._read(self.path())
+    def _content_file(self, ig=None): return self.path()
 
     @property
     def depth(self, ig=None): return 0
 
+    def __spanner(self, val):
+        up = self
+        try:
+            while val not in up:
+                val += up.start
+                up = up.parent
+
+        except AttributeError: return None # root lacks this value
+
+        if self.prime:
+            assert not self.factor, 'I should be a file !'
+            ans = up._get_prime(val)
+        else:
+            assert self.factor
+            ans = up._get_factor(val)
+
+        if isinstance(ans, CacheFile): return ans
+        return None
+
     @lazyattr
     def next(self, ig=None):
         """Successor node to this one, if in this cache; else None."""
-        return self._spanner(len(self))
+        return self.__spanner(len(self))
 
     @lazyattr
     def prev(self, ig=None):
         """Prior node to this one, if in this cache; else None."""
-        return self._spanner(-1)
+        return self.__spanner(-1)
 
 del Interval, Ordered, weakattr, lazyattr, lazyprop
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
+class WriteCacheDir (CacheDir):
+    def passdown(self, child):
+        pass
+
+class WriteCacheRoot (WriteCacheDir, CacheRoot):
+    pass
+
+class WriteCacheSubDir (WriteCacheDir, CacheSubDir):
+    pass
+
+class WriteCacheFile (CacheFile):
+    pass
+
 del os
