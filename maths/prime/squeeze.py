@@ -54,12 +54,16 @@ using for the first 14912 generalized octets, covering the primes up to
 
 from bz2 import compress, decompress
 from base64 import standard_b64encode, standard_b64decode
+import re
+eighty = re.compile('.{,80}')
+del re
 
-def squash(txt, enc=standard_b64encode, c=compress):
+def squash(txt, enc=standard_b64encode, c=compress, chop=eighty):
     ans = enc(c(txt))
-    if len(ans) < len(txt): return ans
+    if len(ans) < len(txt): return '\n'.join(chop.findall(ans))
     raise ValueError, "I'm sorry Dave, I can't do that"
 
+# Helpfully, standard_b64decode knows to ignore '\n'
 def expand(txt, e=decompress, dec=standard_b64decode):
     return e(dec(txt))
 
@@ -101,4 +105,15 @@ class Huff (Huffman):
         self.__upinit(bok)
         self.order = N
 
-del Huffman, alphabet
+    assert '\n' not in alphabet
+    __enc = Huffman.encode
+    __dec = Huffman.decode
+    # Add and ignore newlines in ciphertext to make its lines <= 80 long:
+
+    def encode(self, message, chop=eighty):
+        return '\n'.join(chop.findall(self.__enc(message)))
+
+    def decode(self, text):
+        return self.__dec(''.join(text.split('\n')))
+
+del Huffman, alphabet, eighty
