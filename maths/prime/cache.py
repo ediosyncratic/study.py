@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.8 2008-07-10 05:54:44 eddy Exp $
+$Id: cache.py,v 1.9 2008-07-10 12:42:20 eddy Exp $
 """
 
 import os
@@ -202,7 +202,130 @@ class Gap (SubNode):
         self.__upinit(parent, start, span, '')
         if indices is not None: self._indices = indices
 
-class CacheDir (object):
+class LockableDir (object):
+    """Lock management base-class.
+
+    This isolates lock management from the rest of cache directory management.
+    It is only viable for a derived class implementing .path(leafname) as the
+    name of a file in the directory to be locked.  The locking implemented here
+    is recursive: if you already hold a lock, locking it again is a successful
+    no-op and the matching unlock (which is required) shall also be a no-op.
+
+    Locking a directory for reading means locking it so that the current process
+    may read it.  LIkewise, locking for writing means locking so as to be able
+    to write.  A directory which is being written is not safe to read, except
+    possibly by whoever is writing it; so a directory locked by someone else for
+    reading should not be locked for writing.
+
+    It is left to derived classes to ensure that sub-directories lock and unlock
+    their parents in suitable ways.
+    """
+
+    def __init__(self):
+        # Am *I* holding read/write locks ?  Not yet.
+        self.__read = self.__write = 0
+
+    def __del__(self):
+        while self.__read > 0 or self.__write > 0:
+            self.unlock(self.__read > 0, self.__write > 0)
+
+    def unlock(self, read=False, write=False, remove=os.remove):
+        """Release locks.
+
+        Arguments are as for .lock(), q.v.  Every call to .lock() should be
+        matched by a call to .unlock() with the same arguments, except that when
+        both are True they may be cleared by distinct calls to unlock().
+        Typical usage should look like:
+
+            if dir.lock(True):
+                try: # ... do stuff ...
+                finally: dir.unlock(True)
+
+        with matching args to lock and unlock.\n"""
+
+        # Shouldn't even ask to unlock if not actually locked:
+        if write: assert self.__write > 0
+        if read: assert self.__read > 0
+        if write and self.__write > 0:
+            self.__write -= 1
+            if self.__write == 0:
+                remove(self.wlock)
+        if read:
+            self.__read -= 1
+            if self.__read == 0:
+                remove(self.rlock)
+
+    import re, errno
+    def lock(self, read=False, write=False,
+             get=os.path.listdir, exist=os.path.exists,
+             remove=os.remove, rename=os.rename,
+             touch=lambda n: open(n, 'w').close(),
+             sid=getattr(os, 'getsid', None), ESRCH=errno.ESRCH,
+             pat=re.compile(r'^\.lock\.(\d+\.)?(read|write)')):
+        """See if this process can lock this directory.
+
+        Arguments, read and write, are optional booleans (defaulting to False)
+        selecting the kind of lock desired; at least one of them should be
+        specified True.\n"""
+
+        assert read or write, 'Fatuous call'
+        if self.__read > 0 and read:
+            self.__read += 1
+            read = False # don't actually do locking
+        if self.__write > 0 and write:
+            self.__write += 1
+            write = False # don't actually do locking
+
+        # Check if locked:
+        if read and exist(self.__rlock): return False
+        if write and exist(self.__wlock): return False
+
+        if read: touch(self.__rlocktmp)
+        if write: touch(self.__wlocktmp)
+
+        rs, ws = [], []
+        for name in get(self.path()):
+            got = path.match(name)
+            if got is not None:
+                pid, mode = got.groups()
+                if pid is None: pid = 0
+                elif pid == self.__stem[6:]: continue
+                else: pid = int(pid[:-1])
+                if mode == 'read': rs.append((pid, name))
+                else:
+                    assert mode == 'write'
+                    ws.append((pid, name))
+
+        if ((read and (rs or exist(rlock))) or
+            (write and (ws or exist(wlock)))):
+            if read: remove(self.__rlocktmp)
+            if write: remove(self.__wlocktmp)
+            return False
+
+        if read:
+            rename(stem + 'read', rlock)
+            self.__read = True
+        if write:
+            rename(stem + 'write', wlock)
+            self.__write = True
+
+        return True
+    del re
+
+    @lazyattr
+    def __rlock(self, ig=None): return self.path('.lock.read')
+    @lazyattr
+    def __wlock(self, ig=None): return self.path('.lock.write')
+
+    __stem = '.lock.%d.' % os.getpid()
+    @lazyattr
+    def __rlocktmp(self, ig=None):
+        return self.path(self.__stem + 'read')
+    @lazyattr
+    def __wlocktmp(self, ig=None):
+        return self.path(self.__stem + 'write')
+
+class CacheDir (LockableDir):
     @lazyattr
     def _content_file(self, ig=None):
         return self.path('__init__.py')
@@ -229,6 +352,7 @@ class CacheDir (object):
                'Directory lacks final sub-range'
 
         return ans
+
     del re
 
     @lazyprop
