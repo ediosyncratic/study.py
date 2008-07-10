@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.7 2008-07-06 22:03:47 eddy Exp $
+$Id: cache.py,v 1.8 2008-07-10 05:54:44 eddy Exp $
 """
 
 import os
@@ -88,11 +88,12 @@ class Node (Interval):
     """
 
     class Bok (dict): pass # for weakref's sake
-    def _read(name, bok=None, glo={}, Range=Interval, Dict=Bok):
+    def load(bok=None, glo={}, Range=Interval, Dict=Bok):
         # TODO: need a lock-check on all ancestors
+        # TODO: want to be able to GET a URL instead of reading a file
 
         if bok is None: bok = Bok()
-        execfile(name, glo, bok) # may raise IOError, ParseError
+        execfile(self._content_file, glo, bok) # may raise IOError, ParseError
 
         try: self.depth = bok.pop('depth')
         except KeyError: assert isinstance(self, CacheFile)
@@ -105,8 +106,7 @@ class Node (Interval):
     del Bok
 
     @weakattr
-    def content(self, ig=None):
-        return self._read(self._content_file)
+    def content(self, ig=None): return self.load()
 
     @lazyattr
     def span(self, ig=None):
@@ -128,11 +128,39 @@ class Node (Interval):
         try: return self.__indices
         except AttributeError:
             if not self.prime: raise
-        self.content # evaluate to force loading (fails for Gap)
+        self.content # evaluate to force .load()ing (fails for Gap)
         return self.__indices # should now succeed
 
-    def _write(name, **what):
-        fd = open(name, 'w')
+    @staticmethod
+    def __repr(val):
+        """Decides how to display values
+
+        While meta-data is mostly terse, the actual tuples of factors and
+        strings encoding prime octets are very long, so should be split across
+        many lines.  It's always OK to return repr(val), albeit this may be
+        painfully long, but where something nicer is viable and reliable, it
+        should be used.  Nicer forms should try to put the data on separate
+        lines from any start and end details.\n"""
+
+        if isinstance(val, tuple) and len(val) > 20:
+            # Like tuple's repr, but using ',\n' in place of ', ':
+            return '(\n' + ',\n'.join(map(repr, val)) + '\n)'
+
+        if isinstance(val, basestring) and len(val) > 80 && '\n' in val:
+            if isinstance(val, unicode): lead = 'u'
+            else: lead = ''
+            if "'" in val:
+                if '"' not in val:
+                    return lead + '"""\n%s"""' % val
+            else: return lead + "'''\n%s'''" % val
+            # The strings that'll match this all end in a newline already:
+            # squeeze.eighty.findall() always ends in an empty string.
+
+        return repr(val)
+
+    def save(**what):
+        assert self.prime or self.factor
+        fd = open(self._content_file, 'w')
         try:
             if self.__doc__ is not self.__class__.__doc__:
                 fd.write('"""%s"""\n\n', self.__doc__)
@@ -140,13 +168,12 @@ class Node (Interval):
             if not isinstance(self, CacheFile):
                 what['depth'] = self.depth
 
-            if self.prime:
-                try: gap = self._indices # save as tuple if present
-                except AttributeError: pass
-                else: what['indices'] = (gap.start, len(gap))
+            try: gap = self._indices # save as tuple if present
+            except AttributeError: assert not self.prime
+            else: what['indices'] = (gap.start, len(gap))
 
             for k, v in what.items:
-                fd.write('%s = %s\n' % (k, repr(v)))
+                fd.write('%s = %s\n' % (k, self.__repr(v)))
 
         finally: fd.close()
         # potentially: return size of file
@@ -180,6 +207,7 @@ class CacheDir (object):
     def _content_file(self, ig=None):
         return self.path('__init__.py')
 
+    import re
     @weakattr
     def listing(self, ig=None, get=os.listdir, seq=Ordered,
                 pat=re.compile(r'^([PF]+)([0-9a-z]+)\+([0-9a-z]+)(\.py)?$')):
@@ -201,6 +229,7 @@ class CacheDir (object):
                'Directory lacks final sub-range'
 
         return ans
+    del re
 
     @lazyprop
     def depth(self, ig=None): # but usuall we'll read this from __init__.py
@@ -304,7 +333,7 @@ class CacheRoot (CacheDir, Node):
     __gapinit = Node.__init__
     def __init__(self, path):
         self.__dir = path
-        self.content # evaluate in order to force a _read
+        self.content # evaluate in order to force a .load()
         self.__gapinit(0, self.stop)
 
     @property
@@ -357,20 +386,20 @@ class CacheRoot (CacheDir, Node):
         if value is not None: value /= self.octet.modulus
         return self._get_primes(self, value, gap, index)
 
-    __upread = Node._read
+    __load = Node.load
     from octet import OctetType
-    def _read(self, name, bok=None, mode=OctetType):
-        bok = self.__upread(name, bok)
+    def load(self, bok=None, mode=OctetType):
+        bok = self.__load(bok)
         self.stop = bok.pop('top')
         self.octet = mode(bok.pop('octet'))
         return bok
     del OctetType
 
-    __upwrite = Node._write
-    def _write(self, name, **what):
+    __save = Node.save
+    def save(self, **what):
         what['top'] = self.stop
         what['octet'] = self.octet.primes
-        return self._write(name, **what)
+        return self.___save(**what)
 
     def _span(self, gap, Range=Interval):
         step = self.octet.modulus
