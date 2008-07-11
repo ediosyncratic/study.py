@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.10 2008-07-11 11:17:03 eddy Exp $
+$Id: cache.py,v 1.11 2008-07-11 12:16:54 eddy Exp $
 """
 
 import os
@@ -208,13 +208,21 @@ class LockableDir (object):
     This isolates lock management from the rest of cache directory management.
     The locking implemented here is recursive: if you already hold a lock,
     locking it again is a successful no-op and the matching unlock (which is
-    required) shall also be a no-op.
+    required) shall also be a no-op.  The locking is also conservative: if in
+    doubt about whether it can succeed, it fails.  On failure, it endeavours to
+    report the process ID of the contending process and the file that implied
+    the contention, to facilitate manual intervention in the event of stale
+    locks.
 
     Locking a directory for reading means locking it so that the current process
     may read it.  LIkewise, locking for writing means locking so as to be able
     to write.  A directory which is being written is not safe to read, except
-    possibly by whoever is writing it; so a directory locked by someone else for
-    reading should not be locked for writing.
+    (if they're careful) by whoever is writing it; so a directory locked by
+    someone else for reading cannot be locked for writing; and a directory
+    locked by someone else for writing cannot be locked at all.  However, two
+    processes may safely lock a directory for reading.  Thus the locking
+    semantics needed match with those of POSIX flock (3) with writing as an
+    exclusive lock and reading as a shared lock.
 
     It is left to derived classes to ensure that sub-directories lock and unlock
     their parents in suitable ways; and to implement .path(leafname) as the name
@@ -375,24 +383,52 @@ class LockableDir (object):
         self.__mode = flag
         if old is not None: old.close()
 
-    sid = getattr(os, 'getsid', None)
-    if sid:
-        def sid(pair, sid=sid, ESRCH=errno.ESRCH, pid=__pid):
+    # Prepare tool for __check:
+    rival = getattr(os, 'getsid', None)
+    if rival is None: # No getsid; can't tell if pid is live or not.
+        def rival(pair, pid=__pid): return pair[0] != pid
+    else: # getsid available: be more agressive about ignoring stale locks:
+        def rival(pair, pid=__pid, sid=rival, ESRCH=errno.ESRCH,
+                  remove=os.remove, OSError=os.error):
+            """Test whether a (pid, file) pair indicates contention.
+
+            Sole argument, pair, is a (pid, file) pair; if the pid is self's
+            pid, or indicates a dead process, then we can ignore it; otherwise
+            it indicates a rival process holding or trying to acquire the lock.
+
+            When the given pair's pid is dead, we try to remove the lockfile
+            named by the second member of the pair, to save wasted testing in
+            later checks.  However, if deletion fails, we print a warning and
+            ignore the error: if the file no longer exists, it's no problem; if
+            it's a temporary of a dead process, it shall never be renamed to
+            become a live lock, so is no problem; otherwise, it's a live lock
+            and __lock()'s attempt to over-write it (immediately after calling
+            __check) shall fail, so there's no point failing here.\n"""
+
             if pair[0] == pid: return False
             try: sid(pair[0])
             except IOError, what:
-                if what.errno == ESRCH: return False
-            return True
-    else:
-        def sid(pair, pid=__pid):
-            if pair[0] == pid: return False
+                if what.errno == ESRCH:
+                    # Stale lock file: tidy away, if possible.
+                    try: remove(pair[1])
+                    except OSError:
+                        print 'Failed to remove stale lock file', pair[1]
+                    return False
+                # else: some other error; process exists; honour its lock file.
             return True
 
     import re
     def __check(self,
                 exist=os.path.exists, get=os.path.listdir,
-                sid=sid, BLOCKS=errno.EWOULDBLOCK,
+                sid=rival, BLOCKS=errno.EWOULDBLOCK,
                 pat=re.compile(r'^\.lock\.(\d+)')):
+        """Check lock state.
+
+        Raises IOError if someone else currently holds the lock file or it's
+        empty (unheld) but someone else is in the act of locking it.  Should
+        only be called after creating our own temporary file in preparation for
+        locking it, so that anyone else in the act of locking shall fail along
+        with us.\n"""
 
         ids = []
         for name in get(self.path()):
@@ -403,18 +439,18 @@ class LockableDir (object):
         if exist(self.__file):
             fd = open(self.__file)
             got = fd.read()
-            if got: ids.insert(0, (int(got), self.__file))
+            if got: ids = (int(got), self.__file)
         else: got = ''
 
         ids = filter(sid, ids)
         if ids:
             raise IOError(BLOCKS,
                           'Lock contention: ' +
-                          ', '.join(map(lambda x: 'pid %d (%s)' % x, ids)),
+                          ', '.join(map('pid %d (%s)'.__mod__, ids)),
                           ids[0][1])
         return got
 
-    del sid, re, fcntl, errno
+    del rival, re, fcntl, errno
 
     @lazyattr
     def __file(self, ig=None): return self.path('.lock')
