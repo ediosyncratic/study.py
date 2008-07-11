@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.9 2008-07-10 12:42:20 eddy Exp $
+$Id: cache.py,v 1.10 2008-07-11 11:17:03 eddy Exp $
 """
 
 import os
@@ -206,10 +206,9 @@ class LockableDir (object):
     """Lock management base-class.
 
     This isolates lock management from the rest of cache directory management.
-    It is only viable for a derived class implementing .path(leafname) as the
-    name of a file in the directory to be locked.  The locking implemented here
-    is recursive: if you already hold a lock, locking it again is a successful
-    no-op and the matching unlock (which is required) shall also be a no-op.
+    The locking implemented here is recursive: if you already hold a lock,
+    locking it again is a successful no-op and the matching unlock (which is
+    required) shall also be a no-op.
 
     Locking a directory for reading means locking it so that the current process
     may read it.  LIkewise, locking for writing means locking so as to be able
@@ -218,18 +217,24 @@ class LockableDir (object):
     reading should not be locked for writing.
 
     It is left to derived classes to ensure that sub-directories lock and unlock
-    their parents in suitable ways.
-    """
+    their parents in suitable ways; and to implement .path(leafname) as the name
+    of a file in the directory to be locked.\n"""
 
     def __init__(self):
         # Am *I* holding read/write locks ?  Not yet.
-        self.__read = self.__write = 0
+        self.__read = self.__write = self.__mode = 0
 
     def __del__(self):
-        while self.__read > 0 or self.__write > 0:
-            self.unlock(self.__read > 0, self.__write > 0)
+        # I'm not sure this assertion is reliable, but let's give it a try:
+        assert self.__read <= 0 and self.__write <= 0, 'why not ?'
+        while (self.__read > 0 or self.__write > 0 and
+               self.unlock(self.__read > 0, self.__write > 0)):
+            pass
 
-    def unlock(self, read=False, write=False, remove=os.remove):
+    import fcntl, errno
+    def unlock(self, read=False, write=False,
+               BLOCKS=errno.EWOULDBLOCK,
+               EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
         """Release locks.
 
         Arguments are as for .lock(), q.v.  Every call to .lock() should be
@@ -246,22 +251,27 @@ class LockableDir (object):
         # Shouldn't even ask to unlock if not actually locked:
         if write: assert self.__write > 0
         if read: assert self.__read > 0
-        if write and self.__write > 0:
-            self.__write -= 1
-            if self.__write == 0:
-                remove(self.wlock)
-        if read:
-            self.__read -= 1
-            if self.__read == 0:
-                remove(self.rlock)
 
-    import re, errno
-    def lock(self, read=False, write=False,
-             get=os.path.listdir, exist=os.path.exists,
-             remove=os.remove, rename=os.rename,
-             touch=lambda n: open(n, 'w').close(),
-             sid=getattr(os, 'getsid', None), ESRCH=errno.ESRCH,
-             pat=re.compile(r'^\.lock\.(\d+\.)?(read|write)')):
+        if write and self.__write == 1: unlock = EXCLUDE
+        else: unlock = 0
+        elif read and self.__read == 1: unlock |= SHARE
+
+        if unlock:
+            try: ok = self.__lock(clear=unlock)
+            except IOError, what:
+                assert what.errno == BLOCKS
+                assert not "I didn't expect unlocking to be able to fail !"
+                # so I may have failed to handle this failure properly ...
+                return False
+            if not ok: return False
+
+        if write and self.__write > 0: self.__write -= 1
+        if read and self.__read > 0: self.__read -= 1
+        return True
+
+    def lock(self, read=False, write=False, block=False,
+             BLOCKS=errno.EWOULDBLOCK,
+             EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
         """See if this process can lock this directory.
 
         Arguments, read and write, are optional booleans (defaulting to False)
@@ -269,61 +279,145 @@ class LockableDir (object):
         specified True.\n"""
 
         assert read or write, 'Fatuous call'
-        if self.__read > 0 and read:
-            self.__read += 1
-            read = False # don't actually do locking
-        if self.__write > 0 and write:
-            self.__write += 1
-            write = False # don't actually do locking
 
-        # Check if locked:
-        if read and exist(self.__rlock): return False
-        if write and exist(self.__wlock): return False
+        if read and self.__read == 0: mode = SHARE
+        else: mode = 0
+        if write and self.__write == 0: mode |= EXCLUDE
 
-        if read: touch(self.__rlocktmp)
-        if write: touch(self.__wlocktmp)
+        if mode:
+            try: ok = self.__lock(block, mode)
+            except IOError, what:
+                assert what.errno == BLOCKS
+                return False
+            if not ok: return False
 
-        rs, ws = [], []
-        for name in get(self.path()):
-            got = path.match(name)
-            if got is not None:
-                pid, mode = got.groups()
-                if pid is None: pid = 0
-                elif pid == self.__stem[6:]: continue
-                else: pid = int(pid[:-1])
-                if mode == 'read': rs.append((pid, name))
-                else:
-                    assert mode == 'write'
-                    ws.append((pid, name))
-
-        if ((read and (rs or exist(rlock))) or
-            (write and (ws or exist(wlock)))):
-            if read: remove(self.__rlocktmp)
-            if write: remove(self.__wlocktmp)
-            return False
-
-        if read:
-            rename(stem + 'read', rlock)
-            self.__read = True
-        if write:
-            rename(stem + 'write', wlock)
-            self.__write = True
-
+        if read: self.__read += 1
+        if write: self.__write += 1
         return True
-    del re
+
+    __pid = os.getpid()
+    def __lock(self, block=False, lock=0, clear=0,
+               lock=fcntl.flock, exist=os.path.exists,
+               touch=lambda n: open(n, 'w').close(),
+               remove=os.remove, rename=os.rename,
+               open=os.open, close=os.close, write=os.write,
+               fdopen=os.fdopen,
+               ENOENT=errno.ENOENT, NOBLOCK=os.O_NONBLOCK,
+               EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
+               NOW=fcntl.LOCK_NB, UNLOCK=fcntl.LOCK_UN):
+
+        if ((lock & EXCLUDE) or self.__write > 0) and not (clear & EXCLUDE):
+            flag, mode = EXCLUDE, 'w'
+        elif ((lock & SHARE) or self.__read > 0) and not (clear & SHARE):
+            flag, mode = SHARE, 'r'
+        elif not self.__mode: return True # Nothing to do
+        else: flag, mode = UNLOCK, ''
+
+        if self.__mode == flag: return True # Nothing to do
+        if block: block = 0
+        else: block = NOW
+
+        # TODO: this needs further work
+
+        # Should the lock file have my pid in it ?
+        if flag & EXCLUDE: content = True # yes, and that's a change
+        elif self.__mode & EXCLUDE: content = False # no, and that's a change
+        else: content = None # no, but it currently doesn't anyway
+
+        if content is None: # No need to change content:
+            try: self.__fd
+            except AttributeError: # initialize
+                assert not self.__mode
+                try:
+                    fd = open(self.__file, NOBLOCK, mode)
+                    fo = fdopen(fd, mode)
+                except IOError, what:
+                    if what.errno == ENOENT and mode == 'r':
+                        touch(self.__file)
+                        fd = open(self.__file, NOBLOCK, mode)
+                    else: raise
+
+                self.__fd, self.__mode = fo, UNLOCK
+
+            lock(self.__fd, flag | block)
+
+            old = None
+        else:
+            try: old = self.__fd
+            except AttributeError: old = None
+
+            tmpfile = self.__file + '.%d' % self.__pid
+            fd = fo = None
+            try:
+                if content:
+                    fd = open(tmpfile, NOBLOCK, 'w')
+                    fo = fdopen(fd, 'w')
+                    fo.write(str(self.__pid))
+                    fo.flush()
+                else:
+                    touch(tmpfile)
+                    fd = open(tmpfile, NOBLOCK, 'r')
+                    fo = fdopen(fd, 'r')
+                lock(fd, flag | block)
+                was = self.__check()
+                assert content or (was and int(was) == self.__pid), \
+                       (content, was, self.__pid)
+                rename(tmpfile, self.__file)
+            except:
+                try:
+                    if fo is not None: fo.close()
+                    elif fd is not None: close(fd)
+                finally: remove(tmpfile)
+                raise
+
+            self.__fd = fo
+
+        self.__mode = flag
+        if old is not None: old.close()
+
+    sid = getattr(os, 'getsid', None)
+    if sid:
+        def sid(pair, sid=sid, ESRCH=errno.ESRCH, pid=__pid):
+            if pair[0] == pid: return False
+            try: sid(pair[0])
+            except IOError, what:
+                if what.errno == ESRCH: return False
+            return True
+    else:
+        def sid(pair, pid=__pid):
+            if pair[0] == pid: return False
+            return True
+
+    import re
+    def __check(self,
+                exist=os.path.exists, get=os.path.listdir,
+                sid=sid, BLOCKS=errno.EWOULDBLOCK,
+                pat=re.compile(r'^\.lock\.(\d+)')):
+
+        ids = []
+        for name in get(self.path()):
+            got = pat.match(name)
+            if got is not None:
+                ids.append((int(got.group(1)), self.path(name)))
+
+        if exist(self.__file):
+            fd = open(self.__file)
+            got = fd.read()
+            if got: ids.insert(0, (int(got), self.__file))
+        else: got = ''
+
+        ids = filter(sid, ids)
+        if ids:
+            raise IOError(BLOCKS,
+                          'Lock contention: ' +
+                          ', '.join(map(lambda x: 'pid %d (%s)' % x, ids)),
+                          ids[0][1])
+        return got
+
+    del sid, re, fcntl, errno
 
     @lazyattr
-    def __rlock(self, ig=None): return self.path('.lock.read')
-    @lazyattr
-    def __wlock(self, ig=None): return self.path('.lock.write')
-
-    __stem = '.lock.%d.' % os.getpid()
-    @lazyattr
-    def __rlocktmp(self, ig=None):
-        return self.path(self.__stem + 'read')
-    @lazyattr
-    def __wlocktmp(self, ig=None):
-        return self.path(self.__stem + 'write')
+    def __file(self, ig=None): return self.path('.lock')
 
 class CacheDir (LockableDir):
     @lazyattr
@@ -394,7 +488,6 @@ class CacheDir (LockableDir):
         raise ValueError(hi)
 
     def __locate(self, seq, value, gap, index=None, Range=Gap, Hole=Interval):
-
         try:
             if value is None:
                 assert index is not None and self.prime
@@ -455,10 +548,12 @@ class CacheDir (LockableDir):
 
 class CacheRoot (CacheDir, Node):
     __gapinit = Node.__init__
+    __dirinit = CacheDir.__init__
     def __init__(self, path):
         self.__dir = path
         self.content # evaluate in order to force a .load()
         self.__gapinit(0, self.stop)
+        self.__dirinit()
 
     @property
     def root(self, ig=None): return self
@@ -545,7 +640,11 @@ class CacheSubNode (SubNode):
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
 class CacheSubDir (CacheDir, CacheSubNode):
-    pass
+    __gapinit = CacheSubNode.__init__
+    __dirinit = CacheDir.__init__
+    def __init__(self, *args, **what):
+        self.__gapinit(*args, **what)
+        self.__dirinit()
 
 class CacheFile (CacheSubNode):
     @weakattr
