@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.7 2008-04-21 23:41:24 eddy Exp $
+$Id: archaea.py,v 1.8 2008-07-12 17:58:58 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -379,6 +379,25 @@ ton.also(displacement = 35 * foot.timber,
          freight = ton.ship,
          register = 100 * foot.timber)	# internal capacity of ships
 
+# Cologne mark and derivatives (c/o Wikipedia):
+Cologne = Object(mark = Quantity(233.856, gram,
+                                 """The Cologne Mark
+
+Introduced by King Hans of Denmark in the late 1400s as a standard of weight,
+later used in the definition of various (mainly Germanic) currency standards,
+notably including (in 1754) the Holy Roman Empire's conventionsthaler, on tench
+of a Cologne mark of silver, superseded in the early 1800s by the (Prussian)
+Thaler, containing one fourteenth of a Cologne mark of silver.
+"""))
+pound.Cologne = 2 * Cologne.mark
+ounce.Cologne = Cologne.mark / 8
+Cologne.also(pfund = pound.Cologne,
+             unze = ounce.Cologne,
+             lot = ounce.Cologne / 2,
+             quentchen = ounce.Cologne / 8,
+             pfennig = ounce.Cologne / 32,
+             gran = ounce.Cologne / 36)
+
 # Other units of mass: KDWB
 stone.butcher = 8 * pound
 dram.apothecary = 3 * scruple
@@ -470,7 +489,7 @@ hogshead = Quantity(3, kilderkin,
 # Oxford handy dictionary and other sources support a hogshead of 54 gallons.
 # KDWB gives it as 63 gallons and I've met other figures, including a `wine
 # hogshead' of 56 gallons; see also the US variants.
-pipe = Quantity(2, hogshead, wine = 2 * hogshead.wine)
+pipe = butt = Quantity(2, hogshead, wine = 2 * hogshead.wine)
 tun = Quantity(2, pipe, # 216 gallons, but I've had 72 suggested.
                wine = 2 * pipe.wine)
 wine = Object(doc = """Winchester measures, for wine.
