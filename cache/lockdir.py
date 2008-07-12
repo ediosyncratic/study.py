@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.7 2008-07-12 12:50:40 eddy Exp $
+$Id: lockdir.py,v 1.8 2008-07-12 13:10:01 eddy Exp $
 """
 
 class LockableDir (object):
@@ -106,7 +106,7 @@ class LockableDir (object):
         if write: self.__write += 1
         return True
 
-    # The rest of this class is private.
+    # The rest of this class is private and doesn't mess with __read, __write.
     from study.snake.property import lazyattr
 
     @lazyattr
@@ -152,11 +152,12 @@ class LockableDir (object):
                 exist=os.path.exists, remove=os.remove, rename=os.rename,
                 fdopen=os.fdopen, open=os.open, close=os.close,
                 write=os.write, fsync=os.fsync, flock=fcntl.flock,
-                ENOENT=errno.ENOENT, NOW=fcntl.LOCK_NB,
-                EXCLUDE=fcntl.LOCK_EX, UNLOCK=fcntl.LOCK_UN,
-                modes={fcntl.LOCK_EX: (os.O_WRONLY | os.O_NONBLOCK, 'w'),
-                       fcntl.LOCK_SH: (os.O_RDONLY | os.O_NONBLOCK, 'r'),
-                       fcntl.LOCK_UN: None}):
+                ENOENT=errno.ENOENT, OSError=os.error,
+                modes={
+        fcntl.LOCK_EX: (os.O_WRONLY | os.O_NONBLOCK | os.O_CREAT, 'w'),
+        fcntl.LOCK_SH: (os.O_RDONLY | os.O_NONBLOCK, 'r'),
+        fcntl.LOCK_UN: None}, NOW=fcntl.LOCK_NB,
+                EXCLUDE=fcntl.LOCK_EX, UNLOCK=fcntl.LOCK_UN):
         """Perform actual lock file management.
 
         When locked for writing, the lock file contains the process id of the
@@ -215,7 +216,8 @@ class LockableDir (object):
                     assert fo is not None and fd == fo.fileno()
                     flock(fd, flag | NOW)
                 was = self.__check()
-                assert content or (was and int(was) == self.__pid), \
+                assert not (self.__mode & EXCLUDE) or \
+                       (was and int(was) == self.__pid), \
                        (content, was, self.__pid)
                 rename(tmpfile, self.__file)
 
@@ -223,7 +225,8 @@ class LockableDir (object):
                 try:
                     if fo is not None: fo.close()
                     elif fd is not None: close(fd)
-                finally: remove(tmpfile)
+                finally:
+                    if exist(tmpfile): remove(tmpfile)
                 raise
 
             if fo is not None: self.__fd = fo
@@ -274,7 +277,7 @@ class LockableDir (object):
         if exist(self.__file):
             fd = open(self.__file)
             got = fd.read()
-            if got: ids = (int(got), self.__file)
+            if got: ids = [(int(got), self.__file)]
         else: got = ''
 
         ids = filter(sid, ids)
