@@ -13,7 +13,7 @@ This module should eventually replace lazy.Lazy; it provides:
 
 See individual classes for details.
 
-$Id: property.py,v 1.3 2008-06-26 15:25:29 eddy Exp $
+$Id: property.py,v 1.4 2008-07-12 12:22:28 eddy Exp $
 """
 
 class docprop (property):
@@ -67,7 +67,6 @@ class dictprop (docprop):
         obj.__dict__[self.__name] = val
 
     def __get__(self, obj, mode=None):
-        assert mode is None
         try: return obj.__dict__[self.__name]
         except KeyError: raise AttributeError, self.__name
 
@@ -87,7 +86,6 @@ class recurseprop (property):
 
     __upget = property.__get__
     def __get__(self, obj, mode=None):
-        assert mode is None
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse_
         except AttributeError:
@@ -168,7 +166,6 @@ class lazyattr (attrstore, recurseprop):
 
     __upget = recurseprop.__get__
     def __get__(self, obj, mode=None):
-        assert mode is None
         # Do the lazy lookup:
         bok = self.cache(obj)
         try: ans = bok[self]
@@ -181,7 +178,6 @@ class lazyprop (lazyattr, dictprop):
     __lget = lazyattr.__get__
     __dget = dictprop.__get__
     def __get__(self, obj, mode=None):
-        assert mode is None
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__lget(obj, mode)
 
@@ -197,7 +193,6 @@ class weakattr (attrstore, recurseprop):
     recomputed (and a fresh weakref cached).\n"""
     __upget = recurseprop.__get__
     def __get__(self, obj, mode=None, ref=weakref.ref):
-        assert mode is None
         bok = self.cache(obj)
         try: f = bok[self]
         except KeyError: ans = None
@@ -214,7 +209,6 @@ class weakprop (weakattr, dictprop):
     __wget = weakattr.__get__
     __dget = dictprop.__get__
     def __get__(self, obj, mode=None):
-        assert mode is None
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__wget(obj, mode)
 
