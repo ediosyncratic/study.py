@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.8 2008-07-12 17:58:58 eddy Exp $
+$Id: archaea.py,v 1.9 2008-07-12 18:01:16 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -489,7 +489,8 @@ hogshead = Quantity(3, kilderkin,
 # Oxford handy dictionary and other sources support a hogshead of 54 gallons.
 # KDWB gives it as 63 gallons and I've met other figures, including a `wine
 # hogshead' of 56 gallons; see also the US variants.
-pipe = butt = Quantity(2, hogshead, wine = 2 * hogshead.wine)
+pipe = Quantity(2, hogshead, wine = 2 * hogshead.wine)
+# = butt for wine, but a beer.butt might be 3 * beer.hogshead ...
 tun = Quantity(2, pipe, # 216 gallons, but I've had 72 suggested.
                wine = 2 * pipe.wine)
 wine = Object(doc = """Winchester measures, for wine.
