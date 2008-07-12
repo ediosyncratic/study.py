@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.5 2008-07-12 12:05:20 eddy Exp $
+$Id: lockdir.py,v 1.6 2008-07-12 12:17:31 eddy Exp $
 """
 
 class LockableDir (object):
@@ -106,13 +106,13 @@ class LockableDir (object):
         if write: self.__write += 1
         return True
 
+    # The rest of this class is private.
     from study.snake.property import lazyattr
 
     @lazyattr
     def __file(self, ig=None): return self.path('.lock')
 
     del lazyattr
-
     import fcntl, errno
 
     def __lock(self, read=False, write=False,
@@ -147,7 +147,7 @@ class LockableDir (object):
 
     import os
     __pid = os.getpid()
-    def __lockf(self, flag, mode,,
+    def __lockf(self, flag, mode,
                 touch=lambda n: open(n, 'w').close(),
                 exist=os.path.exists, remove=os.remove, rename=os.rename,
                 fdopen=os.fdopen, open=os.open, close=os.close,
@@ -247,7 +247,7 @@ class LockableDir (object):
 
     import re
     def __check(self,
-                exist=os.path.exists, get=os.path.listdir,
+                exist=os.path.exists, get=os.listdir,
                 sid=rival, BLOCKS=errno.EWOULDBLOCK,
                 pat=re.compile(r'^\.lock\.(\d+)')):
         """Check lock state.
