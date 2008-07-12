@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.2 2008-07-12 10:35:19 eddy Exp $
+$Id: lockdir.py,v 1.3 2008-07-12 11:44:02 eddy Exp $
 """
 
 class LockableDir (object):
@@ -29,7 +29,9 @@ class LockableDir (object):
 
     It is left to derived classes to ensure that sub-directories lock and unlock
     their parents in suitable ways; and to implement .path(leafname) as the name
-    of a file in the directory to be locked.\n"""
+    of a file in the directory to be locked.  This name must be amenable to
+    having a suffix like .42 added (for various values of 42) and still name a
+    file in the same directory.\n"""
 
     def __init__(self):
         # Am *I* holding read/write locks ?  Not yet.
@@ -56,9 +58,15 @@ class LockableDir (object):
                self.unlock(self.__read > 0, self.__write > 0)):
             pass
 
+    from study.snake.property import lazyattr
+
+    @lazyattr
+    def __file(self, ig=None): return self.path('.lock')
+
+    del lazyattr
     import fcntl, errno
+
     def unlock(self, read=False, write=False,
-               BLOCKS=errno.EWOULDBLOCK,
                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
         """Release locks.
 
@@ -82,20 +90,16 @@ class LockableDir (object):
         elif read and self.__read == 1: unlock |= SHARE
 
         if unlock:
-            try: ok = self.__lock(clear=unlock)
-            except IOError, what:
-                assert what.errno == BLOCKS
-                assert not "I didn't expect unlocking to be able to fail !"
-                # so I may have failed to handle this failure properly ...
+            if not self.__lock(clear=unlock):
+                assert not "I didn't expect UNlocking to be able to fail !"
+                # ... and I may have failed to handle such failure properly ...
                 return False
-            if not ok: return False
 
         if write and self.__write > 0: self.__write -= 1
         if read and self.__read > 0: self.__read -= 1
         return True
 
-    def lock(self, read=False, write=False, block=False,
-             BLOCKS=errno.EWOULDBLOCK,
+    def lock(self, read=False, write=False,
              EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
         """See if this process can lock this directory.
 
@@ -110,37 +114,69 @@ class LockableDir (object):
         if write and self.__write == 0: mode |= EXCLUDE
 
         if mode:
-            try: ok = self.__lock(block, mode)
-            except IOError, what:
-                assert what.errno == BLOCKS
-                return False
-            if not ok: return False
+            if not self.__lock(lock=mode): return False
 
         if read: self.__read += 1
         if write: self.__write += 1
         return True
 
-    import os
-    __pid = os.getpid()
-    def __lock(self, block=False, lock=0, clear=0,
-               touch=lambda n: open(n, 'w').close(),
-               exist=os.path.exists, remove=os.remove, rename=os.rename,
-               fdopen=os.fdopen, open=os.open, close=os.close,
-               write=os.write, fsync=os.fsync, flock=fcntl.flock,
-               ENOENT=errno.ENOENT, NOBLOCK=os.O_NONBLOCK,
+    def __lock(self, lock=0, clear=0,
                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
-               NOW=fcntl.LOCK_NB, UNLOCK=fcntl.LOCK_UN):
+               BLOCKS=errno.EWOULDBLOCK):
+        """Lock management.
 
-        if ((lock & EXCLUDE) or self.__write > 0) and not (clear & EXCLUDE):
-            flag, mode = EXCLUDE, 'w'
-        elif ((lock & SHARE) or self.__read > 0) and not (clear & SHARE):
-            flag, mode = SHARE, 'r'
+        Exactly one of the following sould be passed, by name:
+          lock -- bitfield describing what to lock (default: 0)
+          clear -- bitfield describing what to unlock (default: 0)
+
+        The two bit-fields are made from the flags LOCK_SH and LOCK_EX provided
+        by the fcntl module.  If clear is non-zero, the locking it indicates is
+        released or, if .__read and .__write indicate the need for it, changed
+        to the other kind of locking.
+
+        The details are handled by internal __lockf(); this method is just a
+        wrapper round it to digest arguments and handle the anticipated
+        exception.\n"""
+
+        if clear:
+            write = self.__write > 0 and not (clear & EXCLUDE)
+            read = self.__read > 0 and not (clear & SHARE)
+        else: write, read = lock & EXCLUDE), lock & SHARE
+
+        if write: flag, mode = EXCLUDE, 'w'
+        elif read: flag, mode = SHARE, 'r'
         elif not self.__mode: return True # Nothing to do
         else: flag, mode = UNLOCK, ''
 
         if self.__mode == flag: return True # Nothing to do
-        if block: block = 0
-        else: block = NOW
+
+        try: return self.__lockf(flag, mode)
+        except IOError, what:
+            if what.errno == BLOCKS: return False
+            raise
+
+    import os
+    __pid = os.getpid()
+    def __lockf(self, flag, mode,,
+                touch=lambda n: open(n, 'w').close(),
+                exist=os.path.exists, remove=os.remove, rename=os.rename,
+                fdopen=os.fdopen, open=os.open, close=os.close,
+                write=os.write, fsync=os.fsync, flock=fcntl.flock,
+                ENOENT=errno.ENOENT, NOBLOCK=os.O_NONBLOCK,
+                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
+                NOW=fcntl.LOCK_NB, UNLOCK=fcntl.LOCK_UN):
+        """Perform actual lock file management.
+
+        When locked for writing, the lock file contains the process id of the
+        locking process (which also owns an exclusive lock on it).  Otherwise,
+        it is empty (or non-existent).
+
+        When changing the content, a temporary file with the content is first
+        prepared (and, if necessary, opened and locked), then renamed in to
+        replace the prior file (if any).  Checking for contention (see __check)
+        is done between preparing the new file and renaming, so that contending
+        processes can see one anothers' temporary files in order to detect the
+        contention.\n"""
 
         # Do we need to change content of lock file ?
         if flag & EXCLUDE: content = True # need to write my pid in it
@@ -160,7 +196,7 @@ class LockableDir (object):
                     fo = fdopen(fd, mode)
                     self.__fd = fo
 
-                flock(self.__fd.fileno(), flag | block)
+                flock(self.__fd.fileno(), flag | NOW)
                 old = None # don't close self.__fd
 
         else:
@@ -181,7 +217,7 @@ class LockableDir (object):
 
                 if fd is not None:
                     assert fo is not None and fd == fo.fileno()
-                    flock(fd, flag | block)
+                    flock(fd, flag | NOW)
                 was = self.__check()
                 assert content or (was and int(was) == self.__pid), \
                        (content, was, self.__pid)
@@ -198,41 +234,26 @@ class LockableDir (object):
             elif old is not None: del self.__fd
 
         self.__mode = flag
+        # This may raise IOError, so do it after we've reached a sane state.
         if old is not None: old.close()
+        return True
 
-    # Prepare tool for __check:
-    rival = getattr(os, 'getsid', None)
-    if rival is None: # No getsid; can't tell if pid is live or not.
-        def rival(pair, pid=__pid): return pair[0] != pid
-    else: # getsid available: be more agressive about ignoring stale locks:
-        def rival(pair, pid=__pid, sid=rival, ESRCH=errno.ESRCH,
-                  remove=os.remove, OSError=os.error):
-            """Test whether a (pid, file) pair indicates contention.
+    # Tool for __check:
+    def rival(pair, pid=__pid,
+              open=os.open, close=os.close, NOBLOCK=os.O_NONBLOCK,
+              flock=fcntl.flock, contend=fcntl.LOCK_SH | fcntl.LOCK_NB):
+        if pair[0] != pid:
+            try:
+                fd = None
+                try:
+                    fd = open(pair[1], NOBLOCK, 'w')
+                    flock(fd, contend)
+                finally:
+                    if fd is not None: close(fd)
+            except IOError:
+                return True
 
-            Sole argument, pair, is a (pid, file) pair; if the pid is self's
-            pid, or indicates a dead process, then we can ignore it; otherwise
-            it indicates a rival process holding or trying to acquire the lock.
-
-            When the given pair's pid is dead, we try to remove the lockfile
-            named by the second member of the pair, to save wasted testing in
-            later checks.  However, if deletion fails, we print a warning and
-            ignore the error: if the file no longer exists, it's no problem; if
-            it's a temporary of a dead process, it shall never be renamed to
-            become a live lock, so is no problem; otherwise, it's a live lock
-            and __lock()'s attempt to over-write it (immediately after calling
-            __check) shall fail, so there's no point failing here.\n"""
-
-            if pair[0] == pid: return False
-            try: sid(pair[0])
-            except IOError, what:
-                if what.errno == ESRCH:
-                    # Stale lock file: tidy away, if possible.
-                    try: remove(pair[1])
-                    except OSError:
-                        print 'Failed to remove stale lock file', pair[1]
-                    return False
-                # else: some other error; process exists; honour its lock file.
-            return True
+        return False
 
     import re
     def __check(self,
@@ -268,9 +289,3 @@ class LockableDir (object):
         return got
 
     del rival, re, fcntl, errno, os
-    from study.snake.property import lazyattr
-
-    @lazyattr
-    def __file(self, ig=None): return self.path('.lock')
-
-    del lazyattr
