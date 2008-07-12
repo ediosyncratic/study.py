@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.12 2008-07-11 12:45:54 eddy Exp $
+$Id: cache.py,v 1.13 2008-07-12 14:24:54 eddy Exp $
 """
 
 import os
@@ -87,13 +87,19 @@ class Node (Interval):
     """Base class for cache nodes
     """
 
+    from errno import EWOULDBLOCK as __BLOCKED
+
     class Bok (dict): pass # for weakref's sake
     def load(bok=None, glo={}, Range=Interval, Dict=Bok):
         # TODO: need a lock-check on all ancestors
         # TODO: want to be able to GET a URL instead of reading a file
 
         if bok is None: bok = Bok()
-        execfile(self._content_file, glo, bok) # may raise IOError, ParseError
+        if not self.lock(True):
+            raise IOError(self.__BLOCKED, 'File temporarily unreadable',
+                          self._content_file)
+        try: execfile(self._content_file, glo, bok) # may raise IOError, ParseError
+        finally: self.unlock(True)
 
         try: self.depth = bok.pop('depth')
         except KeyError: assert isinstance(self, CacheFile)
@@ -160,22 +166,27 @@ class Node (Interval):
 
     def save(**what):
         assert self.prime or self.factor
-        fd = open(self._content_file, 'w')
+        if not self.lock(False, True):
+            raise IOError(self.__BLOCKED, 'File temporarily unwritable',
+                          self._content_file)
         try:
-            if self.__doc__ is not self.__class__.__doc__:
-                fd.write('"""%s"""\n\n', self.__doc__)
+            fd = open(self._content_file, 'w')
+            try:
+                if self.__doc__ is not self.__class__.__doc__:
+                    fd.write('"""%s"""\n\n', self.__doc__)
 
-            if not isinstance(self, CacheFile):
-                what['depth'] = self.depth
+                if not isinstance(self, CacheFile):
+                    what['depth'] = self.depth
 
-            try: gap = self._indices # save as tuple if present
-            except AttributeError: assert not self.prime
-            else: what['indices'] = (gap.start, len(gap))
+                try: gap = self._indices # save as tuple if present
+                except AttributeError: assert not self.prime
+                else: what['indices'] = (gap.start, len(gap))
 
-            for k, v in what.items:
-                fd.write('%s = %s\n' % (k, self.__repr(v)))
+                for k, v in what.items:
+                    fd.write('%s = %s\n' % (k, self.__repr(v)))
 
-        finally: fd.close()
+            finally: fd.close()
+        finally: self.unlock(False, True)
         # potentially: return size of file
 
 class SubNode (Node):
@@ -184,6 +195,11 @@ class SubNode (Node):
         self.__gapinit(start, span)
         self.__up = parent
         self.prime, self.factor = 'P' in types, 'F' in types
+
+    def lock(self, read=False, write=False):
+        return self.root.lock(read, write)
+    def unlock(self, read=False, write=False):
+        return self.root.unlock(read, write)
 
     @property
     def parent(self, ig=None): return self.__up # read-only access
@@ -202,8 +218,7 @@ class Gap (SubNode):
         self.__upinit(parent, start, span, '')
         if indices is not None: self._indices = indices
 
-from lockdir import LockableDir
-class CacheDir (LockableDir):
+class CacheDir (object):
     @lazyattr
     def _content_file(self, ig=None):
         return self.path('__init__.py')
@@ -330,7 +345,9 @@ class CacheDir (LockableDir):
 
         return self.__locate(self.factors, value, gap)
 
-class CacheRoot (CacheDir, Node):
+from lockdir import LockableDir
+
+class CacheRoot (CacheDir, LockableDir, Node):
     __gapinit = Node.__init__
     __dirinit = CacheDir.__init__
     def __init__(self, path):
@@ -414,6 +431,8 @@ class CacheRoot (CacheDir, Node):
     def factor(self, ig=None): return len(self.factors) > 0
     @lazyprop
     def indices(self, ig=None): return self._indices
+
+del LockableDir
 
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
