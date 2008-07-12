@@ -75,7 +75,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.13 2008-07-12 14:24:54 eddy Exp $
+$Id: cache.py,v 1.14 2008-07-12 14:27:55 eddy Exp $
 """
 
 import os
@@ -349,7 +349,7 @@ from lockdir import LockableDir
 
 class CacheRoot (CacheDir, LockableDir, Node):
     __gapinit = Node.__init__
-    __dirinit = CacheDir.__init__
+    __dirinit = LockableDir.__init__
     def __init__(self, path):
         self.__dir = path
         self.content # evaluate in order to force a .load()
@@ -443,11 +443,7 @@ class CacheSubNode (SubNode):
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
 class CacheSubDir (CacheDir, CacheSubNode):
-    __gapinit = CacheSubNode.__init__
-    __dirinit = CacheDir.__init__
-    def __init__(self, *args, **what):
-        self.__gapinit(*args, **what)
-        self.__dirinit()
+    pass
 
 class CacheFile (CacheSubNode):
     @weakattr
