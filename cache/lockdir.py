@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.3 2008-07-12 11:44:02 eddy Exp $
+$Id: lockdir.py,v 1.4 2008-07-12 11:56:51 eddy Exp $
 """
 
 class LockableDir (object):
@@ -85,12 +85,14 @@ class LockableDir (object):
         if write: assert self.__write > 0
         if read: assert self.__read > 0
 
-        if write and self.__write == 1: unlock = EXCLUDE
-        else: unlock = 0
-        elif read and self.__read == 1: unlock |= SHARE
+        if write and self.__write == 1: clear = EXCLUDE
+        else: clear = 0
+        elif read and self.__read == 1: clear |= SHARE
 
-        if unlock:
-            if not self.__lock(clear=unlock):
+        if clear:
+            w = self.__write > 0 and not (clear & EXCLUDE)
+            r = self.__read > 0 and not (clear & SHARE)
+            if not self.__lock(r, w):
                 assert not "I didn't expect UNlocking to be able to fail !"
                 # ... and I may have failed to handle such failure properly ...
                 return False
@@ -99,8 +101,7 @@ class LockableDir (object):
         if read and self.__read > 0: self.__read -= 1
         return True
 
-    def lock(self, read=False, write=False,
-             EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
+    def lock(self, read=False, write=False):
         """See if this process can lock this directory.
 
         Arguments, read and write, are optional booleans (defaulting to False)
@@ -109,25 +110,24 @@ class LockableDir (object):
 
         assert read or write, 'Fatuous call'
 
-        if read and self.__read == 0: mode = SHARE
-        else: mode = 0
-        if write and self.__write == 0: mode |= EXCLUDE
+        if read and self.__read == 0: r = True
+        if write and self.__write == 0: w = True
 
-        if mode:
-            if not self.__lock(lock=mode): return False
+        if r or w:
+            if not self.__lock(r, w): return False
 
         if read: self.__read += 1
         if write: self.__write += 1
         return True
 
-    def __lock(self, lock=0, clear=0,
-               EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
+    def __lock(self, read=False, write=False,
+               EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH, UNLOCK=fcntl.LOCK_UN,
                BLOCKS=errno.EWOULDBLOCK):
         """Lock management.
 
-        Exactly one of the following sould be passed, by name:
-          lock -- bitfield describing what to lock (default: 0)
-          clear -- bitfield describing what to unlock (default: 0)
+        Requires two boolean arguments, read and write; each should be True
+        precisely if we need the so-named kind of access turned on.  If both are
+        set, write takes precedence.
 
         The two bit-fields are made from the flags LOCK_SH and LOCK_EX provided
         by the fcntl module.  If clear is non-zero, the locking it indicates is
@@ -138,14 +138,9 @@ class LockableDir (object):
         wrapper round it to digest arguments and handle the anticipated
         exception.\n"""
 
-        if clear:
-            write = self.__write > 0 and not (clear & EXCLUDE)
-            read = self.__read > 0 and not (clear & SHARE)
-        else: write, read = lock & EXCLUDE), lock & SHARE
-
         if write: flag, mode = EXCLUDE, 'w'
         elif read: flag, mode = SHARE, 'r'
-        elif not self.__mode: return True # Nothing to do
+        elif not (self.__mode & ~UNLOCK): return True # Nothing to do
         else: flag, mode = UNLOCK, ''
 
         if self.__mode == flag: return True # Nothing to do
