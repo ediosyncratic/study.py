@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.4 2008-07-12 11:56:51 eddy Exp $
+$Id: lockdir.py,v 1.5 2008-07-12 12:05:20 eddy Exp $
 """
 
 class LockableDir (object):
@@ -58,16 +58,7 @@ class LockableDir (object):
                self.unlock(self.__read > 0, self.__write > 0)):
             pass
 
-    from study.snake.property import lazyattr
-
-    @lazyattr
-    def __file(self, ig=None): return self.path('.lock')
-
-    del lazyattr
-    import fcntl, errno
-
-    def unlock(self, read=False, write=False,
-               EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH):
+    def unlock(self, read=False, write=False):
         """Release locks.
 
         Arguments are as for .lock(), q.v.  Every call to .lock() should be
@@ -85,17 +76,13 @@ class LockableDir (object):
         if write: assert self.__write > 0
         if read: assert self.__read > 0
 
-        if write and self.__write == 1: clear = EXCLUDE
-        else: clear = 0
-        elif read and self.__read == 1: clear |= SHARE
-
-        if clear:
-            w = self.__write > 0 and not (clear & EXCLUDE)
-            r = self.__read > 0 and not (clear & SHARE)
-            if not self.__lock(r, w):
-                assert not "I didn't expect UNlocking to be able to fail !"
-                # ... and I may have failed to handle such failure properly ...
-                return False
+        r =  read and self.__read  == 1
+        w = write and self.__write == 1
+        if (r or w) and not self.__lock(not r and self.__read > 0,
+                                        not w and self.__write > 0):
+            assert not "I didn't expect UNlocking to be able to fail !"
+            # ... and I may have failed to handle such failure properly ...
+            return False
 
         if write and self.__write > 0: self.__write -= 1
         if read and self.__read > 0: self.__read -= 1
@@ -110,15 +97,23 @@ class LockableDir (object):
 
         assert read or write, 'Fatuous call'
 
-        if read and self.__read == 0: r = True
-        if write and self.__write == 0: w = True
-
+        r =  read and self.__read  == 0
+        w = write and self.__write == 0
         if r or w:
             if not self.__lock(r, w): return False
 
         if read: self.__read += 1
         if write: self.__write += 1
         return True
+
+    from study.snake.property import lazyattr
+
+    @lazyattr
+    def __file(self, ig=None): return self.path('.lock')
+
+    del lazyattr
+
+    import fcntl, errno
 
     def __lock(self, read=False, write=False,
                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH, UNLOCK=fcntl.LOCK_UN,
