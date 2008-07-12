@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.8 2008-07-12 13:10:01 eddy Exp $
+$Id: lockdir.py,v 1.9 2008-07-12 13:55:59 eddy Exp $
 """
 
 class LockableDir (object):
@@ -52,11 +52,13 @@ class LockableDir (object):
         over-ridden lock and unlock.\n"""
 
         # I'm not sure this assertion is reliable, but let's give it a try:
-        assert self.__read <= 0 and self.__write <= 0, 'why not ?'
+        finished = self.__read <= 0 and self.__write <= 0
 
-        while (self.__read > 0 or self.__write > 0 and
+        while ((self.__read > 0 or self.__write > 0) and
                self.unlock(self.__read > 0, self.__write > 0)):
             pass
+
+        assert finished, 'why not ?'
 
     def unlock(self, read=False, write=False):
         """Release locks.
@@ -142,7 +144,9 @@ class LockableDir (object):
 
         try: return self.__lockf(flag)
         except IOError, what:
-            if what.errno == BLOCKS: return False
+            if what.errno == BLOCKS:
+                print 'Failed (un)lock: ', what.filename, what.args
+                return False
             raise
 
     import os
