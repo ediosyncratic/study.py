@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.1 2008-07-11 12:45:19 eddy Exp $
+$Id: lockdir.py,v 1.2 2008-07-12 10:35:19 eddy Exp $
 """
 
 class LockableDir (object):
@@ -36,8 +36,22 @@ class LockableDir (object):
         self.__read = self.__write = self.__mode = 0
 
     def __del__(self):
+        """When garbage-collected, unlock.
+
+        Cache directories shall mostly be held only via weakref, so shall tend
+        to get garbage-collected; so they need to release their locks.  They
+        should probably only ever get garbage-collected after all locks on them
+        have been released anyway, but better safe than sorry ...
+
+        Unlocking is done methodically via calls to .unlock() rather than by
+        bypassing the count-downs and calling .__lock(UNLOCK), so that derived
+        classes can do complex things with directory hierarchies, e.g. locking
+        parent directories, without ill effects as long as they've correctly
+        over-ridden lock and unlock.\n"""
+
         # I'm not sure this assertion is reliable, but let's give it a try:
         assert self.__read <= 0 and self.__write <= 0, 'why not ?'
+
         while (self.__read > 0 or self.__write > 0 and
                self.unlock(self.__read > 0, self.__write > 0)):
             pass
@@ -109,11 +123,10 @@ class LockableDir (object):
     import os
     __pid = os.getpid()
     def __lock(self, block=False, lock=0, clear=0,
-               lock=fcntl.flock, exist=os.path.exists,
                touch=lambda n: open(n, 'w').close(),
-               remove=os.remove, rename=os.rename,
-               open=os.open, close=os.close, write=os.write,
-               fdopen=os.fdopen,
+               exist=os.path.exists, remove=os.remove, rename=os.rename,
+               fdopen=os.fdopen, open=os.open, close=os.close,
+               write=os.write, fsync=os.fsync, flock=fcntl.flock,
                ENOENT=errno.ENOENT, NOBLOCK=os.O_NONBLOCK,
                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
                NOW=fcntl.LOCK_NB, UNLOCK=fcntl.LOCK_UN):
@@ -129,35 +142,28 @@ class LockableDir (object):
         if block: block = 0
         else: block = NOW
 
-        # TODO: this needs further work
+        # Do we need to change content of lock file ?
+        if flag & EXCLUDE: content = True # need to write my pid in it
+        elif self.__mode & EXCLUDE: content = False # clear my pid from it
+        elif not exist(self.__file): content = False # need to create it
+        else: content = None # no change
 
-        # Should the lock file have my pid in it ?
-        if flag & EXCLUDE: content = True # yes, and that's a change
-        elif self.__mode & EXCLUDE: content = False # no, and that's a change
-        else: content = None # no, but it currently doesn't anyway
+        try: old = self.__fd
+        except AttributeError: old = None
 
-        if content is None: # No need to change content:
-            try: self.__fd
-            except AttributeError: # initialize
-                assert not self.__mode
-                try:
+        if content is None:
+            if flag & UNLOCK: del self.__fd
+            else:
+                if old is None: # initialize
+                    assert (flag & UNLOCK) == 0 == (self.__mode & ~UNLOCK)
                     fd = open(self.__file, NOBLOCK, mode)
                     fo = fdopen(fd, mode)
-                except IOError, what:
-                    if what.errno == ENOENT and mode == 'r':
-                        touch(self.__file)
-                        fd = open(self.__file, NOBLOCK, mode)
-                    else: raise
+                    self.__fd = fo
 
-                self.__fd, self.__mode = fo, UNLOCK
+                flock(self.__fd.fileno(), flag | block)
+                old = None # don't close self.__fd
 
-            lock(self.__fd, flag | block)
-
-            old = None
         else:
-            try: old = self.__fd
-            except AttributeError: old = None
-
             tmpfile = self.__file + '.%d' % self.__pid
             fd = fo = None
             try:
@@ -166,15 +172,21 @@ class LockableDir (object):
                     fo = fdopen(fd, 'w')
                     fo.write(str(self.__pid))
                     fo.flush()
+                    fsync(fd)
                 else:
                     touch(tmpfile)
-                    fd = open(tmpfile, NOBLOCK, 'r')
-                    fo = fdopen(fd, 'r')
-                lock(fd, flag | block)
+                    if mode:
+                        fd = open(tmpfile, NOBLOCK, mode)
+                        fo = fdopen(fd, mode)
+
+                if fd is not None:
+                    assert fo is not None and fd == fo.fileno()
+                    flock(fd, flag | block)
                 was = self.__check()
                 assert content or (was and int(was) == self.__pid), \
                        (content, was, self.__pid)
                 rename(tmpfile, self.__file)
+
             except:
                 try:
                     if fo is not None: fo.close()
@@ -182,7 +194,8 @@ class LockableDir (object):
                 finally: remove(tmpfile)
                 raise
 
-            self.__fd = fo
+            if fo is not None: self.__fd = fo
+            elif old is not None: del self.__fd
 
         self.__mode = flag
         if old is not None: old.close()
