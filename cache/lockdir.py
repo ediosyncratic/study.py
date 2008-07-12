@@ -2,7 +2,7 @@
 
 Used by cache.py but isolated due to size !
 
-$Id: lockdir.py,v 1.6 2008-07-12 12:17:31 eddy Exp $
+$Id: lockdir.py,v 1.7 2008-07-12 12:50:40 eddy Exp $
 """
 
 class LockableDir (object):
@@ -133,28 +133,30 @@ class LockableDir (object):
         wrapper round it to digest arguments and handle the anticipated
         exception.\n"""
 
-        if write: flag, mode = EXCLUDE, 'w'
-        elif read: flag, mode = SHARE, 'r'
+        if write: flag = EXCLUDE
+        elif read: flag = SHARE
         elif not (self.__mode & ~UNLOCK): return True # Nothing to do
-        else: flag, mode = UNLOCK, ''
+        else: flag = UNLOCK
 
         if self.__mode == flag: return True # Nothing to do
 
-        try: return self.__lockf(flag, mode)
+        try: return self.__lockf(flag)
         except IOError, what:
             if what.errno == BLOCKS: return False
             raise
 
     import os
     __pid = os.getpid()
-    def __lockf(self, flag, mode,
+    def __lockf(self, flag,
                 touch=lambda n: open(n, 'w').close(),
                 exist=os.path.exists, remove=os.remove, rename=os.rename,
                 fdopen=os.fdopen, open=os.open, close=os.close,
                 write=os.write, fsync=os.fsync, flock=fcntl.flock,
-                ENOENT=errno.ENOENT, NOBLOCK=os.O_NONBLOCK,
-                EXCLUDE=fcntl.LOCK_EX, SHARE=fcntl.LOCK_SH,
-                NOW=fcntl.LOCK_NB, UNLOCK=fcntl.LOCK_UN):
+                ENOENT=errno.ENOENT, NOW=fcntl.LOCK_NB,
+                EXCLUDE=fcntl.LOCK_EX, UNLOCK=fcntl.LOCK_UN,
+                modes={fcntl.LOCK_EX: (os.O_WRONLY | os.O_NONBLOCK, 'w'),
+                       fcntl.LOCK_SH: (os.O_RDONLY | os.O_NONBLOCK, 'r'),
+                       fcntl.LOCK_UN: None}):
         """Perform actual lock file management.
 
         When locked for writing, the lock file contains the process id of the
@@ -177,33 +179,37 @@ class LockableDir (object):
         try: old = self.__fd
         except AttributeError: old = None
 
+        def open(file, mode=modes[flag], open=open, fdopen=fdopen):
+            # An IndexError here indicates flag was UNLOCK: we shouldn't be
+            # open()ing anything in that case.
+            fd = open(file, mode[0], 0666)
+            fo = fdopen(fd, mode[1])
+            return fd, fo
+
         if content is None:
             if flag & UNLOCK: del self.__fd
             else:
                 if old is None: # initialize
                     assert (flag & UNLOCK) == 0 == (self.__mode & ~UNLOCK)
-                    fd = open(self.__file, NOBLOCK, mode)
-                    fo = fdopen(fd, mode)
-                    self.__fd = fo
+                    self.__fd = open(self.__file)[1]
+                else:
+                    old = None # don't close self.__fd
 
                 flock(self.__fd.fileno(), flag | NOW)
-                old = None # don't close self.__fd
-
         else:
             tmpfile = self.__file + '.%d' % self.__pid
             fd = fo = None
             try:
                 if content:
-                    fd = open(tmpfile, NOBLOCK, 'w')
-                    fo = fdopen(fd, 'w')
+                    assert flag & EXCLUDE
+                    fd, fo = open(tmpfile)
                     fo.write(str(self.__pid))
                     fo.flush()
                     fsync(fd)
                 else:
                     touch(tmpfile)
-                    if mode:
-                        fd = open(tmpfile, NOBLOCK, mode)
-                        fo = fdopen(fd, mode)
+                    if flag & ~UNLOCK:
+                        fd, fo = open(tmpfile)
 
                 if fd is not None:
                     assert fo is not None and fd == fo.fileno()
@@ -230,18 +236,19 @@ class LockableDir (object):
 
     # Tool for __check:
     def rival(pair, pid=__pid,
-              open=os.open, close=os.close, NOBLOCK=os.O_NONBLOCK,
-              flock=fcntl.flock, contend=fcntl.LOCK_SH | fcntl.LOCK_NB):
+              open=os.open, close=os.close, WRITE=os.O_WRONLY | os.O_NONBLOCK,
+              ENOENT=errno.ENOENT,
+              flock=fcntl.flock, contend=fcntl.LOCK_EX | fcntl.LOCK_NB):
         if pair[0] != pid:
             try:
                 fd = None
                 try:
-                    fd = open(pair[1], NOBLOCK, 'w')
+                    fd = open(pair[1], WRITE, 0666)
                     flock(fd, contend)
                 finally:
                     if fd is not None: close(fd)
-            except IOError:
-                return True
+            except IOError, what:
+                return what.errno != ENOENT
 
         return False
 
