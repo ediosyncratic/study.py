@@ -91,7 +91,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.16 2008-07-13 18:25:34 eddy Exp $
+$Id: cache.py,v 1.17 2008-07-13 18:35:40 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -105,7 +105,7 @@ class Node (Interval):
     from errno import EWOULDBLOCK as __BLOCKED
 
     class Bok (dict): pass # for weakref's sake
-    def load(bok=None, glo={}, Range=Interval, Dict=Bok):
+    def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
         # TODO: need a lock-check on all ancestors
         # TODO: want to be able to GET a URL instead of reading a file
 
@@ -152,6 +152,7 @@ class Node (Interval):
         self.content # evaluate to force .load()ing (fails for Gap)
         return self.__indices # should now succeed
 
+class WriteNode (Node):
     @staticmethod
     def __repr(val):
         """Decides how to display values
@@ -179,7 +180,7 @@ class Node (Interval):
 
         return repr(val)
 
-    def save(**what):
+    def save(self, **what):
         assert self.prime or self.factor
         if not self.lock(False, True):
             raise IOError(self.__BLOCKED, 'File temporarily unwritable',
@@ -382,6 +383,22 @@ class CacheDir (object):
 
 del WeakTuple
 
+from study.crypt.base import intbase
+nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
+del intbase
+
+class WriteCacheDir (CacheDir):
+    def addnode(self, child):
+        pass
+
+    def move(self, foster):
+        pass
+
+    @staticmethod
+    def _child_class_(isfile): # configure __listing
+        if isfile: return WriteCacheFile
+        return WriteCacheSubDir
+
 from lockdir import LockableDir
 
 class CacheRoot (CacheDir, LockableDir, Node):
@@ -452,12 +469,6 @@ class CacheRoot (CacheDir, LockableDir, Node):
         return bok
     del OctetType
 
-    __save = Node.save
-    def save(self, **what):
-        what['top'] = self.stop
-        what['octet'] = self.octet.primes
-        return self.___save(**what)
-
     def _span(self, gap, Range=Interval):
         step = self.octet.modulus
         return Range(gap.start * step, len(gap) * step)
@@ -470,6 +481,13 @@ class CacheRoot (CacheDir, LockableDir, Node):
     def indices(self, ig=None): return self._indices
 
 del LockableDir
+
+class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
+    __save = Node.save
+    def save(self, **what):
+        what['top'] = self.stop
+        what['octet'] = self.octet.primes
+        return self.___save(**what)
 
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
@@ -480,6 +498,9 @@ class CacheSubNode (SubNode):
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
 class CacheSubDir (CacheDir, CacheSubNode):
+    pass
+
+class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteNode):
     pass
 
 class CacheFile (CacheSubNode):
@@ -517,31 +538,8 @@ class CacheFile (CacheSubNode):
     def prev(self, ig=None):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(-1)
+
+class WriteCacheFile (CacheFile, WriteNode):
+    pass
 
-del Interval, Ordered, weakattr, lazyattr, lazyprop
-from study.crypt.base import intbase
-nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
-del intbase
-
-class WriteCacheDir (CacheDir):
-    def addnode(self, child):
-        pass
-
-    def move(self, foster):
-        pass
-
-    @staticmethod
-    def _child_class_(isfile):
-        if isfile: return WriteCacheFile
-        return WriteCacheSubDir
-
-class WriteCacheRoot (WriteCacheDir, CacheRoot):
-    pass
-
-class WriteCacheSubDir (WriteCacheDir, CacheSubDir):
-    pass
-
-class WriteCacheFile (CacheFile):
-    pass
-
-del os
+del Interval, Ordered, weakattr, lazyattr, lazyprop, os
