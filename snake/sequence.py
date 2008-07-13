@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.24 2008-07-13 14:58:51 eddy Exp $
+$Id: sequence.py,v 1.25 2008-07-13 15:00:39 eddy Exp $
 """
 
 class Iterable (object):
@@ -408,7 +408,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
         for it in key: self.__updel[it]
 
     from regular import Slice
-    __upset = list.__seittem__
+    __upset = list.__setitem__
     def __setitem__(self, key, val, S=Slice):
         try: iter(key)
         except TypeError:
