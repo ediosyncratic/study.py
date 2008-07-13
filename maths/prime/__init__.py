@@ -130,6 +130,15 @@ Various potential improvements on existing ../primes.py:
      that we can save it into the new cache format.
      + although this lacks the proper factor information, it still lets us
        obtain that relatively cheaply
+   - Iteration over cache objects is a tree-walking iteration, not iteration
+     over the primes they describe.  A loaded cache file object owns a sub-list
+     of the primes which can be iterated.
+   - The Master (modifiable root) cache object
+     + manages coversion of gap objects to sieve objects which, when completed,
+       get turned into cache file objects
+     + has a method by which we can give it more cache root objects, e.g. based
+       on an URL (which won't fit nicely in our cache-path environment variable,
+       due to its internal punctuators).
 
  * Miscellaneous
    - After exhausting factorise()'s trawl through known primes, try around the
@@ -158,7 +167,7 @@ Special cases:
     this computer to handle with the old system.  Being able to cope with it is
     a crucial test of the new system: see failure_log in this module.
 
-$Id: __init__.py,v 1.7 2008-07-13 09:55:40 eddy Exp $
+$Id: __init__.py,v 1.8 2008-07-13 10:03:56 eddy Exp $
 """
 
 failure_log = '''
