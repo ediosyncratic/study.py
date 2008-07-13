@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.5 2008-06-27 07:23:58 eddy Exp $
+$Id: regular.py,v 1.6 2008-07-13 13:21:23 eddy Exp $
 """
 
 class Regular (object):
@@ -15,6 +15,8 @@ class Regular (object):
         try: self.index(ind)
         except ValueError: return False
         return True
+
+    def asslice(self): return slice(self.start, self.stop, self.step)
 
     # Iteration:
     def __iter__(self):
@@ -262,7 +264,10 @@ class Slice (Regular):
     answer, in each case.\n"""
 
     # Can't actually use slice as a base class, so fake it:
-    def __init__(self, *args): self.__seq = slice(*args)
+    def __init__(self, *args):
+        if len(args) == 1 and isinstance(args[0], slice): self.__seq = args[0]
+        else: self.__seq = slice(*args)
+
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
 
     def __getattr__(self, key):
