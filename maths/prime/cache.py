@@ -1,22 +1,25 @@
 """Cache files, directories and their managment.
 
 A cache object knows the range of integer values it spans.  A prime cache object
-also knows the range of prime indices it spans.
+also knows the range of prime indices it spans.  Maybe a factor cache object
+shall, too.
+
+Reading caches:
 
  * A cache can be asked, for any given value or index within its range, to
    supply an actual object describing the target (and a range about it); on
    failure, it returns a gap object describing the widest contiguous interval
    about this target not covered under this cache node.  If passed an optional
-   gap object (describing such an interval about the integer) it instead returns
+   gap object (describing such an interval about the target) it instead returns
    the intersection of this gap object with the one it would have returned.
 
- * An object returned from a cache, when not a gap object, represents from the
-   cache file.  It records the range of integers spanned, as an object of type
-   Interval, but only specified relative to the cache file's directory's base
-   offset; if the object describes a prime cache file, its index ranges are
-   likewise relative to the directory's base.  The recursion out of the search
-   for the object computes the offsets and the cache root object returns a tuple
-   of the object and its offset(s).  It equally does this for a gap object.
+ * The returned Interval instance (whether gap or cache file) describes its
+   range of integers relative to its .parent's range; however, it also has a
+   .span giving the absolute range.  It may likewise have a .indices giving its
+   range of indices (for prime cache requests it normally shall).  Cache files
+   describing incompletely sieved chunks of the naturals may also exist; these
+   are apt (but not sure) to know their index start-point and perhaps even an
+   upper bound on their number of primes.
 
  * Files and directories follow a common naming scheme, encoding the range of
    values relative to parent.  Within a directory, lexicographic sort order
@@ -37,10 +40,11 @@ also knows the range of prime indices it spans.
 
  * Directories have an __init__.py that records (at least) the maximum depth of
    directory hierarchy below them (each is 1 higher than the max of its
-   children); and, in a prime cache, their range of indices.  Each prime cache
-   file (not bothering to record depth 0 below it) records its own range of
-   indices within this.  Again, ranges of indices of files or sub-directories in
-   a directory are relative to the start-index of the directory's range.
+   children); and, in a prime cache, their range of indices.  Each completed
+   prime cache file (not bothering to record depth 0 below it) records its own
+   range of indices within this.  Again, ranges of indices of files or
+   sub-directories in a directory are relative to the start-index of the
+   directory's range.
 
  * Each cache root records a list of the primes it uses to define its
    generalized octets; there's a file (somewhere in this cache) which describes
@@ -64,10 +68,22 @@ also knows the range of prime indices it spans.
  * At run-time, the only nodes held persistently in memory describe some
    directories, to facilitate searching.  Parents refer to children only via
    weakrefs, so they can fall out of cache naturally; but children need their
-   parents, so use proper references to them.  Parents probably remember the
-   result of digesting os.listdir(), once they know it, again via weakref; it
-   may remember the live children via this, in which case this is the only place
-   it needs a weakref.
+   parents, so use proper references to them.  Parents likewise remember the
+   result of digesting os.listdir(), once they know it, via weakref; this result
+   is a list of child nodes which haven't initially evaluated their weakref
+   attributes.
+
+Writing caches:
+
+ * Cache roots must support locking so that only one process tries to modify a
+   cache at a time, and others don't try to read a cache while it's being
+   modified.
+ * Use one modifiable cache supported by a sequence of read-only caches
+   - Files, once created, only change when renamed, which may prompt meta-data
+     changes (base offset for ranges of indices and values have changed) but not
+     changes to their meaning.
+   - Directories in the modifiable cache are wont to be reshuffled: when a
+     directory has too many entries, separate them into sub-directories.
 
 TODO: what difference does it make to the cache objects if they're a modifiable
 cache ?  It affects whether things can be added, renamed, etc.
@@ -75,9 +91,8 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.14 2008-07-12 14:27:55 eddy Exp $
+$Id: cache.py,v 1.15 2008-07-13 15:35:38 eddy Exp $
 """
-
 import os
 from study.snake.regular import Interval
 from study.snake.sequence import Ordered
@@ -218,14 +233,15 @@ class Gap (SubNode):
         self.__upinit(parent, start, span, '')
         if indices is not None: self._indices = indices
 
+from study.snake.sequence import WeakTuple
 class CacheDir (object):
     @lazyattr
     def _content_file(self, ig=None):
         return self.path('__init__.py')
 
     import re
-    @weakattr
-    def listing(self, ig=None, get=os.listdir, seq=Ordered,
+    @lazyattr
+    def __listing(self, ig=None, get=os.listdir, seq=Ordered,
                 pat=re.compile(r'^([PF]+)([0-9a-z]+)\+([0-9a-z]+)(\.py)?$')):
         """The (suitably sorted) list of contents of this directory.
 
@@ -235,30 +251,45 @@ class CacheDir (object):
             got = pat.match(name)
             if got is not None:
                 start, span = int(got.group(2), 36), int(got.group(3), 36)
-                # TODO: what should we do when modifiable ?
                 if got.group(4): klaz = CacheFile
                 else: klaz = CacheSubDir
-                ans.append(klaz(self, name, start, span, got.group(1)))
+                ans.append((start, span, name, got.group(1), klaz))
 
-        assert ans[0].start == 0, 'Directory lacks initial sub-range'
-        assert self.start + ans[-1].stop == self.stop, \
+        assert ans[0][0] == 0, 'Directory lacks initial sub-range'
+        assert self.start + ans[-1][0] +ans[-1][1] == self.stop, \
                'Directory lacks final sub-range'
 
         return ans
-
     del re
+
+    class WeakSeq (WeakTuple):
+        __upinit = WeakTuple.__init__
+        def __init__(self, cdir, getseq):
+            def get(ind, s=cdir, g=getseq):
+                start, size, name, mode, klaz = g(s)[ind]
+                return klaz(s, name, start, size, mode)
+            self.__upinit(get)
+            self.__who, self.__att = cdir, getseq
+
+        def __len__(self): return len(self.__att(self.__who))
+
+    @lazyattr
+    def listing(self, s, ig=None, W=WeakSeq):
+        return W(self, lambda x: x.__listing)
+
+    @lazyattr
+    def primes(self, ig=None, W=WeakSeq, nice=lambda i: 'P' in i[3]):
+        return W(self, lambda x: x.__listing.filter(nice))
+
+    @lazyattr
+    def factors(self, ig=None, W=WeakSeq, nice=lambda i: 'F' in i[3]):
+        return W(self, lambda x: x.__listing.filter(nice))
+
+    del WeakSeq
 
     @lazyprop
     def depth(self, ig=None): # but usuall we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
-
-    @weakattr
-    def primes(self, ig=None):
-        return self.listing.filter(lambda i: i.prime)
-
-    @weakattr
-    def factors(self, ig=None):
-        return self.listing.filter(lambda i: i.factor)
 
     @staticmethod
     def __findex(seq, index):
@@ -344,6 +375,8 @@ class CacheDir (object):
         octet's .modulus\n"""
 
         return self.__locate(self.factors, value, gap)
+
+del WeakTuple
 
 from lockdir import LockableDir
 
@@ -446,7 +479,7 @@ class CacheSubDir (CacheDir, CacheSubNode):
     pass
 
 class CacheFile (CacheSubNode):
-    @weakattr
+    @lazyattr
     def _content_file(self, ig=None): return self.path()
 
     @property
@@ -487,7 +520,10 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteCacheDir (CacheDir):
-    def passdown(self, child):
+    def addnode(self, child):
+        pass
+
+    def move(self, foster):
         pass
 
 class WriteCacheRoot (WriteCacheDir, CacheRoot):
