@@ -1,66 +1,7 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.23 2008-07-06 11:54:46 eddy Exp $
+$Id: sequence.py,v 1.24 2008-07-13 14:58:51 eddy Exp $
 """
-
-class Tuple (object):
-    """Pretend to be a tuple.
-
-    Infuriatingly, if a class inherits from tuple, whatever you pass to its
-    constructor is passed to tuple's constructor (which barfs if there are too
-    many arguments), before your __init__ can do anything about it; and __init__
-    can't usefully call tuple.__init__ later, to supply what you wanted it to
-    get.\n""" # How messed up is that ?
-
-    __slots__ = ('__tuple',)
-    def __init__(self, vals=()): self.__tuple = tuple(vals)
-    def __len__(self): return len(self.__tuple)
-    def __repr__(self): return `self.__tuple`
-    def __hash__(self): return hash(self.__tuple)
-    def __iter__(self): return iter(self.__tuple)
-    def __contains__(self, val): return val in self.__tuple
-
-    def __eq__(self, other): return other == self.__tuple
-    def __ge__(self, other): return other <= self.__tuple
-    def __le__(self, other): return other >= self.__tuple
-    def __lt__(self, other): return other > self.__tuple
-    def __gt__(self, other): return other < self.__tuple
-    def __ne__(self, other): return other != self.__tuple
-
-    def _tuple_(self, val):
-        """Pseudo-constructor.
-
-        Takes a sequence and returns an instance of Tuple.  If derived classes
-        have constructors taking different parameter lists, they should
-        over-ride this with something suitable; if they don't support arithmetic
-        and slicing, they should over-ride it with something that raises an
-        error.  Otherwise, it uses the class of self to construct a new Tuple of
-        suitable type.\n"""
-        return self.__class__(val)
-
-    def __mul__(self, other): return self._tuple_(self.__tuple * other)
-    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
-    def __add__(self, other):
-        if isinstance(other, Tuple): other = other.__tuple
-        return self._tuple_(self.__tuple + other)
-
-    from regular import Slice
-    def __getitem__(self, key, S=Slice):
-        if isinstance(key, slice) or isinstance(key, S):
-            return self._tuple_(self.__tuple[key])
-        return self.__tuple[key]
-    del Slice
-
-    # It is also absurd that tuple doesn't support index:
-    def index(self, val): return list(self.__tuple).index(val)
-    # and throw in something suitable in place of sort:
-    def order(self, are=cmp): return self.__order(are)
-    def __order(self, par):
-        # boot-strap round the fact that permute.Permute inherits from Tuple
-        from study.maths import permute
-        def order(who, p=permute.order, are=cmp): return p(who.__tuple, are)
-        Tuple.__order = order # over-writing this boot-strap implementation
-        return permute.order(self.__tuple, par)
 
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
@@ -138,14 +79,388 @@ class Iterable (object):
 
         raise StopIteration
 
-    # The default __contains__ simply iterates, testing ==
-
 class WrapIterable (Iterable):
     def __init__(self, seq): self.__seq = seq
     def __iter__(self): return iter(self.__seq)
     def __getattr__(self, key): return getattr(self.__seq, key)
 
-class Ordered (Iterable, list): # list as base => can't use __slots__
+class ReadSeq (Iterable):
+    """Mix-in class extending Iterable to support most tuple methods.
+
+    While Iterable is a sensible class to mix in to classes that already know
+    how to behave like a sequence, ReadSeq is intended to produce as much of the
+    usual sequence behaviour as possible from bare iteration.  Derived classes
+    likely want to over-ride various methods (notably getitem and len), but this
+    mix-in ensures most other interesting methods are available given the basics
+    (and can even manage len and getitem given iterability).\n"""
+    __slots__ = ()
+    def __len__(self):
+        i = 0
+        for it in self: i += 1
+        return i
+
+    from regular import Slice
+    def __getitem__(self, ind, S=Slice):
+        if isinstance(ind, slice): ind = S(ind)
+        try: iter(ind)
+        except TypeError: pass
+        else: return self.__get(ind)
+
+        for it in self:
+            if ind == 0: return it
+            ind -= 1
+
+        raise IndexError(ind)
+    del Slice
+
+    def __get(self, ind):
+        try:
+            for i in ind: yield self[i]
+        except IndexError: pass
+        raise StopIteration
+
+    def __repr__(self):
+        row = []
+        for it in self: row.append(repr(it))
+        return self.__class__.__name__ + '((' + ', '.join(row) + '))'
+
+    def __hash__(self):
+        ans = id(self)
+        for it in self: ans ^= hash(it)
+        return ans
+
+    # The default __contains__ simply iterates, testing ==
+
+    def __eq__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it == other: pass
+                else: return False
+            return True # No entry in self isn't other.
+
+        try:
+            for it in self:
+                if it == src.next(): pass
+                else: return False
+        except StopIteration: return False
+
+        try: src.next()
+        except StopIteration: return True
+        return False
+
+    def __ne__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it != other: return True
+            return False # Some entry in self isn't other
+
+        try:
+            for it in self:
+                if it != src.next(): return True
+        except StopIteration: return False # it ran out first
+
+        try: src.next()
+        except StopIteration: return False # we're equal
+        return True # it was longer
+
+    def __ge__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it >= other: pass
+                else: return False
+            return True
+
+        try:
+            for it in self:
+                val = src.next()
+                if it > val: return True
+                elif it == val: pass
+                else: return False
+        except StopIteration: return True # it ran out first
+
+        try: src.next()
+        except StopIteration: return True # equality
+        return False
+
+    def __le__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it <= other: pass
+                else: return False
+            return True
+
+        try:
+            for it in self:
+                val = src.next()
+                if it < val: return True
+                elif it == val: pass
+                else: return False
+        except StopIteration: return False # it ran out first
+        return True # equality, but other maybe longer
+
+    def __lt__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it < other: pass
+                else: return False
+            return True
+
+        try:
+            for it in self:
+                val = src.next()
+                if it < val: return True
+                elif it == val: pass
+                else: return False
+        except StopIteration: return False # it ran out first
+
+        try: src.next()
+        except StopIteration: return False
+        return True # it was longer
+
+    def __gt__(self, other):
+        try: src = iter(other)
+        except TypeError:
+            for it in self:
+                if it > other: pass
+                else: return False
+            return True
+
+        try:
+            for it in self:
+                val = src.next()
+                if it > val: return True
+                elif it == val: pass
+                else: return False
+        except StopIteration: return True # it ran out first
+        return False # equality, but other may be longer
+
+    def __mul__(self, other):
+        while other > 0:
+            other -= 1
+            for it in self: yield it
+
+        raise StopIteration
+
+    __rmul__ = __mul__
+    def __add__(self, other):
+        for it in self: yield it
+        for it in other: yield it
+
+        raise StopIteration
+
+    def __radd__(self, other):
+        for it in other: yield it
+        for it in self: yield it
+
+        raise StopIteration
+
+    def index(self, val):
+        i = 0
+        for it in self:
+            if val == it: return i
+            i += 1
+
+        raise ValueError('not in sequence', val)
+
+    # Throw in something suitable in place of sort:
+    def order(self, are=cmp): return self.__order(are)
+    def __order(self, par):
+        # boot-strap round the fact that permute.Permute inherits from Tuple
+        from study.maths import permute
+        def order(who, p=permute.order, are=cmp): return p(who[:], are)
+        ReadSeq.__order = order # over-writing this boot-strap implementation
+        return permute.order(self[:], par)
+
+class WeakTuple (ReadSeq):
+    """Read-only sequence of weak references.
+
+    Packages a function, taking an index into the sequence as sole parameter, as
+    a read-only sequence, cacheing the values using weakref.  Derived classes
+    should typically implement __len__, as the implementation used here simply
+    increments an index into the list, indexing until it gets IndexError.\n"""
+    __upinit = ReadSeq.__init__
+    def __init__(self, getter):
+        """Package getter as a tuple-like sequence.
+
+        Single argument, getter, shall be called with a single parameter and
+        should return the entry desired at that index into the sequence; it
+        should raise IndexError if the parameter is not a suitable index.  Later
+        calls with the same input should produce an equivalent response.\n"""
+        self.__seq, self.__get = [], getter
+
+    import weakref
+    __upget = ReadSeq.__getitem__
+    def __getitem__(self, key, ref=weakref.ref, lost = lambda : None):
+        try: f = self.__seq[key]
+        except IndexError: ans = None
+        else: ans = val()
+
+        if ans is None:
+            ans = self.__get(key) # may raise IndexError
+            while len(self.__seq) <= key:
+                self.__seq.append(lost)
+            self.__seq[key] = ref(ans)
+
+        return ans
+    del weakref
+
+class Tuple (ReadSeq):
+    """Pretend to be a tuple.
+
+    Infuriatingly, if a class inherits from tuple, whatever you pass to its
+    constructor is passed to tuple's constructor (which barfs if there are too
+    many arguments), before your __init__ can do anything about it; and __init__
+    can't usefully call tuple.__init__ later, to supply what you wanted it to
+    get.\n""" # How messed up is that ?
+
+    __slots__ = ('__tuple',)
+    def __init__(self, vals=()): self.__tuple = tuple(vals)
+    def __len__(self): return len(self.__tuple)
+    def __repr__(self): return `self.__tuple`
+    def __hash__(self): return hash(self.__tuple)
+    def __iter__(self): return iter(self.__tuple)
+    def __contains__(self, val): return val in self.__tuple
+
+    def __eq__(self, other): return other == self.__tuple
+    def __ge__(self, other): return other <= self.__tuple
+    def __le__(self, other): return other >= self.__tuple
+    def __lt__(self, other): return other > self.__tuple
+    def __gt__(self, other): return other < self.__tuple
+    def __ne__(self, other): return other != self.__tuple
+
+    def _tuple_(self, val):
+        """Pseudo-constructor.
+
+        Takes a sequence and returns an instance of Tuple.  If derived classes
+        have constructors taking different parameter lists, they should
+        over-ride this with something suitable; if they don't support arithmetic
+        and slicing, they should over-ride it with something that raises an
+        error.  Otherwise, it uses the class of self to construct a new Tuple of
+        suitable type.\n"""
+        return self.__class__(val)
+
+    def __mul__(self, other): return self._tuple_(self.__tuple * other)
+    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
+    __upadd = ReadSeq.__add__
+    def __add__(self, other): return self._tuple_(self.__upadd(other))
+    __upradd = ReadSeq.__radd__
+    def __radd__(self, other): return self._tuple_(self.__upradd(other))
+
+    __upget = ReadSeq.__getitem__
+    def __getitem__(self, key):
+        try: iter(key)
+        except TypeError:
+            if not isinstance(key, slice):
+                return self.__tuple[key]
+
+        return self._tuple_(self.__upget(key))
+
+class List (ReadSeq, list): # list as base => can't use __slots__
+
+    # Use some things from list in preference to ReadSeq:
+    __init__ = list.__init__
+    __hash__ = list.__hash__
+    __len__ = list.__len__
+    __contains__ = list.__contains__
+    append = list.append
+    insert = list.insert
+    index = list.index
+
+    # Fix some infelicities in list:
+    try: list.__getslice__
+    except AttributeError: pass
+    else: # list still has this deprecated method: over-ride it !
+        def __getslice__(self, i, j): return self.__getitem__(slice(i, j))
+
+    try: list.__setslice__
+    except AttributeError: pass
+    else: # list still has this deprecated method: over-ride it !
+        def __setslice__(self, i, j, val):
+            self.__setitem__(slice(i, j), val)
+
+    # Over-ride getitem and setitem:
+    __upget = list.__getitem__
+    __rsget = ReadSeq.__getitem__
+    def __getitem__(self, key):
+        """Get value(s) indicated by key.
+
+        If key is a slice, return an Ordered to hold it; if it's going in the
+        reverse direction, suitably reverse the order.\n"""
+
+        try: iter(key)
+        except TypeError:
+            if not isinstance(key, slice):
+                return self.__upget(key)
+
+        return self.__list__(self.__rsget(key))
+
+    __updel = list.__delitem__
+    def __delitem__(self, key):
+        try: iter(key)
+        except TypeError:
+            return self.__updel(key)
+
+        for it in key: self.__updel[it]
+
+    from regular import Slice
+    __upset = list.__seittem__
+    def __setitem__(self, key, val, S=Slice):
+        try: iter(key)
+        except TypeError:
+            if isinstance(key, slice): key = S(key)
+            else: return self.__upset(key, val)
+
+        try:
+            if key.step == 1:
+                return self.__upset(key.asslice(), val)
+        except AttributeError: pass
+        if len(key) != len(val):
+            raise ValueError('Mismatched lengths in extended slice assignment',
+                             key, val)
+        src = iter(val) # TypeError if non-sequence given to assign to slice
+        for it in key: self[it] = src.next()
+
+    del Slice
+
+    __mul = ReadSeq.__mul__
+    def __mul__(self, other): return self.__list__(self.__mul(other))
+    __rmul__ = __mul__
+
+    def __add__(self, seq):
+        ans = self[:]
+        ans.extend(seq)
+        return ans
+    __radd__ = __add__
+    def extend(self, seq):
+        for it in seq: self.append(it)
+    def __iadd__(self, seq):
+        self.extend(seq)
+        return self
+
+    __radd = ReadSeq.__radd__
+    def __radd__(self, other): return self.__list__(self.__radd(other))
+
+    __map = ReadSeq.map
+    def map(self, *what): return self.__list__(self.__map(*what))
+
+    __mapwith = ReadSeq.mapwith
+    def mapwith(self, *what): return self.__list__(self.__mapwith(*what))
+
+    def __list__(self, *what):
+        """Create a new object like self, but with other init args.
+
+        Takes the same args as list.__init__ (q.v.) but builds a new object
+        of the same kind as self - derived classes should over-ride this if they
+        change the signature of __init__.  Should normally be invoked indirectly
+        via slicing, e.g., self[:0] or self[:].\n"""
+        return self.__class__(*what)
+
+class Ordered (List):
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
@@ -158,7 +473,7 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
     slice; other operations that would normally yield a list yield an Ordered
     (but see _ordered_) with the same sort properties as self.\n"""
 
-    __upinit = list.__init__
+    __upinit = List.__init__
     def __init__(self, val=None, reverse=False, key=None, cmp=None,
                  attr=None, unique=False):
         """Construct ordered list.
@@ -184,34 +499,26 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
         self.__cmp, self.__key, self.__rev = cmp, key, reverse
         if val is not None: self.extend(val)
 
-    __upget = list.__getitem__
+    def __list__(self, val=None):
+        return self._ordered_(val, self.__rev, self.__key, self.__cmp,
+                              self.__attr, self.__unique)
+
+    __upget = List.__getitem__
+    __rsget = ReadSeq.__getitem__
     def __getitem__(self, key):
         """Get value(s) indicated by key.
 
         If key is a slice, return an Ordered to hold it; if it's going in the
         reverse direction, suitably reverse the order.\n"""
-        if isinstance(key, slice):
-            if key.step is not None and key.step < 0: rev = not self.__rev
-            else: rev = self.__rev
-            return self._ordered_(self.__upget(key), rev, self.__key, self.__cmp,
-                                  self.__attr, self.__unique)
 
-        return self.__upget(key)
+        try:
+            if key.step is None or key.step > 0:
+                raise AttributeError # simple delegation to __upget will do fine
+        except AttributeError:
+            return self.__upget(key)
 
-    __reduce = Iterable.reduce
-    def reduce(self, *what):
-        return self._ordered_(self.__reduce(*what),
-                              self.__rev, self.__key, self.__cmp,
-                              self.__attr, self.__unique)
-    __map = Iterable.map
-    def map(self, *what):
-        return self._ordered_(self.__map(*what),
-                              self.__rev, self.__key, self.__cmp,
-                              self.__attr, self.__unique)
-    __mapwith = Iterable.mapwith
-    def mapwith(self, *what):
-        return self._ordered_(self.__mapwith(*what),
-                              self.__rev, self.__key, self.__cmp,
+        return self._ordered_(self.__rsget(key),
+                              not self.__rev, self.__key, self.__cmp,
                               self.__attr, self.__unique)
 
     def _ordered_(self, *what):
@@ -223,33 +530,26 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
         via slicing, e.g., self[:0] or self[:].\n"""
         return self.__class__(*what)
 
+    # Take this from list, not List:
     try: __upsets = list.__setslice__ # used by multiplications
     except AttributeError: __upsets = list.__setitem__
-    else: # list still has this deprecated method, so we need to over-ride it:
-        def __setslice__(self, i, j, val):
-            self.__setitem__(slice(i, j), val)
 
     def __setitem__(self, key, val):
         """Replace value(s) indicated by key with value(s) supplied as val.
 
         This is interpreted as deletion of each replaced value and insertion of
         each supplied value, potentially at a different location.\n"""
-        del self[key]
-        if isinstance(key, slice):
-            for it in val:
-                self.append(it)
-        else: self.append(val)
 
-    def __add__(self, seq):
-        ans = self[:]
-        ans.extend(seq)
-        return ans
-    __radd__ = __add__
-    def extend(self, seq):
-        for it in seq: self.append(it)
-    def __iadd__(self, seq):
-        self.extend(seq)
-        return self
+        del self[key]
+
+        try: iter(key)
+        except TypeError:
+            if not isinstance(key, slice):
+                self.append(val)
+                return
+
+        # No need to raise ValueError if len(val) != len(key)
+        for it in val: self.append(it)
 
     def __mul__(self, n):
         if n < 1: return self[:0]
@@ -279,7 +579,7 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
 
         return self
 
-    __upsort = list.sort
+    __upsort = List.sort
     def sort(self, cmp=None, key=None, reverse=False):
         """Change sort criteria.
 
@@ -387,8 +687,8 @@ class Ordered (Iterable, list): # list as base => can't use __slots__
             raise ValueError(ind, 'Not in list', value, lo, hi)
         return ind
 
-    __listins = list.insert
-    __listapp = list.append
+    __listins = List.insert
+    __listapp = List.append
     def append(self, ind, value=None):
         """Put a value into the list.
 
