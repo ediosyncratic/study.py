@@ -12,8 +12,9 @@ This module should eventually replace lazy.Lazy; it provides:
   weakprop -- combines weakattr and dictprop
 
 See individual classes for details.
+See also sequence.WeakTuple for a sequence using weak references.
 
-$Id: property.py,v 1.4 2008-07-12 12:22:28 eddy Exp $
+$Id: property.py,v 1.5 2008-07-13 14:45:05 eddy Exp $
 """
 
 class docprop (property):
@@ -181,7 +182,6 @@ class lazyprop (lazyattr, dictprop):
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__lget(obj, mode)
 
-import weakref
 class weakattr (attrstore, recurseprop):
     """Weakly-referenced attribute look-up.
 
@@ -191,6 +191,8 @@ class weakattr (attrstore, recurseprop):
     be garbage-collected when not actively in use.  The referenced value is
     retrieved automatically from the weakref when available; else it is
     recomputed (and a fresh weakref cached).\n"""
+
+    import weakref
     __upget = recurseprop.__get__
     def __get__(self, obj, mode=None, ref=weakref.ref):
         bok = self.cache(obj)
@@ -203,7 +205,7 @@ class weakattr (attrstore, recurseprop):
             bok[self] = ref(ans)
 
         return ans
-del weakref
+    del weakref
 
 class weakprop (weakattr, dictprop):
     __wget = weakattr.__get__
