@@ -91,7 +91,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.17 2008-07-13 18:35:40 eddy Exp $
+$Id: cache.py,v 1.18 2008-07-13 19:07:08 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -103,28 +103,6 @@ class Node (Interval):
     """
 
     from errno import EWOULDBLOCK as __BLOCKED
-
-    class Bok (dict): pass # for weakref's sake
-    def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
-        # TODO: need a lock-check on all ancestors
-        # TODO: want to be able to GET a URL instead of reading a file
-
-        if bok is None: bok = Bok()
-        if not self.lock(True):
-            raise IOError(self.__BLOCKED, 'File temporarily unreadable',
-                          self._content_file)
-        try: execfile(self._content_file, glo, bok) # may raise IOError, ParseError
-        finally: self.unlock(True)
-
-        try: self.depth = bok.pop('depth')
-        except KeyError: assert isinstance(self, CacheFile)
-
-        try: gap = bok.pop('indices') # saved to file as twople
-        except KeyError: pass
-        else: self.__indices = Range(gap[0], gap[1])
-
-        return bok
-    del Bok
 
     @weakattr
     def content(self, ig=None): return self.load()
@@ -152,37 +130,32 @@ class Node (Interval):
         self.content # evaluate to force .load()ing (fails for Gap)
         return self.__indices # should now succeed
 
+    class Bok (dict): pass # for weakref's sake
+    def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
+        # TODO: need a lock-check on all ancestors
+        # TODO: want to be able to GET a URL instead of reading a file
+
+        if bok is None: bok = Bok()
+        if not self.lock(True):
+            raise IOError(self.__BLOCKED, 'File temporarily unreadable',
+                          self._content_file)
+        try: execfile(self._content_file, glo, bok) # may raise IOError, ParseError
+        finally: self.unlock(True)
+
+        try: self.depth = bok.pop('depth')
+        except KeyError: assert isinstance(self, CacheFile)
+
+        try: gap = bok.pop('indices') # saved to file as twople
+        except KeyError: pass
+        else: self.__indices = Range(gap[0], gap[1])
+
+        return bok
+    del Bok
+
 class WriteNode (Node):
-    @staticmethod
-    def __repr(val):
-        """Decides how to display values
-
-        While meta-data is mostly terse, the actual tuples of factors and
-        strings encoding prime octets are very long, so should be split across
-        many lines.  It's always OK to return repr(val), albeit this may be
-        painfully long, but where something nicer is viable and reliable, it
-        should be used.  Nicer forms should try to put the data on separate
-        lines from any start and end details.\n"""
-
-        if isinstance(val, tuple) and len(val) > 20:
-            # Like tuple's repr, but using ',\n' in place of ', ':
-            return '(\n' + ',\n'.join(map(repr, val)) + '\n)'
-
-        if isinstance(val, basestring) and len(val) > 80 && '\n' in val:
-            if isinstance(val, unicode): lead = 'u'
-            else: lead = ''
-            if "'" in val:
-                if '"' not in val:
-                    return lead + '"""\n%s"""' % val
-            else: return lead + "'''\n%s'''" % val
-            # The strings that'll match this all end in a newline already:
-            # squeeze.eighty.findall() always ends in an empty string.
-
-        return repr(val)
-
     def save(self, **what):
         assert self.prime or self.factor
-        if not self.lock(False, True):
+        if not self.lock(write=True):
             raise IOError(self.__BLOCKED, 'File temporarily unwritable',
                           self._content_file)
         try:
@@ -202,8 +175,48 @@ class WriteNode (Node):
                     fd.write('%s = %s\n' % (k, self.__repr(v)))
 
             finally: fd.close()
-        finally: self.unlock(False, True)
+        finally: self.unlock(write=True)
         # potentially: return size of file
+
+    @staticmethod
+    def __repr(val):
+        """Decides how to display values
+
+        While meta-data is mostly terse, the actual strings encoding tuples of
+        factors and prime octets are very long, so should be split across many
+        lines.  It's always OK to return repr(val), albeit this may be painfully
+        long, but where something nicer is viable and reliable, it should be
+        used.  Nicer forms should try to put the data on separate lines from any
+        start and end details.  The actual display hacks used are:
+         * an overt tuple is displayed as normal but using '\n' rather than
+           space after the commas between items, with '\n' between opening and
+           closing parentheses and adjacent values; likewise for lists.
+         * any overt string with newlines in it and a length over 80 characters
+           is displayed as a triply-quoted string, unescaping newlines in its
+           contents.  Note that self.__doc__ (if any) is also handled as a
+           triply-quoted string, but separately from this hack.
+        More may be added as experience illuminates what's worth doing.\n"""
+
+        if isinstance(val, tuple) and len(val) > 20:
+            # Like tuple's repr, but using ',\n' in place of ', ':
+            return '(\n' + ',\n'.join(map(repr, val)) + '\n)'
+
+        if isinstance(val, list) and len(val) > 20:
+            # Like list's repr, but using ',\n' in place of ', ':
+            return '[\n' + ',\n'.join(map(repr, val)) + '\n]'
+
+        if isinstance(val, basestring) and len(val) > 80 && '\n' in val:
+            txt = repr(val).replace('\\n', '\n')
+            if txt[0] == 'u': head, txt = txt[0], txt[1:]
+            else: head = ''
+            assert txt[0] == txt[-1]
+            txt, tail = txt[1:-1], 3 * txt[-1]
+            head += tail + '\n'
+            return head + txt + tail
+            # The strings that'll match this all end in a newline already:
+            # squeeze.eighty.findall() always ends in an empty string.
+
+        return repr(val)
 
 class SubNode (Node):
     __gapinit = Node.__init__
@@ -460,15 +473,6 @@ class CacheRoot (CacheDir, LockableDir, Node):
         if value is not None: value /= self.octet.modulus
         return self._get_primes(self, value, gap, index)
 
-    __load = Node.load
-    from octet import OctetType
-    def load(self, bok=None, mode=OctetType):
-        bok = self.__load(bok)
-        self.stop = bok.pop('top')
-        self.octet = mode(bok.pop('octet'))
-        return bok
-    del OctetType
-
     def _span(self, gap, Range=Interval):
         step = self.octet.modulus
         return Range(gap.start * step, len(gap) * step)
@@ -479,6 +483,15 @@ class CacheRoot (CacheDir, LockableDir, Node):
     def factor(self, ig=None): return len(self.factors) > 0
     @lazyprop
     def indices(self, ig=None): return self._indices
+
+    __load = Node.load
+    from octet import OctetType
+    def load(self, bok=None, mode=OctetType):
+        bok = self.__load(bok)
+        self.stop = bok.pop('top')
+        self.octet = mode(bok.pop('octet'))
+        return bok
+    del OctetType
 
 del LockableDir
 
