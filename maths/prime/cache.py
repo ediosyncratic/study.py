@@ -91,7 +91,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.15 2008-07-13 15:35:38 eddy Exp $
+$Id: cache.py,v 1.16 2008-07-13 18:25:34 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -251,9 +251,7 @@ class CacheDir (object):
             got = pat.match(name)
             if got is not None:
                 start, span = int(got.group(2), 36), int(got.group(3), 36)
-                if got.group(4): klaz = CacheFile
-                else: klaz = CacheSubDir
-                ans.append((start, span, name, got.group(1), klaz))
+                ans.append((start, span, name, got.group(1), got.group(4)))
 
         assert ans[0][0] == 0, 'Directory lacks initial sub-range'
         assert self.start + ans[-1][0] +ans[-1][1] == self.stop, \
@@ -262,11 +260,17 @@ class CacheDir (object):
         return ans
     del re
 
+    @staticmethod
+    def _child_class_(isfile):
+        if isfile: return CacheFile
+        return CacheSubDir
+
     class WeakSeq (WeakTuple):
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
-                start, size, name, mode, klaz = g(s)[ind]
+                start, size, name, mode, isfile = g(s)[ind]
+                klaz = s._child_class_(isfile)
                 return klaz(s, name, start, size, mode)
             self.__upinit(get)
             self.__who, self.__att = cdir, getseq
@@ -288,7 +292,7 @@ class CacheDir (object):
     del WeakSeq
 
     @lazyprop
-    def depth(self, ig=None): # but usuall we'll read this from __init__.py
+    def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
 
     @staticmethod
@@ -502,7 +506,7 @@ class CacheFile (CacheSubNode):
             ans = up._get_factor(val)
 
         if isinstance(ans, CacheFile): return ans
-        return None
+        return None # don't return a gap
 
     @lazyattr
     def next(self, ig=None):
@@ -525,6 +529,11 @@ class WriteCacheDir (CacheDir):
 
     def move(self, foster):
         pass
+
+    @staticmethod
+    def _child_class_(isfile):
+        if isfile: return WriteCacheFile
+        return WriteCacheSubDir
 
 class WriteCacheRoot (WriteCacheDir, CacheRoot):
     pass
