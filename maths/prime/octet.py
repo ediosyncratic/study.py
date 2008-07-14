@@ -98,7 +98,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.11 2008-07-06 15:01:06 eddy Exp $
+$Id: octet.py,v 1.12 2008-07-14 05:57:56 eddy Exp $
 """
 
 def coprimes(primes):
@@ -127,7 +127,8 @@ def coprimes(primes):
 from study.snake.sequence import Tuple
 
 class OctetType (Tuple):
-    __slots__ = ('primes', 'moddulus', 'size')
+    __slots__ = ('primes', 'modulus', 'size')
+    def __tuple__(self, val, seq=Tuple): return seq(val) # for slicing, etc.
 
     __upinit = Tuple.__init__
     def __init__(self, ps):
@@ -229,6 +230,7 @@ class Octet (object):
         responsible for remembering data; aside from len(data) its only use here
         is to make an exception more information-rich.\n"""
 
+        assert base % kind.modulus == 0
         if data:
             q, r = divmod(data, kind.size * 8)
             if r: q += 1
