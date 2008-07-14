@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.20 2008-07-14 23:17:36 eddy Exp $
+$Id: cache.py,v 1.21 2008-07-14 23:38:27 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -680,7 +680,7 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
 
     if stop is not None: stop *= octype.modulus
     start *= octype.modulus
-    base, txt, chew = start, '', octype # octet digestion
+    base, txt, chew = start, '', 0 # octet digestion
     glo, tail, rump, final = {}, List(), [], False
     for (lo, hi, name) in row:
         bok = {}
@@ -715,21 +715,22 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
             final = True
 
         # digest as much of ps as we can
-        while ps and ps[-1] >= chew[7] + base:
-            assert chew[0] + base <= ps[0]
+        while ps and ps[-1] >= octype[chew + 7] + base:
+            assert octype[chew] + base <= ps[0]
 
             bit, byte = 1, 0
-            for cand in chew[:8]:
+            for i in range(chew, chew + 8):
+                cand = octype[i]
                 if ps[0] == cand + base:
                     byte |= bit
                     ps = ps[1:]
                 bit <<= 1
 
             txt += chr(byte)
-            chew = chew[8:]
-            if not chew:
+            chew += 8
+            if chew >= len(octype):
                 base += octype.modulus
-                chew = octype
+                chew = 0
         rump = ps # not enough to complete next byte
 
         # Have we got enough to make a new block ?
