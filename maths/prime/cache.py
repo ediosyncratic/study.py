@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.21 2008-07-14 23:38:27 eddy Exp $
+$Id: cache.py,v 1.22 2008-07-14 23:46:44 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -735,12 +735,12 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
 
         # Have we got enough to make a new block ?
         if len(txt) > octype.size:
-            bite, tail = divmod(len(txt), octype.size)
+            bite, rem = divmod(len(txt), octype.size)
             cut = bite * octype.size
             yield (octype, start, txt[:cut])
             start += bite * octype.modulus
             txt = txt[cut:]
-            assert len(txt) == tail
+            assert len(txt) == rem
             assert start == base
 
         if final: break
