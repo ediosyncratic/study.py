@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.19 2008-07-14 06:00:10 eddy Exp $
+$Id: cache.py,v 1.20 2008-07-14 23:17:36 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -126,7 +126,6 @@ class Node (Interval):
         to the root, which does the needed re-scaling.\n"""
         return self._span(self)
 
-    @lazyprop
     def _indices(self, ig=None): # Gap may have it set
         """Range of prime indices, relative to context."""
         try: return self.__indices
@@ -134,6 +133,7 @@ class Node (Interval):
             if not self.prime: raise
         self.content # evaluate to force .load()ing (fails for Gap)
         return self.__indices # should now succeed
+    _indices = lazyprop('_indices', _indices)
 
     class Bok (dict): pass # for weakref's sake
     def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
@@ -210,7 +210,7 @@ class WriteNode (Node):
             # Like list's repr, but using ',\n' in place of ', ':
             return '[\n' + ',\n'.join(map(repr, val)) + '\n]'
 
-        if isinstance(val, basestring) and len(val) > 80 && '\n' in val:
+        if isinstance(val, basestring) and len(val) > 80 and '\n' in val:
             txt = repr(val).replace('\\n', '\n')
             if txt[0] == 'u': head, txt = txt[0], txt[1:]
             else: head = ''
@@ -240,9 +240,9 @@ class SubNode (Node):
     @property
     def root(self, ig=None): return self.__up.root
 
-    @lazyprop
     def indices(self, ig=None):
         return self.__up.indices.start + self._indices
+    indices = lazyprop('indices', indices)
 
     def _span(self, gap): return self.__up._span(gap + self.__up.start)
 
@@ -319,9 +319,9 @@ class CacheDir (object):
 
     del WeakSeq
 
-    @lazyprop
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
+    depth = lazyprop('depth', depth)
 
     @staticmethod
     def __findex(seq, index):
@@ -554,11 +554,11 @@ class CacheRoot (CacheDir, LockableDir, Node):
         step = self.octet.modulus
         return Range(gap.start * step, len(gap) * step)
 
-    @lazyprop
+    @lazyattr
     def prime(self, ig=None): return len(self.primes) > 0
-    @lazyprop
+    @lazyattr
     def factor(self, ig=None): return len(self.factors) > 0
-    @lazyprop
+    @property
     def indices(self, ig=None): return self._indices
 
     __load = Node.load
@@ -573,7 +573,7 @@ class CacheRoot (CacheDir, LockableDir, Node):
 del LockableDir
 
 class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
-    __save = Node.save
+    __save = WriteNode.save
     def save(self, **what):
         what['top'] = self.stop
         what['octet'] = self.octet.primes
@@ -671,7 +671,7 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
 
     row = []
     for name in os.listdir(cdir):
-        if name[:1] == 'c' and name[-3:] == '.py' and - in name[1:-3]:
+        if name[:1] == 'c' and name[-3:] == '.py' and '-' in name[1:-3]:
             try: lo, hi = map(int, name[1:-3].split('-'))
             except ValueError:
                 print 'ignored malformed name', name, 'in old cache', cdir
@@ -707,7 +707,7 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
             if ps[0] <= octype.primes[-1]:
                 i = 0
                 while octype.primes[i] != ps[0]: i += 1
-                assert ps[:len(octype.primes) - i] = octype.primes[i:]
+                assert octype.primes[i:] == tuple(ps[:len(octype.primes) - i])
                 ps = ps[len(octype.primes) - i:]
 
         if stop is not None and ps[-1] >= stop:
