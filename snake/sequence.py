@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.26 2008-07-14 05:56:24 eddy Exp $
+$Id: sequence.py,v 1.27 2008-07-14 23:34:54 eddy Exp $
 """
 
 class Iterable (object):
@@ -623,7 +623,7 @@ class Ordered (List):
         if self.__cmp: return self.__cmp(ind, val)
         # cmp mishandles the case where <, > and == are all false, so hand-code:
         elif ind < val: return -1
-        elif ind > val: reutrn +1
+        elif ind > val: return +1
         else: return 0 # even if not(ind == val)
 
     def __eq(self, ind, val):
