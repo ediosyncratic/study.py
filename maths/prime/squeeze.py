@@ -60,7 +60,7 @@ del re
 
 def squash(txt, enc=standard_b64encode, c=compress, chop=eighty):
     ans = enc(c(txt))
-    if len(ans) < len(txt): return '\n'.join(chop.findall(ans))
+    if len(repr(ans)) < len(repr(txt)): return '\n'.join(chop.findall(ans))
     raise ValueError, "I'm sorry Dave, I can't do that"
 
 # Helpfully, standard_b64decode knows to ignore '\n'
