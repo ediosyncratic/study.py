@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.25 2008-07-13 15:00:39 eddy Exp $
+$Id: sequence.py,v 1.26 2008-07-14 05:56:24 eddy Exp $
 """
 
 class Iterable (object):
@@ -333,7 +333,7 @@ class Tuple (ReadSeq):
     def __gt__(self, other): return other < self.__tuple
     def __ne__(self, other): return other != self.__tuple
 
-    def _tuple_(self, val):
+    def __tuple__(self, val):
         """Pseudo-constructor.
 
         Takes a sequence and returns an instance of Tuple.  If derived classes
@@ -344,12 +344,12 @@ class Tuple (ReadSeq):
         suitable type.\n"""
         return self.__class__(val)
 
-    def __mul__(self, other): return self._tuple_(self.__tuple * other)
-    def __rmul__(self, other): return self._tuple_(other * self.__tuple)
+    def __mul__(self, other): return self.__tuple__(self.__tuple * other)
+    def __rmul__(self, other): return self.__tuple__(other * self.__tuple)
     __upadd = ReadSeq.__add__
-    def __add__(self, other): return self._tuple_(self.__upadd(other))
+    def __add__(self, other): return self.__tuple__(self.__upadd(other))
     __upradd = ReadSeq.__radd__
-    def __radd__(self, other): return self._tuple_(self.__upradd(other))
+    def __radd__(self, other): return self.__tuple__(self.__upradd(other))
 
     __upget = ReadSeq.__getitem__
     def __getitem__(self, key):
@@ -358,7 +358,7 @@ class Tuple (ReadSeq):
             if not isinstance(key, slice):
                 return self.__tuple[key]
 
-        return self._tuple_(self.__upget(key))
+        return self.__tuple__(self.__upget(key))
 
 class List (ReadSeq, list): # list as base => can't use __slots__
 
@@ -471,7 +471,7 @@ class Ordered (List):
     list.sort method; calling sort() can revise the customisation and .reverse()
     reverses it.  Slicing with a reversed slice order yields a reverse-ordered
     slice; other operations that would normally yield a list yield an Ordered
-    (but see _ordered_) with the same sort properties as self.\n"""
+    (but see __ordered__) with the same sort properties as self.\n"""
 
     __upinit = List.__init__
     def __init__(self, val=None, reverse=False, key=None, cmp=None,
@@ -500,8 +500,8 @@ class Ordered (List):
         if val is not None: self.extend(val)
 
     def __list__(self, val=None):
-        return self._ordered_(val, self.__rev, self.__key, self.__cmp,
-                              self.__attr, self.__unique)
+        return self.__ordered__(val, self.__rev, self.__key, self.__cmp,
+                                self.__attr, self.__unique)
 
     __upget = List.__getitem__
     __rsget = ReadSeq.__getitem__
@@ -517,11 +517,11 @@ class Ordered (List):
         except AttributeError:
             return self.__upget(key)
 
-        return self._ordered_(self.__rsget(key),
-                              not self.__rev, self.__key, self.__cmp,
-                              self.__attr, self.__unique)
+        return self.__ordered__(self.__rsget(key),
+                                not self.__rev, self.__key, self.__cmp,
+                                self.__attr, self.__unique)
 
-    def _ordered_(self, *what):
+    def __ordered__(self, *what):
         """Create a new object like self, but with other init args.
 
         Takes the same args as Ordered.__init__ (q.v.) but builds a new object
