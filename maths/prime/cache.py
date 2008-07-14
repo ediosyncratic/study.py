@@ -85,13 +85,18 @@ Writing caches:
    - Directories in the modifiable cache are wont to be reshuffled: when a
      directory has too many entries, separate them into sub-directories.
 
+ * The primes object needs to be able to take a (possibly only partially) sieved
+   block and turn it into a node in the cache hierarchy.  It knows the sieved
+   block's range of naturals, so can pass in an interval describing this and get
+   back a WriteCacheFile representing it; see WriteCacheDir.locate().
+
 TODO: what difference does it make to the cache objects if they're a modifiable
 cache ?  It affects whether things can be added, renamed, etc.
 
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.18 2008-07-13 19:07:08 eddy Exp $
+$Id: cache.py,v 1.19 2008-07-14 06:00:10 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -246,6 +251,15 @@ class Gap (SubNode):
     def __init__(self, parent, start, span, indices=None):
         self.__upinit(parent, start, span, '')
         if indices is not None: self._indices = indices
+
+class WriteSubNode (SubNode, WriteNode):
+    __upsave = WriteNode.save
+    def save(self, **what):
+        self.__upsave(**what)
+        run = self
+        while run is not self.root:
+            run = run.parent
+            run.changed = True
 
 from study.snake.sequence import WeakTuple
 class CacheDir (object):
@@ -256,7 +270,7 @@ class CacheDir (object):
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered,
-                pat=re.compile(r'^([PF]+)([0-9a-z]+)\+([0-9a-z]+)(\.py)?$')):
+                pat=re.compile(r'^([0-9a-z]+)([PF]+)([0-9a-z]+)(\.py)?$')):
         """The (suitably sorted) list of contents of this directory.
 
         Ignores entries not matching the forms of cache file names.\n"""
@@ -264,15 +278,15 @@ class CacheDir (object):
         for name in get(self.path()):
             got = pat.match(name)
             if got is not None:
-                start, span = int(got.group(2), 36), int(got.group(3), 36)
-                ans.append((start, span, name, got.group(1), got.group(4)))
-
-        assert ans[0][0] == 0, 'Directory lacks initial sub-range'
-        assert self.start + ans[-1][0] +ans[-1][1] == self.stop, \
-               'Directory lacks final sub-range'
+                start, span = int(got.group(1), 36), int(got.group(3), 36)
+                ans.append((start, span, name, got.group(2), got.group(4)))
 
         return ans
     del re
+
+    def _onchange(self):
+        # All lazyattr: so del raises no AttributeError when absent.
+        del self.__listing, self.listing, self.primes, self.factors, self.depth
 
     @staticmethod
     def _child_class_(isfile):
@@ -313,6 +327,7 @@ class CacheDir (object):
     def __findex(seq, index):
         lo, lon, hi, hin = 0, seq[0]._indices, len(seq) - 1, seq[-1]._indices
         # Take care to reference ._indices on as few nodes as possible.
+        # FIXME: drop implicit assumption that seq[0] and seq[-1] abut self's ends
         if lon.stop > index: return lo
         if hin.start <= index: return hi
         while hi > lo + 1:
@@ -347,6 +362,7 @@ class CacheDir (object):
 
         except ValueError, what:
             ind = what.args[0] # where in seq our gap would be inserted
+            # FIXME: no longer believe in reaching all the way to the ends
             assert ind > 0, 'Directory lacks initial or final sub-range'
 
             try:
@@ -401,16 +417,77 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteCacheDir (CacheDir):
-    def addnode(self, child):
-        pass
+    changed = False # see tidy() and WriteSubNode.save()
+    # set on instances when they do change; cleared by tidy.
 
-    def move(self, foster):
-        pass
+    # FIXME: in a mixed cache, when adding nodes at start or end, both prime and
+    # factor data must reach to the adjusted end-point; so we can't add a single
+    # file at start or end, only in a gap in the middle.  This implies a need to
+    # add prime and factor nodes simultaneously, possibly several of each.
+    # Resolution: drop the requirement that a directory must contain data all
+    # the way up to its ends.
+
+    # An unfinished sieve node is a factor file, of sorts.  However, it should
+    # probably only be added in a gap or as the root's tail.
+
+    def locate(self, range, prime=False):
+        """Find where to create a new file to be added.
+
+        Required first argument is a range of naturals, in units of
+        self.root.octet.modulus, relative to the start of the interval self
+        describes.  Optional second argument, prime, defaults to False,
+        indicating that the file to be created shall contain factor information;
+        pass prime=True to get a file that shall contain prime information.
+
+        Returns a new WriteFile in self or a sub-directory of self, such that
+        saving data describing the given interval via this WriteFile shall
+        extend the cache.  Once a coherent set of such additions is complete,
+        the root of the cache should be told to .tidy() itself.\n"""
+        # TODO: implement
+        raise NotImplementedError
+
+    def tidy(self):
+        if not self.changed: return # nothing to do
+        for node in self.listing:
+            if isinstance(node, WriteCacheDir) and node.changed:
+                node.tidy()
+        self._onchanged()
+        # TODO: implement
+        raise NotImplementedError
+        del self.changed # to expose the class value, False
+        assert not self.changed
 
     @staticmethod
     def _child_class_(isfile): # configure __listing
         if isfile: return WriteCacheFile
         return WriteCacheSubDir
+
+    @lazyattr
+    def __namelen(self, ig=None, fmt=nameber.encode):
+        # len(self) is an upper bound on the .start of children
+        return len(fmt(len(self)))
+
+    def __child_name(self, child, fmt=nameber.encode):
+        """Determine name of a child.
+
+        Single argument is an interval of the naturals, encoded as by a SubNode
+        of self; that is, relative to the start of self's range, in units of the
+        .octet.modulus of our .root node.  Returns a name matching the regex of
+        __listing and padded with enough leading 0s to ensure lexical sorting.\n"""
+
+        name = fmt(child.start)
+        gap = self.__namelen - len(name)
+        if gap > 0: name = '0' * gap + name
+
+        assert child.prime or child.factor
+        if child.prime: name += 'P'
+        if child.factor: name += 'F'
+
+        name += fmt(len(child))
+        if isinstance(child, CacheFile): name += '.py'
+        return name
+
+del nameber
 
 from lockdir import LockableDir
 
@@ -513,7 +590,7 @@ class CacheSubNode (SubNode):
 class CacheSubDir (CacheDir, CacheSubNode):
     pass
 
-class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteNode):
+class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteSubNode):
     pass
 
 class CacheFile (CacheSubNode):
@@ -552,7 +629,128 @@ class CacheFile (CacheSubNode):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(-1)
 
-class WriteCacheFile (CacheFile, WriteNode):
+class WriteCacheFile (CacheFile, WriteSubNode):
     pass
 
-del Interval, Ordered, weakattr, lazyattr, lazyprop, os
+del Interval, weakattr, lazyattr, lazyprop
+
+def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
+    """Digest an old-style prime-only cache directory.
+
+    Required arguments:
+      cdir -- path name of an old-style cache directory
+      octype -- a generalized octet type, see octet.py
+
+    Optional arguments, in units of octype.modulus:
+      start -- inclusive lower bound on naturals (default: 0)
+      stop -- exclusive upper bound on naturals or (default) None, meaning
+              unbounded
+
+    Returns a iterator yielding (kind, base, data) 3-tuples and a final 4-tuple
+    the same but with final entry stray, listing known primes beyond the end of
+    the fully explored reach of the old cache, clipped to the range specified by
+    start and stop (actually, stray may include a few primes from the old
+    cache's fully-explored reach, if this reached only part-way through the data
+    for the next byte of data).  In each case, (kind, base, data) are suitable
+    for use in the constructor of FlagOctet except that the last's len(data)
+    usually won't be a multiple ot kind.size, unless stop is given, so it should
+    be used to construct a FlagSieve (for which you'll need the primes list).
+
+    The initial (kind, base, data) 3-tuple in each tuple yielded shall satisfy:
+      kind is octype
+      base >= start * octype.modulus
+    and, unless stop is None,
+      base + len(data) * kind.size * 8 <= stop * octype.modulus
+
+    Earlier versions of this study package included a cruder study.maths.primes
+    module, without factor information, with its own cache directory; this
+    function makes it possible to digest one of those into a form which can be
+    saved into a new-style prime cache.  The result only contains prime data;
+    you'll still need to sieve using the new system in order to build up factor
+    data, but this makes as much use of old data as possible.\n"""
+
+    row = []
+    for name in os.listdir(cdir):
+        if name[:1] == 'c' and name[-3:] == '.py' and - in name[1:-3]:
+            try: lo, hi = map(int, name[1:-3].split('-'))
+            except ValueError:
+                print 'ignored malformed name', name, 'in old cache', cdir
+            else: row.append((lo, hi, os.path.join(cdir, name)))
+    row.sort()
+
+    if stop is not None: stop *= octype.modulus
+    start *= octype.modulus
+    base, txt, chew = start, '', octype # octet digestion
+    glo, tail, rump, final = {}, List(), [], False
+    for (lo, hi, name) in row:
+        bok = {}
+        execfile(name, glo, bok)
+
+        try: stray = bok.pop('sparse')
+        except AttributeError: pass
+        else: tail += stray
+
+        assert bok['at'] == lo and bok['to'] == hi, 'index ranges inconsistent'
+        del bok['at'], bok['to']
+        ps = bok.pop('block')
+
+        try: del bok['__doc__']
+        except KeyError: pass
+        assert not bok, bok.keys()
+
+        if ps[-1] < start: continue
+        if ps[0] < start:
+            assert not txt
+            ps = filter(lambda x, s=start: x >= s, ps)
+        else:
+            if rump: ps = rump + ps
+            if ps[0] <= octype.primes[-1]:
+                i = 0
+                while octype.primes[i] != ps[0]: i += 1
+                assert ps[:len(octype.primes) - i] = octype.primes[i:]
+                ps = ps[len(octype.primes) - i:]
+
+        if stop is not None and ps[-1] >= stop:
+            ps = filter(lambda x, s=stop: x < s, ps)
+            final = True
+
+        # digest as much of ps as we can
+        while ps and ps[-1] >= chew[7] + base:
+            assert chew[0] + base <= ps[0]
+
+            bit, byte = 1, 0
+            for cand in chew[:8]:
+                if ps[0] == cand + base:
+                    byte |= bit
+                    ps = ps[1:]
+                bit <<= 1
+
+            txt += chr(byte)
+            chew = chew[8:]
+            if not chew:
+                base += octype.modulus
+                chew = octype
+        rump = ps # not enough to complete next byte
+
+        # Have we got enough to make a new block ?
+        if len(txt) > octype.size:
+            bite, tail = divmod(len(txt), octype.size)
+            cut = bite * octype.size
+            yield (octype, start, txt[:cut])
+            start += bite * octype.modulus
+            txt = txt[cut:]
+            assert len(txt) == tail
+            assert start == base
+
+        if final: break
+
+    assert start == base
+    stray += rump
+    stray = stray.filter(lambda x, s=start: x >= s)
+    if stop is not None:
+        stray = stray.filter(lambda x, s=stop: x < s)
+
+    yield (octype, start, txt, stray)
+    raise StopIteration
+
+del os, Ordered
