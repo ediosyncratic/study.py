@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.22 2008-07-14 23:46:44 eddy Exp $
+$Id: cache.py,v 1.23 2008-07-15 00:03:19 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -681,14 +681,13 @@ def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
     if stop is not None: stop *= octype.modulus
     start *= octype.modulus
     base, txt, chew = start, '', 0 # octet digestion
-    glo, tail, rump, final = {}, List(), [], False
+    glo, stray, rump, final = {}, List(), [], False
     for (lo, hi, name) in row:
         bok = {}
         execfile(name, glo, bok)
 
-        try: stray = bok.pop('sparse')
+        try: stray += bok.pop('sparse')
         except AttributeError: pass
-        else: tail += stray
 
         assert bok['at'] == lo and bok['to'] == hi, 'index ranges inconsistent'
         del bok['at'], bok['to']
