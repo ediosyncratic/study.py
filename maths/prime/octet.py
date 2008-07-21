@@ -80,6 +80,18 @@ interpret them.
   whereas exploiting the properties of the primes gives us a compressed format
   which we can use directly when loaded into the computer's memory.
 
+  When first cache.oldCache digested my old cache, which saved each chunk of
+  primes as its python repr(), it reduced 350 MB of cached data (the first
+  33555456 primes, up to about 645 million) to a little over 18 MB of data;
+  about a factor of 19 better.  For simplicity, this test used bzip2 on all of
+  the data before base-64 even though this is counterproductive for the early
+  blocks.  The first and last blocks' raw 11520 bytes would base-64 expand to
+  15360; applying bzip2 first expanded the first so that it came out at 16180,
+  but the last shrank enough to come out at 14937.  So bzip2 is worth using for
+  later blocks, but not for early ones.  The break-even point seems to have come
+  somewhere around the five millionth prime, between 8e7 and 1e8; the first few
+  megabytes of cache files would be better saved without bzip.
+
 One can exploit the same approach, albeit without getting down to bit-fields, to
 reduce the amount of memory needed to record a proper factor of each non-prime;
 if a number isn't equivalent, mod P(n), to a member of C(n), then we can find a
@@ -88,6 +100,8 @@ need to record an actual proper factor; by always chosing its least proper
 factor, we can keep the memory overhead low.  We thus need to record only
 N(n)/P(n) times as much information as we otherwise would; at n = 7, this is
 0.18; we need less than a fifth as much disk space (and memory) to do the job.
+A bit of help from a judicious custom compression (a Huffman encoder) can
+improve the situation on disk even further.
 
 For reduction modulo 30, the first case where we have a multiple of 8 as our
 number of primes, and for the earlier cases, the list of values coprime to our
@@ -98,7 +112,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.12 2008-07-14 05:57:56 eddy Exp $
+$Id: octet.py,v 1.13 2008-07-21 21:18:12 eddy Exp $
 """
 
 def coprimes(primes):
