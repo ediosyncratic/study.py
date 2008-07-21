@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.25 2008-07-21 05:56:59 eddy Exp $
+$Id: cache.py,v 1.26 2008-07-21 06:11:01 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -694,8 +694,8 @@ class oldCache (object):
     def next(self): return self.__blocks.next()
 
     @staticmethod
-    def __file(lo, hi, name):
-        fd, quote = open(name), ''
+    def __file(lo, hi, fd):
+        quote = ''
         while True:
             if quote:
                 off, bs = line.find(quote), 0
@@ -724,12 +724,33 @@ class oldCache (object):
                 quote, line = line[:3], line[3:]
             elif line[:1] in ('"', "'"):
                 quote, line = line[:1], line[1:]
-            else: assert False, ('Unexpected line in old cache file', line)
+            else:
+                assert False, ('Unexpected line in old cache file', line)
+                off, bs = line.find('"'), 0
+                if off < 0 or "'" in line[:off]: off = line.find("'")
+                while off > bs:
+                    if line[off-1-bs] == '\\': bs += 1
+                    elif bs % 2:
+                        old = off+1
+                        off, bs = line.find('"', old), 0
+                        if off < 0 or "'" in line[old:off]:
+                            off = line.find("'", old)
+                    else: break
+
+                if off >= 0:
+                    # ignore line[:off]
+                    if line[off] == line[off+1] == line[off+2]:
+                        quote, line = line[off:off+3], line[off+3:]
+                    else: quote, line = line[off], line[off+1:]
+                # else simply ignore line
 
         while line.strip() != ']':
-            if not line: assert False, 'Premature end of old cache file'
-            yield eval(line) # it should eval to a tuple
-            line = fd.readline()
+            if line:
+                yield eval(line) # it should eval to a tuple
+                line = fd.readline()
+            else:
+                assert False, 'Premature end of old cache file'
+                break
 
         while line:
             line = fd.readline()
@@ -739,16 +760,20 @@ class oldCache (object):
 
     def __primes(self, row, start, stop):
         for (lo, hi, name) in row:
-            fd = self.__file(lo, hi, name)
-            for seq in fd:
-                if seq[-1] < start: pass
-                elif stop is None or seq[-1] < stop:
-                    for it in seq: yield it
-                else:
-                    for it in seq:
-                        if it < start: pass
-                        elif stop is None or it < stop: yield it
-                        else: raise StopIteration
+            fd = open(name)
+            try:
+                for seq in self.__file(lo, hi, fd):
+                    if seq[-1] < start: pass
+                    elif stop is None or seq[-1] < stop:
+                        for it in seq: yield it
+                    else:
+                        for it in seq:
+                            if it < start: pass
+                            elif stop is None or it < stop: yield it
+                            else: raise StopIteration
+
+            finally: fd.close()
+            print "Finished", name
 
         raise StopIteration
 
