@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.27 2008-07-21 06:11:23 eddy Exp $
+$Id: cache.py,v 1.28 2008-07-21 06:18:59 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -695,7 +695,7 @@ class oldCache (object):
 
     @staticmethod
     def __file(lo, hi, fd):
-        quote = ''
+        quote, num = '', 0
         while True:
             if quote:
                 off, bs = line.find(quote), 0
@@ -706,26 +706,29 @@ class oldCache (object):
 
                 if off < 0:
                     line = fd.readline()
+                    num += 1
                     continue
                 else:
                     off += len(quote)
                     line, quote = line[off:], ''
             else:
                 line = fd.readline()
+                num += 1
 
             if line.strip() == 'block = [':
                 line = fd.readline()
+                num += 1
                 break
             elif line[:9] == 'sparse = ':
                 self.__sparse += eval(line[8:])
-            elif line[:5] == 'to = ': assert hi == int(line[4:])
-            elif line[:5] == 'at = ': assert lo == int(line[4:])
+            elif line[:5] == 'to = ': assert hi == int(line[4:]), (line, num)
+            elif line[:5] == 'at = ': assert lo == int(line[4:]), (line, num)
             elif line[:3] in ('"""', "'''"):
                 quote, line = line[:3], line[3:]
             elif line[:1] in ('"', "'"):
                 quote, line = line[:1], line[1:]
             else:
-                assert False, ('Unexpected line in old cache file', line)
+                assert False, ('Unexpected line in old cache file', line, num)
                 off, bs = line.find('"'), 0
                 if off < 0 or "'" in line[:off]: off = line.find("'")
                 while off > bs:
@@ -748,19 +751,22 @@ class oldCache (object):
             if line:
                 yield eval(line) # it should eval to a tuple
                 line = fd.readline()
+                num += 1
             else:
-                assert False, 'Premature end of old cache file'
+                assert False, ('Premature end of old cache file', num)
                 break
 
         while line:
             line = fd.readline()
+            num += 1
             assert not line.strip(), ('Stray content at end of old cache file',
-                                      line)
+                                      line, num)
         raise StopIteration
 
     def __primes(self, row, start, stop):
         for (lo, hi, name) in row:
             fd = open(name)
+            # print "Processing", name
             try:
                 for seq in self.__file(lo, hi, fd):
                     if seq[-1] < start: pass
