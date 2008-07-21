@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.30 2008-07-21 06:28:16 eddy Exp $
+$Id: cache.py,v 1.31 2008-07-21 07:11:06 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -803,8 +803,10 @@ class oldCache (object):
 
         slices, chew = [], 0
         while chew < kind.size:
-            slices.append(kind[8*chew:8*chew+8])
+            off = chew * 8
+            slices.append(kind[off:off+8])
             chew += 1
+        assert len(slices) == kind.size
 
         seq, chew = [ p ], 0
         while base + slices[chew][-1] < p:
@@ -816,18 +818,26 @@ class oldCache (object):
 
         eight, next = slices[chew], []
         for p in ps:
-            assert p >= eight[0]
-            off = p - eight[0]
+            assert p >= base
+            off = p - base
+            assert off >= eight[0]
+
             if off > eight[-1]: next.append(p)
             else: seq.append(p)
-            if off >= eight[-1]:
+
+            while off >= eight[-1]:
+                assert len(seq) <= 8
                 yield seq, eight, base
                 chew += 1
+
                 if chew >= kind.size:
                     base += kind.modulus
-                    chew = 0
+                    chew, off = 0, p - base
                 eight = slices[chew]
-            if next: seq = next
+
+                if next and off <= eight[-1]:
+                    seq, next = next, []
+                else: seq = []
 
         self.__sparse += seq
         raise StopIteration
@@ -840,12 +850,11 @@ class oldCache (object):
                 txt, at = '', base
 
             byte = bit = i = 0
-            for it in bs:
-                if ps[i] == it:
-                    byte |= 1<<bit
-                    i += 1
-                else: assert ps[i] > it
-                bit += 1
+            for p in ps:
+                p -= base
+                while p > bs[bit]: bit += 1
+                assert p == bs[bit], (ps, bs, base, p, bit, byte)
+                byte |= 1<<bit
 
             txt += chr(byte)
 
