@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.31 2008-07-21 07:11:06 eddy Exp $
+$Id: cache.py,v 1.32 2008-07-21 21:19:50 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -677,7 +677,7 @@ class oldCache (object):
         and, unless stop is None,
           * base + len(data) * octype.size * 8 <= stop * octype.modulus\n"""
 
-        row, self.__sparse = [], List()
+        row, self.__sparse = [], List(unique=True)
         for name in os.listdir(cdir):
             if name[:1] == 'c' and name[-3:] == '.py' and '-' in name[1:-3]:
                 try: lo, hi = map(int, name[1:-3].split('-'))
@@ -858,7 +858,7 @@ class oldCache (object):
 
             txt += chr(byte)
 
-        if txt: yield txt, at, self.__sparse
+        if txt: yield at, txt, self.__sparse
         raise StopIteration
 
 del os, Ordered
