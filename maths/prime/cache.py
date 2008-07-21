@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.24 2008-07-20 22:05:07 eddy Exp $
+$Id: cache.py,v 1.25 2008-07-21 05:56:59 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -634,126 +634,189 @@ class WriteCacheFile (CacheFile, WriteSubNode):
 
 del Interval, weakattr, lazyattr, lazyprop
 
-def oldCache(octype, cdir, start=0, stop=None, os=os, List=Ordered):
-    """Digest an old-style prime-only cache directory.
-
-    Required arguments:
-      cdir -- path name of an old-style cache directory
-      octype -- a generalized octet type, see octet.py
-
-    Optional arguments, in units of octype.modulus:
-      start -- inclusive lower bound on naturals (default: 0)
-      stop -- exclusive upper bound on naturals or (default) None, meaning
-              unbounded
-
-    Returns a iterator yielding (kind, base, data) 3-tuples and a final 4-tuple
-    the same but with final entry stray, listing known primes beyond the end of
-    the fully explored reach of the old cache, clipped to the range specified by
-    start and stop (actually, stray may include a few primes from the old
-    cache's fully-explored reach, if this reached only part-way through the data
-    for the next byte of data).  In each case, (kind, base, data) are suitable
-    for use in the constructor of FlagOctet except that the last's len(data)
-    usually won't be a multiple ot kind.size, unless stop is given, so it should
-    be used to construct a FlagSieve (for which you'll need the primes list).
-
-    The initial (kind, base, data) 3-tuple in each tuple yielded shall satisfy:
-      kind is octype
-      base >= start * octype.modulus
-    and, unless stop is None,
-      base + len(data) * kind.size * 8 <= stop * octype.modulus
+class oldCache (object):
+    """Iterator over generalized octet blocks describing an old-style cache.
 
     Earlier versions of this study package included a cruder study.maths.primes
-    module, without factor information, with its own cache directory; this
-    function makes it possible to digest one of those into a form which can be
-    saved into a new-style prime cache.  The result only contains prime data;
-    you'll still need to sieve using the new system in order to build up factor
-    data, but this makes as much use of old data as possible.\n"""
+    module, without factor information, with its own cache directory; this class
+    makes it possible to digest one of those into a form which can be saved into
+    a new-style prime cache.  An instance only provides prime data; you'll still
+    need to sieve using the new system in order to build up factor data, but
+    this makes as much use of old data as possible.
 
-    row = []
-    for name in os.listdir(cdir):
-        if name[:1] == 'c' and name[-3:] == '.py' and '-' in name[1:-3]:
-            try: lo, hi = map(int, name[1:-3].split('-'))
-            except ValueError:
-                print 'ignored malformed name', name, 'in old cache', cdir
-            else: row.append((lo, hi, os.path.join(cdir, name)))
-    row.sort()
+    An instance is a iterator yielding (base, data) twoples and a final 3-tuple
+    the same but with final entry stray, listing known primes beyond the end of
+    the fully explored reach of the old cache (actually, stray may include a few
+    primes from the old cache's fully-explored reach, if this reached only
+    part-way through your octet type's candidates for the next byte of data).
+    The range of primes for which data is yielded may be limited by supplying
+    start and stop parameters to the constructor (q.v.).
 
-    if stop is not None: stop *= octype.modulus
-    start *= octype.modulus
-    base, txt, chew = start, '', 0 # octet digestion
-    glo, stray, rump, final = {}, List(), [], False
-    for (lo, hi, name) in row:
-        bok = {}
-        # TODO: re-write to parse it ourselves; this is too expensive:
-        execfile(name, glo, bok)
+    In each case, (base, data) are suitable for use in the constructor of
+    FlagOctet, using the generalized octet type passed to the constructor,
+    except that the final 3-tuple's len(data) usually won't be a whole multiple
+    of the .size of that octet type, so it should be used to construct a
+    FlagSieve (for which you'll need the primes list) instead.\n"""
 
-        try: stray += bok.pop('sparse')
-        except AttributeError: pass
+    def __iter__(self): return self # requirement of iterator protocol
+    def __init__(self, octype, cdir, start=0, stop=None, os=os, List=Ordered):
+        """Digest an old-style prime-only cache directory.
 
-        assert bok['at'] == lo and bok['to'] == hi, 'index ranges inconsistent'
-        del bok['at'], bok['to']
-        ps = bok.pop('block')
+        Required arguments:
+          cdir -- path name of an old-style cache directory
+          octype -- a generalized octet type, see octet.py
 
-        try: del bok['__doc__']
-        except KeyError: pass
-        assert not bok, bok.keys()
+        Optional arguments, in units of octype.modulus:
+          start -- inclusive lower bound on naturals (default: 0)
+          stop -- exclusive upper bound on naturals or (default) None, meaning
+                  unbounded
 
-        if ps[-1] < start:
-            assert not txt and not rump
-            continue
-        if ps[0] < start:
-            assert not txt and not rump
-            ps = filter(lambda x, s=start: x >= s, ps)
-        else:
-            if rump: ps = rump + ps
-            if ps[0] <= octype.primes[-1]:
-                i = 0
-                while octype.primes[i] != ps[0]: i += 1
-                assert octype.primes[i:] == tuple(ps[:len(octype.primes) - i])
-                ps = ps[len(octype.primes) - i:]
+        The initial (base, data) twople in each tuple yielded (see class
+        documentation) by the instance shall satisfy:
+          * base >= start * octype.modulus
+        and, unless stop is None,
+          * base + len(data) * octype.size * 8 <= stop * octype.modulus\n"""
 
-        if stop is not None and ps[-1] >= stop:
-            ps = filter(lambda x, s=stop: x < s, ps)
-            final = True
+        row, self.__sparse = [], List()
+        for name in os.listdir(cdir):
+            if name[:1] == 'c' and name[-3:] == '.py' and '-' in name[1:-3]:
+                try: lo, hi = map(int, name[1:-3].split('-'))
+                except ValueError:
+                    print 'ignored malformed name', name, 'in old cache', cdir
+                else: row.append((lo, hi, os.path.join(cdir, name)))
+        row.sort()
 
-        # digest as much of ps as we can
-        while ps and ps[-1] >= octype[chew + 7] + base:
-            assert octype[chew] + base <= ps[0]
+        if stop is not None: stop *= octype.modulus
+        start *= octype.modulus
+        primes = self.__primes(row, start, stop)
+        self.__blocks = self.__digest(self.__eights(primes, start, octype))
 
-            bit, byte = 1, 0
-            for i in range(chew, chew + 8):
-                cand = octype[i]
-                if ps[0] == cand + base:
-                    byte |= bit
-                    ps = ps[1:]
-                bit <<= 1
+    def next(self): return self.__blocks.next()
+
+    @staticmethod
+    def __file(lo, hi, name):
+        fd, quote = open(name), ''
+        while True:
+            if quote:
+                off, bs = line.find(quote), 0
+                while off > bs:
+                    if line[off-1-bs] == '\\': bs += 1
+                    elif bs % 2: off, bs = line.find(quote, off+1), 0
+                    else: break
+
+                if off < 0:
+                    line = fd.readline()
+                    continue
+                else:
+                    off += len(quote)
+                    line, quote = line[off:], ''
+            else:
+                line = fd.readline()
+
+            if line.strip() == 'block = [':
+                line = fd.readline()
+                break
+            elif line[:9] == 'sparse = ':
+                self.__sparse += eval(line[8:])
+            elif line[:5] == 'to = ': assert hi == int(line[4:])
+            elif line[:5] == 'at = ': assert lo == int(line[4:])
+            elif line[:3] in ('"""', "'''"):
+                quote, line = line[:3], line[3:]
+            elif line[:1] in ('"', "'"):
+                quote, line = line[:1], line[1:]
+            else: assert False, ('Unexpected line in old cache file', line)
+
+        while line.strip() != ']':
+            if not line: assert False, 'Premature end of old cache file'
+            yield eval(line) # it should eval to a tuple
+            line = fd.readline()
+
+        while line:
+            line = fd.readline()
+            assert not line.strip(), ('Stray content at end of old cache file',
+                                      line)
+        raise StopIteration
+
+    def __primes(self, row, start, stop):
+        for (lo, hi, name) in row:
+            fd = self.__file(lo, hi, name)
+            for seq in fd:
+                if seq[-1] < start: pass
+                elif stop is None or seq[-1] < stop:
+                    for it in seq: yield it
+                else:
+                    for it in seq:
+                        if it < start: pass
+                        elif stop is None or it < stop: yield it
+                        else: raise StopIteration
+
+        raise StopIteration
+
+    def __eights(self, ps, base, kind):
+        """Break up a sequence of primes into octet-blocks.
+        """
+        p = ps.next()
+        assert p >= base
+        if p in kind.primes:
+            assert base == 0
+            i = 0
+            while kind.primes[i] != p: i += 1
+            i += 1
+            while i < len(kind.primes):
+                p = ps.next()
+                assert kind.primes[i] == p
+                i += 1
+            p = ps.next()
+
+        slices, chew = [], 0
+        while chew < kind.size:
+            slices.append(kind[8*chew:8*chew+8])
+            chew += 1
+
+        seq, chew = [ p ], 0
+        while base + slices[chew][-1] < p:
+            yield [], [], base
+            chew += 8
+            if chew >= kind.size:
+                base += kind.modulus
+                chew = 0
+
+        eight, next = slices[chew], []
+        for p in ps:
+            assert p >= eight[0]
+            off = p - eight[0]
+            if off > eight[-1]: next.append(p)
+            else: seq.append(p)
+            if off >= eight[-1]:
+                yield seq, eight, base
+                chew += 1
+                if chew >= kind.size:
+                    base += kind.modulus
+                    chew = 0
+                eight = slices[chew]
+            if next: seq = next
+
+        self.__sparse += seq
+        raise StopIteration
+
+    def __digest(self, es):
+        txt, at = '', 0
+        for (ps, bs, base) in es:
+            if txt and base > at:
+                yield at, txt
+                txt, at = '', base
+
+            byte = bit = i = 0
+            for it in bs:
+                if ps[i] == it:
+                    byte |= 1<<bit
+                    i += 1
+                else: assert ps[i] > it
+                bit += 1
 
             txt += chr(byte)
-            chew += 8
-            if chew >= len(octype):
-                base += octype.modulus
-                chew = 0
-        rump = ps # not enough to complete next byte
 
-        # Have we got enough to make a new block ?
-        if len(txt) > octype.size:
-            bite, rem = divmod(len(txt), octype.size)
-            cut = bite * octype.size
-            yield (octype, start, txt[:cut])
-            start += bite * octype.modulus
-            txt = txt[cut:]
-            assert len(txt) == rem
-            assert start == base
-
-        if final: break
-
-    assert start == base
-    stray += rump
-    stray = stray.filter(lambda x, s=start: x >= s)
-    if stop is not None:
-        stray = stray.filter(lambda x, s=stop: x < s)
-
-    yield (octype, start, txt, stray)
-    raise StopIteration
+        if txt: yield txt, at, self.__sparse
+        raise StopIteration
 
 del os, Ordered
