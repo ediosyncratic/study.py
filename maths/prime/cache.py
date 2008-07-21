@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.29 2008-07-21 06:25:56 eddy Exp $
+$Id: cache.py,v 1.30 2008-07-21 06:28:16 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -693,7 +693,7 @@ class oldCache (object):
 
     def next(self): return self.__blocks.next()
 
-    def __file(lo, hi, fd):
+    def __file(self, lo, hi, fd):
         quote, num = '', 0
         while True:
             if quote:
