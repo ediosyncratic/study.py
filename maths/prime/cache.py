@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.34 2008-07-24 07:18:29 eddy Exp $
+$Id: cache.py,v 1.35 2008-07-24 08:11:34 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -644,44 +644,23 @@ class oldCache (object):
     need to sieve using the new system in order to build up factor data, but
     this makes as much use of old data as possible.
 
-    An instance provides two iterators, only one of which should be used (both
-    shall be broken if both are used):
+    An instance is an iterator over primes found in the old cache, possibly
+    yielding None after it has completed the contiguous range of the old cache;
+    thereafter, it may be gaps between primes.  The range of primes for which
+    data is yielded may be limited by supplying start and stop parameters to the
+    constructor (q.v.).\n"""
 
-     .primes -- yields each prime found in the old cache.
-
-     .blocks -- yields (base, data) twoples and a final 3-tuple the same but
-                with final entry stray, listing known primes beyond the end of
-                the fully explored reach of the old cache (actually, stray may
-                include a few primes from the old cache's fully-explored reach,
-                if this reached only part-way through your octet type's
-                candidates for the next byte of data).
-
-    The range of primes for which data is yielded may be limited by supplying
-    start and stop parameters to the constructor (q.v.).
-
-    In each yield from .blocks, (base, data) are suitable for use in the
-    constructor of FlagOctet, using the generalized octet type passed to the
-    constructor, except that the final 3-tuple's len(data) usually won't be a
-    whole multiple of the .size of that octet type, so it should be used to
-    construct a FlagSieve (for which you'll need the primes list) instead.\n"""
-
-    def __init__(self, octype, cdir, start=0, stop=None, os=os, List=Ordered):
+    def __iter__(self): return self
+    def __init__(self, cdir, start=0, stop=None, os=os, List=Ordered):
         """Digest an old-style prime-only cache directory.
 
         Required arguments:
           cdir -- path name of an old-style cache directory
-          octype -- a generalized octet type, see octet.py
 
-        Optional arguments, in units of octype.modulus:
+        Optional arguments:
           start -- inclusive lower bound on naturals (default: 0)
           stop -- exclusive upper bound on naturals or (default) None, meaning
-                  unbounded
-
-        The initial (base, data) twople in each tuple yielded (see class
-        documentation) by the instance shall satisfy:
-          * base >= start * octype.modulus
-        and, unless stop is None,
-          * base + len(data) * octype.size * 8 <= stop * octype.modulus\n"""
+                  unbounded\n"""
 
         row, self.__sparse = [], List(unique=True)
         for name in os.listdir(cdir):
@@ -692,15 +671,9 @@ class oldCache (object):
                 else: row.append((lo, hi, os.path.join(cdir, name)))
         row.sort()
 
-        if stop is not None: stop *= octype.modulus
-        start *= octype.modulus
-        self.primes = self.__primes(row, start, stop)
-        self.__start, self.__octype = start, octype
+        self.__src = self.__primes(row, start, stop)
 
-    @lazyattr
-    def blocks(self):
-        return self.__digest(self.__eights(self.primes,
-                                           self.__start, self.__octype))
+    def next(self): return self.__src.next()
 
     def __file(self, lo, hi, fd):
         quote, num = '', 0
@@ -775,6 +748,7 @@ class oldCache (object):
         raise StopIteration
 
     def __primes(self, row, start, stop):
+        it = 0
         for (lo, hi, name) in row:
             fd = open(name)
             # print "Processing", name
@@ -787,87 +761,31 @@ class oldCache (object):
                         for it in seq:
                             if it < start: pass
                             elif stop is None or it < stop: yield it
-                            else: raise StopIteration
+                            else: raise StopIteration # discarding __sparse
 
             finally: fd.close()
             # print "Finished", name
 
-        raise StopIteration
+        # Now deal with sparse.  First trim it:
+        if stop is not None:
+            try: ind = self.__sparse.index(stop)
+            except ValueError, what: ind = what.args[0]
+            if what >= 0: del self.__sparse[what:]
 
-    def __eights(self, ps, base, kind):
-        """Break up a sequence of primes into octet-blocks.
-        """
-        p = ps.next()
-        assert p >= base
-        if p in kind.primes:
-            assert base == 0
-            i = 0
-            while kind.primes[i] != p: i += 1
-            i += 1
-            while i < len(kind.primes):
-                p = ps.next()
-                assert kind.primes[i] == p
-                i += 1
-            p = ps.next()
+        if it < start: it = start # we never yielded anything !
+        # Find how much, if any, of self.__sparse belongs after it:
+        try: ind = self.__sparse.index(it)
+        except ValueError, what:
+            ind = what.args[0] # where Ordered.append would insert it
+        else:
+            if ind >= 0: ind += 1 # don't repeat it
 
-        slices, chew = [], 0
-        while chew < kind.size:
-            off = chew * 8
-            slices.append(kind[off:off+8])
-            chew += 1
-        assert len(slices) == kind.size
+        if ind >= 0: # -1 means "after last entry"
+            if ind > 0: del self.__sparse[:ind]
+            if self.__sparse:
+                yield None
+                for it in self.__sparse: yield it
 
-        seq, chew = [ p ], 0
-        while base + slices[chew][-1] < p:
-            yield [], [], base
-            chew += 8
-            if chew >= kind.size:
-                base += kind.modulus
-                chew = 0
-
-        eight, next = slices[chew], []
-        for p in ps:
-            assert p >= base
-            off = p - base
-            assert off >= eight[0]
-
-            if off > eight[-1]: next.append(p)
-            else: seq.append(p)
-
-            while off >= eight[-1]:
-                assert len(seq) <= 8
-                yield seq, eight, base
-                chew += 1
-
-                if chew >= kind.size:
-                    base += kind.modulus
-                    chew, off = 0, p - base
-                eight = slices[chew]
-
-                if next and off <= eight[-1]:
-                    seq, next = next, []
-                else: seq = []
-
-        self.__sparse += seq
-        raise StopIteration
-
-    def __digest(self, es):
-        txt, at = '', 0
-        for (ps, bs, base) in es:
-            if txt and base > at:
-                yield at, txt
-                txt, at = '', base
-
-            byte = bit = i = 0
-            for p in ps:
-                p -= base
-                while p > bs[bit]: bit += 1
-                assert p == bs[bit], (ps, bs, base, p, bit, byte)
-                byte |= 1<<bit
-
-            txt += chr(byte)
-
-        if txt: yield at, txt, self.__sparse
         raise StopIteration
 
 del os, Ordered
