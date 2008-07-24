@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.32 2008-07-21 21:19:50 eddy Exp $
+$Id: cache.py,v 1.33 2008-07-24 07:16:21 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -635,7 +635,7 @@ class WriteCacheFile (CacheFile, WriteSubNode):
 del Interval, weakattr, lazyattr, lazyprop
 
 class oldCache (object):
-    """Iterator over generalized octet blocks describing an old-style cache.
+    """Iterator over an old-style cache.
 
     Earlier versions of this study package included a cruder study.maths.primes
     module, without factor information, with its own cache directory; this class
@@ -644,21 +644,27 @@ class oldCache (object):
     need to sieve using the new system in order to build up factor data, but
     this makes as much use of old data as possible.
 
-    An instance is a iterator yielding (base, data) twoples and a final 3-tuple
-    the same but with final entry stray, listing known primes beyond the end of
-    the fully explored reach of the old cache (actually, stray may include a few
-    primes from the old cache's fully-explored reach, if this reached only
-    part-way through your octet type's candidates for the next byte of data).
+    An instance provides two iterators, only one of which should be used (both
+    shall be broken if both are used):
+
+     .primes -- yields each prime found in the old cache.
+
+     .blocks -- yields (base, data) twoples and a final 3-tuple the same but
+                with final entry stray, listing known primes beyond the end of
+                the fully explored reach of the old cache (actually, stray may
+                include a few primes from the old cache's fully-explored reach,
+                if this reached only part-way through your octet type's
+                candidates for the next byte of data).
+
     The range of primes for which data is yielded may be limited by supplying
     start and stop parameters to the constructor (q.v.).
 
-    In each case, (base, data) are suitable for use in the constructor of
-    FlagOctet, using the generalized octet type passed to the constructor,
-    except that the final 3-tuple's len(data) usually won't be a whole multiple
-    of the .size of that octet type, so it should be used to construct a
-    FlagSieve (for which you'll need the primes list) instead.\n"""
+    In each yield from .blocks, (base, data) are suitable for use in the
+    constructor of FlagOctet, using the generalized octet type passed to the
+    constructor, except that the final 3-tuple's len(data) usually won't be a
+    whole multiple of the .size of that octet type, so it should be used to
+    construct a FlagSieve (for which you'll need the primes list) instead.\n"""
 
-    def __iter__(self): return self # requirement of iterator protocol
     def __init__(self, octype, cdir, start=0, stop=None, os=os, List=Ordered):
         """Digest an old-style prime-only cache directory.
 
@@ -688,10 +694,11 @@ class oldCache (object):
 
         if stop is not None: stop *= octype.modulus
         start *= octype.modulus
-        primes = self.__primes(row, start, stop)
-        self.__blocks = self.__digest(self.__eights(primes, start, octype))
+        self.primes = self.__primes(row, start, stop)
 
-    def next(self): return self.__blocks.next()
+    @lazyattr
+    def blocks(self):
+        return self.__digest(self.__eights(self.primes, start, octype))
 
     def __file(self, lo, hi, fd):
         quote, num = '', 0
