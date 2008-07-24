@@ -112,7 +112,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.13 2008-07-21 21:18:12 eddy Exp $
+$Id: octet.py,v 1.14 2008-07-24 08:04:50 eddy Exp $
 """
 
 def coprimes(primes):
@@ -502,5 +502,136 @@ class FactorSieve (FactorOctet, Sieve):
         val = self.__upget(ind) # raising suitable exception if needed
         if self.valid(ind) or val is not None: return val
         raise LookupError('Too early to be sure', ind)
-
+
 del regular
+
+class Chunker (object):
+    """Iterator converting prime iterator into block iterator.
+
+    An instance yields a sequence of (base, data) twoples and a final 3-tuple
+    the same but with final entry stray, listing primes supplied by the prime
+    iterator and not described by the yielded data.  This shall comprise all the
+    primes the iterator yielded after any optional None plus any (at most eight)
+    primes that would have gone into the next byte of data, when the given
+    primes don't include the octet type's last candidate for a prime in that
+    byte.\n"""
+
+    def __iter__(self): return self
+    def __init__(self, prime, octype, start=0, stop=None):
+        """Digest a sequence of primes into a sequence of blocks.
+
+        Required arguments:
+          prime -- an interator over some initial sequence of the primes
+          octype -- an OctetType
+        Optional arguments, in units of octype.modulus:
+          start -- start of range of interest (default: 0)
+          stop -- end of range of interest or (default) None
+
+        The prime iterator should iterate over all primes up to cut-off, in
+        increasing order; it may then, before stopping, yield None followed, on
+        successive iterations, by some non-contiguous (but still increasing)
+        sequence of primes.  Primes less than start * octype.modulus or, when
+        stop is not NOne, greater than stop * octype.modulus are ignored.\n"""
+
+        self.__blocks = self.__digest(self.__eights(prime, octype, start))
+
+    def __digest(self, es):
+        txt, at = '', 0
+        for (ps, bs, base) in es:
+            if txt and base > at:
+                yield at, txt
+                txt, at = '', base
+
+            byte = bit = i = 0
+            for p in ps:
+                p -= base
+                while p > bs[bit]: bit += 1
+                assert p == bs[bit], (ps, bs, base, p, bit, byte)
+                byte |= 1<<bit
+
+            txt += chr(byte)
+
+        if txt: yield at, txt, self.__sparse
+        raise StopIteration
+
+    def __eights(self, ps, kind, base):
+        """Break up a sequence of primes into octet-blocks.
+
+        Required arguments:
+          ps -- iterator over primes
+          kind -- an OctetType
+          base -- a multiple of kind.modulus
+
+        The iterator ps must yield every prime >= base and <= some cut-off, in
+        increasing order, optionally followed by None and then some stray primes
+        after the cut-off, again in increasing order, but possibly omitting some
+        of the primes between these.  Returns an iterator yielding 3-tuples of
+        form (ps, cs, at) where at is a multiple of kind.modulus ps, is a short
+        list of primes, each of which is base more than some entry in cs, and cs
+        is an 8-tuple of candidates, kind[n:n+8] for some multiple, n, of 8.
+
+        If the last prime before the cut-off isn't kind's last candidate in some
+        such block of 8, the last few (at most eight) of the primes before the
+        cut-off shall not be included in any yield's ps; nor shall any strays
+        appearing after a None yield.  Primes not included in any yield's ps
+        shall have been accumulate into self.__sparse by the time this iterator
+        raises StopIteration.\n"""
+
+        p = ps.next()
+        if p is not None:
+            assert p >= base
+            if p in kind.primes:
+                assert base == 0
+                i = 0
+                while kind.primes[i] != p: i += 1
+                i += 1
+                while i < len(kind.primes):
+                    p = ps.next()
+                    assert kind.primes[i] == p
+                    i += 1
+                p = ps.next()
+
+            slices, chew = [], 0
+            while chew < kind.size:
+                off = chew * 8
+                slices.append(kind[off:off+8])
+                chew += 1
+            assert len(slices) == kind.size
+
+            seq, chew = [ p ], 0
+            while base + slices[chew][-1] < p:
+                yield [], [], base
+                chew += 8
+                if chew >= kind.size:
+                    base += kind.modulus
+                    chew = 0
+
+            eight, next = slices[chew], []
+            for p in ps:
+                if p is None: break
+                assert p >= base
+                off = p - base
+                assert off >= eight[0]
+
+                if off > eight[-1]: next.append(p)
+                else: seq.append(p)
+
+                while off >= eight[-1]:
+                    assert len(seq) <= 8
+                    yield seq, eight, base
+                    chew += 1
+
+                    if chew >= kind.size:
+                        base += kind.modulus
+                        chew, off = 0, p - base
+                    eight = slices[chew]
+
+                    if next and off <= eight[-1]:
+                        seq, next = next, []
+                    else: seq = []
+
+        # Accumulate everything after the None:
+        for p in ps: seq.append(p)
+        self.__sparse = seq
+
+        raise StopIteration
