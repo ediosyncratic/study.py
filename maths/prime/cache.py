@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.35 2008-07-24 08:11:34 eddy Exp $
+$Id: cache.py,v 1.36 2008-07-25 05:56:31 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -350,7 +350,8 @@ class CacheDir (object):
         assert lon.stop <= index < hin.start
         raise ValueError(hi)
 
-    def __locate(self, seq, value, gap, index=None, Range=Gap, Hole=Interval):
+    def __locate(self, seq, value, gap, index=None,
+                 Range=Gap, Hole=Interval, base=CacheDir):
         try:
             if value is None:
                 assert index is not None and self.prime
@@ -385,7 +386,7 @@ class CacheDir (object):
 
         else:
             kid = seq[ind]
-            if isinstance(kid, CacheDir):
+            if isinstance(kid, base):
                 if value is not None: value -= kid.start
                 else: index -= kid._indices.start
                 return kid.__locate(seq, value, gap, index)
@@ -446,10 +447,10 @@ class WriteCacheDir (CacheDir):
         # TODO: implement
         raise NotImplementedError
 
-    def tidy(self):
+    def tidy(self, base=WriteCacheDir):
         if not self.changed: return # nothing to do
         for node in self.listing:
-            if isinstance(node, WriteCacheDir) and node.changed:
+            if isinstance(node, base) and node.changed:
                 node.tidy()
         self._onchanged()
         # TODO: implement
@@ -632,6 +633,7 @@ class CacheFile (CacheSubNode):
 class WriteCacheFile (CacheFile, WriteSubNode):
     pass
 
+del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode, CacheDir, WriteCacheDir
 del Interval, weakattr, lazyattr, lazyprop
 
 class oldCache (object):
@@ -639,14 +641,15 @@ class oldCache (object):
 
     Earlier versions of this study package included a cruder study.maths.primes
     module, without factor information, with its own cache directory; this class
-    makes it possible to digest one of those into a form which can be saved into
-    a new-style prime cache.  An instance only provides prime data; you'll still
-    need to sieve using the new system in order to build up factor data, but
-    this makes as much use of old data as possible.
+    makes it possible to digest one of those into a form which can be saved
+    (with the help of octet.Chunker) into a new-style prime cache.  An instance
+    only provides prime data; you'll still need to sieve using the new system in
+    order to build up factor data, but this makes as much use of old data as
+    possible.
 
     An instance is an iterator over primes found in the old cache, possibly
     yielding None after it has completed the contiguous range of the old cache;
-    thereafter, it may be gaps between primes.  The range of primes for which
+    thereafter, it may leave out some primes.  The range of primes for which
     data is yielded may be limited by supplying start and stop parameters to the
     constructor (q.v.).\n"""
 
