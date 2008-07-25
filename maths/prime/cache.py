@@ -96,7 +96,7 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.36 2008-07-25 05:56:31 eddy Exp $
+$Id: cache.py,v 1.37 2008-07-25 07:00:58 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -137,7 +137,6 @@ class Node (Interval):
 
     class Bok (dict): pass # for weakref's sake
     def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
-        # TODO: need a lock-check on all ancestors
         # TODO: want to be able to GET a URL instead of reading a file
 
         if bok is None: bok = Bok()
@@ -279,6 +278,7 @@ class CacheDir (object):
             got = pat.match(name)
             if got is not None:
                 start, span = int(got.group(1), 36), int(got.group(3), 36)
+                assert not got.group(4) or len(got.group(2)) == 1, 'mixed file'
                 ans.append((start, span, name, got.group(2), got.group(4)))
 
         return ans
@@ -630,8 +630,19 @@ class CacheFile (CacheSubNode):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(-1)
 
+    __load = CacheSubNode.load
+    def load(self, bok=None):
+        bok = self.__load(bok)
+        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  bok.keys())
+        assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
+        return bok
+
 class WriteCacheFile (CacheFile, WriteSubNode):
-    pass
+    __save = WriteSubNode.load
+    def save(self, **what):
+        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
+        assert not self.factor or filter(lambda k: k[:6] == 'factor', what.keys())
+        return self.__save(**what)
 
 del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode, CacheDir, WriteCacheDir
 del Interval, weakattr, lazyattr, lazyprop
