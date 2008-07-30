@@ -1,6 +1,6 @@
 """Master object controlling primes list.
 
-$Id: master.py,v 1.2 2008-07-30 07:54:55 eddy Exp $
+$Id: master.py,v 1.3 2008-07-30 19:27:32 eddy Exp $
 """
 import os, cache
 
@@ -33,10 +33,10 @@ class Master (object):
     def readpath(names, write, seen, kind,
                  readroot=readroot, real=realabs,
                  exist=os.path.exists, OSError=os.error):
-        if write in seen: write = None
-        else: write = real(write)
+        if write in seen: write, seen = None, [ real(write) ]
+        else: write, seen = real(write), []
 
-        out, seen = [], map(real, seen)
+        out = []
         for name in names:
             if not exist(name): continue
             name = real(name)
