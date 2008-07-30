@@ -1,40 +1,59 @@
 """Master object controlling primes list.
 
-$Id: master.py,v 1.1 2008-07-30 07:26:16 eddy Exp $
+$Id: master.py,v 1.2 2008-07-30 07:54:55 eddy Exp $
 """
 import os, cache
 
 class Master (object):
 
+    # Tool functions (not methods) used by __init__:
+    def realabs(name, real=os.path.realpath, abspath=os.path.abspath):
+        return real(abspath(name))
+
     def writedir(name,
-                 exist=os.path.exists,
-                 makedirs=os.makedirs,
-                 WriteCacheRoot=cache.WriteCacheRoot):
+                 exist=os.path.exists, makedirs=os.makedirs,
+                 real=realabs, WriteCacheRoot=cache.WriteCacheRoot):
+        name = real(name)
         if not exist(name): makedirs(name) # may raise OSError
+
         root = WriteCacheRoot(name)
         if root.lock(write=True):
-            if not root.lock(read=True):
-                assert 'Ouch - broken lockery'
+            if not root.lock(read=True): assert False, 'Ouch - broken lockery'
             root.unlock(write=True)
             return root
 
         raise IOError
 
-    def readpath(names, seen, kind,
-                 CacheRoot=cache.CacheRoot):
-        out = []
+    def readroot(name, kind, CacheRoot=cache.CacheRoot):
+        r = CacheRoot(name)
+        if not getattr(r, kind): raise AttributeError
+        if r.lock(read=True): r.unlock(read=True)
+        return r
+
+    def readpath(names, write, seen, kind,
+                 readroot=readroot, real=realabs,
+                 exist=os.path.exists, OSError=os.error):
+        if write in seen: write = None
+        else: write = real(write)
+
+        out, seen = [], map(real, seen)
         for name in names:
+            if not exist(name): continue
+            name = real(name)
             if name in seen: continue
+            elif name == write: write = None
             seen.append(name)
-            try:
-                r = CacheRoot(name)
-                if not getattr(r, kind): continue
-                if r.lock(read=True): r.unlock(read=True)
-            except (IOError, OSError): continue
-            else: out.append(r)
+            try: out.append(readroot(name))
+            except (IOError, OSError, AttributeError,): pass
+
+        if write is not None:
+            # default position for non-writable write-root is as first read-root:
+            try: out.insert(0, readroot(write))
+            except (IOError, OSError, AttributeError,): pass
 
         return tuple(out)
 
+    del readroot, realabs
     def __init__(self,
                  pwrite=None,
                  fwrite=None,
@@ -43,16 +62,11 @@ class Master (object):
                  memsize=0x1000000, # 16 MB
                  disksize=0x100000, # 1 MB
                  pathsep=os.pathsep,
-                 writedir=writedir,
-                 readpath=readpath,
                  env=os.environ,
                  study=None,
                  home=os.curdir,
-                 OSError=os.error,
-                 join=os.path.join,
-                 real=os.path.realpath,
-                 abspath=os.path.abspath,
-                 exist=os.path.exists):
+                 join=os.path.join, OSError=os.error,
+                 writedir=writedir, readpath=readpath):
         """Initialize master object.
 
         All arguments are optional:
@@ -113,28 +127,22 @@ class Master (object):
         elif study is None: study = join(env.get('HOME', home), '.study')
 
         if pread is None: pread = env.get('STUDY_PRIME_PATH', '')
-        pread = map(real, map(abspath, filter(exist, pathsep.split(pread))))
         if fread is None: fread = env.get('STUDY_FACTOR_PATH', '')
-        fread = map(real, map(abspath, filter(exist, pathsep.split(fread))))
-        seen = []
+        seen, pread, fread = [], pathsep.split(pread), pathsep.split(fread)
 
         if pwrite is None: pwrite = env.get('STUDY_PRIME_DIR', None)
         if not pwrite: pwrite = join(study, 'prime')
-        pwrite = real(abspath(pwrite))
         try: self.__prime_root = writedir(pwrite)
-        except (OSError, IOError):
-            if pwrite not in pread: pread.insert(0, pwrite)
+        except (OSError, IOError): pass
         else: seen.append(pwrite)
 
         if fwrite is None: fwrite = env.get('STUDY_FACTOR_DIR', None)
         if not fwrite: fwrite = join(study, 'factor')
-        fwrite = real(abspath(fwrite))
         try: self.__factor_root = writedir(fwrite)
-        except (OSError, IOError):
-            if fwrite not in fread: fread.insert(0, fwrite)
+        except (OSError, IOError): pass
         else: seen.append(fwrite)
 
-        self.__prime_path = readpath(pread + fread, seen[:], 'prime')
-        self.__factor_path = readpath(fread + pread, seen, 'factor')
+        self.__prime_path = readpath(pread + fread, pwrite, seen, 'prime')
+        self.__factor_path = readpath(fread + pread, fwrite, seen, 'factor')
 
     del writedir, readpath
