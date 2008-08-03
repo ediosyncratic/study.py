@@ -6,7 +6,13 @@ usually worth remembering once it's been computed; but worth being willing to
 let the interpreter forget if it gets short on memory.  In these situations, a
 weak reference is usually the answer.
 
-$Id: weak.py,v 1.1 2008-08-03 20:58:09 eddy Exp $
+Provides:
+  WeakTuple -- behaves like a tuple, cacheing returns from a function mapping
+               index to entries.
+  weakattr -- recurseprop using attrstore to cache weakrefs to attribute values
+  weakprop -- combines weakattr and dictprop
+
+$Id: weak.py,v 1.2 2008-08-03 20:59:56 eddy Exp $
 """
 
 from study.snake.sequence import ReadSeq
