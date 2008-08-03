@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.27 2008-07-14 23:34:54 eddy Exp $
+$Id: sequence.py,v 1.28 2008-08-03 09:53:11 eddy Exp $
 """
 
 class Iterable (object):
@@ -401,11 +401,11 @@ class List (ReadSeq, list): # list as base => can't use __slots__
 
     __updel = list.__delitem__
     def __delitem__(self, key):
-        try: iter(key)
+        try: k = iter(key)
         except TypeError:
             return self.__updel(key)
 
-        for it in key: self.__updel[it]
+        for it in k: self.__updel[it]
 
     from regular import Slice
     __upset = list.__setitem__
@@ -486,14 +486,17 @@ class Ordered (List):
           cmp -- comparison function or (default) None to use the built-in cmp
           attr -- name of attribute on which to compare or (default) None to use
                   values directly
-          unique -- ignore duplicate entries (default: False)
+          unique -- ignore duplicate entries (default: False) or, if None, raise
+                    ValueError on any attempted duplication.
 
-        The last three determine the sort order of the list (and lists obtained
-        from it); if key is given, this attribute of each entry is used in place
-        of the entry when comparing; reverse has the same effect as composing
-        lambda x: -x after cmp.  If two entries compare equal in terms of these,
-        and unique is true, one of the entries is discarded; this is rarely
-        desirable when key is given.\n"""
+        The middle four of these determine the sort order of the list (and lists
+        obtained from it); if attr is given, this attribute of each entry is
+        used in place of the entry when comparing; if key is given, it is called
+        on the value (or its attribute) and the resulting value used in
+        comparisons; reverse has the same effect as composing lambda x: -x after
+        cmp.  If two entries compare equal in terms of these, and unique is
+        true, one of the entries is discarded; this is rarely desirable when key
+        is given.\n"""
         self.__upinit()
         self.__unique, self.__attr = unique, attr
         self.__cmp, self.__key, self.__rev = cmp, key, reverse
@@ -554,6 +557,8 @@ class Ordered (List):
     def __mul__(self, n):
         if n < 1: return self[:0]
         if self.__unique or n == 1: return self[:]
+        if self.__unique is None:
+            raise ValueError("Duplication", n)
 
         ans, i = self[:0], len(self)
         while i > 0:
@@ -568,6 +573,8 @@ class Ordered (List):
             self[:] = []
             return
         if self.__unique or n == 1: return
+        if self.__unique is None:
+            raise ValueError("Duplication", n)
 
         i = len(self)
         while i > 0:
@@ -702,6 +709,8 @@ class Ordered (List):
         at = self.__locate(value)
         if at < 0: self.__listapp(value)
         elif self.__unique and self.__eq(at, value): return True
+        elif self.__unique is None and self.__eq(at, value):
+            raise ValueError("Duplicate", value, self[ind])
         else: self.__listins(at, value)
 
     insert = append
