@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.28 2008-08-03 09:53:11 eddy Exp $
+$Id: sequence.py,v 1.29 2008-08-03 21:01:18 eddy Exp $
 """
 
 class Iterable (object):
@@ -275,39 +275,6 @@ class ReadSeq (Iterable):
         def order(who, p=permute.order, are=cmp): return p(who[:], are)
         ReadSeq.__order = order # over-writing this boot-strap implementation
         return permute.order(self[:], par)
-
-class WeakTuple (ReadSeq):
-    """Read-only sequence of weak references.
-
-    Packages a function, taking an index into the sequence as sole parameter, as
-    a read-only sequence, cacheing the values using weakref.  Derived classes
-    should typically implement __len__, as the implementation used here simply
-    increments an index into the list, indexing until it gets IndexError.\n"""
-    __upinit = ReadSeq.__init__
-    def __init__(self, getter):
-        """Package getter as a tuple-like sequence.
-
-        Single argument, getter, shall be called with a single parameter and
-        should return the entry desired at that index into the sequence; it
-        should raise IndexError if the parameter is not a suitable index.  Later
-        calls with the same input should produce an equivalent response.\n"""
-        self.__seq, self.__get = [], getter
-
-    import weakref
-    __upget = ReadSeq.__getitem__
-    def __getitem__(self, key, ref=weakref.ref, lost = lambda : None):
-        try: f = self.__seq[key]
-        except IndexError: ans = None
-        else: ans = val()
-
-        if ans is None:
-            ans = self.__get(key) # may raise IndexError
-            while len(self.__seq) <= key:
-                self.__seq.append(lost)
-            self.__seq[key] = ref(ans)
-
-        return ans
-    del weakref
 
 class Tuple (ReadSeq):
     """Pretend to be a tuple.
