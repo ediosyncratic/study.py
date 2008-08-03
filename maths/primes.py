@@ -20,7 +20,7 @@ permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ... and there must be such a thing as complex
 primes.
 
-$Id: primes.py,v 1.23 2008-05-17 22:08:15 eddy Exp $
+$Id: primes.py,v 1.24 2008-08-03 09:16:03 eddy Exp $
 """
 
 checking = None
@@ -682,6 +682,33 @@ class cachePrimes(_Prime, Lazy):
 
 	    self.__high_water = new
 	    new = self._next_high()
+
+from study.maths.prime.cache import oldCache
+from study.maths import __path__
+from os.path import join
+def find_factor(n, dir=join(__path__[0], 'primes'), C=oldCache):
+    # Much quicker than using a cachePrimes object:
+    primes = C(dir)
+    for p in primes:
+        if p is None: break
+        if p * p > n:
+            # print n, 'is prime'
+            return None
+        if n % p:
+            last = p
+            continue
+        # print n, '/', p, '=', n/p
+        return p
+
+    # Non-contiguous extras - can't conclude primeness, but can rule it out:
+    for p in primes:
+        if n % p: continue
+        # print n, '/', p, '=', n/p
+        return p
+
+    print n, '>', last, ' ** 2'
+    raise OverflowError, 'Sorry, I cannot tell'
+del oldCache, __path__, join
 
 primes = cachePrimes()
 factorise = primes.factorise
