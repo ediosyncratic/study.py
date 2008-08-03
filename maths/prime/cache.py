@@ -88,7 +88,7 @@ Writing caches:
  * The primes object needs to be able to take a (possibly only partially) sieved
    block and turn it into a node in the cache hierarchy.  It knows the sieved
    block's range of naturals, so can pass in an interval describing this and get
-   back a WriteCacheFile representing it; see WriteCacheDir.locate().
+   back a WriteCacheFile representing it; see _WriteCacheDir.locate().
 
 TODO: what difference does it make to the cache objects if they're a modifiable
 cache ?  It affects whether things can be added, renamed, etc.
@@ -96,7 +96,10 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-$Id: cache.py,v 1.37 2008-07-25 07:00:58 eddy Exp $
+TODO (later): what adaptations would be needed to make a general-purpose 'cache
+of data about naturals' of which the following could be a specialization ?
+
+$Id: cache.py,v 1.38 2008-08-03 09:40:44 eddy Exp $
 """
 import os
 from study.snake.regular import Interval
@@ -261,7 +264,7 @@ class WriteSubNode (SubNode, WriteNode):
             run.changed = True
 
 from study.snake.sequence import WeakTuple
-class CacheDir (object):
+class _CacheDir (object):
     @lazyattr
     def _content_file(self, ig=None):
         return self.path('__init__.py')
@@ -351,7 +354,7 @@ class CacheDir (object):
         raise ValueError(hi)
 
     def __locate(self, seq, value, gap, index=None,
-                 Range=Gap, Hole=Interval, base=CacheDir):
+                 Range=Gap, Hole=Interval):
         try:
             if value is None:
                 assert index is not None and self.prime
@@ -386,7 +389,7 @@ class CacheDir (object):
 
         else:
             kid = seq[ind]
-            if isinstance(kid, base):
+            if isinstance(kid, _CacheDir):
                 if value is not None: value -= kid.start
                 else: index -= kid._indices.start
                 return kid.__locate(seq, value, gap, index)
@@ -417,7 +420,7 @@ from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
-class WriteCacheDir (CacheDir):
+class _WriteCacheDir (_CacheDir):
     changed = False # see tidy() and WriteSubNode.save()
     # set on instances when they do change; cleared by tidy.
 
@@ -447,10 +450,10 @@ class WriteCacheDir (CacheDir):
         # TODO: implement
         raise NotImplementedError
 
-    def tidy(self, base=WriteCacheDir):
+    def tidy(self):
         if not self.changed: return # nothing to do
         for node in self.listing:
-            if isinstance(node, base) and node.changed:
+            if isinstance(node, _WriteCacheDir) and node.changed:
                 node.tidy()
         self._onchanged()
         # TODO: implement
@@ -492,7 +495,7 @@ del nameber
 
 from lockdir import LockableDir
 
-class CacheRoot (CacheDir, LockableDir, Node):
+class CacheRoot (_CacheDir, LockableDir, Node):
     __gapinit = Node.__init__
     __dirinit = LockableDir.__init__
     def __init__(self, path):
@@ -573,7 +576,7 @@ class CacheRoot (CacheDir, LockableDir, Node):
 
 del LockableDir
 
-class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
+class WriteCacheRoot (_WriteCacheDir, CacheRoot, WriteNode):
     __save = WriteNode.save
     def save(self, **what):
         what['top'] = self.stop
@@ -588,10 +591,10 @@ class CacheSubNode (SubNode):
 
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
-class CacheSubDir (CacheDir, CacheSubNode):
+class CacheSubDir (_CacheDir, CacheSubNode):
     pass
 
-class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteSubNode):
+class WriteCacheSubDir (_WriteCacheDir, CacheSubDir, WriteSubNode):
     pass
 
 class CacheFile (CacheSubNode):
@@ -644,7 +647,7 @@ class WriteCacheFile (CacheFile, WriteSubNode):
         assert not self.factor or filter(lambda k: k[:6] == 'factor', what.keys())
         return self.__save(**what)
 
-del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode, CacheDir, WriteCacheDir
+del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode
 del Interval, weakattr, lazyattr, lazyprop
 
 class oldCache (object):
