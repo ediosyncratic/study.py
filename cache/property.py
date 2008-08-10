@@ -8,9 +8,9 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.1 2008-08-03 21:00:22 eddy Exp $
+$Id: property.py,v 1.2 2008-08-10 13:17:52 eddy Exp $
 """
-from study.snake.property import recurseprop, dictprop
+from study.snake.property import docprop, recurseprop, dictprop
 
 class Cached (object):
     """Mix-in convenience class for use with cached attributes.
@@ -25,7 +25,7 @@ class Cached (object):
 
     def clear_attrstore_cache(self): pass
 
-class attrstore (property):
+class attrstore (docprop):
     """Base-class for cached properties.
 
     This class actually does no cacheing: it manages a cache for each object
@@ -58,15 +58,15 @@ class attrstore (property):
         except AttributeError: pass # uninitialized caache
         except KeyError: pass # uninitialized attribute
 
-    __updel = property.__delete__
+    __updel = docprop.__delete__
     def __delete__(self, obj):
         self.__updel(obj)
-        self.__clear(obj) # after del, in case it fails => forbidden
+        self.__clear(obj) # after __updel, in case it fails => forbidden
 
-    __upset = property.__set__
+    __upset = docprop.__set__
     def __set__(self, obj, val):
         self.__upset(obj, val)
-        self.__clear(obj) # after set, in case it fails => forbidden
+        self.__clear(obj) # after __upset, in case it fails => forbidden
 
 class lazyattr (attrstore, recurseprop):
     """Lazy attribute look-up.
