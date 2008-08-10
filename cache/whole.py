@@ -17,23 +17,30 @@ for the naturals (non-negative integers); the intent here is to be generic, but
 it is possible some design features should be refactored out to maths.prime in
 order to make these classes function truly generically.
 
+Naming
+======
+
 Nodes in the hierarchy have names of form
-        \([NP]\)\?\([0-9a-z]+\)\([A-Z]+\)\([0-9a-z]+\)\(\.py\)\?
+        (N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)
 wherein:
- * the optional initial [NP] (for negative, positive) is only present if the
+ * the optional initial (N|P|) (for negative, positive) is only present if the
    parent directory's span includes both negative and positive integers; this
-   only ever arises when the parent directory is the root of a cache
- * the \([A-Z]\) could in fact be \([^0-9a-z]+\) and provides
-   application-specific information about the types of data, about integers,
-   that are present in this node and any descendants
- * the final \(\.py\)\? is only present for leaf nodes, i.e. files
- * the two \([0-9a-z]+\) are interpreted via int(,36) as naturals; the first is
-   the start-point (with sign indicated by [NP] if present, else by ancestor in
-   the hierarchy if any has such a prefix, defaulting to positive if no ancestor
-   does) and the second is the length (measured away from zero)
- * the start-point in the preceding is always indicated relative to that of the
-   node's parent directory, measured away from zero (with sign implied by
-   nearest ancestor having [NP] prefix, if any, else tacitly positive).
+   only ever arises when the parent directory is the root of a cache;
+ * the cache-root class (based on CacheRoot) determines the default sign;
+   derived classes may over-ride the positive default set by CacheRoot; any
+   child of root with N or P prefix over-rides any such default; all other cache
+   nodes inherit sign from their parents;
+ * the ([A-Z]) could in fact be ([^0-9a-z]+) and provides application-specific
+   information about the types of data, about integers, that are present in this
+   node and any descendants
+ * the final (\.py|) is only non-empty for leaf nodes, i.e. files
+ * the two ([0-9a-z]+) are interpreted via int(,36) as naturals, measured away
+   from zero, in the direction indicated by the node's sign; the first gives the
+   start-point (relative to a context-dependent origin, see next point) and the
+   second gives the length;
+ * when (N|P|) is N or P, the start-point in the preceding is absolute, in the
+   relevant direction; otherwise, the start-point is indicated relative to that
+   of the node's parent directory.
 
 Thus N0X42.py would be a file providing application-specific information of
 category 'X'; it could only appear in the root directory of its hierarchy, it
@@ -42,7 +49,95 @@ and would relate to the integers from 0 down to minus one hundred and fourty-six
 root directory whose name would start P1X, providing the same kind of
 information for positive integers up to some limit.
 
-$Id: whole.py,v 1.4 2008-08-10 16:04:22 eddy Exp $
+Files should generally be named for the exact range of naturals about which they
+hold data; but a file describing work-in-progress to discover data about some
+range should be named for that range even if its data are incomplete.  The
+ranges of files containing different types of data may overlap.  Sub-directories
+of any given directory shall always have distinct ranges, except while the
+parent is write-locked and the exception is required for re-arringement of the
+sub-directories.  Each directory's range should be the union of the ranges of
+its children, although a directory's nominal range is allowed to be wider.
+
+Hierarchical tidiness
+=====================
+
+The depth of a cache file is 0; the depth of a cache directory is one more than
+the depth of its child with greatest depth.  The root directory of each cache
+shall avoid variations in depth among its children in so far as is practical.
+Each non-root directories shall ensure that all of its children have equal
+depth.  Each directory endeavours to keep its number of children close to
+twelve.
+
+When it comes to simply growing, outwards from zero, an isolated cache of only
+one kind of data about the naturals, with no data borrowed from other caches,
+the root has to endure two adjacent depths some of the time; its deeper children
+are all complete and tidy, as are all but the last of the shallower ones; there
+is a bleeding-edge of last nodes with between 8 and 20 children, at each depth,
+all others being tidy.  When a new node is added, it is always a new last file
+so it is added to the depth=1 last node; if a non-root last node finds it has 20
+children, it keeps its first 12 children and ceases being a last node by passing
+these to its parent, to turn into a new last node; this may take that parent up
+to 20 children, in which case it does likewise, unless it's the root.  When the
+root has 20 children all of equal depth, it collects 12 into a sub-node of one
+greater depth, retaining the other 8 as direct children; successive additions to
+the last of these cause it to push new children of their depth into the root;
+when it has n < 8 deeper nodes and 20-n > 12 shallower ones, it collects 12
+shallow ones into a fresh deeper node; when it has 7 or more deeper nodes and 8
+or more shallower ones, it can collect the shallow ones into a new deeper node
+and get itself back to having only one depth of child.
+
+The situation is more complex when borrowing from another cache, or when we have
+borrowed from a cache in the past, that we no longer see.  If we're borrowing
+from a simple cache, as above, then our cache only saves data past the end of
+the other, so the dynamics are as before.  This creates a cache that covers a
+range of the integers, albeit one distant from zero.  If we borrow from several
+such caches, not necessarily including the ones that they referenced while being
+built, we have a read-cache with holes in it and we want to grow a write-cache
+to fill the holes.  This write-cache then ends up covering several disjoint
+ranges of the integers.  It could be structured as above, but I chose to place
+gaps in the intervals between directories.
+
+The situation is further complicated in a mixed cache, with some diverse types
+of application-specific information.  An interval may be covered by the types
+taken together without being covered entirely by any one of them.  New nodes
+added to extend one type may fall in the middle of the range of values for all
+types taken together.  Nodes of different types might only partially over-lap -
+e.g. if files of different types have different lengths, or files of two types
+have equal lengths but those of each type start at the mid-point of the other
+type's files.
+
+Applications shall be obliged to be able to split data of any types at any
+integer, on request from CacheDir.tidy(); however, this shall endeavour to avoid
+exercising this right.  If applications have limitations on the integers at
+which they can split, they should identify a mapping from the integers to
+possible split-points and wrap the cache in an object that maps the integers the
+cache infrastructure knows about (the .span attributes of Nodes) to their
+corresponding split-points.  If applications have types of data whose potential
+split-points are offset from one another, they can wrap the cache in such a way
+as to add type-specific offsets to the data to synchronise their split-points;
+if this is not possible, the application should keep the distinct types of data
+in separate caches.
+
+Policy:
+  * each child of a root describes a contiguous block of integers that doesn't
+    straddle zero (but may start at it);
+  * a sub-directory which is not the first or last child of its parent, or which
+    has zero as a boundary value, shall have as close to twelve children as
+    circumstances permit, without splitting or uniting files to silly sizes;
+  * other directories shall be more liberal about numbers of children, but aim
+    to keep within the range from eight to twenty or, when even that is not
+    practical, within the range from six to thirty-two; these liberal
+    directories shall arise in chains at the boundaries of contiguous blocks.
+
+When two chunks, each contiguous, have expanded towards each other far enough
+that they meet, unifying them shall involve a messy interaction, where changes
+ripple through them to ensure tidiness in the internal child nodes.  This should
+be mediated by the nearer-zero node preserving such tidiness as it has, with its
+neighbour transfering nodes into it as if the nearer-zero node were simply
+having nodes added to it after the manner of simple growth - albeit these
+additions may be done in bulk, rather than one at a time.
+
+$Id: whole.py,v 1.5 2008-08-10 21:34:24 eddy Exp $
 """
 import os
 from errno import EWOULDBLOCK
@@ -149,11 +244,15 @@ class WriteNode (Node):
         # potentially: return size of file
 
     __BLOCKED = EWOULDBLOCK
+
+del EWOULDBLOCK
 
 class SubNode (Node):
-    def __init__(self, parent, start, reach, types,
-                 Span=Interval):
-        self.__span, self.__type, self.__up = Span(start, reach), types, parent
+    def __init__(self, parent, types, sign, start, reach,
+                 Range=Interval):
+        if sign: self.__sign = sign
+        self.__span = Range(start, reach), 
+        self.__type, self.__up = types, parent
 
     def lock(self, read=False, write=False):
         return self.root.lock(read, write)
@@ -162,19 +261,33 @@ class SubNode (Node):
 
     # read-only access to data members
     @property
-    def types(self, ig=None): return self.__type
-    @lazyattr
-    def span(self, ig=None): return self.__span + self.__up.span.start
-    @property
     def parent(self, ig=None): return self.__up
+    @property
+    def types(self, ig=None): return self.__type
+    @property
+    def sign(self, ig=None):
+        try: return self.__sign
+        except AttributeError: return self.__up.sign
+
+    @lazyattr
+    def span(self, ig=None):
+        if self.__sign:
+            assert 0 in self.__up.span
+            ans = self.__span
+        else:
+            ans = self.__span + self.__up.span.start
+
+        if self.sign < 0: return -ans
+        return ans
+
     # Chase parent to its root:
     @property
     def root(self, ig=None): return self.__up.root
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
-    def __init__(self, parent, start, span):
-        self.__upinit(parent, start, span, '')
+    def __init__(self, parent, sign, start, span):
+        self.__upinit(parent, '', start, span)
 
 class WriteSubNode (SubNode, WriteNode):
     __upsave = WriteNode.save
@@ -184,6 +297,44 @@ class WriteSubNode (SubNode, WriteNode):
         while run is not self.root:
             run = run.parent
             run.changed = True
+
+class CacheSubNode (SubNode):
+    __gapinit = SubNode.__init__
+    def __init__(self, name, parent, types, sign, start, span):
+        self.__gapinit(parent, types, sign, start, span)
+        self.__name = name
+
+    def path(self, *tail): return self.parent.path(self.__name, *tail)
+
+class CacheFile (CacheSubNode):
+    @lazyattr
+    def _content_file(self, ig=None): return self.path()
+
+    @property
+    def depth(self, ig=None): return 0
+
+    def __spanner(self, val):
+        up = self
+        try:
+            while val not in up:
+                val += up.start
+                up = up.parent
+
+        except AttributeError: return None # root lacks this value
+
+        ans = up.locate(val, types=self.types)
+        if isinstance(ans, CacheFile): return ans
+        return None # no such data available under my root
+
+    @lazyattr
+    def next(self, ig=None):
+        """Successor node to this one, if in this cache; else None."""
+        return self.__spanner(self.span.stop)
+
+    @lazyattr
+    def prev(self, ig=None):
+        """Prior node to this one, if in this cache; else None."""
+        return self.__spanner(self.span.start - 1)
 
 from weak import WeakTuple
 class CacheDir (object):
@@ -194,7 +345,7 @@ class CacheDir (object):
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered,
-                pat=re.compile(r'^([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py)?$')):
+                pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py)?$')):
         """The (suitably sorted) list of contents of this directory.
 
         Ignores entries not matching the forms of cache file names.\n"""
@@ -202,8 +353,10 @@ class CacheDir (object):
         for name in get(self.path()):
             got = pat.match(name)
             if got is not None:
-                start, span = int(got.group(1), 36), int(got.group(3), 36)
-                ans.append((start, span, name, got.group(2), got.group(4)))
+                start, span = int(got.group(2), 36), int(got.group(4), 36)
+                ans.append((got.group(3),
+                            got.group(1), start, span,
+                            name, got.group(5)))
 
         return ans
     del re
@@ -256,10 +409,14 @@ class CacheDir (object):
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
-                start, size, name, mode, isfile = g(s)[ind]
+                mode, sign, start, size, name, isfile = g(s)[ind]
                 klaz = s._child_class_(isfile, mode)
+                if sign is 'N': sign = -1
+                elif sign is 'P': sign = +1
+                elif sign: assert False, "Bad sign; shouldn't have matched regex"
+                else: sign = None
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
-                return klaz(s, name, start, size, mode)
+                return klaz(name, s, mode, sign, start, size)
             self.__upinit(get)
             self.__who, self.__att = cdir, getseq
 
@@ -276,20 +433,32 @@ class CacheDir (object):
 
         We don't want to force re-loading of every entry in listing just to
         check whether its types match some requirement; so, instead, we rely on
-        the fact that .listing is in sync with .__listing; so filter the latter
-        to find the entry we want, then take the corresponding entry from the
+        the fact that .listing is in sync with .__listing; filter the latter to
+        find the entry we want, then take the corresponding entry from the
         former.  This ensures that all @weaklistings re-uses the same objects as
-        entries, rather than creating duplicate objects.\n"""
+        entries, rather than creating duplicate objects.
+
+        Required arguments:
+          cdir -- CacheDir object
+          getseq -- function to fetch its private __listing attribute
+          test -- test to apply to types strings, the [A-Z]+ part of file-names.
+
+        This member class can't refer to .__listing directly, so we have to be
+        given getseq to fetch it; our resulting WeakTuple holds the members of
+        .listing with indices matching those in cdir.__listing for whose types
+        field the given test returns true.\n"""
+
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq, test):
             def get(ind, s=cdir, g=getseq, f=test):
                 j = 0
                 for it in g(s):
-                    if f(it[3]):
+                    if f(it[0]):
                         if ind: ind -= 1
                         else:
-                            assert f(s.listing[j].types)
-                            return s.listing[j]
+                            ans = s.listing[j]
+                            assert ans.types == it[0] and f(ans.types)
+                            return ans
                     j += 1
 
                 raise IndexError
@@ -322,7 +491,7 @@ class CacheDir (object):
         directory entries in whose names 'F' appeared in the type
         component.\n"""
 
-        def get(self, ig=None, test=lambda r, p=picker: p(r[3]), S=W):
+        def get(self, ig=None, test=picker, S=W):
             return S(self, lambda s: s.__listing, test)
 
         return L(get, doc=picker.__doc__)
@@ -330,7 +499,7 @@ class CacheDir (object):
     del WeakSubSeq
 
     @staticmethod
-    def _gap_(before, after, limit, Range=Gap):
+    def _gap_(before, after, limit, Hole=Gap, Range=Interval):
         """Gap object for use by locate.
 
         Given arguments:
@@ -359,7 +528,7 @@ class CacheDir (object):
         else: stop, parent = after.start, after.parent
 
         if limit is not None:
-            assert hasattr(limit, 'range') # and it's an instance of Interval
+            assert isinstance(getattr(limit, 'range', None), Range)
 
             if start is None: start = limit.range.start
             elif limit.range.start is None: pass
@@ -372,7 +541,7 @@ class CacheDir (object):
             if parent is None: parent = limit.parent
 
         assert parent is not None
-        return Range(parent, start, stop)
+        return Hole(parent, start, stop)
 
     def bchop(row, value, attr):
         lo, hi = 0, len(row)
@@ -437,7 +606,7 @@ class CacheDir (object):
             row, i = [], 0
             for it in self.__listing:
                 for t in types:
-                    if t not in it[3]: break
+                    if t not in it[0]: break
                 else:
                     row.append(self.listing[i])
                 i += 1
@@ -481,72 +650,11 @@ class WriteCacheDir (CacheDir):
         """Tidy up subordinate nodes.
 
         Ideally, each directory contains a dozen children, all of equal depth.
-        This function endeavours to make that true of this directory.
+        This function endeavours to make that true of this directory.\n"""
 
-        When it comes to simply growing an isolated cache, containing only one
-        type of data, with no data borrowed from other caches, the top-level
-        node has to endure two adjacent depths some of the time; the deeper ones
-        are all complete and tidy as are all but the last of the shallower ones;
-        there is a bleeding-edge of last nodes with between 8 and 20 children,
-        at each depth, all others being tidy.  When a new node is added, it is
-        always a new last file so it is added to the depth=1 last node; if a
-        non-root last node finds it has 20 children, it keeps its first 12
-        children and ceases being a last node by passing these to its parent, to
-        turn into a new last node; this may take that parent up to 20 children,
-        in which case it does likewise, unless it's the root.  When the root has
-        20 children all of equal depth, it collects 12 into a sub-node of one
-        greater depth, retaining the other 8 as direct children; successive
-        additions to the last of these cause it to push new children of their
-        depth into the root; when it has n < 8 deeper nodes and 20-n > 12
-        shallower ones, it collects 12 shallow ones into a fresh deeper node;
-        when it has 7 or more deeper nodes and 8 or more shallower ones, it can
-        collect the shallow ones into a new deeper node and get itself back to
-        having only one depth of child.
-
-        The situation is more complex when borrowing from another cache, or when
-        we have borrowed from a cache in the past, that we no longer see.  If
-        we're borrowing from a simple cache, as above, then our cache only saves
-        data past the end of the other, so the dynamics are as before.  This
-        creates a cache that covers a range of the integers, albeit one distant
-        from zero.  If we borrow from several such caches, not necessarily
-        including the ones that they referenced while being built, we have a
-        read-cache with holes in it and we want to grow a write-cache to fill
-        the holes.  This write-cache then ends up covering several disjoint
-        ranges of the integers.  It could be structured as above, but I chose to
-        place gaps in the intervals between directories.
-
-        The situation is further complicated in a mixed cache, with some diverse
-        types of application-specific information.  An interval may be covered
-        by the types taken together without being covered entirely by any one of
-        them.  New nodes added to extend one type may fall in the middle of the
-        range of values for all types taken together.
-
-        Policy:
-         * each child of a root is tidy and describes a contiguous block of
-           integers;
-         * each root is untidy only in so far as that makes necessary;
-         * each such contiguous block potentially has, at low end and at high
-           end, a sub-directory of boundary nodes whose sole untidiness is that
-           they may have anywhere between 8 and 20 sub-nodes (but all subnodes
-           are of equal depth);
-         * as the leaf at depth zero, for each type of data, such a chain may
-           include one node with only partial data of that kind;
-         * The nominal range of naturals described by a node shall always
-           subsume the union of the nominal ranges of its children;
-         * The nominal range of naturals described by a node may, at each end,
-           stretch beyond the end of its actual data, so long as it does not
-           overlap its sibling on the relevant side.
-
-        When two chunks, each contiguous, have expanded towards each other far
-        enough that they meet, unifying them shall involve a messy interaction,
-        where changes ripple through them to ensure tidiness in the internal
-        child nodes.  This should be mediated by the nearer-zero node preserving
-        such tidiness as it has, with its neighbour transfering nodes into it as
-        if the nearer-zero node were simply having nodes added to it after the
-        manner of simple growth.\n"""
         if not self.changed: return # nothing to do
         for node in self.listing:
-            if isinstance(node, _WriteCacheDir) and node.changed:
+            if isinstance(node, WriteCacheDir) and node.changed:
                 node.tidy()
         self._onchanged()
         # TODO: implement
@@ -600,66 +708,20 @@ class CacheRoot (CacheDir, LockableDir, Node):
         self.__dirinit()
 
     parent = None
+    sign = -1
     @property
     def root(self, ig=None): return self
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
 
-    __load = Node.load
-    def load(self, bok=None):
-        bok = self.__load(bok)
-        self.stop = bok.pop('top')
-        return bok
-
 del LockableDir
 
-class WriteCacheRoot (_WriteCacheDir, CacheRoot, WriteNode):
-    __save = WriteNode.save
-    def save(self, **what):
-        what['top'] = self.stop
-        return self.___save(**what)
-
-class CacheSubNode (SubNode):
-    __gapinit = SubNode.__init__
-    def __init__(self, parent, name, start, span, types):
-        self.__gapinit(parent, start, span, types)
-        self.__name = name
-
-    def path(self, *tail): return self.parent.path(self.__name, *tail)
-
-class CacheSubDir (_CacheDir, CacheSubNode):
+class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
     pass
 
-class WriteCacheSubDir (_WriteCacheDir, CacheSubDir, WriteSubNode):
+class CacheSubDir (CacheSubNode, CacheDir):
+    pass
+
+class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteSubNode):
     # TODO: needs to know how to rename itself when its range expands
     pass
-
-class CacheFile (CacheSubNode):
-    @lazyattr
-    def _content_file(self, ig=None): return self.path()
-
-    @property
-    def depth(self, ig=None): return 0
-
-    def __spanner(self, val):
-        up = self
-        try:
-            while val not in up:
-                val += up.start
-                up = up.parent
-
-        except AttributeError: return None # root lacks this value
-
-        ans = up.locate(val, types=self.types)
-        if isinstance(ans, CacheFile): return ans
-        return None # no such data available under my root
-
-    @lazyattr
-    def next(self, ig=None):
-        """Successor node to this one, if in this cache; else None."""
-        return self.__spanner(self.span.stop)
-
-    @lazyattr
-    def prev(self, ig=None):
-        """Prior node to this one, if in this cache; else None."""
-        return self.__spanner(self.span.start - 1)
