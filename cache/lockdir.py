@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.11 2008-08-10 22:13:31 eddy Exp $
+$Id: lockdir.py,v 1.12 2008-08-10 22:25:56 eddy Exp $
 """
 
 class LockableDir (object):
@@ -110,7 +110,7 @@ class LockableDir (object):
         return True
 
     # The rest of this class is private and doesn't mess with __read, __write.
-    from study.snake.property import lazyattr
+    from property import lazyattr
 
     @lazyattr
     def __file(self, ig=None): return self.path('.lock')
@@ -244,8 +244,8 @@ class LockableDir (object):
 
     # Tool for __check:
     def rival(pair, pid=__pid,
-              open=os.open, close=os.close, WRITE=os.O_WRONLY | os.O_NONBLOCK,
-              ENOENT=errno.ENOENT,
+              open=os.open, close=os.close, remove=os.unlink,
+              WRITE=os.O_WRONLY | os.O_NONBLOCK, ENOENT=errno.ENOENT,
               flock=fcntl.flock, contend=fcntl.LOCK_EX | fcntl.LOCK_NB):
         if pair[0] != pid:
             try:
@@ -255,6 +255,8 @@ class LockableDir (object):
                     flock(fd, contend)
                 finally:
                     if fd is not None: close(fd)
+
+                remove(pair[1]) # transient lock-file of a dead process
             except IOError, what:
                 return what.errno != ENOENT
 
