@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.7 2008-08-10 13:10:36 eddy Exp $
+$Id: property.py,v 1.8 2008-08-10 13:13:31 eddy Exp $
 """
 
 class docprop (property):
@@ -101,7 +101,7 @@ class recurseprop (docprop):
     Furthermore, for any satellite of the celestial body, given any two of
      * the celestial body's mass
      * the satellite's orbit's period
-     * the semi-major axis of the satellite
+     * the semi-major axis of the satellite's orbit
     one can compute the third; objects representing celestial bodies and their
     satellites's orbits can thus have lazy attributes that attempt to compute
     each quantity from the other two, failing if they aren't both set.  We can
