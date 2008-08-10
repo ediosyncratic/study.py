@@ -137,7 +137,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.5 2008-08-10 21:34:24 eddy Exp $
+$Id: whole.py,v 1.6 2008-08-10 22:47:40 eddy Exp $
 """
 import os
 from errno import EWOULDBLOCK
@@ -151,14 +151,16 @@ from weak import weakattr
 # generic classes just manage "range of naturals" data derived from names.
 
 class Node (Cached):
-    """Base-class for nodes in a hierarchy of cached data about naturals.
+    """Base-class for nodes in a hierarchy of cached data about integers.
 
     Derived classes should implement attribute _cache_file (absolute path of
     file to be loaded by load; use __init__.py in directories), implement lock
     and unlock methods (with optional boolean arguments (read, write) each
     defaulting False, raising IOError or returning False on failure), extend
     load and implement a (typically lazy) attribute span, describing the range
-    of naturals this Node describes.\n"""
+    of integers this Node describes.  If span is None it means the full range of
+    all integers; otherwise, it should be an Interval or the result of negating
+    an Interval (a Span with stride -1).\n"""
 
     @lazyattr
     def _cache(self, ig=None): return {}
@@ -254,11 +256,6 @@ class SubNode (Node):
         self.__span = Range(start, reach), 
         self.__type, self.__up = types, parent
 
-    def lock(self, read=False, write=False):
-        return self.root.lock(read, write)
-    def unlock(self, read=False, write=False):
-        return self.root.unlock(read, write)
-
     # read-only access to data members
     @property
     def parent(self, ig=None): return self.__up
@@ -313,6 +310,11 @@ class CacheFile (CacheSubNode):
     @property
     def depth(self, ig=None): return 0
 
+    def lock(self, read=False, write=False):
+        return self.parent.lock(read, write)
+    def unlock(self, read=False, write=False):
+        return self.parent.unlock(read, write)
+
     def __spanner(self, val):
         up = self
         try:
@@ -336,8 +338,34 @@ class CacheFile (CacheSubNode):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(self.span.start - 1)
 
+from lockdir import LockableDir
+
+class LockDir (LockableDir):
+    """Implement lock propagation.
+
+    This extends LockableDir's un/locking so that read locks propagate up to
+    root (whose .parent must be None) while write locks are only set on the
+    directories to which they are directly addressed.  This lets one process
+    modify parts of a cache while another is reading other parts, as long as
+    their activities don't overlap.\n"""
+
+    __lock, __unlock = LockableDir.lock, LockableDir.unlock
+    def lock(self, read=False, write=False):
+        if not read or self.parent is None or self.parent.lock(read, False):
+            if self.__lock(read, write): return True
+            if not read or self.parent is None: pass
+            else: self.parent.unlock(read, False)
+        return False
+
+    def unlock(self, read=False, write=False):
+        if not read or self.parent is None: ok = True
+        else: ok = self.parent.unlock(read, False)
+        return self.__unlock(read, write) and ok
+
+del LockableDir
+
 from weak import WeakTuple
-class CacheDir (object):
+class CacheDir (LockDir):
     @lazyattr
     def _cache_file(self, ig=None):
         return self.path('__init__.py')
@@ -345,7 +373,9 @@ class CacheDir (object):
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered,
-                pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py)?$')):
+                  
+                  pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
+                  signmap={ 'N': -1, 'P': +1, '': None }):
         """The (suitably sorted) list of contents of this directory.
 
         Ignores entries not matching the forms of cache file names.\n"""
@@ -353,10 +383,13 @@ class CacheDir (object):
         for name in get(self.path()):
             got = pat.match(name)
             if got is not None:
+                try: sign = signmap(got.group(1))
+                except KeyError:
+                    assert False, "Bad sign; shouldn't have matched regex"
+                    sign = None
+
                 start, span = int(got.group(2), 36), int(got.group(4), 36)
-                ans.append((got.group(3),
-                            got.group(1), start, span,
-                            name, got.group(5)))
+                ans.append((got.group(3), sign, start, span, name, got.group(5)))
 
         return ans
     del re
@@ -411,10 +444,6 @@ class CacheDir (object):
             def get(ind, s=cdir, g=getseq):
                 mode, sign, start, size, name, isfile = g(s)[ind]
                 klaz = s._child_class_(isfile, mode)
-                if sign is 'N': sign = -1
-                elif sign is 'P': sign = +1
-                elif sign: assert False, "Bad sign; shouldn't have matched regex"
-                else: sign = None
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
                 return klaz(name, s, mode, sign, start, size)
             self.__upinit(get)
@@ -622,7 +651,7 @@ class CacheDir (object):
         return kid
 
     del bchop
-del WeakTuple
+del WeakTuple, LockDir
 
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
@@ -696,25 +725,16 @@ class WriteCacheDir (CacheDir):
 
 del nameber
 
-from lockdir import LockableDir
-
-class CacheRoot (CacheDir, LockableDir, Node):
-    __gapinit = Node.__init__
-    __dirinit = LockableDir.__init__
+class CacheRoot (CacheDir, Node):
     def __init__(self, path):
         self.__dir = path
-        self.content # evaluate in order to force a .load()
-        self.__gapinit(0, self.stop)
-        self.__dirinit()
 
-    parent = None
-    sign = -1
+    parent = span = None
+    sign = +1
     @property
     def root(self, ig=None): return self
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
-
-del LockableDir
 
 class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
     pass
