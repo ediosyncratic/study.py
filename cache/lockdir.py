@@ -1,8 +1,8 @@
 """Lockable directory base-class.
 
-Used by cache.py but isolated due to size !
+Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.9 2008-07-12 13:55:59 eddy Exp $
+$Id: lockdir.py,v 1.10 2008-08-10 15:42:24 eddy Exp $
 """
 
 class LockableDir (object):
