@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.6 2008-08-03 21:00:52 eddy Exp $
+$Id: property.py,v 1.7 2008-08-10 13:10:36 eddy Exp $
 """
 
 class docprop (property):
@@ -24,6 +24,7 @@ class docprop (property):
             try: doc = getit.__doc__
             except AttributeError: pass
 
+        self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
 
 class dictprop (docprop):
@@ -61,11 +62,15 @@ class dictprop (docprop):
         if self.__check is not None: self.__check(val)
         obj.__dict__[self.__name] = val
 
+    __upget = docprop.__get__
     def __get__(self, obj, mode=None):
-        try: return obj.__dict__[self.__name]
-        except KeyError: raise AttributeError, self.__name
+        try:
+            if obj is None: return mode.__dict__[self.__name]
+            else: return obj.__dict__[self.__name]
+        except KeyError: pass
+        return self.__upget(obj, mode)
 
-class recurseprop (property):
+class recurseprop (docprop):
     """Cope with recursion in getters of properties.
 
     The getter of this class implements recursion-protection, so that getter
@@ -77,9 +82,38 @@ class recurseprop (property):
     that object's property value; it recognizes recursion if it finds its own
     mark on the object before starting the computation - it simply raises
     AttributeError to let the sub-ordinate attribute look-up know this isn't
-    going to work.\n"""
+    going to work.  This gives the sub-ordinate attribute look-up the
+    opportunity to fall back on some alternative way of determining its
+    attribute's value; if it can't do that it fails and the original attribute
+    look-up likewise has the opportunity to try some other way of getting its
+    answer.
 
-    __upget = property.__get__
+    For example, an object representing a celestial body can, given any two of
+    mass, volume and density, compute the third; so properties of the object can
+    attempt to compute each from the other two; if only one is unknown, this
+    works.  However, if two of them are unknown, attempting to compute either
+    shall ask for the other's value, so attempt to compute it, so recurse into
+    attempting to compute the first.  Using recurseprop, getters for the
+    properties can simply do the naive computation and get an answer when
+    possible, raising AttributeError otherwise, instead of causing a
+    RuntimeError due to over-flowing the stack.
+
+    Furthermore, for any satellite of the celestial body, given any two of
+     * the celestial body's mass
+     * the satellite's orbit's period
+     * the semi-major axis of the satellite
+    one can compute the third; objects representing celestial bodies and their
+    satellites's orbits can thus have lazy attributes that attempt to compute
+    each quantity from the other two, failing if they aren't both set.  We can
+    thus compute the celestial body's mass from any satellite orbit, or from its
+    volume and density, in so far as data is available.  Using recurseprop, the
+    getter for the body's mass can simply try all candidates, ignoring the ones
+    that fail, and use any successes to determine its answer.  Each candidate
+    that failed through having only one of its needed data can now combine this
+    with the mass to compute the missing one; indeed, the mass computation could
+    be initiated by such an attempt.\n"""
+
+    __upget = docprop.__get__
     def __get__(self, obj, mode=None):
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse_
