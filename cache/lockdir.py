@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.10 2008-08-10 15:42:24 eddy Exp $
+$Id: lockdir.py,v 1.11 2008-08-10 22:13:31 eddy Exp $
 """
 
 class LockableDir (object):
@@ -28,10 +28,11 @@ class LockableDir (object):
     exclusive lock and reading as a shared lock.
 
     It is left to derived classes to ensure that sub-directories lock and unlock
-    their parents in suitable ways; and to implement .path(leafname) as the name
-    of a file in the directory to be locked.  This name must be amenable to
-    having a suffix like .42 added (for various values of 42) and still name a
-    file in the same directory.\n"""
+    their parents in suitable ways; and to implement .path() as the name of the
+    directory itself, with .path(leafname) being the name of a file in the
+    directory to be locked.  This last name must be amenable to having a suffix
+    like .42 added (for various values of 42) and still name a file in the same
+    directory.\n"""
 
     def __init__(self):
         # Am *I* holding read/write locks ?  Not yet.
