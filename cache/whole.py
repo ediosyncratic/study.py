@@ -137,7 +137,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.6 2008-08-10 22:47:40 eddy Exp $
+$Id: whole.py,v 1.7 2008-08-10 22:49:04 eddy Exp $
 """
 import os
 from errno import EWOULDBLOCK
@@ -162,9 +162,6 @@ class Node (Cached):
     all integers; otherwise, it should be an Interval or the result of negating
     an Interval (a Span with stride -1).\n"""
 
-    @lazyattr
-    def _cache(self, ig=None): return {}
-
     @weakattr
     def content(self, ig=None): return self.load()
 
@@ -180,7 +177,8 @@ class Node (Cached):
 
         Derived classes extending this should take the same optional argument,
         pass it down to base-class load and do any processing of the result,
-        e.g. extracting data into self._cache, on the way back out.\n"""
+        e.g. extracting data for use in application-specific attributes, on the
+        way back out.\n"""
         # TODO: want to be able to GET a URL instead of reading a file
 
         if bok is None: bok = Bok()
