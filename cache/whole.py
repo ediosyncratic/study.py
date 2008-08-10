@@ -42,7 +42,7 @@ and would relate to the integers from 0 down to minus one hundred and fourty-six
 root directory whose name would start P1X, providing the same kind of
 information for positive integers up to some limit.
 
-$Id: whole.py,v 1.3 2008-08-10 14:55:50 eddy Exp $
+$Id: whole.py,v 1.4 2008-08-10 16:04:22 eddy Exp $
 """
 import os
 from errno import EWOULDBLOCK
@@ -398,19 +398,24 @@ class CacheDir (object):
         assert loa.stop <= value < hia.start
         raise ValueError(row[lo], row[hi])
 
-    def locate(self, value, gap=None, seq='listing', attr='span', chop=bchop):
+    def locate(self, value, attr='span', gap=None, seq='listing', types=None,
+               chop=bchop):
         """Find sub-node or gap containing a specified entry.
 
+        Do not pass more than five arguments (beyond self) to this method.
         Required argument:
           value -- what to locate
         Optional arguments:
-          gap -- a Gap object, or None indicating the full range of integers
-          seq -- name, default 'listing', of some @weaklisting attribute for
-                 which each entry in the list has the attribute named by attr
           attr -- name, default 'span', of the attribute to which value relates.
                   Must be an Interval-valued attribute, whose ranges of values
                   for nodes with disjoint spans are disjoint and in the same
                   relative order as the spans.
+          gap -- a Gap object, or None indicating the full range of integers
+          seq -- name, default 'listing', of some @weaklisting attribute for
+                 which each entry in the list has the attribute named by attr
+          types -- None, to use seq, else an [A-Z]+ string to ignore seq and use
+                   the sub-list of .listing whose types include all those listed
+                   in types.
 
         Aims to locate a CacheFile in which the natural with attr equal to value
         would lie, if there is such a natural; however, if the cache contains no
@@ -419,20 +424,30 @@ class CacheDir (object):
         object is obtained by calling self._gap_ with suitable arguments, using
         gap as limit.
 
-        The attribute named by seq should be an attribute of self and of all
-        CacheDir descendants of self; its value on each such node should be a
-        list (typically the @weaklisting filtering on child nodes that shall
-        have attribute attr) in which each entry must have attribute attr, with
-        the entries in self.seq and each descendant CacheDir's .seq are sorted
-        in increasing order on attr.\n"""
+        The attribute named by seq (when not superseded by specifying types)
+        should be an attribute of self and of all CacheDir descendants of self;
+        its value on each such node should be a list (typically the @weaklisting
+        filtering on child nodes that shall have attribute attr) in which each
+        entry must have attribute attr, with the entries in self.seq and each
+        descendant CacheDir's .seq are sorted in increasing order on attr.\n"""
 
-        row = getattr(self, seq)
+        if types is None: row = getattr(self, seq)
+        elif not types: row = self.listing
+        else:
+            row, i = [], 0
+            for it in self.__listing:
+                for t in types:
+                    if t not in it[3]: break
+                else:
+                    row.append(self.listing[i])
+                i += 1
+
         try: kid = chop(row, value, attr)
         except ValueError, what:
             return self._gap_(*what.args)
 
         if isinstance(kid, CacheDir):
-            return kid.locate(value, gap, seq, attr)
+            return kid.locate(value, attr, gap, seq, types)
 
         assert isinstance(kid, CacheFile)
         return kid
@@ -440,3 +455,211 @@ class CacheDir (object):
     del bchop
 del WeakTuple
 
+from study.crypt.base import intbase
+nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
+del intbase
+
+class WriteCacheDir (CacheDir):
+    def newfile(self, range, types):
+        """Find where to create a new file to be added.
+
+        Required arguments:
+          range -- the range of integers to be described by the file
+          types -- an [A-Z]+ text specifying application-specific types of
+                   information about integers to be stored in the new file.
+
+        Returns a self._child_class_(True, types) instance in the hierarchy
+        under self, into which the client may save its data of the given types
+        for the given range of integers.  The application should subsequently
+        call self.tidy() to ensure consistency of the resulting cache.\n"""
+
+        # TODO: implement
+        raise NotImplementedError
+
+    changed = False # see tidy() and WriteSubNode.save()
+    def tidy(self):
+        """Tidy up subordinate nodes.
+
+        Ideally, each directory contains a dozen children, all of equal depth.
+        This function endeavours to make that true of this directory.
+
+        When it comes to simply growing an isolated cache, containing only one
+        type of data, with no data borrowed from other caches, the top-level
+        node has to endure two adjacent depths some of the time; the deeper ones
+        are all complete and tidy as are all but the last of the shallower ones;
+        there is a bleeding-edge of last nodes with between 8 and 20 children,
+        at each depth, all others being tidy.  When a new node is added, it is
+        always a new last file so it is added to the depth=1 last node; if a
+        non-root last node finds it has 20 children, it keeps its first 12
+        children and ceases being a last node by passing these to its parent, to
+        turn into a new last node; this may take that parent up to 20 children,
+        in which case it does likewise, unless it's the root.  When the root has
+        20 children all of equal depth, it collects 12 into a sub-node of one
+        greater depth, retaining the other 8 as direct children; successive
+        additions to the last of these cause it to push new children of their
+        depth into the root; when it has n < 8 deeper nodes and 20-n > 12
+        shallower ones, it collects 12 shallow ones into a fresh deeper node;
+        when it has 7 or more deeper nodes and 8 or more shallower ones, it can
+        collect the shallow ones into a new deeper node and get itself back to
+        having only one depth of child.
+
+        The situation is more complex when borrowing from another cache, or when
+        we have borrowed from a cache in the past, that we no longer see.  If
+        we're borrowing from a simple cache, as above, then our cache only saves
+        data past the end of the other, so the dynamics are as before.  This
+        creates a cache that covers a range of the integers, albeit one distant
+        from zero.  If we borrow from several such caches, not necessarily
+        including the ones that they referenced while being built, we have a
+        read-cache with holes in it and we want to grow a write-cache to fill
+        the holes.  This write-cache then ends up covering several disjoint
+        ranges of the integers.  It could be structured as above, but I chose to
+        place gaps in the intervals between directories.
+
+        The situation is further complicated in a mixed cache, with some diverse
+        types of application-specific information.  An interval may be covered
+        by the types taken together without being covered entirely by any one of
+        them.  New nodes added to extend one type may fall in the middle of the
+        range of values for all types taken together.
+
+        Policy:
+         * each child of a root is tidy and describes a contiguous block of
+           integers;
+         * each root is untidy only in so far as that makes necessary;
+         * each such contiguous block potentially has, at low end and at high
+           end, a sub-directory of boundary nodes whose sole untidiness is that
+           they may have anywhere between 8 and 20 sub-nodes (but all subnodes
+           are of equal depth);
+         * as the leaf at depth zero, for each type of data, such a chain may
+           include one node with only partial data of that kind;
+         * The nominal range of naturals described by a node shall always
+           subsume the union of the nominal ranges of its children;
+         * The nominal range of naturals described by a node may, at each end,
+           stretch beyond the end of its actual data, so long as it does not
+           overlap its sibling on the relevant side.
+
+        When two chunks, each contiguous, have expanded towards each other far
+        enough that they meet, unifying them shall involve a messy interaction,
+        where changes ripple through them to ensure tidiness in the internal
+        child nodes.  This should be mediated by the nearer-zero node preserving
+        such tidiness as it has, with its neighbour transfering nodes into it as
+        if the nearer-zero node were simply having nodes added to it after the
+        manner of simple growth.\n"""
+        if not self.changed: return # nothing to do
+        for node in self.listing:
+            if isinstance(node, _WriteCacheDir) and node.changed:
+                node.tidy()
+        self._onchanged()
+        # TODO: implement
+        raise NotImplementedError
+        del self.changed # to expose the class value, False
+        assert not self.changed
+
+    @staticmethod
+    def _child_class_(isfile, mode): # configure __listing
+        if isfile: return WriteCacheFile
+        return WriteCacheSubDir
+
+    @lazyattr
+    def __namelen(self, ig=None, fmt=nameber.encode):
+        # len(self.span) is an upper bound on the .span.start of children
+        return len(fmt(len(self.span)))
+
+    def __child_name(self, span, isfile, types, fmt=nameber.encode):
+        """Determine name of a child.
+
+        Required arguments:
+          span -- range of integers to be described by the new node
+          isfile -- true for a file, false for a directory
+          types -- [A-Z]+ string indicating application-specific types of data
+                   to be stored in the new node.
+
+        Returns a name matching the regex of __listing and padded with enough
+        leading 0s to make lexical sorting match numeric order.\n"""
+
+        name = fmt(span.start - self.span.start)
+        gap = self.__namelen - len(name)
+        if gap > 0: name = '0' * gap + name
+
+        assert len(types) > 0
+        name += types
+        name += fmt(len(span))
+        if isfile: name += '.py'
+        return name
+
+del nameber
+
+from lockdir import LockableDir
+
+class CacheRoot (CacheDir, LockableDir, Node):
+    __gapinit = Node.__init__
+    __dirinit = LockableDir.__init__
+    def __init__(self, path):
+        self.__dir = path
+        self.content # evaluate in order to force a .load()
+        self.__gapinit(0, self.stop)
+        self.__dirinit()
+
+    parent = None
+    @property
+    def root(self, ig=None): return self
+    def path(self, *tail): return self.__path(tail)
+    def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
+
+    __load = Node.load
+    def load(self, bok=None):
+        bok = self.__load(bok)
+        self.stop = bok.pop('top')
+        return bok
+
+del LockableDir
+
+class WriteCacheRoot (_WriteCacheDir, CacheRoot, WriteNode):
+    __save = WriteNode.save
+    def save(self, **what):
+        what['top'] = self.stop
+        return self.___save(**what)
+
+class CacheSubNode (SubNode):
+    __gapinit = SubNode.__init__
+    def __init__(self, parent, name, start, span, types):
+        self.__gapinit(parent, start, span, types)
+        self.__name = name
+
+    def path(self, *tail): return self.parent.path(self.__name, *tail)
+
+class CacheSubDir (_CacheDir, CacheSubNode):
+    pass
+
+class WriteCacheSubDir (_WriteCacheDir, CacheSubDir, WriteSubNode):
+    # TODO: needs to know how to rename itself when its range expands
+    pass
+
+class CacheFile (CacheSubNode):
+    @lazyattr
+    def _content_file(self, ig=None): return self.path()
+
+    @property
+    def depth(self, ig=None): return 0
+
+    def __spanner(self, val):
+        up = self
+        try:
+            while val not in up:
+                val += up.start
+                up = up.parent
+
+        except AttributeError: return None # root lacks this value
+
+        ans = up.locate(val, types=self.types)
+        if isinstance(ans, CacheFile): return ans
+        return None # no such data available under my root
+
+    @lazyattr
+    def next(self, ig=None):
+        """Successor node to this one, if in this cache; else None."""
+        return self.__spanner(self.span.stop)
+
+    @lazyattr
+    def prev(self, ig=None):
+        """Prior node to this one, if in this cache; else None."""
+        return self.__spanner(self.span.start - 1)
