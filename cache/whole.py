@@ -144,7 +144,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.8 2008-08-11 03:21:16 eddy Exp $
+$Id: whole.py,v 1.9 2008-08-11 03:29:52 eddy Exp $
 """
 
 Adaptation = """
@@ -409,10 +409,11 @@ class LockDir (LockableDir):
 
     __lock, __unlock = LockableDir.lock, LockableDir.unlock
     def lock(self, read=False, write=False):
-        if not read or self.parent is None or self.parent.lock(read, False):
+        if not read or self.parent is None:
+            return self.__lock(read, write)
+        elif self.parent.lock(read, False):
             if self.__lock(read, write): return True
-            if not read or self.parent is None: pass
-            else: self.parent.unlock(read, False)
+            self.parent.unlock(read, False)
         return False
 
     def unlock(self, read=False, write=False):
