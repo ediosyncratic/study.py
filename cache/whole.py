@@ -11,36 +11,39 @@ directory to manage the hierarchy itself.  There may be gaps in such caches, a
 system may use several of them with distinct roots and a system may remember
 several (up to about 26) distinct types of information in a single cache.
 
-The primary use case motivating the initial implementation of this
-infrastructure is tracking information about primeness and least common factors
-for the naturals (non-negative integers); the intent here is to be generic, but
-it is possible some design features should be refactored out to maths.prime in
-order to make these classes function truly generically.
+For guidance on how to adapt this module's classes to your particular
+application, see the template in the .Adaptation attribute of this module.  The
+primary use case motivating the initial implementation of this infrastructure is
+tracking information about primeness and least common factors for the naturals
+(non-negative integers); the intent here is to be generic, but it is possible
+some design features should be refactored out to maths.prime in order to make
+these classes function truly generically.
 
+
 Naming
 ======
 
-Nodes in the hierarchy have names of form
+Nodes in the hierarchy have names matching regex
         (N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)
 wherein:
- * the optional initial (N|P|) (for negative, positive) is only present if the
-   parent directory's span includes both negative and positive integers; this
-   only ever arises when the parent directory is the root of a cache;
+ * the final (\.py|) is only non-empty for leaf nodes, i.e. files
+ * the ([A-Z]+) could in fact be ([^0-9a-z]+) and provides application-specific
+   information about the types of data, about integers, that are present in this
+   node and any descendants
+ * the initial (N|P|) - for negative, positive - is empty unless the parent
+   directory's span includes both negative and positive integers; this only ever
+   arises when the parent directory is the root of a cache;
  * the cache-root class (based on CacheRoot) determines the default sign;
    derived classes may over-ride the positive default set by CacheRoot; any
    child of root with N or P prefix over-rides any such default; all other cache
    nodes inherit sign from their parents;
- * the ([A-Z]) could in fact be ([^0-9a-z]+) and provides application-specific
-   information about the types of data, about integers, that are present in this
-   node and any descendants
- * the final (\.py|) is only non-empty for leaf nodes, i.e. files
  * the two ([0-9a-z]+) are interpreted via int(,36) as naturals, measured away
    from zero, in the direction indicated by the node's sign; the first gives the
    start-point (relative to a context-dependent origin, see next point) and the
    second gives the length;
  * when (N|P|) is N or P, the start-point in the preceding is absolute, in the
-   relevant direction; otherwise, the start-point is indicated relative to that
-   of the node's parent directory.
+   relevant direction; otherwise, the start-point is given relative to that of
+   the node's parent directory.
 
 Thus N0X42.py would be a file providing application-specific information of
 category 'X'; it could only appear in the root directory of its hierarchy, it
@@ -55,9 +58,13 @@ range should be named for that range even if its data are incomplete.  The
 ranges of files containing different types of data may overlap.  Sub-directories
 of any given directory shall always have distinct ranges, except while the
 parent is write-locked and the exception is required for re-arringement of the
-sub-directories.  Each directory's range should be the union of the ranges of
-its children, although a directory's nominal range is allowed to be wider.
+sub-directories.  Each directory's range must subsume range of each of its
+children; it should normally be exactly the union of the ranges of its children,
+although the root directory (whose range is not encoded in its name) shall
+typically have, as its nominal span, the full range of integers for which its
+data are potentially of interest.
 
+
 Hierarchical tidiness
 =====================
 
@@ -137,19 +144,69 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.7 2008-08-10 22:49:04 eddy Exp $
+$Id: whole.py,v 1.8 2008-08-11 03:21:16 eddy Exp $
 """
-import os
-from errno import EWOULDBLOCK
+
+Adaptation = """
+# This is a template for extending the classes provided here.
+
+from study.cache import whole
+
+class Node (whole.Node):
+    # optionally extend _load_
+    pass
+class WriteNode (Node, whole.WriteNode):
+    # optionally extend _save_
+    pass
+
+class CacheFile (Node, whole.CacheFile):
+    # optionally extend _load_ some more
+    pass
+class WriteCacheFile (WriteNode, whole.WriteCacheFile):
+    # optionally extend _save_ some more
+    pass
+# Optionally complicate further with files for each cached data type
+
+weaklisting = whole.CacheDir.weaklisting
+class CacheDir (Node):
+    @staticmethod
+    def _child_class_(isfile, mode):
+        # possibly complicate further for mode
+        if isfile: return CacheFile
+        return CacheSubDir
+
+    # optionally extend _load_ some more
+    # optionally extend _onchange_, _gap_
+    # define any @weaklisting attributes, typically one per cached data type
+del weaklisting
+
+class WriteCacheDir (WriteNode, CacheDir):
+    @staticmethod
+    def _child_class_(isfile, mode):
+        # possibly complicate further for mode
+        if isfile: return WriteCacheFile
+        return WriteCacheSubDir
+
+    # optionally extend _save_ some more
+
+class CacheSubDir (CacheDir, whole.CacheSubDir):
+    pass
+class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir):
+    pass
+
+class CacheRoot (CacheDir, whole.CacheRoot):
+    # optionally: over-ride sign, span
+    pass
+class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
+    pass
+
+"""
+
 from study.snake.regular import Interval
-from study.snake.sequence import Ordered
 from property import Cached, lazyattr, lazyprop
 from weak import weakattr
-# TODO: refactor much of maths.prime.cache into here.
-# Move assorted compact data read from disk into a _cache mapping from which
-# attributes can be derived.  Let load and save mediate maintenance of those;
-# generic classes just manage "range of naturals" data derived from names.
-
+from errno import EWOULDBLOCK
+
 class Node (Cached):
     """Base-class for nodes in a hierarchy of cached data about integers.
 
@@ -163,10 +220,10 @@ class Node (Cached):
     an Interval (a Span with stride -1).\n"""
 
     @weakattr
-    def content(self, ig=None): return self.load()
+    def content(self, ig=None): return self._load_()
 
     class Bok (dict): pass # for weakref's sake
-    def load(self, bok=None, glo={}, Dict=Bok, BLOCKED=EWOULDBLOCK):
+    def _load_(self, bok=None, glo={}, Dict=Bok, BLOCKED=EWOULDBLOCK):
         """Loads self._cache_file and returns the result as a mapping.
 
         Sole optional argument, bok, is a mapping object into which the
@@ -198,7 +255,7 @@ class WriteNode (Node):
     """Extends Node with write-functionality.
 
     Derived classes should extend save.\n"""
-    def save(self, formatter=None, **what):
+    def _save_(self, formatter=None, **what):
         """Saves a given namespace to a module.
 
         First argument, formatter, is None (to use a default) or a function
@@ -212,9 +269,9 @@ class WriteNode (Node):
 
         All other arguments should be given in keyword form.  The name 'depth'
         shall be ignored if given (it is over-written by an attribute of the
-        same name) nodes not descended from CacheFile (whose depth is 0).  The
-        name '__doc__' shall be replaced by self.__doc__ if this is not the same
-        object as self.__class__.__doc__; any __doc__ obtained by either of
+        same name) on nodes not descended from CacheFile (whose depth is 0).
+        The name '__doc__' shall be replaced by self.__doc__ if this is not the
+        same object as self.__class__.__doc__; any __doc__ obtained by either of
         these means shall be saved as doc-string in the module.\n"""
 
         if not self.lock(write=True):
@@ -241,11 +298,17 @@ class WriteNode (Node):
 
             finally: fd.close()
         finally: self.unlock(write=True)
+
+        run = self.parent
+        while run is not None:
+            run.changed = True
+            run = run.parent
+
         # potentially: return size of file
 
     __BLOCKED = EWOULDBLOCK
 
-del EWOULDBLOCK
+del EWOULDBLOCK, Cached, weakattr
 
 class SubNode (Node):
     def __init__(self, parent, types, sign, start, reach,
@@ -285,13 +348,7 @@ class Gap (SubNode):
         self.__upinit(parent, '', start, span)
 
 class WriteSubNode (SubNode, WriteNode):
-    __upsave = WriteNode.save
-    def save(self, formatter=None, **what):
-        self.__upsave(formatter, **what)
-        run = self
-        while run is not self.root:
-            run = run.parent
-            run.changed = True
+    pass
 
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
@@ -335,6 +392,9 @@ class CacheFile (CacheSubNode):
     def prev(self, ig=None):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(self.span.start - 1)
+
+class WriteCacheFile (CacheFile, WriteSubNode):
+    pass
 
 from lockdir import LockableDir
 
@@ -362,12 +422,14 @@ class LockDir (LockableDir):
 
 del LockableDir
 
+import os
 from weak import WeakTuple
 class CacheDir (LockDir):
     @lazyattr
     def _cache_file(self, ig=None):
         return self.path('__init__.py')
 
+    from study.snake.sequence import Ordered
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered,
@@ -390,13 +452,13 @@ class CacheDir (LockDir):
                 ans.append((got.group(3), sign, start, span, name, got.group(5)))
 
         return ans
-    del re
+    del re, Ordered
 
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
     depth = lazyprop('depth', depth)
 
-    def _onchange(self):
+    def _onchange_(self):
         """Update attributes after directory contents have changed.
 
         When the contents of the directory get changed (see WriteCacheDir), this
@@ -649,7 +711,20 @@ class CacheDir (LockDir):
         return kid
 
     del bchop
-del WeakTuple, LockDir
+del WeakTuple, LockDir, Interval, lazyprop
+
+class CacheRoot (CacheDir, Node):
+    def __init__(self, path):
+        self.__dir = path
+
+    parent = span = None
+    sign = +1
+    @property
+    def root(self, ig=None): return self
+    def path(self, *tail): return self.__path(tail)
+    def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
+
+del os
 
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
@@ -672,7 +747,7 @@ class WriteCacheDir (CacheDir):
         # TODO: implement
         raise NotImplementedError
 
-    changed = False # see tidy() and WriteSubNode.save()
+    changed = False # see tidy() and WriteNode._save_()
     def tidy(self):
         """Tidy up subordinate nodes.
 
@@ -683,7 +758,7 @@ class WriteCacheDir (CacheDir):
         for node in self.listing:
             if isinstance(node, WriteCacheDir) and node.changed:
                 node.tidy()
-        self._onchanged()
+        self._onchange_()
         # TODO: implement
         raise NotImplementedError
         del self.changed # to expose the class value, False
@@ -723,17 +798,6 @@ class WriteCacheDir (CacheDir):
 
 del nameber
 
-class CacheRoot (CacheDir, Node):
-    def __init__(self, path):
-        self.__dir = path
-
-    parent = span = None
-    sign = +1
-    @property
-    def root(self, ig=None): return self
-    def path(self, *tail): return self.__path(tail)
-    def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
-
 class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
     pass
 
@@ -743,3 +807,5 @@ class CacheSubDir (CacheSubNode, CacheDir):
 class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteSubNode):
     # TODO: needs to know how to rename itself when its range expands
     pass
+
+del lazyattr
