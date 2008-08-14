@@ -1,6 +1,7 @@
 """Tools and data for studying various scientific and mathematical topics.
 
 Sub-packages:
+ cache -- remembering things to save working them out again
  chemy -- fundamental physics through to chemistry
  crypt -- tools for encoding and decoding
  maths -- assorted mathematical tools
@@ -20,12 +21,13 @@ combining things the source gives to obtain the attributes we actually want).
 However, this requires some fairly far-reaching re-design, so I'll make do with
 what I have in the mean time ;-)
 
-$Id: __init__.py,v 1.4 2007-06-03 16:37:17 eddy Exp $
+$Id: __init__.py,v 1.5 2008-08-14 19:13:08 eddy Exp $
 """
 
 import snake
+import crypt
+import cache
 import maths
 import value
-import crypt
 import chemy
 import space
