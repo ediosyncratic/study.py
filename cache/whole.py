@@ -1,4 +1,4 @@
-"""Cacheing data about integers.
+"""Cacheing data about integer-bounded ranges of the number line.
 
 This module provides classes to manage caches of data about the naturals,
 integers or even reals, in so far as the cached data can be delineated by ranges
@@ -19,6 +19,81 @@ tracking information about primeness and least common factors for the naturals
 (non-negative integers); the intent here is to be generic, but it is possible
 some design features should be refactored out to maths.prime.cache in order to
 make these classes function truly generically.
+
+
+Hierarchy
+=========
+
+Actual data is stored in files, but it's not nice to put too many files into one
+directory, so a hierarchy of directories is built up, to hold the data.  The
+classes defined here model that hierarchy with objects.  The directory hierarchy
+may be extensive, so the object hierarchy to model it is only built (on demand)
+as needed and only weakly remembered, so that python's garbage collection can
+keep the amount of memory used under control.  The individual data files are apt
+to be large, so their contents are, likewise, only read as needed and only
+weakly remembered.
+
+An application interacts with each cache via an object, of a class derived from
+CacheRoot, describing the root of its directory hierarchy.  The application can
+ask this object (via its .locate() method, q.v.) to find the (object
+representing a) file in whose integer-bounded range of the number line some
+particular number falls.  In so far as the application has extended the classes
+here to reflect other data (typically read from the cache files) which increase
+monotonically with position in the number line, the root object can also find
+files based on a value of such a datum.  Where the cache does not contain a file
+with the data required by such a search, the root's .locate() instead returns a
+'gap' object describing a range around the target sought, in which data are
+lacking.  The application can consult several caches for data in this way,
+refining the 'gap' at each consultation.
+
+If none of the consulted caches has the data sought, the 'gap' object the
+application is left with describes the range of values for which none of them
+have data.  The application is then left to compute the data, for some interval
+of the number line within this gap (or all of it), and can then ask a root to
+allot a file to it, in which to save the data it has computed, thereby extending
+that root's cache.  For this, it needs a modifiable root object, derived from
+CacheRoot via WriteCacheRoot.  An application is presumed to normally have one
+such modifiable cache, in which it saves the data it computes, backed up by
+possibly several read-only caches that save it the need to compute data for the
+ranges they know about.
+
+Details:
+
+ * Within a cache, each sub-directory or file describes the range for which it
+   holds data only relative to the start-point of the range of the directory in
+   which it resides, so as to keep numbers small (and hence names, of files and
+   directories, short).  The numbers in question are also remembered base 36
+   (using 'a' through 'z' as the digits from ten to thirty-five) to help keep
+   names short.  The initial numeric part of each name is padded with 0s to make
+   it the same length as the longest, so as to ensure that directory listings
+   show files in their numeric order.
+
+ * Each directory in a cache contains an __init__.py file in which the
+   application can store relevant data, such as summary data covering the whole
+   range of the directory; this can be used to save un-necessary loading of
+   subordinate directories and files in order to discover such data when
+   consulting the cache later.
+
+ * Where some application-specific data increases monotonically along the number
+   line, the application can record each directory's range of values for that
+   datum in the directory's __init__.py; which makes it possible for the
+   application to save the matching data of subordinate files and directories
+   only relative to the start-point of the directory's range; as for spans of
+   the number line, this can enable some saving in disk space.
+
+ * The root directory shall typically use its __init__.py to record data
+   relevant to the whole cache.  Since the root's name is not controlled by this
+   cache code, this name does not encode the span of the cache, so the root
+   directory generally records this span in its __init__.py file.
+
+ * Directories support locking so as to prevent clashes and confusion when two
+   processes are accessing the same cache.  Locking a directory for reading may
+   be done by several processes at one time; but locking a directory for writing
+   is incompatible with any other process locking it for either reading or
+   writing.  Write locking only applies to the directory it's done to; but read
+   locking propagates up via parent directories to the root of the cache, so as
+   to ensure no process re-writing an ancestor directory removes a directory
+   being read.
 
 
 Naming
@@ -146,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.11 2008-08-14 07:34:59 eddy Exp $
+$Id: whole.py,v 1.12 2008-08-14 20:19:04 eddy Exp $
 """
 
 Adaptation = """
@@ -202,6 +277,8 @@ class CacheRoot (CacheDir, whole.CacheRoot):
 class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
     pass
 
+# (Note: this is a good example of where classic single-inheritance falls down,
+# although ruby's variation on that theme would be able to cope.)
 """
 
 from study.snake.regular import Interval
