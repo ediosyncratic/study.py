@@ -7,7 +7,7 @@ object shall, too.
 Caches:
 
  * Built on top of the study.cache.whole infrastructure, using types 'F', 'G',
-   'P' and 'Q' in its naming scheme.
+   'P' and 'Q' in its data-type naming scheme.
 
  * There are two primary kinds of cache file: a factor file (of type 'F')
    remembers the least proper factor, or None for a prime, of each natural in
@@ -19,6 +19,9 @@ Caches:
    exist; these are apt (but not sure) to know their index start-point and
    perhaps even an upper bound on their number of primes.  Incomplete prime
    sieves are of type 'Q' while incomplete factor sieves are of type 'G'.
+
+ * Custom compression of the data in cache files is managed by the client.
+   However - TODO - I should probably move the base64-encoding here.
 
  * The actual range of naturals described by any cache entity always starts and
    ends at a multiple of the modulus of the cache's extended octet type; so the
@@ -37,11 +40,12 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.40 2008-08-14 20:18:14 eddy Exp $
+$Id: cache.py,v 1.41 2008-08-14 20:37:31 eddy Exp $
 """
 
 from study.cache import whole
 from study.snake.regular import Interval
+from property import lazyattr, lazyprop
 
 class Node (whole.Node):
     def indices(self, ig=None):
@@ -68,6 +72,13 @@ class Node (whole.Node):
         if self.parent is None: return len(self.factors) > 0
         return 'F' in self.types or 'G' in self.types
 
+    @lazyattr
+    def interval(self, ig=None, Range=Interval):
+        lo, sz, mo = self.span.start, len(self.span), self.root.octet.modulus
+        lo *= mo
+        if sz is not None: sz *= mo
+        return Range(lo, sz)
+
     __upload = whole.Node._load_
     def _load_(self, bok=None, Range=Interval):
         bok = self.__upload(bok)
@@ -75,8 +86,11 @@ class Node (whole.Node):
         except KeyError: pass
         else: self.__indices = Range(gap[0], ga[1])
 
+del lazyattr, lazyprop
+
 class WriteNode (Node, whole.WriteNode):
     __upsave = whole.WriteNode._save_
+    # TODO: mediate base-64 encoding at this level.
     def _save_(self, formatter=None, **what):
         """Saves data to file.
 
@@ -147,8 +161,6 @@ class CacheDir (Node, whole.CacheDir):
         if isfile: return CacheFile
         return CacheSubDir
 
-    # optionally extend _load_ some more
-
     __upchange = whole.CacheDir._onchange_
     def _onchange_(self):
         self.__upchange()
@@ -183,21 +195,21 @@ class CacheDir (Node, whole.CacheDir):
     @weaklisting
     def factors(self, mode): return 'F' in mode or 'G' in mode
 
+    # optionally extend _load_ some more
+
 del weaklisting
 
 class WriteCacheDir (WriteNode, CacheDir, whole.WriteCacheDir):
+    # optionally extend _save_ some more
+
     @staticmethod
     def _child_class_(isfile, mode):
         # possibly complicate further for mode
         if isfile: return WriteCacheFile
         return WriteCacheSubDir
 
-    # optionally extend _save_ some more
-
-class CacheSubDir (CacheDir, whole.CacheSubDir):
-    pass
-class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir):
-    pass
+class CacheSubDir (CacheDir, whole.CacheSubDir): pass
+class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir): pass
 
 class CacheRoot (CacheDir, whole.CacheRoot):
     span = Interval(0, None)
@@ -256,7 +268,7 @@ class CacheRoot (CacheDir, whole.CacheRoot):
     del OctetType
 
 class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
-    __save = WriteNode._save_
+    __save = WriteCacheDir._save_
     def _save_(self, formatter, **what):
         if self.span.stop is None:
             what['top'] = max(filter(None, map(lambda x: x.span.stop,
@@ -266,8 +278,7 @@ class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
         return self.__save(formatter, **what)
 
 
-del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode
-del Interval, weakattr, lazyattr, lazyprop
+del Node, WriteNode, Interval, whole
 
 class oldCache (object):
     """Iterator over an old-style cache.
