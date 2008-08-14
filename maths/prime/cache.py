@@ -96,418 +96,173 @@ cache ?  It affects whether things can be added, renamed, etc.
 (Note: this is a good example of where classic single-inheritance falls down,
 although ruby's version of it copes.)
 
-TODO (later): what adaptations would be needed to make a general-purpose 'cache
-of data about naturals' of which the following could be a specialization ?
+TODO: move much of the above to study.cache.whole
+TODO: sanction G, Q for sieve-in-progress versions of F, P
 
-$Id: cache.py,v 1.38 2008-08-03 09:40:44 eddy Exp $
+$Id: cache.py,v 1.39 2008-08-14 07:20:40 eddy Exp $
 """
-import os
-from study.snake.regular import Interval
-from study.snake.sequence import Ordered
-from study.snake.property import weakattr, lazyattr, lazyprop
 
-class Node (Interval):
-    """Base class for cache nodes
-    """
+from study.cache import whole
+from study.snake.regular import Interval
 
-    from errno import EWOULDBLOCK as __BLOCKED
-
-    @weakattr
-    def content(self, ig=None): return self.load()
-
-    @lazyattr
-    def span(self, ig=None):
-        """Absolute interval of naturals spanned by this Node.
-
-        Relies on derived classes to define ._span(range), which converts:
-          * from a range relative to the same base-point as self, measured in
-            units of this cache's octet
-          * to an actual range of naturals.
-
-        This is achieved in two phases: SubNode recursively adds directory
-        offsets to an interval, initially self, going up the directory hierarchy
-        to the root, which does the needed re-scaling.\n"""
-        return self._span(self)
-
-    def _indices(self, ig=None): # Gap may have it set
-        """Range of prime indices, relative to context."""
-        try: return self.__indices
+class Node (whole.Node):
+    def indices(self, ig=None):
+        """Range of prime indices"""
+        try: ind = self.__indices
         except AttributeError:
             if not self.prime: raise
-        self.content # evaluate to force .load()ing (fails for Gap)
-        return self.__indices # should now succeed
-    _indices = lazyprop('_indices', _indices)
+            self.content # evaluate to force self.load()ing
+            ind = self.__indices # raises AttributeError if really not available
 
-    class Bok (dict): pass # for weakref's sake
-    def load(self, bok=None, glo={}, Range=Interval, Dict=Bok):
-        # TODO: want to be able to GET a URL instead of reading a file
+        if self.parent is not None:
+            ind += self.parent.indices.start
 
-        if bok is None: bok = Bok()
-        if not self.lock(True):
-            raise IOError(self.__BLOCKED, 'File temporarily unreadable',
-                          self._content_file)
-        try: execfile(self._content_file, glo, bok) # may raise IOError, ParseError
-        finally: self.unlock(True)
+        return ind
 
-        try: self.depth = bok.pop('depth')
-        except KeyError: assert isinstance(self, CacheFile)
+    indices = lazyprop('indices', indices) # so _gap_ can set it
 
-        try: gap = bok.pop('indices') # saved to file as twople
+    @lazyattr
+    def prime(self, ig=None):
+        if self.parent is None: return len(self.primes) > 0
+        return 'P' in self.types or 'Q' in self.types
+    @lazyattr
+    def factor(self, ig=None):
+        if self.parent is None: return len(self.factors) > 0
+        return 'F' in self.types or 'G' in self.types
+
+    __upload = whole.Node._load_
+    def _load_(self, bok=None, Range=Interval):
+        bok = self.__upload(bok)
+        try: gap = bok.pop('indices') # twople format in file
         except KeyError: pass
-        else: self.__indices = Range(gap[0], gap[1])
+        else: self.__indices = Range(gap[0], ga[1])
 
-        return bok
-    del Bok
+class WriteNode (Node, whole.WriteNode):
+    __upsave = whole.WriteNode._save_
+    def _save_(self, formatter=None, **what):
+        """Saves data to file.
 
-class WriteNode (Node):
-    def save(self, **what):
-        assert self.prime or self.factor
-        if not self.lock(write=True):
-            raise IOError(self.__BLOCKED, 'File temporarily unwritable',
-                          self._content_file)
+        See study.cache.whole.WriteNode._save_ for general documentation.  This
+        derived class over-rides the handling of keyword 'indices', substituting
+        self's index range relative to that of parent, encoded as a simple
+        (start, span) tuple.  It also over-rides the formatting of all values of
+        the following kinds:
+          * lists or tuples of length > 20: newline is used in place of space,
+            after the comma, in the separator between entries;
+          * strings (unicode or not) over 80 bytes in length, that include at
+            least one newline: doc-string format is used.
+        """
+
         try:
-            fd = open(self._content_file, 'w')
-            try:
-                if self.__doc__ is not self.__class__.__doc__:
-                    fd.write('"""%s"""\n\n', self.__doc__)
+            gap = self.indices
+            if self.parent is None: off = 0
+            else: off = self.parent.indices.start
+        except AttributeError: pass
+        else: what['indices'] = (gap.start - off, len(gap))
 
-                if not isinstance(self, CacheFile):
-                    what['depth'] = self.depth
+        def reformat(k, v, given=formatter,
+                     d=lambda k, v: '%s = %s\n' % (k, repr(v))):
 
-                try: gap = self._indices # save as tuple if present
-                except AttributeError: assert not self.prime
-                else: what['indices'] = (gap.start, len(gap))
+            if isinstance(v, tuple) and len(v) > 20:
+                # use ',\n' in place of ', ' in tuple's repr:
+                return '%s = (\n' % k + ',\n'.join(map(repr, v)) + '\n)'
 
-                for k, v in what.items:
-                    fd.write('%s = %s\n' % (k, self.__repr(v)))
+            if isinstance(v, list) and len(v) > 20:
+                # use ',\n' in place of ', ' in list's repr:
+                return '%s = [\n' % k + ',\n'.join(map(repr, v)) + '\n]'
 
-            finally: fd.close()
-        finally: self.unlock(write=True)
-        # potentially: return size of file
+            if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
+                txt = repr(v).replace('\\n', '\n')
+                if txt[0] == 'u': head, txt = txt[0], txt[1:]
+                else: head = ''
+                assert txt[0] == txt[-1]
+                txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
+                head += tail
+                return '%s = ' % k + head + txt + tail
 
-    @staticmethod
-    def __repr(val):
-        """Decides how to display values
+            if given is None: return d(k, v)
+            return given(k, v)
 
-        While meta-data is mostly terse, the actual strings encoding tuples of
-        factors and prime octets are very long, so should be split across many
-        lines.  It's always OK to return repr(val), albeit this may be painfully
-        long, but where something nicer is viable and reliable, it should be
-        used.  Nicer forms should try to put the data on separate lines from any
-        start and end details.  The actual display hacks used are:
-         * an overt tuple is displayed as normal but using '\n' rather than
-           space after the commas between items, with '\n' between opening and
-           closing parentheses and adjacent values; likewise for lists.
-         * any overt string with newlines in it and a length over 80 characters
-           is displayed as a triply-quoted string, unescaping newlines in its
-           contents.  Note that self.__doc__ (if any) is also handled as a
-           triply-quoted string, but separately from this hack.
-        More may be added as experience illuminates what's worth doing.\n"""
+        self.__upsave(reformat, **what)
 
-        if isinstance(val, tuple) and len(val) > 20:
-            # Like tuple's repr, but using ',\n' in place of ', ':
-            return '(\n' + ',\n'.join(map(repr, val)) + '\n)'
+class CacheFile (Node, whole.CacheFile):
+    __load = Node._load_
+    def _load_(self, bok=None):
+        bok = self.__load(bok)
+        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  bok.keys())
+        assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
+        return bok
 
-        if isinstance(val, list) and len(val) > 20:
-            # Like list's repr, but using ',\n' in place of ', ':
-            return '[\n' + ',\n'.join(map(repr, val)) + '\n]'
+class WriteCacheFile (WriteNode, whole.WriteCacheFile):
+    __save = WriteNode._save_
+    def _save_(self, formatter, **what):
+        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
+        assert not self.factor or filter(lambda k: k[:6] == 'factor', what.keys())
+        return self.__save(formatter, **what)
 
-        if isinstance(val, basestring) and len(val) > 80 and '\n' in val:
-            txt = repr(val).replace('\\n', '\n')
-            if txt[0] == 'u': head, txt = txt[0], txt[1:]
-            else: head = ''
-            assert txt[0] == txt[-1]
-            txt, tail = txt[1:-1], 3 * txt[-1]
-            head += tail + '\n'
-            return head + txt + tail
-            # The strings that'll match this all end in a newline already:
-            # squeeze.eighty.findall() always ends in an empty string.
-
-        return repr(val)
 
-class SubNode (Node):
-    __gapinit = Node.__init__
-    def __init__(self, parent, start, span, types):
-        self.__gapinit(start, span)
-        self.__up = parent
-        self.prime, self.factor = 'P' in types, 'F' in types
-
-    def lock(self, read=False, write=False):
-        return self.root.lock(read, write)
-    def unlock(self, read=False, write=False):
-        return self.root.unlock(read, write)
-
-    @property
-    def parent(self, ig=None): return self.__up # read-only access
-    @property
-    def root(self, ig=None): return self.__up.root
-
-    def indices(self, ig=None):
-        return self.__up.indices.start + self._indices
-    indices = lazyprop('indices', indices)
-
-    def _span(self, gap): return self.__up._span(gap + self.__up.start)
-
-class Gap (SubNode):
-    __upinit = SubNode.__init__
-    def __init__(self, parent, start, span, indices=None):
-        self.__upinit(parent, start, span, '')
-        if indices is not None: self._indices = indices
-
-class WriteSubNode (SubNode, WriteNode):
-    __upsave = WriteNode.save
-    def save(self, **what):
-        self.__upsave(**what)
-        run = self
-        while run is not self.root:
-            run = run.parent
-            run.changed = True
-
-from study.snake.sequence import WeakTuple
-class _CacheDir (object):
-    @lazyattr
-    def _content_file(self, ig=None):
-        return self.path('__init__.py')
-
-    import re
-    @lazyattr
-    def __listing(self, ig=None, get=os.listdir, seq=Ordered,
-                pat=re.compile(r'^([0-9a-z]+)([PF]+)([0-9a-z]+)(\.py)?$')):
-        """The (suitably sorted) list of contents of this directory.
-
-        Ignores entries not matching the forms of cache file names.\n"""
-        ans = seq()
-        for name in get(self.path()):
-            got = pat.match(name)
-            if got is not None:
-                start, span = int(got.group(1), 36), int(got.group(3), 36)
-                assert not got.group(4) or len(got.group(2)) == 1, 'mixed file'
-                ans.append((start, span, name, got.group(2), got.group(4)))
-
-        return ans
-    del re
-
-    def _onchange(self):
-        # All lazyattr: so del raises no AttributeError when absent.
-        del self.__listing, self.listing, self.primes, self.factors, self.depth
-
+weaklisting = whole.CacheDir.weaklisting
+class CacheDir (Node, whole.CacheDir):
     @staticmethod
-    def _child_class_(isfile):
+    def _child_class_(isfile, mode):
+        # possibly complicate further for mode
         if isfile: return CacheFile
         return CacheSubDir
 
-    class WeakSeq (WeakTuple):
-        __upinit = WeakTuple.__init__
-        def __init__(self, cdir, getseq):
-            def get(ind, s=cdir, g=getseq):
-                start, size, name, mode, isfile = g(s)[ind]
-                klaz = s._child_class_(isfile)
-                return klaz(s, name, start, size, mode)
-            self.__upinit(get)
-            self.__who, self.__att = cdir, getseq
+    # optionally extend _load_ some more
 
-        def __len__(self): return len(self.__att(self.__who))
+    __upchange = whole.CacheDir._onchange_
+    def _onchange_(self):
+        self.__upchange()
+        del self.primes self.factors
 
-    @lazyattr
-    def listing(self, s, ig=None, W=WeakSeq):
-        return W(self, lambda x: x.__listing)
+    __upgap = whole.CacheDir._gap_
+    def _gap_(self, before, after, limit,
+              Range=Interval, Stub=whole.CacheFile):
+        if before is None: before = Stub('', self.root, '', +1, -1, 1)
+        gap = self.__upgap(before, after, limit)
 
-    @lazyattr
-    def primes(self, ig=None, W=WeakSeq, nice=lambda i: 'P' in i[3]):
-        return W(self, lambda x: x.__listing.filter(nice))
-
-    @lazyattr
-    def factors(self, ig=None, W=WeakSeq, nice=lambda i: 'F' in i[3]):
-        return W(self, lambda x: x.__listing.filter(nice))
-
-    del WeakSeq
-
-    def depth(self, ig=None): # but usually we'll read this from __init__.py
-        return max(self.listing.map(lambda x: x.depth)) + 1
-    depth = lazyprop('depth', depth)
-
-    @staticmethod
-    def __findex(seq, index):
-        lo, lon, hi, hin = 0, seq[0]._indices, len(seq) - 1, seq[-1]._indices
-        # Take care to reference ._indices on as few nodes as possible.
-        # FIXME: drop implicit assumption that seq[0] and seq[-1] abut self's ends
-        if lon.stop > index: return lo
-        if hin.start <= index: return hi
-        while hi > lo + 1:
-            assert lon.stop < index < hin.start
-            # linear-interpolate an estimate at the prime with this index:
-            try: mid = seq.index(seq[lo].stop +
-                                 (seq[hi].start - seq[lo].stop) *
-                                 (index - lon.stop) *
-                                 1./(hin.start - lon.stop), lo, hi)
-            except ValueError, what: mid = what.args[0]
-            assert lo < mid < hi
-            midn = seq[mid]._indices
-            if midn.start > index: hi, hin = mid, midn
-            elif midn.stop <= index: lo, lon = mid, midn
-            elif index in midn: return mid
-            else: raise ValueError(mid)
-
-        assert hi == lo + 1
-        assert seq[lo].stop < seq[hi].start # it's a gap
-        assert lon.stop <= index < hin.start
-        raise ValueError(hi)
-
-    def __locate(self, seq, value, gap, index=None,
-                 Range=Gap, Hole=Interval):
-        try:
-            if value is None:
-                assert index is not None and self.prime
-                assert index in self._indices
-                assert seq is self.primes
-                ind = self.__findex(seq, index)
-            else:
-                ind = seq.index(value)
-
-        except ValueError, what:
-            ind = what.args[0] # where in seq our gap would be inserted
-            # FIXME: no longer believe in reaching all the way to the ends
-            assert ind > 0, 'Directory lacks initial or final sub-range'
-
-            try:
-                dex = None # in case all else fails
-                dex = self._indices
-                lox = seq[ind-1]._indices.stop
-                assert lox is not None, 'Badly sorted intervals'
-                dex = Hole(lox, seq[ind]._indices.start - lox)
-            except AttributeError: pass # missing ._indices
-
-            try: dex = dex.trim(gap.indices - self.indices.start)
-            except AttributeError: pass # missing .indices
-
-            lo = seq[ind-1].stop
-            assert lo is not None, 'Badly sorted intervals'
-            kid = Hole(lo, seq[ind].start - lo)
-            if gap is not None: kid = kid.trim(gap)
-
-            kid = Range(self, kid.start, len(kid), dex)
-
+        # Find data on range of indices:
+        try: start = before.indices.stop
+        except AttributeError: start = None
+        try: stop = after.indices.start
+        except AttributeError: stop = None
+        try: ind = limit.indices
+        except AttributeError: pass
         else:
-            kid = seq[ind]
-            if isinstance(kid, _CacheDir):
-                if value is not None: value -= kid.start
-                else: index -= kid._indices.start
-                return kid.__locate(seq, value, gap, index)
+            assert ind.step = 1 # positive
+            if stop is None or stop > ind: stop = ind.stop
+            if start is None or start < ind: start = ind.start
 
-            assert isinstance(kid, CacheFile)
+        if start is None: start = 0
+        if stop is None: gap.indices = Range(start, None)
+        else: gap.indices = Range(start, stop - start)
 
-        return kid
+        return gap
 
-    def _get_primes(self, value, gap=None, index=None):
-        """Internals for CacheRoot.get_primes
+    @weaklisting
+    def primes(self, mode): return 'P' in mode or 'Q' in mode
+    @weaklisting
+    def factors(self, mode): return 'F' in mode or 'G' in mode
 
-        Same args as get_primes, but value is divided by root's octet's
-        .modulus\n"""
+del weaklisting
 
-        return self.__locate(self.primes, value, gap, index)
-
-    def _get_factors(self, value, gap=None):
-        """Internals for CacheRoot.get_factors
-
-        Same args as get_factors, but value (if given) is divided by root's
-        octet's .modulus\n"""
-
-        return self.__locate(self.factors, value, gap)
-
-del WeakTuple
-
-from study.crypt.base import intbase
-nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
-del intbase
-
-class _WriteCacheDir (_CacheDir):
-    changed = False # see tidy() and WriteSubNode.save()
-    # set on instances when they do change; cleared by tidy.
-
-    # FIXME: in a mixed cache, when adding nodes at start or end, both prime and
-    # factor data must reach to the adjusted end-point; so we can't add a single
-    # file at start or end, only in a gap in the middle.  This implies a need to
-    # add prime and factor nodes simultaneously, possibly several of each.
-    # Resolution: drop the requirement that a directory must contain data all
-    # the way up to its ends.
-
-    # An unfinished sieve node is a factor file, of sorts.  However, it should
-    # probably only be added in a gap or as the root's tail.
-
-    def locate(self, range, prime=False):
-        """Find where to create a new file to be added.
-
-        Required first argument is a range of naturals, in units of
-        self.root.octet.modulus, relative to the start of the interval self
-        describes.  Optional second argument, prime, defaults to False,
-        indicating that the file to be created shall contain factor information;
-        pass prime=True to get a file that shall contain prime information.
-
-        Returns a new WriteFile in self or a sub-directory of self, such that
-        saving data describing the given interval via this WriteFile shall
-        extend the cache.  Once a coherent set of such additions is complete,
-        the root of the cache should be told to .tidy() itself.\n"""
-        # TODO: implement
-        raise NotImplementedError
-
-    def tidy(self):
-        if not self.changed: return # nothing to do
-        for node in self.listing:
-            if isinstance(node, _WriteCacheDir) and node.changed:
-                node.tidy()
-        self._onchanged()
-        # TODO: implement
-        raise NotImplementedError
-        del self.changed # to expose the class value, False
-        assert not self.changed
-
+class WriteCacheDir (WriteNode, CacheDir, whole.WriteCacheDir):
     @staticmethod
-    def _child_class_(isfile): # configure __listing
+    def _child_class_(isfile, mode):
+        # possibly complicate further for mode
         if isfile: return WriteCacheFile
         return WriteCacheSubDir
 
-    @lazyattr
-    def __namelen(self, ig=None, fmt=nameber.encode):
-        # len(self) is an upper bound on the .start of children
-        return len(fmt(len(self)))
+    # optionally extend _save_ some more
 
-    def __child_name(self, child, fmt=nameber.encode):
-        """Determine name of a child.
+class CacheSubDir (CacheDir, whole.CacheSubDir):
+    pass
+class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir):
+    pass
 
-        Single argument is an interval of the naturals, encoded as by a SubNode
-        of self; that is, relative to the start of self's range, in units of the
-        .octet.modulus of our .root node.  Returns a name matching the regex of
-        __listing and padded with enough leading 0s to ensure lexical sorting.\n"""
-
-        name = fmt(child.start)
-        gap = self.__namelen - len(name)
-        if gap > 0: name = '0' * gap + name
-
-        assert child.prime or child.factor
-        if child.prime: name += 'P'
-        if child.factor: name += 'F'
-
-        name += fmt(len(child))
-        if isinstance(child, CacheFile): name += '.py'
-        return name
-
-del nameber
-
-from lockdir import LockableDir
-
-class CacheRoot (_CacheDir, LockableDir, Node):
-    __gapinit = Node.__init__
-    __dirinit = LockableDir.__init__
-    def __init__(self, path):
-        self.__dir = path
-        self.content # evaluate in order to force a .load()
-        self.__gapinit(0, self.stop)
-        self.__dirinit()
-
-    @property
-    def root(self, ig=None): return self
-    def path(self, *tail): return self.__path(tail)
-    def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
+class CacheRoot (CacheDir, whole.CacheRoot):
+    span = Interval(0, None)
 
     def get_factors(self, value, gap=None):
         """Find a chunk or gap enclosing a designated integer.
@@ -534,11 +289,11 @@ class CacheRoot (_CacheDir, LockableDir, Node):
 
         See also: get_primes().\n"""
 
-        if gap is None: gap = Range(self, 0, None)
+        if gap is None: gap = self._gap_(None, None, None)
         if not self.factor: return gap
-        return self._get_factors(self, value / self.octet.modulus, gap)
+        return self.locate(value / self.octet.modulus, 'span', gap, 'factors')
 
-    def get_primes(self, value, gap=None, index=None, Range=Gap, Hole=Interval):
+    def get_primes(self, value, gap=None, index=None):
         """Find a cache file or gap enclosing a designated integer.
 
         Like get_factors (q.v.) except that it returns data on primes, and
@@ -548,104 +303,30 @@ class CacheRoot (_CacheDir, LockableDir, Node):
         as value - no-one can be expected to know primes[index] without calling
         this function to get the cache object that tells us !\n"""
 
-        if gap is None: gap = Range(self, 0, None, Hole(0, None))
-
+        if gap is None: gap = self._gap_(None, None, None)
         if not self.prime: return gap
-        if value is not None: value /= self.octet.modulus
-        return self._get_primes(self, value, gap, index)
+        if value is None: return self.locate(index, 'indices', gap, 'primes')
+        else: return self.locate(value / self.octet.modulus, 'span', gap, 'primes')
 
-    def _span(self, gap, Range=Interval):
-        step = self.octet.modulus
-        return Range(gap.start * step, len(gap) * step)
-
-    @lazyattr
-    def prime(self, ig=None): return len(self.primes) > 0
-    @lazyattr
-    def factor(self, ig=None): return len(self.factors) > 0
-    @property
-    def indices(self, ig=None): return self._indices
-
-    __load = Node.load
+    __load = Node._load_
     from octet import OctetType
-    def load(self, bok=None, mode=OctetType):
+    def _load_(self, bok=None, mode=OctetType, Range=Interval):
         bok = self.__load(bok)
-        self.stop = bok.pop('top')
+        self.span = Range(0, bok.pop('top'))
         self.octet = mode(bok.pop('octet'))
         return bok
     del OctetType
 
-del LockableDir
-
-class WriteCacheRoot (_WriteCacheDir, CacheRoot, WriteNode):
-    __save = WriteNode.save
-    def save(self, **what):
-        what['top'] = self.stop
+class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
+    __save = WriteNode._save_
+    def _save_(self, formatter, **what):
+        if self.span.stop is None:
+            what['top'] = max(filter(None, map(lambda x: x.span.stop,
+                                               self.listing)))
+        else: what['top'] = self.span.stop
         what['octet'] = self.octet.primes
-        return self.___save(**what)
-
-class CacheSubNode (SubNode):
-    __gapinit = SubNode.__init__
-    def __init__(self, parent, name, start, span, types):
-        self.__gapinit(parent, start, span, types)
-        self.__name = name
+        return self.__save(formatter, **what)
 
-    def path(self, *tail): return self.parent.path(self.__name, *tail)
-
-class CacheSubDir (_CacheDir, CacheSubNode):
-    pass
-
-class WriteCacheSubDir (_WriteCacheDir, CacheSubDir, WriteSubNode):
-    pass
-
-class CacheFile (CacheSubNode):
-    @lazyattr
-    def _content_file(self, ig=None): return self.path()
-
-    @property
-    def depth(self, ig=None): return 0
-
-    def __spanner(self, val):
-        up = self
-        try:
-            while val not in up:
-                val += up.start
-                up = up.parent
-
-        except AttributeError: return None # root lacks this value
-
-        if self.prime:
-            assert not self.factor, 'I should be a file !'
-            ans = up._get_prime(val)
-        else:
-            assert self.factor
-            ans = up._get_factor(val)
-
-        if isinstance(ans, CacheFile): return ans
-        return None # don't return a gap
-
-    @lazyattr
-    def next(self, ig=None):
-        """Successor node to this one, if in this cache; else None."""
-        return self.__spanner(len(self))
-
-    @lazyattr
-    def prev(self, ig=None):
-        """Prior node to this one, if in this cache; else None."""
-        return self.__spanner(-1)
-
-    __load = CacheSubNode.load
-    def load(self, bok=None):
-        bok = self.__load(bok)
-        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  bok.keys())
-        assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
-        return bok
-
-class WriteCacheFile (CacheFile, WriteSubNode):
-    __save = WriteSubNode.load
-    def save(self, **what):
-        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
-        assert not self.factor or filter(lambda k: k[:6] == 'factor', what.keys())
-        return self.__save(**what)
 
 del Node, SubNode, CacheSubNode, WriteNode, WriteSubNode
 del Interval, weakattr, lazyattr, lazyprop
