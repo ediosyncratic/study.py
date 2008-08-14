@@ -1,10 +1,11 @@
 """Cacheing data about integers.
 
-This module provides classes to manage caches of data about the integers.  It
-presumes that you have some way of computing some information about integers for
-which it is worth saving the answers to disk (for example, because the cost of
-re-computation is high, possibly due to needing answers from smaller integers to
-arrive at answers for bigger ones).  The cache managed by this system just
+This module provides classes to manage caches of data about the naturals,
+integers or even reals, in so far as the cached data can be delineated by ranges
+of integers.  It presumes that you have some way of computing the data for which
+it is worth saving the answers to disk (for example, because the cost of
+re-computation is high, e.g. due to needing answers from nearer zero to arrive
+at answers for further from it).  The cache managed by this system just
 remembers the information you computed, in python modules importable with
 execfile, organized in a directory hierarchy, with an __init__.py in each
 directory to manage the hierarchy itself.  There may be gaps in such caches, a
@@ -16,8 +17,8 @@ application, see the template in the .Adaptation attribute of this module.  The
 primary use case motivating the initial implementation of this infrastructure is
 tracking information about primeness and least common factors for the naturals
 (non-negative integers); the intent here is to be generic, but it is possible
-some design features should be refactored out to maths.prime in order to make
-these classes function truly generically.
+some design features should be refactored out to maths.prime.cache in order to
+make these classes function truly generically.
 
 
 Naming
@@ -31,7 +32,7 @@ wherein:
    information about the types of data, about integers, that are present in this
    node and any descendants
  * the initial (N|P|) - for negative, positive - is empty unless the parent
-   directory's span includes both negative and positive integers; this only ever
+   directory's span includes both negative and positive values; this only ever
    arises when the parent directory is the root of a cache;
  * the cache-root class (based on CacheRoot) determines the default sign;
    derived classes may over-ride the positive default set by CacheRoot; any
@@ -41,28 +42,29 @@ wherein:
    from zero, in the direction indicated by the node's sign; the first gives the
    start-point (relative to a context-dependent origin, see next point) and the
    second gives the length;
- * when (N|P|) is N or P, the start-point in the preceding is absolute, in the
-   relevant direction; otherwise, the start-point is given relative to that of
-   the node's parent directory.
+ * when (N|P|) is empty, the start-point in the preceding is given relative to
+   that of the node's parent directory; otherwise, the start-point is absolute,
+   in the specified direction.
 
 Thus N0X42.py would be a file providing application-specific information of
 category 'X'; it could only appear in the root directory of its hierarchy, it
-and would relate to the integers from 0 down to minus one hundred and fourty-six
-(i.e. 4*36 + 2).  In all likelihood, there would be something in the same cache
-root directory whose name would start P1X, providing the same kind of
-information for positive integers up to some limit.
+would relate to values between 0 (included) down to (ecluded) minus one hundred
+and fourty-six (i.e. 4*36 + 2).  In all likelihood, there would be something in
+the same cache root directory whose name would start P1X (for an integer cache;
+but P0X in a real cache), providing the same kind of information for positive
+values up to some limit.
 
-Files should generally be named for the exact range of naturals about which they
-hold data; but a file describing work-in-progress to discover data about some
-range should be named for that range even if its data are incomplete.  The
-ranges of files containing different types of data may overlap.  Sub-directories
-of any given directory shall always have distinct ranges, except while the
-parent is write-locked and the exception is required for re-arringement of the
-sub-directories.  Each directory's range must subsume range of each of its
+Files should generally be named for the exact range about which they hold data;
+but a file describing work-in-progress to discover data about some range should
+be named for that range even if its data are incomplete.  The ranges of files
+containing different types of data may overlap.  Sub-directories of any given
+directory shall always have distinct ranges, except while the parent is
+write-locked and the exception is required for re-arringement of the
+sub-directories.  Each directory's range must subsume the range of each of its
 children; it should normally be exactly the union of the ranges of its children,
-although the root directory (whose range is not encoded in its name) shall
-typically have, as its nominal span, the full range of integers for which its
-data are potentially of interest.
+although the root directory (whose range is not encoded in its name) can have,
+as its nominal span, the full range of integers for which its data are
+potentially of interest.
 
 
 Hierarchical tidiness
@@ -76,12 +78,12 @@ depth.  Each directory endeavours to keep its number of children close to
 twelve.
 
 When it comes to simply growing, outwards from zero, an isolated cache of only
-one kind of data about the naturals, with no data borrowed from other caches,
-the root has to endure two adjacent depths some of the time; its deeper children
-are all complete and tidy, as are all but the last of the shallower ones; there
-is a bleeding-edge of last nodes with between 8 and 20 children, at each depth,
-all others being tidy.  When a new node is added, it is always a new last file
-so it is added to the depth=1 last node; if a non-root last node finds it has 20
+one kind of data, with no data borrowed from other caches, the root has to
+endure two adjacent depths some of the time; its deeper children are all
+complete and tidy, as are all but the last of the shallower ones; there is a
+bleeding-edge of last nodes with between 8 and 20 children, at each depth, all
+others being tidy.  When a new node is added, it is always a new last file so it
+is added to the depth=1 last node; if a non-root last node finds it has 20
 children, it keeps its first 12 children and ceases being a last node by passing
 these to its parent, to turn into a new last node; this may take that parent up
 to 20 children, in which case it does likewise, unless it's the root.  When the
@@ -97,12 +99,12 @@ The situation is more complex when borrowing from another cache, or when we have
 borrowed from a cache in the past, that we no longer see.  If we're borrowing
 from a simple cache, as above, then our cache only saves data past the end of
 the other, so the dynamics are as before.  This creates a cache that covers a
-range of the integers, albeit one distant from zero.  If we borrow from several
-such caches, not necessarily including the ones that they referenced while being
-built, we have a read-cache with holes in it and we want to grow a write-cache
-to fill the holes.  This write-cache then ends up covering several disjoint
-ranges of the integers.  It could be structured as above, but I chose to place
-gaps in the intervals between directories.
+range, albeit one distant from zero.  If we borrow from several such caches, not
+necessarily including the ones that they referenced while being built, we have a
+read-cache with holes in it and we want to grow a write-cache to fill the holes.
+This write-cache then ends up covering several disjoint ranges.  It could be
+structured as above, but I chose to place gaps in the intervals between
+directories.
 
 The situation is further complicated in a mixed cache, with some diverse types
 of application-specific information.  An interval may be covered by the types
@@ -115,28 +117,28 @@ type's files.
 
 Applications shall be obliged to be able to split data of any types at any
 integer, on request from CacheDir.tidy(); however, this shall endeavour to avoid
-exercising this right.  If applications have limitations on the integers at
-which they can split, they should identify a mapping from the integers to
-possible split-points and wrap the cache in an object that maps the integers the
-cache infrastructure knows about (the .span attributes of Nodes) to their
-corresponding split-points.  If applications have types of data whose potential
-split-points are offset from one another, they can wrap the cache in such a way
-as to add type-specific offsets to the data to synchronise their split-points;
-if this is not possible, the application should keep the distinct types of data
-in separate caches.
+exercising this right.  If applications have limitations on the values at which
+they can split, they should identify a mapping from the integers to possible
+split-points and wrap the cache in an object that maps the integers the cache
+infrastructure knows about (the end-points of .span attributes of Node()s) to
+their corresponding split-points.  If applications have types of data whose
+potential split-points are offset from one another, they can wrap the cache in
+such a way as to add type-specific offsets to the data to synchronise their
+split-points; if this is not possible, the application should keep the distinct
+types of data in separate caches.
 
 Policy:
-  * each child of a root describes a contiguous block of integers that doesn't
-    straddle zero (but may start at it);
+  * each child of a root describes a contiguous range that doesn't straddle zero
+    (but may start at it);
   * a sub-directory which is not the first or last child of its parent, or which
     has zero as a boundary value, shall have as close to twelve children as
     circumstances permit, without splitting or uniting files to silly sizes;
   * other directories shall be more liberal about numbers of children, but aim
     to keep within the range from eight to twenty or, when even that is not
     practical, within the range from six to thirty-two; these liberal
-    directories shall arise in chains at the boundaries of contiguous blocks.
+    directories shall arise in chains at the boundaries of contiguous ranges.
 
-When two chunks, each contiguous, have expanded towards each other far enough
+When two ranges, each contiguous, have expanded towards each other far enough
 that they meet, unifying them shall involve a messy interaction, where changes
 ripple through them to ensure tidiness in the internal child nodes.  This should
 be mediated by the nearer-zero node preserving such tidiness as it has, with its
@@ -144,7 +146,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.10 2008-08-14 07:21:35 eddy Exp $
+$Id: whole.py,v 1.11 2008-08-14 07:34:59 eddy Exp $
 """
 
 Adaptation = """
