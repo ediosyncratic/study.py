@@ -1,57 +1,29 @@
 """Cache files, directories and their managment.
 
-A cache object knows the range of integer values it spans.  A prime cache object
-also knows the range of prime indices it spans.  Maybe a factor cache object
-shall, too.
+A factor cache object knows the range of integer values it spans.  A prime cache
+object also knows the range of prime indices it spans.  Maybe a factor cache
+object shall, too.
 
-Reading caches:
+Caches:
 
- * A cache can be asked, for any given value or index within its range, to
-   supply an actual object describing the target (and a range about it); on
-   failure, it returns a gap object describing the widest contiguous interval
-   about this target not covered under this cache node.  If passed an optional
-   gap object (describing such an interval about the target) it instead returns
-   the intersection of this gap object with the one it would have returned.
+ * Built on top of the study.cache.whole infrastructure, using types 'F', 'G',
+   'P' and 'Q' in its naming scheme.
 
- * The returned Interval instance (whether gap or cache file) describes its
-   range of integers relative to its .parent's range; however, it also has a
-   .span giving the absolute range.  It may likewise have a .indices giving its
-   range of indices (for prime cache requests it normally shall).  Cache files
-   describing incompletely sieved chunks of the naturals may also exist; these
-   are apt (but not sure) to know their index start-point and perhaps even an
-   upper bound on their number of primes.
+ * There are two primary kinds of cache file: a factor file (of type 'F')
+   remembers the least proper factor, or None for a prime, of each natural in
+   its range; a primes file (of type 'P') only records which numbers in the
+   range are primes (it can thus be more compact).  Each type of file may also
+   know the range of primes that fall in its interval.
 
- * Files and directories follow a common naming scheme, encoding the range of
-   values relative to parent.  Within a directory, lexicographic sort order
-   should match numeric order, so the directory decides how many digits there
-   are in each name; names are of form [PF]+[0-9a-z]+\+[0-9a-z]+.py, in which
-   the numbers are encoded using base 36; they indicate the range of integers
-   the named thing spans; in [PF]+, P indicates the object provides some
-   information on primes, F indicates some information on factors (note
-   upper-case to distinguish from the subsequent base-36 number which might
-   start with p or f).  Since the start and length of each cache block is a
-   multiple of the cache's extended octet modulus, the factor of this is always
-   implicit.  The first number (immediately following the leading [PF]+) is the
-   difference between the start of the cache object's range and that of the
-   directory it's in; the second number (following the + character) is the
-   length of the range.  The first number is padded with ehough leading 0s to
-   make it as long as all the first numbers of other names in the same
-   directory, so as to ensure clean sorting (partitioned by [PF]+).
+ * Cache files describing incompletely sieved chunks of the naturals may also
+   exist; these are apt (but not sure) to know their index start-point and
+   perhaps even an upper bound on their number of primes.  Incomplete prime
+   sieves are of type 'Q' while incomplete factor sieves are of type 'G'.
 
- * Directories have an __init__.py that records (at least) the maximum depth of
-   directory hierarchy below them (each is 1 higher than the max of its
-   children); and, in a prime cache, their range of indices.  Each completed
-   prime cache file (not bothering to record depth 0 below it) records its own
-   range of indices within this.  Again, ranges of indices of files or
-   sub-directories in a directory are relative to the start-index of the
-   directory's range.
-
- * Each cache root records a list of the primes it uses to define its
-   generalized octets; there's a file (somewhere in this cache) which describes
-   the interval from 0 to some multiple of their product; when asking it about
-   the early part of its range, we need to be sure we don't forget the special
-   case of this base list.  Since the top-level directory doesn't get to set its
-   own name, its __init__.py also has to record the range of values it spans.
+ * The actual range of naturals described by any cache entity always starts and
+   ends at a multiple of the modulus of the cache's extended octet type; so the
+   numeric parts of names, and hence the .span attributes of objects describing
+   files and directories, are all reduced by an implicit factor of this modulus.
 
  * Cache root directories may also remember sporadics, in so far as we've
    discovered any; that is, a list of primes beyond the end of the covered range
@@ -65,41 +37,7 @@ Reading caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
- * At run-time, the only nodes held persistently in memory describe some
-   directories, to facilitate searching.  Parents refer to children only via
-   weakrefs, so they can fall out of cache naturally; but children need their
-   parents, so use proper references to them.  Parents likewise remember the
-   result of digesting os.listdir(), once they know it, via weakref; this result
-   is a list of child nodes which haven't initially evaluated their weakref
-   attributes.
-
-Writing caches:
-
- * Cache roots must support locking so that only one process tries to modify a
-   cache at a time, and others don't try to read a cache while it's being
-   modified.
- * Use one modifiable cache supported by a sequence of read-only caches
-   - Files, once created, only change when renamed, which may prompt meta-data
-     changes (base offset for ranges of indices and values have changed) but not
-     changes to their meaning.
-   - Directories in the modifiable cache are wont to be reshuffled: when a
-     directory has too many entries, separate them into sub-directories.
-
- * The primes object needs to be able to take a (possibly only partially) sieved
-   block and turn it into a node in the cache hierarchy.  It knows the sieved
-   block's range of naturals, so can pass in an interval describing this and get
-   back a WriteCacheFile representing it; see _WriteCacheDir.locate().
-
-TODO: what difference does it make to the cache objects if they're a modifiable
-cache ?  It affects whether things can be added, renamed, etc.
-
-(Note: this is a good example of where classic single-inheritance falls down,
-although ruby's version of it copes.)
-
-TODO: move much of the above to study.cache.whole
-TODO: sanction G, Q for sieve-in-progress versions of F, P
-
-$Id: cache.py,v 1.39 2008-08-14 07:20:40 eddy Exp $
+$Id: cache.py,v 1.40 2008-08-14 20:18:14 eddy Exp $
 """
 
 from study.cache import whole
