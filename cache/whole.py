@@ -144,7 +144,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.9 2008-08-11 03:29:52 eddy Exp $
+$Id: whole.py,v 1.10 2008-08-14 07:21:35 eddy Exp $
 """
 
 Adaptation = """
@@ -263,9 +263,15 @@ class WriteNode (Node):
         shall be used to record that key-value pair.  If None, a default is used
         which formats the pair as a simple assignment statement with the key on
         the left and the value's repr() on the right, followed by a newline.
-        Derived classes may introduce special handling for some keys; only keys
-        with no special handling shall be passed to formatter.  This class
-        provides special handling for 'depth' and '__doc__' (see below).
+
+        Derived classes may introduce special handling for some keys; to do so,
+        they need to hijack the formatter they get and tunnel it through one
+        they pass on in its place, that implements the special handling and falls
+        back on the given formatter or, if None:
+            lambda k, v: '%s = %s\n' % (k, repr(v))
+        Derived classes should document the special handling they implement.
+        This class provides special handling for the keys 'depth' and '__doc__':
+        see below.
 
         All other arguments should be given in keyword form.  The name 'depth'
         shall be ignored if given (it is over-written by an attribute of the
@@ -360,7 +366,7 @@ class CacheSubNode (SubNode):
 
 class CacheFile (CacheSubNode):
     @lazyattr
-    def _content_file(self, ig=None): return self.path()
+    def _cache_file(self, ig=None): return self.path()
 
     @property
     def depth(self, ig=None): return 0
@@ -618,22 +624,23 @@ class CacheDir (LockDir):
         else: stop, parent = after.start, after.parent
 
         if limit is not None:
-            assert isinstance(getattr(limit, 'range', None), Range)
+            assert isinstance(getattr(limit, 'span', None), Range)
+            # TODO - special case: before, after, gap don't all have same sign !
 
-            if start is None: start = limit.range.start
-            elif limit.range.start is None: pass
-            elif limit.range.start > start: start = limit.range.start
+            if start is None: start = limit.span.start
+            elif limit.span.start is None: pass
+            elif limit.span.start > start: start = limit.span.start
 
             if stop is None: stop = limit.stop
-            elif limit.range.stop is None: pass
-            elif limit.range.stop < stop: stop = limit.range.stop
+            elif limit.span.stop is None: pass
+            elif limit.span.stop < stop: stop = limit.span.stop
 
             if parent is None: parent = limit.parent
 
         assert parent is not None
         return Hole(parent, start, stop)
 
-    def bchop(row, value, attr):
+    def bchop(row, value, attr): # tool function, del'd below
         lo, hi = 0, len(row)
         loa, hia = getattr(row[lo], attr), getattr(row[hi], attr)
         if loa.start > value: raise ValueError(None, row[lo])
@@ -715,9 +722,7 @@ class CacheDir (LockDir):
 del WeakTuple, LockDir, Interval, lazyprop
 
 class CacheRoot (CacheDir, Node):
-    def __init__(self, path):
-        self.__dir = path
-
+    def __init__(self, path): self.__dir = path
     parent = span = None
     sign = +1
     @property
