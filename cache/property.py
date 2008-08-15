@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.3 2008-08-10 14:59:06 eddy Exp $
+$Id: property.py,v 1.4 2008-08-15 06:44:57 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictprop
 
@@ -78,7 +78,7 @@ class lazyattr (attrstore, recurseprop):
     computed, deleting it never raises an AttributeError (unless some derived
     class choses to over-ride that).\n"""
 
-    assert attrstore.__init__ is recurseprop.__init__ is docprop.__init__
+    assert attrstore.__init__.im_func is recurseprop.__init__.im_func is docprop.__init__.im_func
     __upinit = docprop.__init__
     def __init__(self, getit, setit=None, delit=lambda x: None, doc=None):
         self.__upinit(getit, setit, delit, doc)
