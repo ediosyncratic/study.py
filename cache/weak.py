@@ -12,7 +12,7 @@ Provides:
   weakattr -- recurseprop using attrstore to cache weakrefs to attribute values
   weakprop -- combines weakattr and dictprop
 
-$Id: weak.py,v 1.2 2008-08-03 20:59:56 eddy Exp $
+$Id: weak.py,v 1.3 2008-08-15 06:45:13 eddy Exp $
 """
 
 from study.snake.sequence import ReadSeq
@@ -51,7 +51,7 @@ del ReadSeq
 
 # TODO: WeakMapping
 
-from study.snake.property import recurseprop
+from study.snake.property import recurseprop, dictprop
 from property import attrstore
 class weakattr (attrstore, recurseprop):
     """Weakly-referenced attribute look-up.
@@ -85,4 +85,4 @@ class weakprop (weakattr, dictprop):
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__wget(obj, mode)
 
-del recurseprop, attrstore
+del recurseprop, attrstore, dictprop
