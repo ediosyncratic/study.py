@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.12 2008-08-14 20:19:04 eddy Exp $
+$Id: whole.py,v 1.13 2008-08-17 22:02:21 eddy Exp $
 """
 
 Adaptation = """
@@ -432,9 +432,6 @@ class Gap (SubNode):
     def __init__(self, parent, sign, start, span):
         self.__upinit(parent, '', start, span)
 
-class WriteSubNode (SubNode, WriteNode):
-    pass
-
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
     def __init__(self, name, parent, types, sign, start, span):
@@ -442,6 +439,9 @@ class CacheSubNode (SubNode):
         self.__name = name
 
     def path(self, *tail): return self.parent.path(self.__name, *tail)
+
+class WriteSubNode (CacheSubNode, WriteNode):
+    pass
 
 class CacheFile (CacheSubNode):
     @lazyattr
@@ -642,6 +642,7 @@ class CacheDir (LockDir):
 
         def __len__(self): return len(filter(self.__test, self.__att(self.__who)))
 
+    @staticmethod
     def weaklisting(picker, W=WeakSubSeq, L=lazyattr):
         """Lazy WeakTuple decorator for a filter on types.
 
@@ -800,7 +801,7 @@ class CacheDir (LockDir):
     del bchop
 del WeakTuple, LockDir, Interval, lazyprop
 
-class CacheRoot (CacheDir, Node):
+class CacheRoot (Node, CacheDir):
     def __init__(self, path): self.__dir = path
     parent = span = None
     sign = +1
@@ -883,14 +884,14 @@ class WriteCacheDir (CacheDir):
 
 del nameber
 
-class WriteCacheRoot (WriteCacheDir, CacheRoot, WriteNode):
-    pass
+class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
+    _child_class_ = WriteCacheDir._child_class_
 
 class CacheSubDir (CacheSubNode, CacheDir):
     pass
 
-class WriteCacheSubDir (WriteCacheDir, CacheSubDir, WriteSubNode):
+class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
+    _child_class_ = WriteCacheDir._child_class_
     # TODO: needs to know how to rename itself when its range expands
-    pass
 
 del lazyattr
