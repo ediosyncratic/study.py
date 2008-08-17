@@ -40,12 +40,12 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.41 2008-08-14 20:37:31 eddy Exp $
+$Id: cache.py,v 1.42 2008-08-17 21:55:29 eddy Exp $
 """
 
 from study.cache import whole
 from study.snake.regular import Interval
-from property import lazyattr, lazyprop
+from study.cache.property import lazyattr, lazyprop
 
 class Node (whole.Node):
     def indices(self, ig=None):
@@ -164,7 +164,7 @@ class CacheDir (Node, whole.CacheDir):
     __upchange = whole.CacheDir._onchange_
     def _onchange_(self):
         self.__upchange()
-        del self.primes self.factors
+        del self.primes, self.factors
 
     __upgap = whole.CacheDir._gap_
     def _gap_(self, before, after, limit,
@@ -180,7 +180,7 @@ class CacheDir (Node, whole.CacheDir):
         try: ind = limit.indices
         except AttributeError: pass
         else:
-            assert ind.step = 1 # positive
+            assert ind.step == 1 # positive
             if stop is None or stop > ind: stop = ind.stop
             if start is None or start < ind: start = ind.start
 
@@ -279,6 +279,8 @@ class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
 
 
 del Node, WriteNode, Interval, whole
+from study.snake.sequence import Ordered
+import os
 
 class oldCache (object):
     """Iterator over an old-style cache.
