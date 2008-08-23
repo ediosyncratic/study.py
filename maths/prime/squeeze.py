@@ -22,15 +22,15 @@ they appear in a string.
   only by the factor log(64)/log(94) = 0.915; i.e. it'd save us less than 9%
   relative to to base64, at the expense of significantly more effort.
 
-The information on factors, on the other hand, is a sequence of prime indices,
-each at least the number, n, of primes in our octet-type.  We can say very
-definite things about how much of the time each index occurs, so a custom
-compression algorithm should be feasible.  For natural i > n, only a fraction
-product(: (p-1)/p &larr;p |primes[n:i]) of the indices are at least i; and
-1/primes[i] of these are i.  This is the data we'd need to construct a Huffman
-code; except that the symbol set is infinite, which complicates matters !  (For
-the n = 7 case, using primes up to 17 for the octet, the sum of proportions for
-primes[7:92] is just over 0.5.)
+The information on factors, on the other hand, is a sequence of primes, each
+greater than the primes defining our octet-type.  We can say very definite
+things about how much of the time each prime occurs, so a custom compression
+algorithm should be feasible.  If our octet-type uses n primes, for natural i >
+n, only a fraction product(: (p-1)/p &larr;p |primes[n:i]) of the factors are at
+least p = primes[i]; and 1/p of these are p.  This is the data we'd need, to
+construct a Huffman code; except that the symbol set is infinite, which
+complicates matters !  (For the n = 7 case, using primes up to 17 for the octet,
+the sum of proportions for primes[7:92] is just over 0.5.)
 
 For any given file recording factors of a range of naturals, however, the set of
 relevant primes is finite; it comprises only those primes whose squares are at
@@ -50,7 +50,19 @@ factor list from the naturals, coprime to the primes up to 17, up to the product
 of the primes up to 17, allow compression by a factor of about 3, using the
 compressor derived from primes[7:7+92*92]; this is the compressor I'd end up
 using for the first 14912 generalized octets, covering the primes up to
-7612725120, a little over 7 * 2**30.\n"""
+7612725120, a little over 7 * 2**30.
+
+The memory sizes of the Huffman decompressors then present an issue; at some
+point, they would get unmanageably big.  In that case, we can amend the encoding
+by breaking up our list of factors into: sequences which our biggest
+decompressor can handle; interspersed with over-large primes - which should be
+fairly rare.  We can then compress each sequence we can handle and save a tuple
+whose entries are either compressed strings or actual primes (possibly
+represented by their index as primes, optionally minus the index of the last
+prime actually handled by the Huffman compressor).
+
+$Id: squeeze.py,v 1.7 2008-08-23 14:13:28 eddy Exp $
+"""
 
 from bz2 import compress
 
