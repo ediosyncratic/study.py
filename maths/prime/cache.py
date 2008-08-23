@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.44 2008-08-23 13:50:57 eddy Exp $
+$Id: cache.py,v 1.45 2008-08-23 21:28:11 eddy Exp $
 """
 
 from study.cache import whole
@@ -119,7 +119,34 @@ import re
 
 class WriteNode (Node, whole.WriteNode):
     __upsave = whole.WriteNode._save_
-    def _save_(self, formatter=None,
+
+    row = []
+    def myrepr(value, rep=row):
+        # Represent sequences as normal but: use ',\n' instead of ', ' to join
+        # entry representations; and apply our custom representation recursively
+        # to sequence entries.
+        show = rep[0] # this function
+        if isinstance(value, tuple):
+            return '(\n' + ',\n'.join(map(show, value)) + '\n)'
+        if isinstance(value, list):
+            return '[\n' + ',\n'.join(map(show, value)) + '\n]'
+
+        if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
+            txt = repr(v).replace('\\n', '\n')
+            if txt[0] == 'u': head, txt = txt[0], txt[1:]
+            else: head = ''
+            assert text[1] != txt[0] == txt[-1]
+            assert txt[-1] != txt[-2] or txt[-3] == '\\'
+            txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
+            head += tail
+            return head + txt + tail
+
+        return repr(v)
+
+    row[0] = myrepr
+    del row
+
+    def _save_(self, formatter=None, myrep=myrepr,
                cut=re.compile('.{,80}').findall,
                b64enc=standard_b64encode, **what):
         """Saves data to file.
@@ -142,16 +169,8 @@ class WriteNode (Node, whole.WriteNode):
         except AttributeError: pass
         else: what['indices'] = (gap.start - off, len(gap))
 
-        def reformat(k, v, given=formatter, e=b64enc, chop=cut,
-                     d=lambda k, v: '%s = %s\n' % (k, repr(v))):
-
-            if isinstance(v, tuple) and len(v) > 20:
-                # use ',\n' in place of ', ' in tuple's repr:
-                return '%s = (\n' % k + ',\n'.join(map(repr, v)) + '\n)'
-
-            if isinstance(v, list) and len(v) > 20:
-                # use ',\n' in place of ', ' in list's repr:
-                return '%s = [\n' % k + ',\n'.join(map(repr, v)) + '\n]'
+        def reformat(k, v, given=formatter, repr=myrep, e=b64enc, chop=cut,
+                     d=lambda k, v: '%s = %s\n' % (k, myrep(v))):
 
             if isinstance(v, basestring) and len(v) > 40:
                 r = repr(v)
@@ -163,20 +182,12 @@ class WriteNode (Node, whole.WriteNode):
                     del b64, lines # apt to be large objects in memory !
                 del r # likewise.
 
-            if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
-                txt = repr(v).replace('\\n', '\n')
-                if txt[0] == 'u': head, txt = txt[0], txt[1:]
-                else: head = ''
-                assert text[1] != txt[0] == txt[-1]
-                assert txt[-1] != txt[-2] or txt[-3] == '\\'
-                txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
-                head += tail
-                return '%s = ' % k + head + txt + tail
-
             if given is None: return d(k, v)
             return given(k, v)
 
         self.__upsave(reformat, **what)
+
+    del myrepr
 
 del standard_b64encode, standard_b64decode, re
 
