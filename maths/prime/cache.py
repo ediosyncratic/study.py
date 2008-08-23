@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.45 2008-08-23 21:28:11 eddy Exp $
+$Id: cache.py,v 1.46 2008-08-23 21:43:06 eddy Exp $
 """
 
 from study.cache import whole
@@ -146,7 +146,7 @@ class WriteNode (Node, whole.WriteNode):
     row[0] = myrepr
     del row
 
-    def _save_(self, formatter=None, myrep=myrepr,
+    def _save_(self, formatter=None, rep=myrepr,
                cut=re.compile('.{,80}').findall,
                b64enc=standard_b64encode, **what):
         """Saves data to file.
@@ -169,8 +169,8 @@ class WriteNode (Node, whole.WriteNode):
         except AttributeError: pass
         else: what['indices'] = (gap.start - off, len(gap))
 
-        def reformat(k, v, given=formatter, repr=myrep, e=b64enc, chop=cut,
-                     d=lambda k, v: '%s = %s\n' % (k, myrep(v))):
+        def reformat(k, v, given=formatter, mrep=rep, e=b64enc, chop=cut,
+                     d=lambda k, v: '%s = %s\n' % (k, rep(v))):
 
             if isinstance(v, basestring) and len(v) > 40:
                 r = repr(v)
