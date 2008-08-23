@@ -53,21 +53,14 @@ using for the first 14912 generalized octets, covering the primes up to
 7612725120, a little over 7 * 2**30.\n"""
 
 from bz2 import compress, decompress
-from base64 import standard_b64encode, standard_b64decode
-import re
-eighty = re.compile('.{,80}')
-del re
 
-def squash(txt, enc=standard_b64encode, c=compress, chop=eighty):
+def expand(txt, d=decompress): return d(txt)
+def squash(txt, c=compress):
     ans = enc(c(txt))
-    if len(repr(ans)) < len(repr(txt)): return '\n'.join(chop.findall(ans))
+    if len(repr(ans)) < len(repr(txt)): return ans
     raise ValueError, "I'm sorry Dave, I can't do that"
 
-# Helpfully, standard_b64decode knows to ignore '\n'
-def expand(txt, e=decompress, dec=standard_b64decode):
-    return e(dec(txt))
-
-del compress, decompress, standard_b64encode, standard_b64decode
+del compress, decompress
 
 from study.crypt.Huffman import Huffman, alphabet
 class Huff (Huffman):
