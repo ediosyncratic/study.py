@@ -22,14 +22,23 @@ Caches:
 
  * Custom compression of the data in cache files is managed by the client.
    However the cache shall base64-encode long strings whose repr would thereby
-   be shortened; keys passed to _save_ (with string value) should not end in
-   'b64' unless you're happy to have their data come back base64-decoded from
-   _load_, with the 'b64' stripped from the name !
+   be shortened.  (Non-printable characters (and a few others) get expanded by
+   repr expressing them as escape sequences; this can easilly expand a string by
+   more than the factor of 4/3 incurred by base 64.)
+
+ * Keywords passed in to _save_ methods with names ending 'bz2' or 'b64' shall,
+   if the value is a string, when read back by _load_, have had these suffixes
+   stripped and their values bz2.decompress()ed or base64-decoded (both if the
+   name ended 'bz2b64'); generally, it is expected that any bz2.compress()ion
+   shall be done by the application and indicated in this way; whereas
+   base64-encoding is done by _save_ when suitable.
 
  * The actual range of naturals described by any cache entity always starts and
    ends at a multiple of the modulus of the cache's extended octet type; so the
    numeric parts of names, and hence the .span attributes of objects describing
    files and directories, are all reduced by an implicit factor of this modulus.
+   The .interval attribute provides .span times this modulus, for the actual
+   range of naturals described.
 
  * Cache root directories may also remember sporadics, in so far as we've
    discovered any; that is, a list of primes beyond the end of the covered range
@@ -43,13 +52,14 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.43 2008-08-23 13:18:23 eddy Exp $
+$Id: cache.py,v 1.44 2008-08-23 13:50:57 eddy Exp $
 """
 
 from study.cache import whole
 from study.snake.regular import Interval
 from study.cache.property import lazyattr, lazyprop
 from base64 import standard_b64encode, standard_b64decode
+from bz2 import decompress
 
 class Node (whole.Node):
     def indices(self, ig=None):
@@ -84,19 +94,27 @@ class Node (whole.Node):
         return Range(lo, sz)
 
     __upload = whole.Node._load_
-    def _load_(self, bok=None, Range=Interval, dec=standard_b64decode):
+    def _load_(self, bok=None,
+               Range=Interval, dec=standard_b64decode, unz=decompress):
         bok = self.__upload(bok)
         try: gap = bok.pop('indices') # twople format in file
         except KeyError: pass
         else: self.__indices = Range(gap[0], ga[1])
+
         for (k, v) in bok.items():
             if k[-3:] == 'b64' and isinstance(v, basestring):
                 del bok[k]
                 # Helpfully, standard_b64decode knows to ignore '\n'
-                bok[k[:-3]] = dec(v)
+                k, v = k[:-3], dec(v)
+                bok[k] = v
+
+            if k[-3:] == 'bz2' and isinstance(v, basestring):
+                del bok[k]
+                bok[k[:-3]] = unz(v)
+
         return bok
 
-del lazyattr, lazyprop
+del lazyattr, lazyprop, decompress
 import re
 
 class WriteNode (Node, whole.WriteNode):
