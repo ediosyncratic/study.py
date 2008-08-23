@@ -21,7 +21,10 @@ Caches:
    sieves are of type 'Q' while incomplete factor sieves are of type 'G'.
 
  * Custom compression of the data in cache files is managed by the client.
-   However - TODO - I should probably move the base64-encoding here.
+   However the cache shall base64-encode long strings whose repr would thereby
+   be shortened; keys passed to _save_ (with string value) should not end in
+   'b64' unless you're happy to have their data come back base64-decoded from
+   _load_, with the 'b64' stripped from the name !
 
  * The actual range of naturals described by any cache entity always starts and
    ends at a multiple of the modulus of the cache's extended octet type; so the
@@ -40,12 +43,13 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.42 2008-08-17 21:55:29 eddy Exp $
+$Id: cache.py,v 1.43 2008-08-23 13:18:23 eddy Exp $
 """
 
 from study.cache import whole
 from study.snake.regular import Interval
 from study.cache.property import lazyattr, lazyprop
+from base64 import standard_b64encode, standard_b64decode
 
 class Node (whole.Node):
     def indices(self, ig=None):
@@ -80,18 +84,26 @@ class Node (whole.Node):
         return Range(lo, sz)
 
     __upload = whole.Node._load_
-    def _load_(self, bok=None, Range=Interval):
+    def _load_(self, bok=None, Range=Interval, dec=standard_b64decode):
         bok = self.__upload(bok)
         try: gap = bok.pop('indices') # twople format in file
         except KeyError: pass
         else: self.__indices = Range(gap[0], ga[1])
+        for (k, v) in bok.items():
+            if k[-3:] == 'b64' and isinstance(v, basestring):
+                del bok[k]
+                # Helpfully, standard_b64decode knows to ignore '\n'
+                bok[k[:-3]] = dec(v)
+        return bok
 
 del lazyattr, lazyprop
+import re
 
 class WriteNode (Node, whole.WriteNode):
     __upsave = whole.WriteNode._save_
-    # TODO: mediate base-64 encoding at this level.
-    def _save_(self, formatter=None, **what):
+    def _save_(self, formatter=None,
+               cut=re.compile('.{,80}').findall,
+               b64enc=standard_b64encode, **what):
         """Saves data to file.
 
         See study.cache.whole.WriteNode._save_ for general documentation.  This
@@ -112,7 +124,7 @@ class WriteNode (Node, whole.WriteNode):
         except AttributeError: pass
         else: what['indices'] = (gap.start - off, len(gap))
 
-        def reformat(k, v, given=formatter,
+        def reformat(k, v, given=formatter, e=b64enc, chop=cut,
                      d=lambda k, v: '%s = %s\n' % (k, repr(v))):
 
             if isinstance(v, tuple) and len(v) > 20:
@@ -123,11 +135,22 @@ class WriteNode (Node, whole.WriteNode):
                 # use ',\n' in place of ', ' in list's repr:
                 return '%s = [\n' % k + ',\n'.join(map(repr, v)) + '\n]'
 
+            if isinstance(v, basestring) and len(v) > 40:
+                r = repr(v)
+                if (len(r) - 2) * 3 > len(v) * 4: # i.e. len(r) > len(repr(e(v))
+                    b64 = e(v)
+                    lines = chop(b64)
+                    if len(repr(b64)) + len(lines) - 1 < len(r):
+                        k, v = k + 'b64', '\n'.join(lines)
+                    del b64, lines # apt to be large objects in memory !
+                del r # likewise.
+
             if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
                 txt = repr(v).replace('\\n', '\n')
                 if txt[0] == 'u': head, txt = txt[0], txt[1:]
                 else: head = ''
-                assert txt[0] == txt[-1]
+                assert text[1] != txt[0] == txt[-1]
+                assert txt[-1] != txt[-2] or txt[-3] == '\\'
                 txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
                 head += tail
                 return '%s = ' % k + head + txt + tail
@@ -136,6 +159,8 @@ class WriteNode (Node, whole.WriteNode):
             return given(k, v)
 
         self.__upsave(reformat, **what)
+
+del standard_b64encode, standard_b64decode, re
 
 class CacheFile (Node, whole.CacheFile):
     __load = Node._load_
