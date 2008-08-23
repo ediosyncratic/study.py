@@ -63,6 +63,8 @@ def squash(txt, c=compress):
 del compress, decompress
 
 from study.crypt.Huffman import Huffman, alphabet
+import re
+
 class Huff (Huffman):
     __upinit, __base = Huffman.__init__, len(alphabet)
     def __init__(self, primes, skip, bound):
@@ -103,10 +105,10 @@ class Huff (Huffman):
     __dec = Huffman.decode
     # Add and ignore newlines in ciphertext to make its lines <= 80 long:
 
-    def encode(self, message, chop=eighty):
-        return '\n'.join(chop.findall(self.__enc(message)))
+    def encode(self, message, chop=re.compile('.{,80}').findall):
+        return '\n'.join(chop(self.__enc(message)))
 
     def decode(self, text):
         return self.__dec(''.join(text.split('\n')))
 
-del Huffman, alphabet, eighty
+del Huffman, alphabet, re
