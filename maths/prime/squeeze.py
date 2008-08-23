@@ -52,15 +52,14 @@ compressor derived from primes[7:7+92*92]; this is the compressor I'd end up
 using for the first 14912 generalized octets, covering the primes up to
 7612725120, a little over 7 * 2**30.\n"""
 
-from bz2 import compress, decompress
+from bz2 import compress
 
-def expand(txt, d=decompress): return d(txt)
 def squash(txt, c=compress):
     ans = enc(c(txt))
     if len(repr(ans)) < len(repr(txt)): return ans
     raise ValueError, "I'm sorry Dave, I can't do that"
 
-del compress, decompress
+del compress
 
 from study.crypt.Huffman import Huffman, alphabet
 import re
