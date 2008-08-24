@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.6 2008-07-13 13:21:23 eddy Exp $
+$Id: regular.py,v 1.7 2008-08-24 20:21:03 eddy Exp $
 """
 
 class Regular (object):
@@ -15,6 +15,58 @@ class Regular (object):
         try: self.index(ind)
         except ValueError: return False
         return True
+
+    def subsumes(self, other):
+        """True precisely if every value in other is also in self."""
+
+        try: ar, op, ep = other.start, other.stop, other.step
+        except AttributeError:
+            raise ValueError(other,
+ 'Use "in" test for membership; subsumes() takes a slice or Regular sequence')
+
+        # Deal with easy special cases:
+        if ar not in other: return True # everyone subsumes empty
+        # Out of phase with self:
+        if (ar - self.start) % self.step: return False
+        if op is None and ep:
+            # Finite sequence can't subsume infinite:
+            if self.stop is not None: return False
+            # Endless sequence going in opposite direction:
+            if ep * self.step < 0: return False
+        # Variations on len(other) == 1, but avoiding computing len(other):
+        elif ep < 0:
+            if op >= ar + ep: return ar in self
+        elif ep > 0:
+            if op <= ar + ep: return ar in self
+        else: return ar in self
+        assert ep
+        # Incompatible step length:
+        if ep % self.step: return False
+
+        # Must start within self; if op is within self, it's good:
+        if self.step > 0:
+            if self.start <= ar < self.stop:
+                if op is None: return True # see earlier checks
+                if self.start <= op:
+                    if self.stop is None: return True
+                    if op < self.stop: return True
+            else: return False
+        elif self.step < 0:
+            if self.start >= ar > self.stop:
+                if op is None: return True # see earlier checks
+                if self.start <= op:
+                    if self.stop is None: return True
+                    if op < self.stop: return True
+            else: return False
+        else: return False # Non-constant not subsumed by constant:
+
+        # Need to check other.last:
+        q, r = divmod(op - ar, ep)
+        if not r: q -= 1
+        assert q > 0 # it's len(other)-1 and we know len(other) > 1
+        last = ar + ep * q
+        if self.step > 0: return self.start <= last < self.stop
+        return self.start >= last > self.stop
 
     def asslice(self): return slice(self.start, self.stop, self.step)
 
@@ -48,7 +100,7 @@ class Regular (object):
 
     # Define comparison in terms of "is this true for all values in self ?"
     def __cmp(self, other, no, yes):
-        try: ar, op. ep = other.start, other.stop, other.step
+        try: ar, op, ep = other.start, other.stop, other.step
         except AttributeError: pass
         else: other = self.__slice(ar, op, ep)
         # Always make other be left operand of recursing comparisons:
@@ -273,11 +325,12 @@ class Slice (Regular):
     def __getattr__(self, key):
         if key == 'last':
             if self.__seq.step == 0 and self.__seq.stop != self.start:
-                return self.start # Sequence is actually infinite, yet has well-defined .last
+                # Sequence is actually infinite, yet has well-defined .last !
+                return self.start
             if self.__seq.stop is None:
                 raise AttributeError, 'No last element in infinite Slice'
             q = len(self)
-            if q > 0: return self.start + self.step * q
+            if q > 0: return self.start + self.step * (q - 1)
             raise AttributeError, 'No last element in empty slice'
 
         ans = getattr(self.__seq, key) # raises AttributeError if needed
