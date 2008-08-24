@@ -2,7 +2,7 @@
 
   printmenu -- prints an unordered list in multi-column format
 
-$Id: show.py,v 1.3 2008-08-24 20:53:24 eddy Exp $
+$Id: show.py,v 1.4 2008-08-24 20:56:01 eddy Exp $
 """
 from row import transpose
 try:
@@ -11,7 +11,7 @@ try:
     finally: del environ
 except (KeyError, ValueError, ImportError): wide = 72
 
-def printmenu(menu=None, width=wide):
+def printmenu(menu=None, width=wide, flip=transpose):
     """Pretty-prints the known errors.
 
     Arguments are optional (but omitting the first makes this a no-op):
@@ -70,7 +70,7 @@ def printmenu(menu=None, width=wide):
     # formats of the columns (wide % n is a format string, for integer n):
     formats = map(lambda w, f=wide: f % w, map(lambda c: len(c[-1]), cols))
 
-    def tidy(seq, flip=transpose):
+    def tidy(seq):
         """Minor tidy-up *after* transpose.
 
         In effect, transpose reads cols as a rectangle, substituting None into
