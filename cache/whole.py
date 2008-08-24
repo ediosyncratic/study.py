@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.14 2008-08-24 15:05:52 eddy Exp $
+$Id: whole.py,v 1.15 2008-08-24 15:26:16 eddy Exp $
 """
 
 Adaptation = """
@@ -526,7 +526,6 @@ class CacheDir (LockDir):
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered,
-                  
                   pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
                   signmap={ 'N': -1, 'P': +1, '': None }):
         """The (suitably sorted) list of contents of this directory.
@@ -542,7 +541,7 @@ class CacheDir (LockDir):
                     sign = None
 
                 start, span = int(got.group(2), 36), int(got.group(4), 36)
-                ans.append((got.group(3), sign, start, span, name, got.group(5)))
+                ans.append((name, got.group(3), sign, start, span, got.group(5)))
 
         return ans
     del re, Ordered
@@ -595,7 +594,7 @@ class CacheDir (LockDir):
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
-                mode, sign, start, size, name, isfile = g(s)[ind]
+                name, mode, sign, start, size, isfile = g(s)[ind]
                 klaz = s._child_class_(isfile, mode)
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
                 return klaz(name, s, mode, sign, start, size)
@@ -635,11 +634,11 @@ class CacheDir (LockDir):
             def get(ind, s=cdir, g=getseq, f=test):
                 j = 0
                 for it in g(s):
-                    if f(it[0]):
+                    if f(it[1]):
                         if ind: ind -= 1
                         else:
                             ans = s.listing[j]
-                            assert ans.types == it[0] and f(ans.types)
+                            assert ans.types == it[1] and f(ans.types)
                             return ans
                     j += 1
 
@@ -790,7 +789,7 @@ class CacheDir (LockDir):
             row, i = [], 0
             for it in self.__listing:
                 for t in types:
-                    if t not in it[0]: break
+                    if t not in it[1]: break
                 else:
                     row.append(self.listing[i])
                 i += 1
@@ -836,6 +835,8 @@ class WriteCacheDir (CacheDir):
         under self, into which the client may save its data of the given types
         for the given range of integers.  The application should subsequently
         call self.tidy() to ensure consistency of the resulting cache.\n"""
+
+        
 
         # TODO: implement
         raise NotImplementedError
