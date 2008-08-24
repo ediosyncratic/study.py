@@ -2,26 +2,32 @@
 
   printmenu -- prints an unordered list in multi-column format
 
-$Id: show.py,v 1.2 2008-05-19 04:31:12 eddy Exp $
+$Id: show.py,v 1.3 2008-08-24 20:53:24 eddy Exp $
 """
 from row import transpose
+try:
+    from os import environ
+    try: wide = int(environ['COLUMNS'])
+    finally: del environ
+except (KeyError, ValueError, ImportError): wide = 72
 
-def printmenu(menu=None, width=72):
+def printmenu(menu=None, width=wide):
     """Pretty-prints the known errors.
 
     Arguments are optional (but omitting the first makes this a no-op):
 
       menu -- a sequence of strings
 
-      width -- width of available display (default: 72): the output will be
-      formatted in a table with as many columns as the display permits.  Any
-      sufficiently low value (e.g. 0) will force single-column output, which
-      ignores width.
+      width -- width of available display (default: int(os.environ['COLUMNS'])
+               if available, else 72): the output will be formatted in a table
+               with as many columns as the display permits.  Any sufficiently
+               low value (e.g. 0) will force single-column output, which ignores
+               width.
 
     Single-column output will respect the order of the given sequence; for
     multi-column output, the strings are sorted by length so that the strings in
     each column are all of similar length; this is a display-space-saving
-    optimisation. """
+    optimisation.\n"""
     if not menu: return
 
     def lines(fmt, seq):
@@ -64,7 +70,7 @@ def printmenu(menu=None, width=72):
     # formats of the columns (wide % n is a format string, for integer n):
     formats = map(lambda w, f=wide: f % w, map(lambda c: len(c[-1]), cols))
 
-    def tidy(seq):
+    def tidy(seq, flip=transpose):
         """Minor tidy-up *after* transpose.
 
         In effect, transpose reads cols as a rectangle, substituting None into
@@ -77,4 +83,6 @@ def printmenu(menu=None, width=72):
         return tuple(seq)
 
     return lines(reduce(lambda x,y: x + ' ' + y, formats),
-                 map(tidy, transpose(cols)))
+                 map(tidy, flip(cols)))
+
+del transpose, wide
