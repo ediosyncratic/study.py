@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.13 2008-08-17 22:02:21 eddy Exp $
+$Id: whole.py,v 1.14 2008-08-24 15:05:52 eddy Exp $
 """
 
 Adaptation = """
@@ -338,26 +338,37 @@ class WriteNode (Node):
         """Saves a given namespace to a module.
 
         First argument, formatter, is None (to use a default) or a function
-        taking a key-value pair and outputting a string to save to file, that
-        shall be used to record that key-value pair.  If None, a default is used
-        which formats the pair as a simple assignment statement with the key on
-        the left and the value's repr() on the right, followed by a newline.
-
-        Derived classes may introduce special handling for some keys; to do so,
-        they need to hijack the formatter they get and tunnel it through one
-        they pass on in its place, that implements the special handling and falls
-        back on the given formatter or, if None:
-            lambda k, v: '%s = %s\n' % (k, repr(v))
-        Derived classes should document the special handling they implement.
-        This class provides special handling for the keys 'depth' and '__doc__':
-        see below.
+        taking a key, a value and an optional replacement for repr; it should
+        output a string to save to file, that shall be used to record the
+        key-value pair.  If None, a default is used which formats the pair as a
+        simple assignment statement with the key on the left and the value's
+        repr() on the right, followed by a newline.
 
         All other arguments should be given in keyword form.  The name 'depth'
         shall be ignored if given (it is over-written by an attribute of the
         same name) on nodes not descended from CacheFile (whose depth is 0).
         The name '__doc__' shall be replaced by self.__doc__ if this is not the
         same object as self.__class__.__doc__; any __doc__ obtained by either of
-        these means shall be saved as doc-string in the module.\n"""
+        these means shall be saved as doc-string in the module.
+
+        Derived classes may introduce special handling for some keys; to do so,
+        they need to hijack the formatter they get and tunnel it through one
+        they pass on in its place, that implements the special handling and falls
+        back on the given formatter or, if None:
+            lambda k, v: '%s = %s\n' % (k, repr(v))
+        using the repr optionally passed to them by their caller.  Derived
+        classes should document the special handling they implement.  This class
+        provides special handling for the keys 'depth' and '__doc__': see above.
+
+        Derived classes may also introduce special formatting of values by
+        passing a replacement for repr to their client's (or further derived
+        class's) formatter, via their re-formatting wrapper.  If doing so, they
+        must take care to use any repr supplied to their wrapper, when *it* is
+        called (by a base class), rather than the built-in, as the foundation on
+        which they build their modified repr.\n"""
+
+        if formatter is None:
+            formatter = lambda k, v: '%s = %s\n' % (k, repr(v))
 
         if not self.lock(write=True):
             raise IOError(self.__BLOCKED, 'File temporarily unwritable',
@@ -374,12 +385,8 @@ class WriteNode (Node):
                     fd.write('depth = %d\n' % self.depth)
                 what.pop('depth', None) # don't let what over-ride that.
 
-                if formatter is None:
-                    for k, v in what.items():
-                        fd.write('%s = %s\n' % (k, repr(v)))
-                else:
-                    for k, v in what.items():
-                        fd.write(formatter(k, v))
+                for k, v in what.items():
+                    fd.write(formatter(k, v))
 
             finally: fd.close()
         finally: self.unlock(write=True)
