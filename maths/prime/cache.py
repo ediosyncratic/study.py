@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.46 2008-08-23 21:43:06 eddy Exp $
+$Id: cache.py,v 1.47 2008-08-24 15:12:14 eddy Exp $
 """
 
 from study.cache import whole
@@ -120,33 +120,32 @@ import re
 class WriteNode (Node, whole.WriteNode):
     __upsave = whole.WriteNode._save_
 
-    row = []
-    def myrepr(value, rep=row):
-        # Represent sequences as normal but: use ',\n' instead of ', ' to join
-        # entry representations; and apply our custom representation recursively
-        # to sequence entries.
-        show = rep[0] # this function
-        if isinstance(value, tuple):
-            return '(\n' + ',\n'.join(map(show, value)) + '\n)'
-        if isinstance(value, list):
-            return '[\n' + ',\n'.join(map(show, value)) + '\n]'
+    def repgen(rep):
+        # Lexical scoping lets myrepr call itself :-)
+        def myrepr(value, repr=rep):
+            # Represent sequences as normal but: use ',\n' instead of ', ' to
+            # join entry representations; and apply our custom representation
+            # recursively to sequence entries.
 
-        if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
-            txt = repr(v).replace('\\n', '\n')
-            if txt[0] == 'u': head, txt = txt[0], txt[1:]
-            else: head = ''
-            assert text[1] != txt[0] == txt[-1]
-            assert txt[-1] != txt[-2] or txt[-3] == '\\'
-            txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
-            head += tail
-            return head + txt + tail
+            if isinstance(value, tuple):
+                return '(\n' + ',\n'.join(map(myrepr, value)) + '\n)'
+            if isinstance(value, list):
+                return '[\n' + ',\n'.join(map(myrepr, value)) + '\n]'
 
-        return repr(v)
+            if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
+                txt = repr(v).replace('\\n', '\n')
+                if txt[0] == 'u': head, txt = txt[0], txt[1:]
+                else: head = ''
+                assert text[1] != txt[0] == txt[-1]
+                assert txt[-1] != txt[-2] or txt[-3] == '\\'
+                txt, tail = txt[1:-1], 3 * txt[-1] + '\n'
+                head += tail
+                return head + txt + tail
 
-    row[0] = myrepr
-    del row
+            return repr(v)
+        return myrepr
 
-    def _save_(self, formatter=None, rep=myrepr,
+    def _save_(self, formatter=None, genrep=repgen,
                cut=re.compile('.{,80}').findall,
                b64enc=standard_b64encode, **what):
         """Saves data to file.
@@ -169,8 +168,8 @@ class WriteNode (Node, whole.WriteNode):
         except AttributeError: pass
         else: what['indices'] = (gap.start - off, len(gap))
 
-        def reformat(k, v, given=formatter, mrep=rep, e=b64enc, chop=cut,
-                     d=lambda k, v: '%s = %s\n' % (k, rep(v))):
+        def reformat(k, v, repr=repr, given=formatter,
+                     repgen=genrep, e=b64enc, chop=cut):
 
             if isinstance(v, basestring) and len(v) > 40:
                 r = repr(v)
@@ -182,12 +181,13 @@ class WriteNode (Node, whole.WriteNode):
                     del b64, lines # apt to be large objects in memory !
                 del r # likewise.
 
-            if given is None: return d(k, v)
-            return given(k, v)
+            repr = repgen(repr)
+            if given is None: return '%s = %s\n' % (k, repr(v))
+            return given(k, v, repr)
 
         self.__upsave(reformat, **what)
 
-    del myrepr
+    del repgen
 
 del standard_b64encode, standard_b64decode, re
 
