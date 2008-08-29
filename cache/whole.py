@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.15 2008-08-24 15:26:16 eddy Exp $
+$Id: whole.py,v 1.16 2008-08-29 03:58:03 eddy Exp $
 """
 
 Adaptation = """
@@ -416,15 +416,17 @@ class SubNode (Node):
     def types(self, ig=None): return self.__type
     @property
     def sign(self, ig=None):
-        try: return self.__sign
-        except AttributeError: return self.__up.sign
+        up = self.__up.sign
+        try: return self.__sign * up
+        except AttributeError: return up
 
     @lazyattr
     def span(self, ig=None):
         if self.__sign:
-            assert 0 in self.__up.span
+            assert self.__up.span is None or 0 in self.__up.span
             ans = self.__span
         else:
+            assert self.__up.span is not None
             ans = self.__span + self.__up.span.start
 
         if self.sign < 0: return -ans
@@ -448,6 +450,7 @@ class CacheSubNode (SubNode):
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
 class WriteSubNode (CacheSubNode, WriteNode):
+    # TODO: needs to know how to rename itself when its range expands
     pass
 
 class CacheFile (CacheSubNode):
@@ -486,6 +489,7 @@ class CacheFile (CacheSubNode):
         return self.__spanner(self.span.start - 1)
 
 class WriteCacheFile (CacheFile, WriteSubNode):
+    # TODO: support being expanded or split.
     pass
 
 from lockdir import LockableDir
@@ -517,6 +521,8 @@ del LockableDir
 
 import os
 from weak import WeakTuple
+TYPES = 1 # index into each entry of __listing at which type string is held
+
 class CacheDir (LockDir):
     @lazyattr
     def _cache_file(self, ig=None):
@@ -594,6 +600,7 @@ class CacheDir (LockDir):
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
+                # make sure consistent with TYPES; index of mode
                 name, mode, sign, start, size, isfile = g(s)[ind]
                 klaz = s._child_class_(isfile, mode)
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
@@ -634,11 +641,11 @@ class CacheDir (LockDir):
             def get(ind, s=cdir, g=getseq, f=test):
                 j = 0
                 for it in g(s):
-                    if f(it[1]):
+                    if f(it[TYPES]):
                         if ind: ind -= 1
                         else:
                             ans = s.listing[j]
-                            assert ans.types == it[1] and f(ans.types)
+                            assert ans.types == it[TYPES] and f(ans.types)
                             return ans
                     j += 1
 
@@ -726,14 +733,16 @@ class CacheDir (LockDir):
         assert parent is not None
         return Hole(parent, start, stop)
 
-    def bchop(row, value, attr): # tool function, del'd below
+    @staticmethod
+    def _bchop(row, value, attr):
         lo, hi = 0, len(row)
         loa, hia = getattr(row[lo], attr), getattr(row[hi], attr)
-        if loa.start > value: raise ValueError(None, row[lo])
-        elif hia.stop <= value: raise ValueError(row[hi], None)
+        if loa.start > value: raise IndexError(None, row[lo])
+        elif hia.stop <= value: raise IndexError(row[hi], None)
         if loa.stop > value: return row[lo]
-        if hi.start <= value: return row[hi]
+        if hia.start <= value: return row[hi]
         assert hi > lo
+
         while lo + 1 < hi:
             assert loa.stop <= value < hia.start
             # linear-interpolate a "mid-point" between those:
@@ -748,10 +757,9 @@ class CacheDir (LockDir):
         assert hi == lo + 1
         assert row[lo].span.stop < row[hi].span.start # it's a gap
         assert loa.stop <= value < hia.start
-        raise ValueError(row[lo], row[hi])
+        raise IndexError(row[lo], row[hi])
 
-    def locate(self, value, attr='span', gap=None, seq='listing', types=None,
-               chop=bchop):
+    def locate(self, value, attr='span', gap=None, seq='listing', types=None):
         """Find sub-node or gap containing a specified entry.
 
         Do not pass more than five arguments (beyond self) to this method.
@@ -789,14 +797,14 @@ class CacheDir (LockDir):
             row, i = [], 0
             for it in self.__listing:
                 for t in types:
-                    if t not in it[1]: break
+                    if t not in it[TYPES]: break
                 else:
                     row.append(self.listing[i])
                 i += 1
 
-        try: kid = chop(row, value, attr)
-        except ValueError, what:
-            return self._gap_(*what.args)
+        try: kid = self._bchop(row, value, attr)
+        except IndexError, what:
+            return self._gap_(*(what.args + (gap,)))
 
         if isinstance(kid, CacheDir):
             return kid.locate(value, attr, gap, seq, types)
@@ -804,7 +812,6 @@ class CacheDir (LockDir):
         assert isinstance(kid, CacheFile)
         return kid
 
-    del bchop
 del WeakTuple, LockDir, Interval, lazyprop
 
 class CacheRoot (Node, CacheDir):
@@ -823,40 +830,79 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteCacheDir (CacheDir):
-    def newfile(self, range, types):
+    def newfile(self, span, types):
         """Find where to create a new file to be added.
 
         Required arguments:
-          range -- the range of integers to be described by the file
+          span -- the range of integers to be described by the file
           types -- an [A-Z]+ text specifying application-specific types of
                    information about integers to be stored in the new file.
 
-        Returns a self._child_class_(True, types) instance in the hierarchy
-        under self, into which the client may save its data of the given types
-        for the given range of integers.  The application should subsequently
-        call self.tidy() to ensure consistency of the resulting cache.\n"""
+        Raises ValueError if the given span overlaps any existing file.
+        Otherwise, returns a self._child_class_(True, types) instance in the
+        hierarchy under self, into which the client may save its data of the
+        given types for the given range of integers.  The application should
+        subsequently call self.tidy() to ensure consistency of the resulting
+        cache.
 
-        
+        This base-class implementation may instead raise an IndexError whose
+        .args is a twople, (before, after), each entry in which is a node on the
+        relevant side of the sought file, if any, else None; derived classes
+        WriteCacheRoot and WriteCacheDir overload this method to deal with the
+        various possibilities in that case.\n"""
 
-        # TODO: implement
-        raise NotImplementedError
+        assert span.step in (-1, +1), 'I require a contiguous range'
+        assert span > -1 or span < 1, 'Only a cache root can straddle 0'
+        assert self.span is None or self.span.subsumes(span)
+        lo = self.locate(span.start, types=types)
+        hi = self.locate(span.start + len(span) - 1)
+        if isinstance(lo, CacheFile) or isinstance(hi, CacheFile):
+            raise ValueError(span, 'starts or ends in existing file')
+        if span.start < hi.span.start or lo.span.stop < span.stop:
+            raise ValueError(span, 'straddles an existing file')
+
+        row, i = [], 0
+        for it in self.__listing:
+            if it[5]: # isfile
+                for t in types:
+                    if t not in it[TYPES]: break
+                else:
+                    row.append(self.listing[i])
+            else: row.append(self.listing[i])
+
+        kid = self._bchop(row, value, 'span') # may IndexError(before, after)
+        if isinstance(kid, CacheDir):
+            assert isinstance(kid, WriteCacheDir)
+            return kid.newfile(span, types)
+
+        # Extend the existing file, or ask me for a file for the extra part !
+        assert isinstance(kid, WriteCacheFile)
+        return kid
 
     changed = False # see tidy() and WriteNode._save_()
     def tidy(self):
         """Tidy up subordinate nodes.
 
         Ideally, each directory contains a dozen children, all of equal depth.
-        This function endeavours to make that true of this directory.\n"""
+        This function sees how near that ideal it can bring this directory.\n"""
 
-        if not self.changed: return # nothing to do
+        change = False
         for node in self.listing:
-            if isinstance(node, WriteCacheDir) and node.changed:
-                node.tidy()
-        self._onchange_()
+            if isinstance(node, WriteCacheDir) and \
+                   (node.changed or len(node.__listing) != 12):
+                if node.tidy(): change = True
+
+        if self.change or change:
+            self._onchange_()
+        elif len(self.__listing) == 12:
+            return False # nothing to do
+
         # TODO: implement
         raise NotImplementedError
+
         del self.changed # to expose the class value, False
         assert not self.changed
+        return True
 
     @staticmethod
     def _child_class_(isfile, mode): # configure __listing
@@ -894,12 +940,50 @@ del nameber
 
 class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
     _child_class_ = WriteCacheDir._child_class_
+    __newfile = WriteCacheDir.newfile # q.v. for documentation
+    def newfile(self, span, types):
+        try: return self.__newfile(span, types)
+        except IndexError, what: before, after = what.args
+        klaz = self._child_class_(True, types)
+
+        # before and after may be subdirectories, in which case adding to their
+        # relevant end may be suitable, if they abut span; otherwise, I'd beter
+        # be depth 1, so I can tidily add a simple file, or the root, where I'm
+        # allowed untidiness.
+        if self.depth == 1:
+            # name?, self, types, sign?, span.start, len(span)
+            if self.span is None or (-1 in self.span and +1 in self.span):
+                # self straddles zero, so we must set sign
+                if span > -1: sign = self.sign
+                else: sign = -self.sign
+            else: sign = None
+
+        # TODO: implement
+        raise NotImplementedError
+
+        return klaz(name, self, types, sign, start, reach)
 
 class CacheSubDir (CacheSubNode, CacheDir):
     pass
 
 class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
     _child_class_ = WriteCacheDir._child_class_
-    # TODO: needs to know how to rename itself when its range expands
+    __newfile = WriteCacheDir.newfile # q.v. for documentation
+    def newfile(self, span, types):
+        try: return self.__newfile(span, types)
+        except IndexError, what: before, after = what.args
+        klaz = self._child_class_(True, types)
+
+        # If self is the before or after to which a parent delegated, its
+        # matching before or after shall be None; it needs to grow to embrace
+        # span.
+
+        if self.depth == 1:
+            pass
+
+        # TODO: implement
+        raise NotImplementedError
+
+        return klaz(name, self, types, None, start, reach)
 
 del lazyattr
