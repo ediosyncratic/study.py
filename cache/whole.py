@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.16 2008-08-29 03:58:03 eddy Exp $
+$Id: whole.py,v 1.17 2008-08-29 04:12:42 eddy Exp $
 """
 
 Adaptation = """
@@ -521,7 +521,7 @@ del LockableDir
 
 import os
 from weak import WeakTuple
-TYPES = 1 # index into each entry of __listing at which type string is held
+TYPES = 2 # index into each entry of __listing at which type string is held
 
 class CacheDir (LockDir):
     @lazyattr
@@ -546,8 +546,12 @@ class CacheDir (LockDir):
                     assert False, "Bad sign; shouldn't have matched regex"
                     sign = None
 
-                start, span = int(got.group(2), 36), int(got.group(4), 36)
-                ans.append((name, got.group(3), sign, start, span, got.group(5)))
+                start, size = int(got.group(2), 36), int(got.group(4), 36)
+                start *= self.sign # ensure sensible sort order in __listing
+                if sign is not None: start *= sign
+                mode, isfile = got.group(3), got.group(5)
+                # Be sure to match WeakSeq:
+                ans.append((start, size, mode, sign, name, isfile))
 
         return ans
     del re, Ordered
@@ -600,8 +604,10 @@ class CacheDir (LockDir):
         __upinit = WeakTuple.__init__
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
-                # make sure consistent with TYPES; index of mode
-                name, mode, sign, start, size, isfile = g(s)[ind]
+                # be sure to match order in __listing(self, ...), above:
+                start, size, mode, sign, name, isfile = g(s)[ind]
+                start /= cdir.sign # undo __listing's sorting hack
+                if sign is not None: start /= sign
                 klaz = s._child_class_(isfile, mode)
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
                 return klaz(name, s, mode, sign, start, size)
