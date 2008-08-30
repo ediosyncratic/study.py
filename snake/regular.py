@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.7 2008-08-24 20:21:03 eddy Exp $
+$Id: regular.py,v 1.8 2008-08-30 12:58:42 eddy Exp $
 """
 
 class Regular (object):
@@ -8,8 +8,10 @@ class Regular (object):
 
     Derived classes must implement indexing, the index method, the attributes of
     a slice - start, stop (None for endless) and step - and (where applicable) a
-    .last attribute.  For subtraction support, they must also support
-    negation.\n"""
+    .last attribute, giving the final entry their iterator would yield (or
+    raising AttributeError).  For subtraction support, they must also support
+    negation.  They should also implement .min and .max attributes for the lower
+    and higher of .start and .last, respectively.\n"""
 
     def __contains__(self, ind):
         try: self.index(ind)
@@ -283,11 +285,11 @@ class Interval (Regular):
 
     def __getattr__(self, key):
         if key == 'step': return 1
-        if key == 'start': return self.__start
+        if key == 'start' or key == 'min': return self.__start
         if key == 'stop':
             if self.__span is None: return None
             return self.__start + self.__span
-        if key == 'last':
+        if key == 'last' or key == 'max':
             if self.__span is None:
                 raise AttributeError, 'No last element in infinite Interval'
             return self.__start + self.__span - 1
@@ -332,6 +334,12 @@ class Slice (Regular):
             q = len(self)
             if q > 0: return self.start + self.step * (q - 1)
             raise AttributeError, 'No last element in empty slice'
+        elif key == 'max':
+            if self.__seq.step < 0: return self.start
+            else: return self.last
+        elif key == 'min':
+            if self.__seq.step < 0: return self.last
+            else: return self.start
 
         ans = getattr(self.__seq, key) # raises AttributeError if needed
         if ans is None:
