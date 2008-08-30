@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.8 2008-08-30 12:58:42 eddy Exp $
+$Id: regular.py,v 1.9 2008-08-30 13:50:07 eddy Exp $
 """
 
 class Regular (object):
@@ -98,7 +98,11 @@ class Regular (object):
     def __neg__(self):
         if self.stop is None: stop = None
         else: stop = -self.stop
-        return self.__slice(-self.start, stop, -self.step)
+        # Unlike self.__slice's callers, we do care about reversing order.
+        if self.step == -1:
+            if stop is None: return Interval(-self.start, None)
+            return Interval(-self.start, stop + self.start)
+        return Slice(-self.start, stop, -self.step)
 
     # Define comparison in terms of "is this true for all values in self ?"
     def __cmp(self, other, no, yes):
