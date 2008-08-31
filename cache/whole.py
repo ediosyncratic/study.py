@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.17 2008-08-29 04:12:42 eddy Exp $
+$Id: whole.py,v 1.18 2008-08-31 16:57:32 eddy Exp $
 """
 
 Adaptation = """
@@ -403,9 +403,24 @@ class WriteNode (Node):
 del EWOULDBLOCK, Cached, weakattr
 
 class SubNode (Node):
-    def __init__(self, parent, types, sign, start, reach,
+    def __init__(self, parent, types, start, reach, sign=None,
                  Range=Interval):
-        if sign: self.__sign = sign
+        """Initialize a sub-node with type and span data.
+
+        Required arguments:
+          parent -- parent node
+          types -- string of [A-Z]+ type indicators
+          start -- offset into parent's .span at which self starts
+          reach -- length of interval self describes
+
+        Optional argument, sign, defaults to None, meaning parent.span doesn't
+        straddle 0; otherwise, it should be +1 or -1 to indicate which side of 0
+        self is.  Do not supply any further parameters.\n"""
+
+        assert reach > 0
+        if sign:
+            assert sign in (+1, -1)
+            self.__sign = sign
         self.__span = Range(start, reach), 
         self.__type, self.__up = types, parent
 
@@ -422,14 +437,14 @@ class SubNode (Node):
 
     @lazyattr
     def span(self, ig=None):
-        if self.__sign:
-            assert self.__up.span is None or 0 in self.__up.span
-            ans = self.__span
-        else:
+        ans = self.__span
+        if self.sign < 0: ans = -ans
+        try: self.__sign
+        except AttributeError:
             assert self.__up.span is not None
-            ans = self.__span + self.__up.span.start
+            return ans + self.__up.span.start
 
-        if self.sign < 0: return -ans
+        assert self.__up.straddles0
         return ans
 
     # Chase parent to its root:
@@ -438,16 +453,31 @@ class SubNode (Node):
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
-    def __init__(self, parent, sign, start, span):
-        self.__upinit(parent, '', start, span)
+    def __init__(self, parent, start, span, sign):
+        self.__upinit(parent, '', start, span, sign)
+
+    def straddles0(self, ig=None):
+        return self.span is None or (-1 in self.span and +1 in self.span)
 
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
-    def __init__(self, name, parent, types, sign, start, span):
-        self.__gapinit(parent, types, sign, start, span)
+    def __init__(self, name, parent, types, start, span, sign):
+        self.__gapinit(parent, types, start, span, sign)
         self.__name = name
 
     def path(self, *tail): return self.parent.path(self.__name, *tail)
+
+    @lazyattr
+    def straddles0(self, ig=None):
+        """CacheSubnodes do not straddle zero.
+
+        They may start at it, but never contain values on both sides of it.
+        This could simply be a property, except that I want to lazilly assert,
+        at most once in the object's life-time, that it really doesn't straddle
+        zero.\n"""
+        assert self.span is not None
+        assert -self.sign not in self.span
+        return False
 
 class WriteSubNode (CacheSubNode, WriteNode):
     # TODO: needs to know how to rename itself when its range expands
@@ -547,11 +577,12 @@ class CacheDir (LockDir):
                     sign = None
 
                 start, size = int(got.group(2), 36), int(got.group(4), 36)
-                start *= self.sign # ensure sensible sort order in __listing
-                if sign is not None: start *= sign
+                if sign is not None: # ensure sensible sort order
+                    start *= sign * self.sign
                 mode, isfile = got.group(3), got.group(5)
                 # Be sure to match WeakSeq:
                 ans.append((start, size, mode, sign, name, isfile))
+                # WriteCacheDir.newfile relies on isfile being last
 
         return ans
     del re, Ordered
@@ -606,8 +637,8 @@ class CacheDir (LockDir):
             def get(ind, s=cdir, g=getseq):
                 # be sure to match order in __listing(self, ...), above:
                 start, size, mode, sign, name, isfile = g(s)[ind]
-                start /= cdir.sign # undo __listing's sorting hack
-                if sign is not None: start /= sign
+                if sign is not None: # undo __listing's sorting hack
+                    start /= sign * cdir.sign
                 klaz = s._child_class_(isfile, mode)
                 assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
                 return klaz(name, s, mode, sign, start, size)
@@ -694,37 +725,113 @@ class CacheDir (LockDir):
     del WeakSubSeq
 
     @staticmethod
-    def _gap_(before, after, limit, Hole=Gap, Range=Interval):
+    def _gap_(before, after, limit=None, Hole=Gap, Range=Interval):
         """Gap object for use by locate.
 
-        Given arguments:
-          before -- extant cache node before the gap, or None
-          after -- extant cache node after the gap, or None
-          limit -- None or an existing Gap
+        Required arguments:
+          before -- extant cache node one one side of the gap, or None
+          after -- extant cache node on the other side of the gap, or None
+        Optional argument:
+          limit -- None (default) or an existing Gap
+          Hole -- callable, taking the same parameters of Gap and returning an
+                  instance of Gap; defaults to Gap, but derived classes might
+                  wish to replace it with a class based on Gap.
 
-        Returns a Gap object describing the interval between two nodes.  If
-        limit is not None, the returned Gap's interval is a sub-interval of the
-        one it describes.
+        At most one of before and after shall be None; when neither is, before
+        describes a range of integers closer to zero than after's and no integer
+        between their ranges is on the opposite side of 0 from after.  The two
+        cache nodes must have the same .parent and be entries in its .listing.
+        In particular, each shall be an instance of some class returned by the
+        ._child_node_() of this parent node; and this parent' node's class is
+        the one whose _gap_ implementation is used.
+
+        Returns a Gap object describing the interval between the given nodes.
+        If limit is not None, the returned Gap's interval is a sub-interval of
+        the one it describes.
 
         Derived classes should extend this method, calling their base-class's
-        implementation and adding application-specific attributes to the gap
-        describing such properties of it as they know how to infer from before
-        and after, which shall be instances of some class or classes returned by
-        self._child_node_().  Interval attributes should, where relevant, be
-        sub-intervals of those on limit, if present.\n"""
+        implementation (optionally with a class derived from Gap as Hole) and
+        adding application-specific attributes to the returned gap, describing
+        such properties of it as they know how to infer from before and after.
+        Interval attributes should, where relevant, be sub-intervals of any
+        corresponding attribute on limit.\n"""
 
-        assert before is None or after is None or before.parent == after.parent
-        parent = None
+        # Possible cases (after everything *= parent.sign):
+        # Before CacheRoot.locate maybe swapped, maybe rejected:
+        # a) ?before < after <= 0 # gets swapped
+        # b) before <= 0 < ?after
+        # c) ?before < 0 <= after # swapped if after abuts 0
+        # d) 0 <= before < ?after
 
-        if before is None: start is None
-        else: start, parent = before.stop, before.parent
+        # before <= 0 < after, before.start in (-1, 0)
+        # after < before <= 0, hard to distinguish from previous if after is None
+        # after < 0 <= before, before.start in (0, 1)
+        # before is None and:
+        #  parent.span.start < after <= 0
+        #  0 < after, treat before as {negatives}
 
-        if after is None: stop is None
-        else: stop, parent = after.start, after.parent
+        step = None
+        if after is None: stop = None
+        else:
+            stop, parent = after.span.start, after.parent
+            if before is not None:
+                assert 0 < before.span < after.span or 0 > before.span > after.span
+                assert parent is before.parent
+
+            if after.span <= 0:
+                assert after.span.step == -1
+            else:
+                assert after.span >= 0
+                assert after.span.step == +1
+
+            if stop < 0: step = -1
+            elif stop > 0: step = +1
+
+        if before is None:
+            assert after is not None # => nor is parent, nor is stop
+            if parent.span is None: start = 0
+            elif stop * parent.sign >= 0: start = parent.span.start
+            elif parent.span.stop is None: start = 0
+            else: start = parent.span.last
+        else:
+            # We may revise start, but we'll usually use this:
+            parent, start = before.parent, before.span.stop
+            if start is None:
+                assert stop is None or \
+                       (before.span.start - stop) * before.span.step > 0
+                step = - before.sign
+                start = before.span.start + step
+                if before.sign * parent.sign > 0:
+                    if stop is None and parent.span is not None:
+                        stop = parent.span.start + step
+                else:
+                    if stop is None and parent.span is not None:
+                        stop = parent.span.stop
+                
+            elif stop is None:
+                # before is at an end of the range of parent's relevant children
+                # and our gap extends that range into parent's nominal range
+                if before.sign * parent.sign < 0:
+                    start = before.span.start
+                    stop = parent.span.start - parent.span.step
+                else:
+                    stop, step = parent.span.stop, parent.sign
+
+            if before.span <= 0:
+                assert before.span.step == -1 == before.sign
+                if (stop is not None and stop > 0) or \
+                       (stop is None and parent.sign > 0):
+                    assert before.span.start in (0, -1)
+                    start = before span.start + 1
+            else:
+                assert before.span >= 0
+                assert before.span.step == +1
+                if stop is not None and stop < 0:
+                    assert before.span.start in (0, 1)
+                    start = before.start - 1
 
         if limit is not None:
             assert isinstance(getattr(limit, 'span', None), Range)
-            # TODO - special case: before, after, gap don't all have same sign !
 
             if start is None: start = limit.span.start
             elif limit.span.start is None: pass
@@ -737,33 +844,67 @@ class CacheDir (LockDir):
             if parent is None: parent = limit.parent
 
         assert parent is not None
-        return Hole(parent, start, stop)
+        assert start is None or stop is None or start < stop
+
+        # TODO: Fix up start, stop, sign relative to parent
+        if -1 in parent.span and +1 in parent.span:
+            assert 0 <= start < stop or 1 >= stop > start
+        else:
+            if parent.sign < 0: assert start > stop
+            else: assert start < stop
+            sign = None
+
+        return Hole(parent, start, stop, sign)
 
     @staticmethod
     def _bchop(row, value, attr):
-        lo, hi = 0, len(row)
+        """Find where in a sequence some monotonic attribute takes a given value.
+
+        Required arguments:
+          row -- sequence of cache nodes
+          value -- the value sought
+          attr -- the name of an attribute
+
+        Uses binary chop, with linear interpolation, and endeavours to access as
+        few nodes in the sequence as possible, since the sequence may be weakly
+        stored, hence accessing entries may involve non-trivial object creation.
+        If a node in the sequence is found, in whose range of values, of the
+        given attr, our sought value lies, then this node's index in row is
+        returned.  Otherwise, an IndexError is raised, whose .args is a twople,
+        (before, after), in which: either before is None or it's the index of a
+        node whose range of attr is entirely less than value; either after is
+        None or it's the index of a node whose range of attr is entirely greater
+        than value; if either is None then the other is 0 or len(row)-1; and if
+        neither is None they are consecutive (but possibly reversed) indices in
+        row.\n"""
+
+        lo, hi = 0, len(row) - 1
         loa, hia = getattr(row[lo], attr), getattr(row[hi], attr)
-        if loa.start > value: raise IndexError(None, row[lo])
-        elif hia.stop <= value: raise IndexError(row[hi], None)
-        if loa.stop > value: return row[lo]
-        if hia.start <= value: return row[hi]
-        assert hi > lo
+        if hia > loa: sign = +1
+        else:
+            assert hia < loa
+            sign, lo, hi, loa, hia = -1, hi, lo, hia, loa
 
-        while lo + 1 < hi:
-            assert loa.stop <= value < hia.start
+        if loa.min > value: raise IndexError(None, lo)
+        elif hia.max < value: raise IndexError(hi, None)
+        if loa.max >= value: return lo
+        if hia.min <= value: return hi
+        assert 0 < sign * (lo - hi)
+
+        while 1 < sign * (lo - hi):
+            assert loa.max < value < hia.min
             # linear-interpolate a "mid-point" between those:
-            mid = int(lo + 1 + (hi - lo - 1) * 
-                      (value - loa.stop) * 1./ (hia.start - loa.stop))
-            assert lo < mid < hi
+            mid = int(lo + sign + (hi - lo - sign) * 
+                      (value - loa.max - 1) * 1./ (hia.min - loa.max - 1))
+            assert (sign < 0 and lo > mid > hi) or (sign > 0 and lo < mid < hi)
             mida = getattr(row[mid], attr)
-            if mida.start > value: hi, hia = mid, mida
-            elif mida.stop <= value: lo, loa = mid, mida
-            else: return row[mid]
+            if mida.min > value: hi, hia = mid, mida
+            elif mida.max < value: lo, loa = mid, mida
+            else: return mid
 
-        assert hi == lo + 1
-        assert row[lo].span.stop < row[hi].span.start # it's a gap
-        assert loa.stop <= value < hia.start
-        raise IndexError(row[lo], row[hi])
+        assert sign * (hi - lo) == 1
+        assert loa.max < value < hia.min
+        raise IndexError(lo, hi)
 
     def locate(self, value, attr='span', gap=None, seq='listing', types=None):
         """Find sub-node or gap containing a specified entry.
@@ -774,8 +915,8 @@ class CacheDir (LockDir):
         Optional arguments:
           attr -- name, default 'span', of the attribute to which value relates.
                   Must be an Interval-valued attribute, whose ranges of values
-                  for nodes with disjoint spans are disjoint and in the same
-                  relative order as the spans.
+                  for nodes with disjoint spans are disjoint and abut (i.e. the
+                  .stop of one is the .start of the other) if the spans do.
           gap -- a Gap object, or None indicating the full range of integers
           seq -- name, default 'listing', of some @weaklisting attribute for
                  which each entry in the list has the attribute named by attr
@@ -787,8 +928,9 @@ class CacheDir (LockDir):
         would lie, if there is such a natural; however, if the cache contains no
         such file, a Gap object shall be returned, describing an interval in
         which this cache lacks relevant data.  In the latter case, the Gap
-        object is obtained by calling self._gap_ with suitable arguments, using
-        gap as limit.
+        object is obtained by calling self._gap_ (q.v.) with suitable arguments,
+        using gap as limit.  This enables derived classes to equip the returned
+        object with relevant attributes unknown to this base-class.
 
         The attribute named by seq (when not superseded by specifying types)
         should be an attribute of self and of all CacheDir descendants of self;
@@ -808,9 +950,20 @@ class CacheDir (LockDir):
                     row.append(self.listing[i])
                 i += 1
 
+        if not row: # hopeless !
+            if gap is None:
+                raise ValueError, 'No gap limits range on empty cache directory'
+            return gap
+
         try: kid = self._bchop(row, value, attr)
         except IndexError, what:
-            return self._gap_(*(what.args + (gap,)))
+            b, a = what.args
+            if (None not in (a, b) and a < b) or \
+                   (b is None and a + 1 == len(row)) or \
+                   (a is None and b == 0):
+                a, b = b, a
+            # Leave CacheRoot and CacheSubDir to over-ride and handle this:
+            raise IndexError(row[b], row[a])
 
         if isinstance(kid, CacheDir):
             return kid.locate(value, attr, gap, seq, types)
@@ -819,15 +972,78 @@ class CacheDir (LockDir):
         return kid
 
 del WeakTuple, LockDir, Interval, lazyprop
-
+
 class CacheRoot (Node, CacheDir):
     def __init__(self, path): self.__dir = path
     parent = span = None
     sign = +1
+    @lazyattr
+    def straddles0(self, ig=None):
+        return self.span is None or (-1 in self.span and +1 in self.span)
     @property
     def root(self, ig=None): return self
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
+
+    __locate = CacheDir.locate
+    def locate(self, value, attr='span', gap=None, seq='listing', types=None):
+        """Find sub-node or gap containing a specified entry.
+
+        See CacheDir.locate for arguments and other details.
+
+        If self.span straddles zero and self has no descendant node providing
+        relevant data for an interval including zero, gap must specify a
+        sub-range of the integers which does not straddle zero (unless you're
+        sure there's some file containing relevant data between zero and the
+        range of integers in which attr takes the given value).  A ValueError is
+        raised otherwise.\n"""
+
+        try: return self.__locate(value, attr, gap, seq, types)
+        except IndexError, what: before, after = what.args
+
+        # Determine a, b: values with the same signs (so +/-1 can stand for
+        # infinities) as the values at after and before ends of the hole, before
+        # gap is applied (it's only the signs we need here), taking particular
+        # care to get the value 0 where it would be a boundary value.
+        if after is None:
+            if self.span is None or self.span.stop is None: a = self.sign
+            else: a = self.span.last
+        else:
+            assert after.parent is self
+            assert (after.span.start + after.span.step) * after.span.step > 0
+            if (before is None and (self.span is None or self.span.start * self.sign < 0)) or \
+                   (before is not None and before.sign * self.sign < 0 < before.sign * after.sign):
+                a = after.span.stop
+            else: a = after.span.start - after.span.step
+
+        if before is None:
+            if self.span is None: b = - self.sign
+            else: b = self.span.start
+        else:
+            assert before.parent is self
+            assert (before.span.start + before.span.step) * before.span.step > 0
+            if a * before.span.step < 0:
+                b = before.span.start - before.span.step
+            else:
+                b = before.span.stop
+                assert b is not None
+
+        if b * self.sign < 0:
+            if a * self.sign > 0:
+                assert self.straddles0
+                if gap.straddles0:
+                    raise ValueError('Interval would straddle zero',
+                                     value, attr, gap, before, after)
+            else: # after is nearer zero than before is
+                before, after = after, before
+        else:
+            assert a * self.sign > 0 # because after is after before
+
+        # Note that we had to do the check above, and ValueError if needed,
+        # before we do this seemingly fatuous short-cut:
+        if after is None and before is None: return gap
+        # Otherwise, let _gap_ do its job:
+        return self._gap_(before, after, gap)
 
 del os
 
@@ -869,12 +1085,13 @@ class WriteCacheDir (CacheDir):
 
         row, i = [], 0
         for it in self.__listing:
-            if it[5]: # isfile
+            if it[-1]: # isfile; only include if types match
                 for t in types:
                     if t not in it[TYPES]: break
                 else:
                     row.append(self.listing[i])
-            else: row.append(self.listing[i])
+            else: # directory: always include
+                row.append(self.listing[i])
 
         kid = self._bchop(row, value, 'span') # may IndexError(before, after)
         if isinstance(kid, CacheDir):
@@ -958,7 +1175,7 @@ class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
         # allowed untidiness.
         if self.depth == 1:
             # name?, self, types, sign?, span.start, len(span)
-            if self.span is None or (-1 in self.span and +1 in self.span):
+            if self.straddles0:
                 # self straddles zero, so we must set sign
                 if span > -1: sign = self.sign
                 else: sign = -self.sign
@@ -970,7 +1187,14 @@ class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
         return klaz(name, self, types, sign, start, reach)
 
 class CacheSubDir (CacheSubNode, CacheDir):
-    pass
+    __locate = CacheDir.locate
+    def locate(self, value, attr='span', gap=None, seq='listing', types=None):
+        """Find sub-node or gap containing a specified entry.
+
+        See CacheDir.locate for arguments and other details.\n """
+        try: return self.__locate(value, attr, gap, seq, types)
+        except IndexError, what: before, after = what.args
+        return self._gap_(before, after, gap)
 
 class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
     _child_class_ = WriteCacheDir._child_class_
