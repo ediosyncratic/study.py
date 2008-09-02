@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.19 2008-08-31 22:31:49 eddy Exp $
+$Id: whole.py,v 1.20 2008-09-02 06:34:10 eddy Exp $
 """
 
 Adaptation = """
@@ -980,12 +980,6 @@ class WriteCacheDir (CacheDir):
         assert span.step in (-1, +1), 'I require a contiguous range'
         assert span > -1 or span < 1, 'Only a cache root can straddle 0'
         assert self.span is None or self.span.subsumes(span)
-        lo = self.locate(span.start, types=types)
-        hi = self.locate(span.start + len(span) - 1)
-        if isinstance(lo, CacheFile) or isinstance(hi, CacheFile):
-            raise ValueError(span, 'starts or ends in existing file')
-        if span.start < hi.span.start or lo.span.stop < span.stop:
-            raise ValueError(span, 'straddles an existing file')
 
         row, i = [], 0
         for it in self.__listing:
@@ -997,14 +991,100 @@ class WriteCacheDir (CacheDir):
             else: # directory: always include
                 row.append(self.listing[i])
 
-        kid = self._bchop(row, value, 'span') # may IndexError(before, after)
-        if isinstance(kid, CacheDir):
-            assert isinstance(kid, WriteCacheDir)
-            return kid.newfile(span, types)
+        sign = span.step * self.span.step
+        def getargs(what, r=len(row), swap=sign<0):
+            b, a = what.args
+            # before, after: indices into row, possibly in reverse order:
+            if (None not in (a, b) and a < b) or \
+                   (b is None and a + 1 == r) or \
+                   (a is None and b == 0):
+                a, b = b, a
+            # Now we know their order in row,
+            # put them into their order relative to span:
+            if swap: return a, b
+            return b, a
 
-        # Extend the existing file, or ask me for a file for the extra part !
-        assert isinstance(kid, WriteCacheFile)
-        return kid
+        endfile = midfile = hi = None
+        if span.stop is not None:
+            try: end = span.last
+            except AttributeError:
+                ep = span.step
+                if ep is None: ep = 1
+                q, r = divmod(span.stop - span.start, ep)
+                if not r: q -= 1
+                end = span.start + q * ep
+
+            try: hi = self._bchop(row, end, 'span')
+            except IndexError, what:
+                hi = (b, a) = getarts(what)
+
+                if b is not None:
+                    b = row[b]
+                    assert b.span is not None
+                    if b.span.step * span.step < 0:
+                        wide = span.step * (span.start - b.span.start) < 1
+                    else if b.span.stop is None:
+                        assert False, "How did that happen ?"
+                        wide = True
+                    else:
+                        wide = span.step * (span.start - b.span.stop) < 0
+
+                    if wide: midfile = b
+            else:
+                if isinstance(row[hi], CacheFile):
+                    endfile = row[hi]
+
+        try: lo = self._bchop(row, span.start, 'span')
+        except IndexError, what:
+            lo = (b, a) = getargs(what)
+            if a is not None and span.stop is not None:
+                a = row[a]
+                assert a.span is not None
+                if a.span.step * span.step > 0:
+                    wide = span.step * (span.stop - a.span.start) > 0
+                elif a.span.stop is None:
+                    assert False, "How did that happen ?"
+                    wide = True
+                else:
+                    wide = span.step * (span.stop - a.span.stop) > 1
+
+                if wide: midfile = b
+        else:
+            if isinstance(row[lo], CacheFile):
+                endfile = row[lo]
+
+        if endfile is not None:
+            raise ValueError(span, 'starts or ends in existing file', endfile)
+
+        if midfile is not None:
+            raise ValueError(span, 'straddles an existing file', midfile)
+
+        # Set ind, the first and last interesting indices in row:
+        ind = [ None, None ]
+        if isinstance(hi, tuple): ind[1] = hi[0]
+        else: ind[1] = hi
+        if isinstance(lo, tuple): ind[0] = lo[1]
+        else: ind[0] = lo
+
+        # Now swap from span's order to row's:
+        if sign < 0: ind.reverse()
+        if ind[0] is None: ind[0] = 0
+        if ind[1] is None: ind[1] = len(row) - 1
+
+        fom, tom = ind[0], ind[1] # fra-og-med, til-og-med
+        if tom > fom:
+            raise ValueError('Interval spans several subordinate nodes',
+                             span, row[fom:tom+1])
+
+        if tom < fom:
+            assert lo == (tom, fom) == hi
+            # Delegate to derived class:
+            raise IndexError(row[tom], row[fom])
+
+        kid = row[tom]
+        assert isinstance(kid, WriteCacheDir), \
+               'I should have raised ValueError above' # endfile or midfile
+        return kid.newfile(span, types)
 
     changed = False # see tidy() and WriteNode._save_()
     def tidy(self):
