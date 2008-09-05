@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.21 2008-09-05 04:43:58 eddy Exp $
+$Id: whole.py,v 1.22 2008-09-05 04:49:07 eddy Exp $
 """
 
 Adaptation = """
@@ -1093,8 +1093,7 @@ class WriteCacheDir (CacheDir):
         if tom > fom:
             raise ValueError('Interval spans several subordinate nodes',
                              span, row[fom:tom+1])
-
-        if tom < fom:
+        elif tom < fom:
             assert lo == (tom, fom) == hi
             assert fom == 1 + tom
 
@@ -1105,10 +1104,10 @@ class WriteCacheDir (CacheDir):
 
             assert not tab or not fab or tom.span.sign * fom.span.sign > 0
             # Grow the one further from zero, given a choice:
-            if (tom.span.start - fom.span.start) * tom.span.sign < 0 and \
-               fab and isinstance(fom, CacheDir): kid = fom
-            elif tab and isinstance(tom, CacheDir): kid = tom
+            if (tom.span.start - fom.span.start) * tom.span.sign > 0 and \
+               tab and isinstance(tom, CacheDir): kid = tom
             elif fab and isinstance(fom, CacheDir): kid = fom
+            elif tab and isinstance(tom, CacheDir): kid = tom
             else:
                 # Delegate to derived class:
                 raise IndexError(tom, fom)
