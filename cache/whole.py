@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.22 2008-09-05 04:49:07 eddy Exp $
+$Id: whole.py,v 1.23 2008-09-05 05:35:16 eddy Exp $
 """
 
 Adaptation = """
@@ -1156,8 +1156,12 @@ class WriteCacheDir (CacheDir):
 
     @lazyattr
     def __namelen(self, ig=None, fmt=nameber.encode):
-        # len(self.span) is an upper bound on the .span.start of children
-        return len(fmt(len(self.span)))
+        if not self.straddles0:
+            # len(self.span) is an upper bound on the .span.start of children
+            return len(fmt(len(self.span)))
+        # Child names use absolute values for starts
+        return len(fmt(max(abs(self.listing[0].last),
+                           abs(self.listing[-1].last))))
 
     def child_name(self, span, isfile, types, fmt=nameber.encode):
         """Determine name of a child.
@@ -1171,9 +1175,21 @@ class WriteCacheDir (CacheDir):
         Returns a name matching the regex of __listing and padded with enough
         leading 0s to make lexical sorting match numeric order.\n"""
 
-        name = fmt(span.start - self.span.start)
+        assert span >= 0 or span <= 0
+        assert span.step > 0 or span <= 0
+        assert span.step < 0 or span >= 0
+        assert span.start * span.step >= 0
+
+        if self.straddles0:
+            if span.step < 0: sign = 'N'
+            else: sign = 'P'
+            name = fmt(span.start * span.step)
+        else:
+            name = fmt(span.start - self.span.start)
+
         gap = self.__namelen - len(name)
         if gap > 0: name = '0' * gap + name
+        if self.straddles0: name = sign + name
 
         assert len(types) > 0
         name += types
@@ -1189,24 +1205,20 @@ class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
     def newfile(self, span, types):
         try: return self.__newfile(span, types)
         except IndexError, what: before, after = what.args
+
+        if self.straddles0:
+            # We must set sign, and use absolute start:
+            if span > -1: sign = self.sign
+            else: sign = -self.sign
+            start = abs(span.start)
+            assert sign * self.sign * start == span.start
+        else:
+            if span.step * self.sign < 0: span = span.reversed()
+            sign, start = None, span.start - self.span.start
+
         klaz = self._child_class_(True, types)
-
-        # before and after may be subdirectories, in which case adding to their
-        # relevant end may be suitable, if they abut span; otherwise, I'd beter
-        # be depth 1, so I can tidily add a simple file, or the root, where I'm
-        # allowed untidiness.
-        if self.depth == 1:
-            # name?, self, types, sign?, span.start, len(span)
-            if self.straddles0:
-                # self straddles zero, so we must set sign
-                if span > -1: sign = self.sign
-                else: sign = -self.sign
-            else: sign = None
-
-        # TODO: implement
-        raise NotImplementedError
-
-        return klaz(name, self, types, sign, start, reach)
+        return klaz(self.child_name(span, True, types),
+                    self, types, sign, start, len(span))
 
 class CacheSubDir (CacheSubNode, CacheDir):
     pass
@@ -1234,20 +1246,17 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
 
     __newfile = WriteCacheDir.newfile # q.v. for documentation
     def newfile(self, span, types):
+        if span.step * self.sign < 0: span = span.reversed()
         try: return self.__newfile(span, types)
         except IndexError, what: before, after = what.args
+
+        assert self.depth == 1
+        assert self.sign < 0 or span >= self.start
+        assert self.sign > 0 or span <= self.start
+
         klaz = self._child_class_(True, types)
-
-        # If self is the before or after to which a parent delegated, its
-        # matching before or after shall be None; it needs to grow to embrace
-        # span.
-
-        if self.depth == 1:
-            pass
-
-        # TODO: implement
-        raise NotImplementedError
-
-        return klaz(name, self, types, None, start, reach)
+        return klaz(self.child_name(span, True, types),
+                    self, types, None,
+                    span.start - self.span.start, len(span))
 
 del lazyattr
