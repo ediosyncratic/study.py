@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.20 2008-09-02 06:34:10 eddy Exp $
+$Id: whole.py,v 1.21 2008-09-05 04:43:58 eddy Exp $
 """
 
 Adaptation = """
@@ -956,7 +956,25 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteCacheDir (CacheDir):
-    def newfile(self, span, types):
+    def abuts(lo, gap, hi): # Tool function for newfile.
+        """Determines whether lo or hi can be grown to include gap.
+
+        Arguments:
+          lo -- a span which might abut gap.start
+          gap -- a span
+          hi -- a span which might abut gap.stop
+
+        Abutting across 0 doesn't count; a node can't be grown across it.\n"""
+        ar, op, ep = gap.start, gap.stop, gap.step
+        if op == 0:            hia = False
+        elif hi.step * ep > 0: hia = (op - hi.start) * ep >= 0
+        else:                  hia = (op - hi.stop)  * ep >  0
+        if lo.step * ep > 0:    loa = (ar - lo.stop)  * ep <  1
+        elif ar * ep in (0, 1): loa = False
+        else:                   loa = (ar - lo.start) * ep <= 1
+        return loa, hia
+
+    def newfile(self, span, types, abutting=abuts):
         """Find where to create a new file to be added.
 
         Required arguments:
@@ -1078,13 +1096,34 @@ class WriteCacheDir (CacheDir):
 
         if tom < fom:
             assert lo == (tom, fom) == hi
-            # Delegate to derived class:
-            raise IndexError(row[tom], row[fom])
+            assert fom == 1 + tom
 
-        kid = row[tom]
-        assert isinstance(kid, WriteCacheDir), \
+            tom, fom = row[tom], row[fom]
+            # tab, fab: True if tom, fom abut span, not across zero:
+            if sign < 0: fab, tab = abutting(fom.span, span, tom.span)
+            else:        tab, fab = abutting(tom.span, span, fom.span)
+
+            assert not tab or not fab or tom.span.sign * fom.span.sign > 0
+            # Grow the one further from zero, given a choice:
+            if (tom.span.start - fom.span.start) * tom.span.sign < 0 and \
+               fab and isinstance(fom, CacheDir): kid = fom
+            elif tab and isinstance(tom, CacheDir): kid = tom
+            elif fab and isinstance(fom, CacheDir): kid = fom
+            else:
+                # Delegate to derived class:
+                raise IndexError(tom, fom)
+        else:
+            kid = row[tom]
+
+        assert isinstance(kid, WriteCacheSubDir), \
                'I should have raised ValueError above' # endfile or midfile
+
+        if not kid.span.subsumes(span):
+            kid = kid._extend_(span, types)
+
         return kid.newfile(span, types)
+
+    del abuts
 
     changed = False # see tidy() and WriteNode._save_()
     def tidy(self):
@@ -1121,7 +1160,7 @@ class WriteCacheDir (CacheDir):
         # len(self.span) is an upper bound on the .span.start of children
         return len(fmt(len(self.span)))
 
-    def __child_name(self, span, isfile, types, fmt=nameber.encode):
+    def child_name(self, span, isfile, types, fmt=nameber.encode):
         """Determine name of a child.
 
         Required arguments:
@@ -1175,6 +1214,25 @@ class CacheSubDir (CacheSubNode, CacheDir):
 
 class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
     _child_class_ = WriteCacheDir._child_class_
+
+    def _extend_(self, span=None, types=''):
+        """Replace self with an expanded sub-directory.
+
+        Optional arguments:
+          span -- None or a range of integers
+          types -- string of type letters, [A-Z]+ (default: '')
+
+        If span is not None, the new sub-directory's range of integers shall
+        subsume both span and self.span; otherwise, its span shall be that of
+        self.  The new sub-directory shall have the union of types and
+        self.types as its list of types.  All children of self shall be suitably
+        renamed into the new directory and self shall be removed.
+
+        Returns an instance of self.parent._child_class_(False, t) where t is
+        the union of types and self.types (in alphabetic order).  Derived
+        classes should over-load this method, taking the returned instance and
+        adding appropriate attributes, based on those of self.\n"""
+
     __newfile = WriteCacheDir.newfile # q.v. for documentation
     def newfile(self, span, types):
         try: return self.__newfile(span, types)
