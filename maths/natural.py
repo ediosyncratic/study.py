@@ -65,9 +65,8 @@ def gcd(a, b):
     # Any negative factor's matching positive is also a factor, and is
     # greater than any negative.
     if b < 0: b = -b
-    if a < 0: a = -a
+    if a < 0: a = -a # to make gcd(a,0) fall out naturally, below.
     elif a == 0: return b	# gcd(0,b) = abs(b)
-    # gcd(a,0) falls out naturally in the following
 
     # Euclid's algorithm (see also its extension, below):
     while b > 0: a, b = b, a % b
