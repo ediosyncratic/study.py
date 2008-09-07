@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.23 2008-09-05 05:35:16 eddy Exp $
+$Id: whole.py,v 1.24 2008-09-07 09:29:31 eddy Exp $
 """
 
 Adaptation = """
@@ -253,7 +253,7 @@ class CacheDir (Node):
         return CacheSubDir
 
     # optionally extend _load_ some more
-    # optionally extend _onchange_, _gap_
+    # optionally extend _ontidy_, _gap_
     # define any @weaklisting attributes, typically one per cached data type
 del weaklisting
 
@@ -391,11 +391,7 @@ class WriteNode (Node):
             finally: fd.close()
         finally: self.unlock(write=True)
 
-        run = self.parent
-        while run is not None:
-            run.changed = True
-            run = run.parent
-
+        self.parent._onchange_()
         # potentially: return size of file
 
     __BLOCKED = EWOULDBLOCK
@@ -480,8 +476,9 @@ class CacheSubNode (SubNode):
         return False
 
 class WriteSubNode (CacheSubNode, WriteNode):
-    # TODO: needs to know how to rename itself when its range expands
-    pass
+    def _extend_(self, span):
+        # needs to know how to rename itself when its range expands
+        raise NotImplementedError # TODO: implement
 
 class CacheFile (CacheSubNode):
     @lazyattr
@@ -519,7 +516,7 @@ class CacheFile (CacheSubNode):
         return self.__spanner(self.span.start - 1)
 
 class WriteCacheFile (CacheFile, WriteSubNode):
-    # TODO: support being expanded or split.
+    # TODO: support being (expanded (see _extend_) or) split.
     pass
 
 from lockdir import LockableDir
@@ -591,7 +588,7 @@ class CacheDir (LockDir):
         return max(self.listing.map(lambda x: x.depth)) + 1
     depth = lazyprop('depth', depth)
 
-    def _onchange_(self):
+    def _ontidy_(self):
         """Update attributes after directory contents have changed.
 
         When the contents of the directory get changed (see WriteCacheDir), this
@@ -949,7 +946,6 @@ class CacheRoot (Node, CacheDir):
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
 
-del os
 
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
@@ -1117,14 +1113,13 @@ class WriteCacheDir (CacheDir):
         assert isinstance(kid, WriteCacheSubDir), \
                'I should have raised ValueError above' # endfile or midfile
 
-        if not kid.span.subsumes(span):
-            kid = kid._extend_(span, types)
-
+        kid = kid._extend_(span, types)
         return kid.newfile(span, types)
 
     del abuts
 
-    changed = False # see tidy() and WriteNode._save_()
+    __changed = False # see tidy() and WriteNode._save_()
+    def _onchange_(self): self.__changed = True
     def tidy(self):
         """Tidy up subordinate nodes.
 
@@ -1134,19 +1129,18 @@ class WriteCacheDir (CacheDir):
         change = False
         for node in self.listing:
             if isinstance(node, WriteCacheDir) and \
-                   (node.changed or len(node.__listing) != 12):
+                   (node.__changed or len(node.__listing) != 12):
                 if node.tidy(): change = True
 
-        if self.change or change:
-            self._onchange_()
+        if self.__changed or change:
+            self._ontidy_()
         elif len(self.__listing) == 12:
             return False # nothing to do
 
-        # TODO: implement
-        raise NotImplementedError
+        raise NotImplementedError # TODO: implement
 
-        del self.changed # to expose the class value, False
-        assert not self.changed
+        del self.__changed # to expose the class value, False
+        assert not self.__changed
         return True
 
     @staticmethod
@@ -1226,7 +1220,13 @@ class CacheSubDir (CacheSubNode, CacheDir):
 class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
     _child_class_ = WriteCacheDir._child_class_
 
-    def _extend_(self, span=None, types=''):
+    __onchange = WriteCacheDir._onchange_
+    def _onchange_(self):
+        self.__onchange()
+        self.parent._onchange_()
+
+    def _extend_(self, span=None, types='',
+                 rename=os.rename, mkdir=os.mkdir):
         """Replace self with an expanded sub-directory.
 
         Optional arguments:
@@ -1244,6 +1244,59 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         classes should over-load this method, taking the returned instance and
         adding appropriate attributes, based on those of self.\n"""
 
+        ts = {}
+        for t in self.types: ts[t] = None
+        for t in types: ts[t] = None
+        ts = ts.keys()
+        ts.sort()
+        types = ''.join(ts)
+
+        # Is it sufficient to simply rename self ?
+        if self.span.subsumes(span):
+            if types == self.types: return self
+            alias = True
+        else:
+            assert self.sign == self.span.step
+            assert self.sign * self.span.start >= 0
+            # Union (but filling in gaps to make regular):
+            span = self.span.meet(span)
+            if span.step * self.sign < 0: span = span.reversed()
+            alias = span.start == self.span.start
+
+        if alias:
+            # Simple rename
+            name = self.parent.child_name(span, False, types)
+            rename(self.name, name)
+            self.parent._onchange_()
+            klaz = self.parent._child_class_(False, types)
+            if self.parent.straddles0:
+                start, sign = span.start, self.sign * self.parent.sign
+            else: start, sign = span.start - self.parent.start, None
+            return klaz(self.parent, types, start, len(span), sign)
+
+        # Heigh ho - self.span.start has to change.  Create new directory, move
+        # each child into it, renaming to adjust offsets as it goes.
+
+        klaz = self.parent._child_class_(False, types)
+        sign = self.sign * self.parent.sign
+        if self.parent.straddles0: start = span.start * self.parent.sign
+        else:
+            assert sign == +1
+            start, sign = self.sign * (span.start - self.parent.start), None
+            assert start > 0
+
+        name = self.parent.child_name(span, True, types)
+        mkdir(name)
+        self.parent._onchange_()
+        peer = klaz(self.parent, types, span.start, len(span), sign)
+
+        # FIXME: peer doesn't get to extend its attributes until this base class
+        # method returns and derived classes sort that out; but children
+        # probably need that to have happened already before we move them into
+        # it.
+
+        raise NotImplementedError # TODO: implement
+
     __newfile = WriteCacheDir.newfile # q.v. for documentation
     def newfile(self, span, types):
         if span.step * self.sign < 0: span = span.reversed()
@@ -1259,4 +1312,4 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
                     self, types, None,
                     span.start - self.span.start, len(span))
 
-del lazyattr
+del lazyattr, os
