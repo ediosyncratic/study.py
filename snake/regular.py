@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.10 2008-09-05 05:11:22 eddy Exp $
+$Id: regular.py,v 1.11 2008-09-07 08:44:46 eddy Exp $
 """
 
 class Regular (object):
@@ -12,6 +12,15 @@ class Regular (object):
     raising AttributeError).  For subtraction support, they must also support
     negation.  They should also implement .min and .max attributes for the lower
     and higher of .start and .last, respectively.\n"""
+
+    @property
+    def isempty(self, ignored=None):
+        if self.stop is None: return False
+        if self.stop == self.start: return True
+
+        if self.step is None: step = 1
+        else: step = self.step
+        return (self.stop - self.start) * step < 0
 
     def __contains__(self, ind):
         try: self.index(ind)
@@ -106,6 +115,7 @@ class Regular (object):
 
     def reversed(self):
         """Return a reversed version of self."""
+        if self.isempty: return self
         self.last # can't reverse if we don't have a last element
         if self.step == -1:
             return Interval(self.last, len(self))
@@ -130,7 +140,7 @@ class Regular (object):
     def __lt__(self, other): return self.__cmp(other, lambda x, y: x < y, lambda x, y: x >= y)
     def __eq__(self, other): # Only if self has one entry, which equals other; or both empty.
         if len(self) > 1: return False # Can only be equal if self has only one value
-        elif len(self) < 1: # sequence is empty
+        elif self.isempty:
             try: a, o = other.start or 0, other.stop
             except AttributeError: return True # no entry in self isn't equal to it ...
             else: return o == a or (o is not None and (a-o)*e > 0) # Both sequences are empty.
@@ -206,22 +216,87 @@ class Regular (object):
 
     __radd__ = __add__
 
-    from study.maths.natural import Euclid
-    def trim(self, other, Euclid=Euclid):
+    from study.maths.natural import hcf, Euclid
+    from study.snake.row import unique, deltas
+    __meet_tools = (Euclid, hcf, unique, deltas)
+    del hcf, Euclid, unique, deltas
+
+    def meet(self, *others):
+        """The minimal Regular that subsumes all.
+
+        Each argument should be a slice or Regular object.  Raises ValueError if
+        the result would stretch to infinity in both directions.\n"""
+
+        def regulate(x):
+            if isinstance(x, Regular): return x
+            return Slice(x)
+
+        others = [ self ] + map(regulate, others)
+        fall = filter(lambda x: (x.step is not None and x.step < 0 and
+                                 (x.stop is None or x.stop < x.start)), others)
+        rise = filter(lambda x: ((x.step is None or x.step > 0) and
+                                 (x.stop is None or x.stop > x.start)), others)
+        stay = filter(lambda x: (x.step is not None and x.step == 0 and
+                                 (x.stop is None or x.stop != x.start)), others)
+
+        if filter(lambda x: x.stop is None, fall): lo = None
+        else: lo = min(map(lambda x: x.last, fall) +
+                       map(lambda x: x.start, rise + stay))
+        if filter(lambda x: x.stop is None, rise): hi = None
+        else: hi = max(map(lambda x: x.last, rise) +
+                       map(lambda x: x.start, fall + stay))
+
+        if hi is None and lo is None:
+            raise ValueError, 'Sequence is bounded at neither end'
+
+        hcf, unique, deltas = self.__meet_tools[1:]
+        step = hcf(*(deltas(unique(map(lambda x: x.start, fall + rise + stay))) +
+                     map(lambda x: x.step or 1,
+                         # All the sequences of length > 1:
+                         filter(lambda x: x.stop is None or \
+                                (x.stop - x.start - (x.step or 1)
+                                 ) * (x.step or 1) > 0,
+                                fall + rise))))
+
+        stop = wide = None
+        if lo is None: start, step = hi, -step
+        else:
+            start = lo
+            if hi is not None:
+                stop = hi + step
+                wide = stop - start
+
+        if step == +1: return Interval(start, wide)
+        return Slice(start, stop, step)
+
+    def join(self, *others):
+        """The maximal Regular that each subsumes.
+
+        Each argument should be a slice or Regular object.\n"""
+
+        ans = self
+        for it in others:
+            ans = ans.trim(it)
+        return ans
+
+    def trim(self, other):
         """Returns intersection of self and other.
 
-        Required single argument (do *not* pass any more) is another Regular (or
-        a slice); returns a Regular describing the entries in this other that
-        are also in self.\n"""
+        Required single argument is another Regular (or a slice); returns a
+        Regular describing the entries in this other that are also in self.\n"""
+        if self.isempty: return self
+
         try: ar, op, ep = other.start or 0, other.stop, other.step
         except AttributeError: raise TypeError("Can't intersect", self, other)
         if ep is None: ep = 1
 
-        i, j = Euclid(ep, self.step)
+        i, j = self.__meet_tools[0](ep, self.step)
         j = -j
         h = i * ep - j * self.step # highest common factor
         if h: q, r = divmod(self.start - ar, h)
-        elif self.start != ar or len(self) == 0 or len(other) == 0:
+        elif (self.start != ar or self.isempty or
+              # other is empty (but if it's a slice we can't use .isempty):
+              (op is not None and (op == ar or (op - ar) * ep < 0))):
             return Interval(ar, 0)
         else: return self.__slice(ar, op, h) # same as self or other
 
@@ -264,8 +339,6 @@ class Regular (object):
         s += lo * m
 
         return self.__slice(s, hi, m)
-
-    del Euclid
 
     @staticmethod
     def __slice(start, stop, step):
@@ -337,14 +410,16 @@ class Slice (Regular):
 
     def __getattr__(self, key):
         if key == 'last':
+            if self.isempty:
+                raise AttributeError, 'No last element in empty slice'
             if self.__seq.step == 0 and self.__seq.stop != self.start:
                 # Sequence is actually infinite, yet has well-defined .last !
                 return self.start
             if self.__seq.stop is None:
                 raise AttributeError, 'No last element in infinite Slice'
             q = len(self)
-            if q > 0: return self.start + self.step * (q - 1)
-            raise AttributeError, 'No last element in empty slice'
+            assert q > 0, 'Handled empty case earlier !'
+            return self.start + self.step * (q - 1)
         elif key == 'max':
             if self.__seq.step < 0: return self.start
             else: return self.last
