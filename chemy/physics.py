@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.9 2008-05-11 14:59:08 eddy Exp $
+$Id: physics.py,v 1.10 2008-09-14 12:11:00 eddy Exp $
 """
 from study.value.units import *
 
@@ -27,6 +27,13 @@ name h for h*turn and use the name Planck for the `correct' quantity, with the
 turn unit in it. """),
     Millikan = Quantity(sample(160.210, .007), zepto * Coulomb,
                         """Millikan's Quantum; size of electron charge"""))
+
+Volt.electron = Quantity(Quantum.Millikan, Volt, """The Electron Volt.
+
+This is a standard unit of energy used in atomic and sub-atomic physics; it is
+the amount of energy that an electron gains when it moves from some location to
+one with an electrostatic potential one Volt more positive.
+""")
 
 Quantum.also(h = Quantity(turn, Quantum.Planck, """Planck's constant
 
