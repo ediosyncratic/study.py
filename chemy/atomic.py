@@ -1,6 +1,6 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.5 2008-05-11 15:40:45 eddy Exp $
+$Id: atomic.py,v 1.6 2008-09-14 15:12:50 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
@@ -63,7 +63,8 @@ class Orbit (Lazy):
           j - angular momentum component about coordinate axis; integer between
               minus b and b.
         Optional argument:
-          Z - atomic number of atom (charge on nucleus); positive integer.
+          Z - atomic number of atom (number of protons in the nucleus); positive
+              integer.
 
         Describes a potential orbit of a lone electron about a nucleus of atomic
         number Z.\n"""
@@ -86,12 +87,13 @@ class Orbit (Lazy):
         The radial co-ordinate, r, should be a dimensionless Quantity() obtained
         by dividing true radius by the Bohr radius, hbar / (mass * alpha * c)
         where the mass should really be a reduced mass, given by 1/mass =
-        1/electron.mass + 1/nucleus.mass.  The returned field value should be
-        divided by a factor of this Bohr radius to the power 1.5 to get a
-        quantity whose squared modulus, when integrated over a volume, yields
-        the probability of finding the electron in that volume.  Alternatively,
-        skip that scaling and do your integration in co-ordinates which use the
-        Bohr radius as unit of length.\n"""
+        1/electron.mass + 1/nucleus.mass; but this is almost exactly the
+        electron mass anyway.  The returned field value should be divided by a
+        factor of this Bohr radius to the power 1.5 to get a quantity whose
+        squared modulus, when integrated over a volume, yields the probability
+        of finding the electron in that volume.  Alternatively, skip that
+        scaling and do your integration in co-ordinates which use the Bohr
+        radius as unit of length.\n"""
 
         return self.__angular(phi, theta) * self.__radial(r)
 
