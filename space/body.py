@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.24 2008-07-01 07:04:22 eddy Exp $
+$Id: body.py,v 1.25 2008-09-15 07:15:42 eddy Exp $
 """
 
 class Satellites:
@@ -489,7 +489,7 @@ del Orbit, Round
 class Shell (Object, Spheroid):
     __obinit, __spinit = Object.__init__, Spheroid.__init__
     def __init__(self, name, centre, *radii, **what):
-        self.__spinit(**radii)
+        self.__spinit(*radii)
         what['centre'] = centre
         # what has to come this way so satelload reaches Object
         self.__obinit(name, **what)
