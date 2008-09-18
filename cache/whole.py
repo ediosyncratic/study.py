@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.26 2008-09-18 04:45:41 eddy Exp $
+$Id: whole.py,v 1.27 2008-09-18 07:39:44 eddy Exp $
 """
 
 Adaptation = """
@@ -498,9 +498,22 @@ class WriteSubNode (CacheSubNode, WriteNode):
         # needs to know how to rename itself when its range expands
         raise NotImplementedError # TODO: implement
 
-    def relocate(self, parent):
-        # move self's on-disk parts and save self's content to the result
-        raise NotImplementedError # TODO: implement
+    def relocate(self, parent, move=os.rename):
+        """Move self to a new directory.
+
+        Single, required, argument is the parent node under which to create a
+        replacement for self.\n"""
+
+        isfile = isinstance(self, CacheFile)
+        name = parent._child_name_(self.span, isfile, self.types)
+        move(self.path(), parent.path(name))
+        klaz = parent._child_class(isfile, self.types)
+        sign = self.sign * parent.sign
+        if parent.straddles0: start = self.span.start * parent.sign
+        else: start, sign = self.sign * (self.span.start - parent.span.start), None
+        peer = klaz(name, parent, self.types, start, len(span), sign, self)
+        peer._save_()
+        return peer
 
 class CacheFile (CacheSubNode):
     @lazyattr
@@ -1294,8 +1307,8 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
             self.parent._onchange_()
             if self.parent.straddles0:
                 start, sign = span.start, self.sign * self.parent.sign
-            else: start, sign = span.start - self.parent.start, None
-            return klaz(self.parent, types, start, len(span), sign)
+            else: start, sign = span.start - self.parent.span.start, None
+            return klaz(name, self.parent, types, start, len(span), sign, self)
 
         # Heigh ho - self.span.start has to change.  Create new directory, move
         # each child into it, renaming to adjust offsets as it goes.
@@ -1304,12 +1317,12 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         if self.parent.straddles0: start = span.start * self.parent.sign
         else:
             assert sign == +1
-            start, sign = self.sign * (span.start - self.parent.start), None
+            start, sign = self.sign * (span.start - self.parent.span.start), None
             assert start > 0
 
         mkdir(name)
         self.parent._onchange_()
-        peer = klaz(self.parent, types, span.start, len(span), sign, self)
+        peer = klaz(name, self.parent, types, start, len(span), sign, self)
         for kid in self.listing: kid.relocate(peer)
         peer._save_()
 
