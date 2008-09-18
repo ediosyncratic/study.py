@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.25 2008-09-18 04:09:23 eddy Exp $
+$Id: whole.py,v 1.26 2008-09-18 04:45:41 eddy Exp $
 """
 
 Adaptation = """
@@ -350,6 +350,12 @@ class WriteNode (Node):
         The name '__doc__' shall be replaced by self.__doc__ if this is not the
         same object as self.__class__.__doc__; any __doc__ obtained by either of
         these means shall be saved as doc-string in the module.
+
+        Derived classes should add any relevant attributes to what, to be saved;
+        in particular, if called with no args, they should save all self's
+        content to disk sensibly.  This class handles .span, .depth and .__doc__
+        (see above); derived classes should document which other attributes they
+        handle.
 
         Derived classes may introduce special handling for some keys; to do so,
         they need to hijack the formatter they get and tunnel it through one
@@ -490,6 +496,10 @@ class CacheSubNode (SubNode):
 class WriteSubNode (CacheSubNode, WriteNode):
     def _extend_(self, span):
         # needs to know how to rename itself when its range expands
+        raise NotImplementedError # TODO: implement
+
+    def relocate(self, parent):
+        # move self's on-disk parts and save self's content to the result
         raise NotImplementedError # TODO: implement
 
 class CacheFile (CacheSubNode):
@@ -1238,7 +1248,8 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         self.parent._onchange_()
 
     def _extend_(self, span=None, types='',
-                 rename=os.rename, mkdir=os.mkdir):
+                 rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
+                 remove=os.unlink, rmdir=os.rmdir):
         """Replace self with an expanded sub-directory.
 
         Optional arguments:
@@ -1275,12 +1286,12 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
             if span.step * self.sign < 0: span = span.reversed()
             alias = span.start == self.span.start
 
+        name = self.parent.child_name(span, False, types)
+        klaz = self.parent._child_class_(False, types)
         if alias:
             # Simple rename
-            name = self.parent.child_name(span, False, types)
-            rename(self.name, name)
+            rename(self.path(), self.parent.path(name))
             self.parent._onchange_()
-            klaz = self.parent._child_class_(False, types)
             if self.parent.straddles0:
                 start, sign = span.start, self.sign * self.parent.sign
             else: start, sign = span.start - self.parent.start, None
@@ -1289,7 +1300,6 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         # Heigh ho - self.span.start has to change.  Create new directory, move
         # each child into it, renaming to adjust offsets as it goes.
 
-        klaz = self.parent._child_class_(False, types)
         sign = self.sign * self.parent.sign
         if self.parent.straddles0: start = span.start * self.parent.sign
         else:
@@ -1297,19 +1307,19 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
             start, sign = self.sign * (span.start - self.parent.start), None
             assert start > 0
 
-        name = self.parent.child_name(span, True, types)
         mkdir(name)
         self.parent._onchange_()
-        peer = klaz(self.parent, types, span.start, len(span), sign)
+        peer = klaz(self.parent, types, span.start, len(span), sign, self)
+        for kid in self.listing: kid.relocate(peer)
+        peer._save_()
 
-        # FIXME: peer doesn't get to extend its attributes until this base class
-        # method returns and derived classes sort that out; but children
-        # probably need that to have happened already before we move them into
-        # it.  Solution: add replaces=None to constructor args; if supplied,
-        # it's an old node (either child of same parent or of peer of parent
-        # that parent is replacing) this new one replaces.
+        remove(self._cache_file) # __init__.py
+        # Move any remaining cruft across:
+        for name in listdir(self.path()):
+            rename(self.path(name), peer.path(name))
 
-        raise NotImplementedError # TODO: implement
+        rmdir(self.path())
+        return peer
 
     __newfile = WriteCacheDir.newfile # q.v. for documentation
     def newfile(self, span, types):
