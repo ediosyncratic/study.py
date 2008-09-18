@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.47 2008-08-24 15:12:14 eddy Exp $
+$Id: cache.py,v 1.48 2008-09-18 04:11:53 eddy Exp $
 """
 
 from study.cache import whole
@@ -115,6 +115,13 @@ class Node (whole.Node):
         return bok
 
 del lazyattr, lazyprop, decompress
+
+class CacheSubNode (Node, whole.CacheSubNode):
+    __upinit = whole.CacheSubNode.__init__
+    def __init__(self, parent, types, start, reach, sign=None, replaces=None):
+        self.__upinit(parent, types, start, reach, sign, replaces)
+        # TODO: sort out other attributes from replaces
+
 import re
 
 class WriteNode (Node, whole.WriteNode):
@@ -191,7 +198,7 @@ class WriteNode (Node, whole.WriteNode):
 
 del standard_b64encode, standard_b64decode, re
 
-class CacheFile (Node, whole.CacheFile):
+class CacheFile (CacheSubNode, whole.CacheFile):
     __load = Node._load_
     def _load_(self, bok=None):
         bok = self.__load(bok)
@@ -199,7 +206,7 @@ class CacheFile (Node, whole.CacheFile):
         assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
         return bok
 
-class WriteCacheFile (WriteNode, whole.WriteCacheFile):
+class WriteCacheFile (WriteNode, CacheFile, whole.WriteCacheFile):
     __save = WriteNode._save_
     def _save_(self, formatter, **what):
         assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
@@ -215,9 +222,9 @@ class CacheDir (Node, whole.CacheDir):
         if isfile: return CacheFile
         return CacheSubDir
 
-    __upchange = whole.CacheDir._onchange_
-    def _onchange_(self):
-        self.__upchange()
+    __upontidy = whole.CacheDir._ontidy_
+    def _ontidy_(self):
+        self.__upontidy()
         del self.primes, self.factors
 
     __upgap = whole.CacheDir._gap_
@@ -262,8 +269,8 @@ class WriteCacheDir (WriteNode, CacheDir, whole.WriteCacheDir):
         if isfile: return WriteCacheFile
         return WriteCacheSubDir
 
-class CacheSubDir (CacheDir, whole.CacheSubDir): pass
-class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir): pass
+class CacheSubDir (CacheDir, CacheSubNode, whole.CacheSubDir): pass
+class WriteCacheSubDir (WriteCacheDir, CacheSubDir, whole.WriteCacheSubDir): pass
 
 class CacheRoot (CacheDir, whole.CacheRoot):
     span = Interval(0, None)
@@ -332,7 +339,7 @@ class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
         return self.__save(formatter, **what)
 
 
-del Node, WriteNode, Interval, whole
+del Node, CacheSubNode, WriteNode, Interval, whole
 from study.snake.sequence import Ordered
 import os
 
