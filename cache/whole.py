@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.24 2008-09-07 09:29:31 eddy Exp $
+$Id: whole.py,v 1.25 2008-09-18 04:09:23 eddy Exp $
 """
 
 Adaptation = """
@@ -408,10 +408,11 @@ class SubNode (Node):
           types -- string of [A-Z]+ type indicators
           start -- offset into parent's .span at which self starts
           reach -- length of interval self describes
-
-        Optional argument, sign, defaults to None, meaning parent.span doesn't
-        straddle 0; otherwise, it should be +1 or -1 to indicate which side of 0
-        self is.  Do not supply any further parameters.\n"""
+        Optional arguments:
+          sign -- either None (default), meaning parent.span doesn't straddle 0;
+                  or +1 or -1 to indicate which side of 0 self is, relative to
+                  parent's sign.
+        Do not supply any further parameters.\n"""
 
         assert reach > 0
         if sign:
@@ -457,7 +458,18 @@ class Gap (SubNode):
 
 class CacheSubNode (SubNode):
     __gapinit = SubNode.__init__
-    def __init__(self, name, parent, types, start, span, sign):
+    def __init__(self, name, parent, types, start, span, sign=None, replaces=None):
+        """Initialize an subordinate node within the cache.
+
+        Arguments are as for SubNode's constructor but with one extra optional
+        parameter, after sign:
+          replaces -- either None (default) or an existing cache node this one
+                      is to replace; in which case either its .parent is parent
+                      or its .parent is a peer of parent that parent shall
+                      replace.
+
+        Derived classes may wish to transcribe data from replaces, when given;
+        if so, they should do so after calling base class __init__().\n"""
         self.__gapinit(parent, types, start, span, sign)
         self.__name = name
 
@@ -550,7 +562,7 @@ import os
 from weak import WeakTuple
 TYPES = 2 # index into each entry of __listing at which type string is held
 
-class CacheDir (LockDir):
+class CacheDir (Node, LockDir):
     @lazyattr
     def _cache_file(self, ig=None):
         return self.path('__init__.py')
@@ -798,7 +810,7 @@ class CacheDir (LockDir):
         elif stop is None:
             assert parent.span.stop is None
             sign = parent.sign
-        elif stop * parent.sign <= 1 && start * parent.sign < 0:
+        elif stop * parent.sign <= 1 and start * parent.sign < 0:
             sign = -parent.sign
             start, stop = stop - sign, start - sign
         else:
@@ -934,7 +946,7 @@ class CacheDir (LockDir):
 
 del WeakTuple, LockDir, Interval, lazyprop
 
-class CacheRoot (Node, CacheDir):
+class CacheRoot (CacheDir):
     def __init__(self, path): self.__dir = path
     parent = span = None
     sign = +1
@@ -951,7 +963,7 @@ from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
-class WriteCacheDir (CacheDir):
+class WriteCacheDir (WriteNode, CacheDir):
     def abuts(lo, gap, hi): # Tool function for newfile.
         """Determines whether lo or hi can be grown to include gap.
 
@@ -1037,7 +1049,7 @@ class WriteCacheDir (CacheDir):
                     assert b.span is not None
                     if b.span.step * span.step < 0:
                         wide = span.step * (span.start - b.span.start) < 1
-                    else if b.span.stop is None:
+                    elif b.span.stop is None:
                         assert False, "How did that happen ?"
                         wide = True
                     else:
@@ -1193,7 +1205,7 @@ class WriteCacheDir (CacheDir):
 
 del nameber
 
-class WriteCacheRoot (WriteNode, CacheRoot, WriteCacheDir):
+class WriteCacheRoot (WriteCacheDir, CacheRoot):
     _child_class_ = WriteCacheDir._child_class_
     __newfile = WriteCacheDir.newfile # q.v. for documentation
     def newfile(self, span, types):
@@ -1293,7 +1305,9 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         # FIXME: peer doesn't get to extend its attributes until this base class
         # method returns and derived classes sort that out; but children
         # probably need that to have happened already before we move them into
-        # it.
+        # it.  Solution: add replaces=None to constructor args; if supplied,
+        # it's an old node (either child of same parent or of peer of parent
+        # that parent is replacing) this new one replaces.
 
         raise NotImplementedError # TODO: implement
 
