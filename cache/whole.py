@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.27 2008-09-18 07:39:44 eddy Exp $
+$Id: whole.py,v 1.28 2008-09-19 03:14:06 eddy Exp $
 """
 
 Adaptation = """
@@ -494,10 +494,6 @@ class CacheSubNode (SubNode):
         return False
 
 class WriteSubNode (CacheSubNode, WriteNode):
-    def _extend_(self, span):
-        # needs to know how to rename itself when its range expands
-        raise NotImplementedError # TODO: implement
-
     def relocate(self, parent, move=os.rename):
         """Move self to a new directory.
 
@@ -551,8 +547,38 @@ class CacheFile (CacheSubNode):
         return self.__spanner(self.span.start - 1)
 
 class WriteCacheFile (CacheFile, WriteSubNode):
-    # TODO: support being (expanded (see _extend_) or) split.
-    pass
+    def extend(self, span, move=os.rename):
+        """Replaces self with an expanded file.
+
+        Single argument, span, is the range of the new file.  Returns a new
+        self.parent._child_node_(True, self.types) instance which can replace
+        self, covering both the given span and self.span; caller is responsible
+        for supplying the extra data and ._save_()ing the new object.
+
+        Unlike WriteCacheSubDir._extend_(), which is for internal use, the only
+        use I can think of for this is on the client side, to extend a file.
+        Derived classes could over-ride this method, modifying the base class's
+        return as needed, but should be able to achieve the benefits of that by
+        simply supporting the replaces parameter in the classes returned by
+        their directories' _child_class_() methods.\n"""
+
+        if self.span.subsumes(span): return self
+
+        assert self.sign == self.span.step
+        assert self.sign * self.span.start >= 0
+        span = self.span.meet(span)
+        if span.step * self.sign < 0: span = span.reversed()
+        name = self.parent.child_name(span, True, self.types)
+        klaz = self.parent._child_class_(True, types)
+        move(self.path(), self.parent.path(name))
+        self.parent._onchange_()
+
+        if self.parent.straddles0:
+            start, sign = span.start, self.sign * self.parent.sign
+        else: start, sign = span.start - self.parent.span.start, None
+        return klaz(name, self.parent, types, start, len(span), sign, self)
+
+    # TODO: support being split.
 
 from lockdir import LockableDir
 
