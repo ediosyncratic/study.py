@@ -52,10 +52,10 @@ have data.  The application is then left to compute the data, for some interval
 of the number line within this gap (or all of it), and can then ask a root to
 allot a file to it, in which to save the data it has computed, thereby extending
 that root's cache.  For this, it needs a modifiable root object, derived from
-CacheRoot via WriteCacheRoot.  An application is presumed to normally have one
-such modifiable cache, in which it saves the data it computes, backed up by
-possibly several read-only caches that save it the need to compute data for the
-ranges they know about.
+CacheRoot via WriteRoot.  An application is presumed to normally have one such
+modifiable cache, in which it saves the data it computes, backed up by possibly
+several read-only caches that save it the need to compute data for the ranges
+they know about.
 
 Details:
 
@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.28 2008-09-19 03:14:06 eddy Exp $
+$Id: whole.py,v 1.29 2008-09-19 03:20:34 eddy Exp $
 """
 
 Adaptation = """
@@ -239,7 +239,7 @@ class WriteNode (Node, whole.WriteNode):
 class CacheFile (Node, whole.CacheFile):
     # optionally extend _load_ some more
     pass
-class WriteCacheFile (WriteNode, whole.WriteCacheFile):
+class WriteFile (WriteNode, whole.WriteFile):
     # optionally extend _save_ some more
     pass
 # Optionally complicate further with files for each cached data type
@@ -257,24 +257,24 @@ class CacheDir (Node):
     # define any @weaklisting attributes, typically one per cached data type
 del weaklisting
 
-class WriteCacheDir (WriteNode, CacheDir):
+class WriteDir (WriteNode, CacheDir):
     @staticmethod
     def _child_class_(isfile, mode):
         # possibly complicate further for mode
-        if isfile: return WriteCacheFile
-        return WriteCacheSubDir
+        if isfile: return WriteFile
+        return WriteSubDir
 
     # optionally extend _save_ some more
 
 class CacheSubDir (CacheDir, whole.CacheSubDir):
     pass
-class WriteCacheSubDir (WriteCacheDir, whole.WriteCacheSubDir):
+class WriteSubDir (WriteDir, whole.WriteSubDir):
     pass
 
 class CacheRoot (CacheDir, whole.CacheRoot):
     # optionally: over-ride sign, span
     pass
-class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
+class WriteRoot (WriteDir, whole.WriteRoot):
     pass
 
 # (Note: this is a good example of where classic single-inheritance falls down,
@@ -285,6 +285,7 @@ from study.snake.regular import Interval
 from property import Cached, lazyattr, lazyprop
 from weak import weakattr
 from errno import EWOULDBLOCK
+import os
 
 class Node (Cached):
     """Base-class for nodes in a hierarchy of cached data about integers.
@@ -546,7 +547,7 @@ class CacheFile (CacheSubNode):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(self.span.start - 1)
 
-class WriteCacheFile (CacheFile, WriteSubNode):
+class WriteFile (CacheFile, WriteSubNode):
     def extend(self, span, move=os.rename):
         """Replaces self with an expanded file.
 
@@ -555,12 +556,12 @@ class WriteCacheFile (CacheFile, WriteSubNode):
         self, covering both the given span and self.span; caller is responsible
         for supplying the extra data and ._save_()ing the new object.
 
-        Unlike WriteCacheSubDir._extend_(), which is for internal use, the only
-        use I can think of for this is on the client side, to extend a file.
-        Derived classes could over-ride this method, modifying the base class's
-        return as needed, but should be able to achieve the benefits of that by
-        simply supporting the replaces parameter in the classes returned by
-        their directories' _child_class_() methods.\n"""
+        Unlike WriteSubDir._extend_(), which is for internal use, the only use I
+        can think of for this is on the client side, to extend a file.  Derived
+        classes could over-ride this method, modifying the base class's return
+        as needed, but should be able to achieve the benefits of that by simply
+        supporting the replaces parameter in the classes returned by their
+        directories' _child_class_() methods.\n"""
 
         if self.span.subsumes(span): return self
 
@@ -607,7 +608,6 @@ class LockDir (LockableDir):
 
 del LockableDir
 
-import os
 from weak import WeakTuple
 TYPES = 2 # index into each entry of __listing at which type string is held
 
@@ -640,7 +640,7 @@ class CacheDir (Node, LockDir):
                 mode, isfile = got.group(3), got.group(5)
                 # Be sure to match WeakSeq:
                 ans.append((start, size, mode, sign, name, isfile))
-                # WriteCacheDir.newfile relies on isfile being last
+                # WriteDir.newfile relies on isfile being last
 
         return ans
     del re, Ordered
@@ -652,7 +652,7 @@ class CacheDir (Node, LockDir):
     def _ontidy_(self):
         """Update attributes after directory contents have changed.
 
-        When the contents of the directory get changed (see WriteCacheDir), this
+        When the contents of the directory get changed (see WriteDir), this
         method is called to ensure attributes correctly reflect the contents of
         the directory.  Note that changes to self.span are handled separately.
 
@@ -1012,7 +1012,7 @@ from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
-class WriteCacheDir (WriteNode, CacheDir):
+class WriteDir (WriteNode, CacheDir):
     def abuts(lo, gap, hi): # Tool function for newfile.
         """Determines whether lo or hi can be grown to include gap.
 
@@ -1049,8 +1049,8 @@ class WriteCacheDir (WriteNode, CacheDir):
         This base-class implementation may instead raise an IndexError whose
         .args is a twople, (before, after), each entry in which is a node on the
         relevant side of the sought file, if any, else None; derived classes
-        WriteCacheRoot and WriteCacheDir overload this method to deal with the
-        various possibilities in that case.\n"""
+        WriteRoot and WriteDir overload this method to deal with the various
+        possibilities in that case.\n"""
 
         assert span.step in (-1, +1), 'I require a contiguous range'
         assert span > -1 or span < 1, 'Only a cache root can straddle 0'
@@ -1171,7 +1171,7 @@ class WriteCacheDir (WriteNode, CacheDir):
         else:
             kid = row[tom]
 
-        assert isinstance(kid, WriteCacheSubDir), \
+        assert isinstance(kid, WriteSubDir), \
                'I should have raised ValueError above' # endfile or midfile
 
         kid = kid._extend_(span, types)
@@ -1189,7 +1189,7 @@ class WriteCacheDir (WriteNode, CacheDir):
 
         change = False
         for node in self.listing:
-            if isinstance(node, WriteCacheDir) and \
+            if isinstance(node, WriteDir) and \
                    (node.__changed or len(node.__listing) != 12):
                 if node.tidy(): change = True
 
@@ -1206,8 +1206,8 @@ class WriteCacheDir (WriteNode, CacheDir):
 
     @staticmethod
     def _child_class_(isfile, mode): # configure __listing
-        if isfile: return WriteCacheFile
-        return WriteCacheSubDir
+        if isfile: return WriteFile
+        return WriteSubDir
 
     @lazyattr
     def __namelen(self, ig=None, fmt=nameber.encode):
@@ -1254,9 +1254,9 @@ class WriteCacheDir (WriteNode, CacheDir):
 
 del nameber
 
-class WriteCacheRoot (WriteCacheDir, CacheRoot):
-    _child_class_ = WriteCacheDir._child_class_
-    __newfile = WriteCacheDir.newfile # q.v. for documentation
+class WriteRoot (WriteDir, CacheRoot):
+    _child_class_ = WriteDir._child_class_
+    __newfile = WriteDir.newfile # q.v. for documentation
     def newfile(self, span, types):
         try: return self.__newfile(span, types)
         except IndexError, what: before, after = what.args
@@ -1278,10 +1278,10 @@ class WriteCacheRoot (WriteCacheDir, CacheRoot):
 class CacheSubDir (CacheSubNode, CacheDir):
     pass
 
-class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
-    _child_class_ = WriteCacheDir._child_class_
+class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
+    _child_class_ = WriteDir._child_class_
 
-    __onchange = WriteCacheDir._onchange_
+    __onchange = WriteDir._onchange_
     def _onchange_(self):
         self.__onchange()
         self.parent._onchange_()
@@ -1360,7 +1360,7 @@ class WriteCacheSubDir (WriteSubNode, CacheSubDir, WriteCacheDir):
         rmdir(self.path())
         return peer
 
-    __newfile = WriteCacheDir.newfile # q.v. for documentation
+    __newfile = WriteDir.newfile # q.v. for documentation
     def newfile(self, span, types):
         if span.step * self.sign < 0: span = span.reversed()
         try: return self.__newfile(span, types)
