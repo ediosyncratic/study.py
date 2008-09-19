@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.48 2008-09-18 04:11:53 eddy Exp $
+$Id: cache.py,v 1.49 2008-09-19 03:20:51 eddy Exp $
 """
 
 from study.cache import whole
@@ -120,7 +120,8 @@ class CacheSubNode (Node, whole.CacheSubNode):
     __upinit = whole.CacheSubNode.__init__
     def __init__(self, parent, types, start, reach, sign=None, replaces=None):
         self.__upinit(parent, types, start, reach, sign, replaces)
-        # TODO: sort out other attributes from replaces
+        if replaces is not None:
+            pass # TODO: sort out other attributes from replaces
 
 import re
 
@@ -206,7 +207,7 @@ class CacheFile (CacheSubNode, whole.CacheFile):
         assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
         return bok
 
-class WriteCacheFile (WriteNode, CacheFile, whole.WriteCacheFile):
+class WriteFile (WriteNode, CacheFile, whole.WriteFile):
     __save = WriteNode._save_
     def _save_(self, formatter, **what):
         assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
@@ -260,17 +261,17 @@ class CacheDir (Node, whole.CacheDir):
 
 del weaklisting
 
-class WriteCacheDir (WriteNode, CacheDir, whole.WriteCacheDir):
+class WriteDir (WriteNode, CacheDir, whole.WriteDir):
     # optionally extend _save_ some more
 
     @staticmethod
     def _child_class_(isfile, mode):
         # possibly complicate further for mode
-        if isfile: return WriteCacheFile
-        return WriteCacheSubDir
+        if isfile: return WriteFile
+        return WriteSubDir
 
 class CacheSubDir (CacheDir, CacheSubNode, whole.CacheSubDir): pass
-class WriteCacheSubDir (WriteCacheDir, CacheSubDir, whole.WriteCacheSubDir): pass
+class WriteSubDir (WriteDir, CacheSubDir, whole.WriteSubDir): pass
 
 class CacheRoot (CacheDir, whole.CacheRoot):
     span = Interval(0, None)
@@ -328,8 +329,8 @@ class CacheRoot (CacheDir, whole.CacheRoot):
         return bok
     del OctetType
 
-class WriteCacheRoot (WriteCacheDir, whole.WriteCacheRoot):
-    __save = WriteCacheDir._save_
+class WriteRoot (WriteDir, whole.WriteRoot):
+    __save = WriteDir._save_
     def _save_(self, formatter, **what):
         if self.span.stop is None:
             what['top'] = max(filter(None, map(lambda x: x.span.stop,
