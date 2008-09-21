@@ -1,21 +1,38 @@
 """Description of black holes.
 
-$Id: hole.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+$Id: hole.py,v 1.6 2008-09-21 20:06:33 eddy Exp $
 """
 
 from study.chemy.physics import Vacuum, Quantum, Cosmos, Thermal, pi
 from study.value.quantity import Object, Quantity
+from study.value.SI import bykind
 
 class BlackHole (Object): # should be based on chemy.thermal.Radiator
-    # Pass at least one of mass, radius, (surface) gravity, temperature to constructor.
     """A simple Schwarzschild black hole.
 
-Unlike other species of particle, black holes can have pretty much any mass.
-Their mass, radius, apparent temperature and surface gravity are all simply
-related to one another.  Any one of these four quantities suffices for our
-initializer.  See the documentation of Thermal.Hawking and Cosmos.Schwarzschild
-for details; and http://casa.colorado.edu/~ajsh/hawk.html
-"""
+    Unlike other species of particle, black holes can have pretty much any mass.
+    Their mass, radius, apparent temperature and surface gravity are all simply
+    related to one another.  Any one of these four quantities suffices for our
+    initializer.  See the documentation of Thermal.Hawking and
+    Cosmos.Schwarzschild for details; and
+    http://casa.colorado.edu/~ajsh/hawk.html\n"""
+
+    __upinit = Object.__init__
+    def __init__(self, *args, **what):
+        """Set up a description of a black hole.
+
+        Any positional arguments that are instances of Quantity shall be used as
+        keyword arguments using the kind of quantity as name, treating a length
+        as radius.  Pass at least one of mass, radius, (surface) gravity and
+        temperature, either as keyword or positional.\n"""
+
+        row = []
+        for arg in args:
+            if not isinstance(arg, Quantity): row.append(arg)
+            elif arg._unit_str == 'm': what['radius'] = arg
+            else: bykind(arg, what)
+
+        self.__upinit(*row, **what)
 
     def _lazy_get_mass_(self, ig, tm=Thermal.Hawking):
         return tm / self.temperature
@@ -95,7 +112,8 @@ million Kelvin below which we should notice neutrinos complicating this law.
   kg (the mass of a small mountain) can evaporate in less than the age of the
   Universe.
 
-Observe that dm/dt = -L/c/c gives
+Observe that dm/dt = -L/c/c (see BlackHole._lazy_get_luminosity_.__doc__) gives
+
         d(m**3)/dt = 3 m**2 dm/dt = -h * N / 320 / c**2 / kappa**2
 
 constant, except for N's variation, confirming that time to evaporate is
@@ -120,7 +138,7 @@ the black hole decreases at 4.pi/3 times this, i.e. h kappa c N / 15360 / pi**2
 or about 0.16e-63 cubic metres per second when N = 2.  With k.T inversely
 proportional to mass, we can infer that (k.T)**-3 decreases at rate pi**3 kappa
 N / (h c)**2 / 40, so 1/T**3 decreases at 6.433e-54 / second / Kelvin**3 when N
-= 2.  Note that the a black hole hot enough to boil Osmium at its surface
+= 2.  Note that a black hole hot enough to boil Osmium at its surface
 (i.e. above 5300 Kelvin) would have radius about 32 nano metres, mass 23 peta
 tonnes (about 3e-4 of the Moon's mass) yet would still take over 28e33 years to
 boil away ...
