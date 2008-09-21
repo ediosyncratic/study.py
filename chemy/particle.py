@@ -17,11 +17,11 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.31 2008-05-11 15:36:50 eddy Exp $
+$Id: particle.py,v 1.32 2008-09-21 20:05:10 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
-from study.value.units import tophat, pi, arc, \
+from study.value.units import tophat, pi, arc, bykind, \
      harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
      gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
 from physics import sample, Quantum, Vacuum, Thermal
@@ -327,6 +327,15 @@ class Particle (Object):
     def _lazy_get_wavelength_(self, ignored, h=Quantum.h):
         return h / self.momentum
 
+    def resolve(self, aperture):
+        """Resolving power of an aperture.
+
+        Returns the angle subtended, at an aperture of given diameter, by the
+        gap between a pair of objects that can just be resolved by an aparatus
+        observing these objects through that aperture using particles whose
+        wavelength is equal to that of self.\n"""
+        return (self.wavelength / aperture).arcSin
+
     def _lazy_get_restmass_(self, ignored, csqr = Vacuum.c**2):
         return (self.mass**2 - abs(self.momentum)**2 / csqr)**.5
 
@@ -369,9 +378,14 @@ from the second of which I took the extra-visible spectral data below.
 
     __upinit = Boson.__init__
     def __init__(self, *args, **what):
+        for val in args:
+            if val._unit_str == 'm': what['wavelength'] = val
+            else: bykind(val, what)
+
         try: what['name']
-        except KeyError: args = ('photon',) + args
-        self.__upinit(*args, **what)
+        except KeyError: what['name'] = 'photon'
+
+        self.__upinit(**what)
 
     def __repr__(self):
         # Use name if it has a personal one:
@@ -441,8 +455,8 @@ from the second of which I took the extra-visible spectral data below.
 
 def photon(lo, hi, name, **what):
     what['name'] = name
-    what['wavelength'] = Quantity(.5 * (hi + lo) + tophat * (hi - lo), nano * metre)
-    return Photon(**what)
+    return Photon(Quantity(.5 * (hi + lo) + tophat * (hi - lo), nano * metre),
+                  **what)
 
 visible = photon(380, 700, 'visible',
                  doc="""Visible light.
@@ -820,7 +834,8 @@ Rydberg.also(frequency=Rydberg * Vacuum.c,
 
 This is (at least for the Hydrogen atom) the natural unit for energies of atomic
 energy levels: (c*alpha)**2 times half the effective mass of the electron, the
-inverse of the sum of inverses of masses of the electron and nucleus.
+inverse of the sum of inverses of masses of the electron and nucleus.  Double it
+to get the Hartree energy.
 """))
 Rydberg.energy.observe(13.605698 * Quantum.Millikan * Volt)
 
