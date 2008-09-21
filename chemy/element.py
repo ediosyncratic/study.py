@@ -13,7 +13,7 @@ For data, see (inter alia): http://www.webelements.com/
 TODO: convert to use a minimalist constructor with source-specific data-supply
 methods; this module can be converted with minimal entanglement with others.
 
-$Id: element.py,v 1.14 2008-05-11 15:49:08 eddy Exp $
+$Id: element.py,v 1.15 2008-09-21 10:50:34 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -68,8 +68,9 @@ class Heats (Object):
 
 class Temperatures (Object):
     __upinit = Object.__init__
+    __zero = 0 * Kelvin
     def __init__(self, melt=None, boil=None, **what):
-        assert(melt is None or boil is None or melt + 0 * Kelvin <= boil)
+        assert(melt is None or boil is None or melt + self.__zero <= boil)
         if melt is not None: what['melt'] = melt
         if boil is not None: what['boil'] = boil
         self.__upinit(**what)
