@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.50 2008-05-12 08:09:29 eddy Exp $
+$Id: quantity.py,v 1.51 2008-09-22 04:39:33 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -281,8 +281,20 @@ def mass():
     return { 'weight': weigh, 'force': weigh, 'energy': energy }
 
 def energy():
-    from SI import second
+    from SI import second, Joule
     def mass(v, cc = (second.light / second)**2): return v / cc
+    from math import log
+    def magnitude(v, J=Joule, ln10=log(10)):
+        """Seismographic moment magnitude.
+
+        This is the standardized moment magnitude scale for earthquakes; the
+        energy is taken to be the total energy, stored as stress in the Earth's
+        crust, released.  For the energy magnitude scale (i.e. if your energy is
+        the radiated seismic energy), add 5.8/1.5; for the Ricter scale, add
+        1.65 (or so).  Bear in mind that energy coming from non-seismic sources
+        (e.g. nukes) tends not to couple as directly to the Earth's crust, so
+        don't necessarily produce comparable effects.\n"""
+        return ((v / J).log / ln10 - 9.1) / 1.5
     return { 'mass': mass }
 
 def time():
