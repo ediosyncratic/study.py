@@ -3,11 +3,11 @@
 
 See also:
 http://space.newscientist.com/article/dn13029-voyager-2-probe-reaches-solar-system-boundary.html
-$Id: Kuiper.py,v 1.14 2008-01-19 22:00:38 eddy Exp $
+$Id: Kuiper.py,v 1.15 2008-09-24 07:29:19 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, upward, \
-     zetta, tera, giga, mega, kilo, metre, second, hour, day, year, kg, \
+     zetta, exa, tera, giga, mega, kilo, metre, second, hour, day, year, kg, \
      Kelvin, Fahrenheit, Centigrade
 from study.value.archaea import mile
 
@@ -52,6 +52,48 @@ Pluto.orbit.radius.observe(giga * (5915.80 + .1 * tophat) * metre) # NASA
 Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.64, 6.39, NASAshell(593), "ice")
 # but http://www.solstation.com/stars/kuiper.htm gives surface radius 635 km
 
+Makemake = DwarfPlanet('Makemake',
+                       # from Wikipedia
+                       surface=Spheroid(.95 * mega * metre,
+                                        .75 * mega * metre,
+                                        .65 * mega * metre),
+                       orbit=Orbit(Sun, 45.791 * AU,
+                                   Spin(113183 * day, 28.96),
+                                   0.159),
+                       mass=Quantity(4 + tophat, zetta * kg))
+
+# From Wikipedia:
+Haumea = DwarfPlanet('Haumea',
+                     # not clear, but Wikipedia's "dimensions" appear to be
+                     # diameters; hence the /2 here:
+                     surface = Spheroid(1.96/2 * mega * metre,
+                                        1.518/2 * mega * metre,
+                                        .996/2 * mega * metre),
+                     orbit = Orbit(Sun, 43.335 * AU,
+                                   Spin(Quantity(104234 + tophat, day),
+                                        28.19 + .01 * tophat),
+                                   0.18874),
+                     mass = Quantity(4.2 + .2 * tophat, zetta * kg),
+                     albedo = .7 + .2 * tophat,
+                     temperature = Quantity(32 + 6 * tophat, Kelvin))
+
+Hiiaka = Planetoid("Hi'iaka",
+                   orbit=Orbit(Haumea,
+                               Quantity(49.5 + .8 * tophat, mega * metre),
+                               Spin(Quantity(49.12 + .06 * tophat, day),
+                                    234.8 + .6 * tophat),
+                               .05 + .006 * tophat),
+                   mass=Quantity(4 + tophat, .1 * zetta * kg),
+                   surface=Spheroid(Quantity(155 + tophat, kilo * metre)))
+Namaka = Planetoid('Namaka',
+                   orbit=Orbit(Haumea,
+                               39.3 * mega * metre,
+                               Spin(Quantity(34.7 + .2 * tophat, day),
+                                    #' tilt is given relative to Hi'iaka
+                                    39 + 12 * tophat)),
+                   mass = Quantity(8 + tophat, 10 * exa * kg),
+                   surface=Spheroid(85 * kilo * metre))
+
 Quaoar = MinorPlanet('Quaoar',
                    surface=Spheroid(800 * mile),
                    # I haven't yet found radius ... but its eccentricity is low
@@ -66,7 +108,7 @@ Drs. Trujillo and Brown first observed this Kuiper Belt object, then (July 5,
 August 1) had the Hubble Space Telescope take a closer look, to determine true
 angular size, 40 * milli * arc.second.  They named it after the creator-god of
 the Tongva, the original inhabitants of the Los Angeles basin.\n"""))
-
+
 # Even further out: beyond Kuiper, in the "inner Oort Cloud"
 ape = Quantity(900, AU)
 ape.observe(130 * tera * metre)
