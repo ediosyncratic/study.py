@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.10 2008-09-14 12:11:00 eddy Exp $
+$Id: physics.py,v 1.11 2008-09-24 07:30:25 eddy Exp $
 """
 from study.value.units import *
 
@@ -125,7 +125,8 @@ The gravitational force between two small massive bodies is the product of their
 masses divided by the square of the distance between them, multiplied by
 Newton's constant, which is normally called G.\n"""),
 
-        Hubble = Quantity(2.3 * (1 + tophat * .1), atto * Hertz,
+        Hubble = Quantity(70.1 + 2.6 * tophat, 32.4 * yocto * Hertz,
+                          # km/s/giga/parsec = 32.40 yocto / second
                           """Hubble's constant.
 
 This describes the rate of expansion of the universe: it is the velocity
