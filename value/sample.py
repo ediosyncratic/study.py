@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.43 2008-09-26 07:37:48 eddy Exp $
+$Id: sample.py,v 1.44 2008-09-26 07:41:08 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1788,8 +1788,8 @@ class Sample (Object):
 
         return self.__weigh.niles(n, mid)
 
-    @classmethod
-    def flat(self, low, high, best=None, **what):
+    @staticmethod
+    def flat(low, high, best=None, **what):
         if best is None: what['best'] = .5 * (low + high)
         else: what['best'] = best
         return Sample({(2*low + high)/3.: 1, (low + 2 * high)/3.: 1}, **what)
