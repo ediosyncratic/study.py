@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.31 2008-07-01 06:53:33 eddy Exp $
+$Id: home.py,v 1.32 2008-09-26 08:07:20 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -98,9 +98,9 @@ four data are here given, as attributes l, b, alpha and delta.
                         alpha = 11.2 + .02 * tophat, # unit is hours ...
                         delta = (tophat * .16 - 7.22) * arc.degree),
 
-    bright = Quantity(1.4 + Sample.tophat * .06,
-                      kilo * Watt / metre / metre,
-                      """How brightly shines the sun ?
+    bright = Quantity.flat(1.1, 1.7, 1.4,
+                           kilo * Watt / metre / metre,
+                           """How brightly shines the sun ?
 
 Maximum solar total radiant power outside atmosphere at a distance of 1
 Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
@@ -139,7 +139,14 @@ mass computed above from fusion.  In the course of pulling the Sun together, we
 should take account of the work done increasing its temperature and compressing
 it; but my crude sums indicate these are much smaller (of order exa tonnes).
 """,
-                      fullname = "Solar Constant"),
+                           fullname = "Solar Constant"),
+
+    wind=Object(speed=Quantity.flat(.3, .8, .4, mega * metre / second),
+                # I suppose that's speed at the Sun or Earth and it slows on its
+                # way out.
+                # TODO: check back on unfinished page, for composition:
+                # http://solarscience.msfc.nasa.gov/feature4.shtml
+                source="Corona"),
 
     discovery=Discovery("the earliest life-forms", -3e9), # etym ?
 
@@ -250,8 +257,8 @@ def IAocean(name, area=None, depth=None, *parts, **what):
 # My home planet:
 Earth = body.Planet(
     'Earth',
-    Surface(Quantity(qSample(6367650 + 21476 * Sample.tophat,
-                             best=6371020, low=6352400, high=6384100),
+    Surface(Quantity(Sample.flat(6356912, 6378388, 6371020,
+                                 low=6352400, high=6384100),
                      metre, """Radius of the Earth's surface.
 
 This is how far mean sea level is from the Earth's centre; which varies
@@ -511,7 +518,7 @@ Moon = KLplanet('Moon',
 # http://news.bbc.co.uk/hi/english/sci/tech/newsid_399000/399468.stm
 Moon.mass.observe(7.3483e22 * kg)
 Moon.mass.observe(7.349e22 * kg) # NASA
-Moon.surface.radius.observe(1.738e6 * metre)
+Moon.surface.radius.observe(1.738e6 * metre) # APOD 2008/Aug/1
 Moon.surface.radius.observe(1.7374e6 * metre) # NASA
 Moon.surface.gravity.observe(1.62 * metre / second**2)
 Moon.orbit.radius.observe(3.844e8 * metre) # agrees with NASA
