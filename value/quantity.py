@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.52 2008-09-26 07:57:51 eddy Exp $
+$Id: quantity.py,v 1.53 2008-09-26 08:09:39 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -808,20 +808,20 @@ class Quantity (Object):
     def _quantity(self, what, units): return self.__class__(what, units)
 
     @staticmethod
-    def flat(low, high, best=None,
+    def flat(lo, hi, best=None,
              units={}, doc=None, nom=None, fullname=None, sample=None,
              *args, **what):
         """Describe a value with a flat distribution.
 
         Required arguments:
-          low -- lower bound on value
-          high -- uppper bound on value
+          lo -- lower bound on value
+          hi -- upper bound on value
 
         Next positional parameter, or keyword best, is taken as the best
         estimate value in the interval, or None if no best estimate is
         available.  Subsequent optional arguments units, doc, nom, fullname and
         sample are as for Quantity's constructor (q.v.).\n"""
-        return Quantity(Sample.flat(low, high, best),
+        return Quantity(Sample.flat(lo, hi, best),
                         units, doc, nom, fullname, sample, *args, **what)
 
 del kind_prop_lookup
