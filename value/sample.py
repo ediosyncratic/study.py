@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.42 2008-07-01 06:50:34 eddy Exp $
+$Id: sample.py,v 1.43 2008-09-26 07:37:48 eddy Exp $
 """
 
 class _baseWeighted:
@@ -91,8 +91,8 @@ class curveWeighted (Lazy, _baseWeighted):
     .weigh(), .split(), cross() with the same semantics as here and have a .cuts
     attribute with a suitable meaning. """
 
-    tophat = {-1./6: 1, 1./6: 1} # produces uniform distribution from -.5 to +.5
-    gaussish = { 0: .382, # approximate a gaussian with mean 0 and standard deviation 1
+    # Approximate a gaussian with mean 0 and standard deviation 1:
+    gaussish = { 0: .382,
                  1: .242, -1: .242,
                  2: .0608, -2: .0608,
                  3: .0062, -3: .0062 }
@@ -1787,6 +1787,12 @@ class Sample (Object):
         extremes of the distribution and there are 1+n entries in the tuple. """
 
         return self.__weigh.niles(n, mid)
+
+    @classmethod
+    def flat(self, low, high, best=None, **what):
+        if best is None: what['best'] = .5 * (low + high)
+        else: what['best'] = best
+        return Sample({(2*low + high)/3.: 1, (low + 2 * high)/3.: 1}, **what)
 
 del _power, _multiply, _divide
 _surprise = """\
@@ -1814,8 +1820,8 @@ deviation 1.  It is intended for use with data which have been given as mean and
 standard deviation; multiply by the latter and add the former.
 """)
 
-Sample.tophat = Sample(Weighted.tophat, best=0,
-                       __doc__="""Unit width zero-centred error bar.
+Sample.tophat = Sample.flat(-.5, +.5, 0,
+                            __doc__="""Unit width zero-centred error bar.
 
 Also known as 0 +/- .5, which can readily be used as a simple way to implement
 a+/-b as a + 2*b*tophat.  For asymmetric error bars, use Sample.upward, which
@@ -1823,5 +1829,5 @@ has best estimate zero, like tophat, but is uniformly distributed on the
 interval from zero to one.
 """)
 
-Sample.upward = Sample(Weighted.tophat, best=-.5) + .5
+Sample.upward = Sample.flat(0, 1, best=0)
 # 1-upward behaves sensibly as downward ...
