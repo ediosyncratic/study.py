@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.51 2008-09-22 04:39:33 eddy Exp $
+$Id: quantity.py,v 1.52 2008-09-26 07:57:51 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -807,6 +807,23 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
 
+    @staticmethod
+    def flat(low, high, best=None,
+             units={}, doc=None, nom=None, fullname=None, sample=None,
+             *args, **what):
+        """Describe a value with a flat distribution.
+
+        Required arguments:
+          low -- lower bound on value
+          high -- uppper bound on value
+
+        Next positional parameter, or keyword best, is taken as the best
+        estimate value in the interval, or None if no best estimate is
+        available.  Subsequent optional arguments units, doc, nom, fullname and
+        sample are as for Quantity's constructor (q.v.).\n"""
+        return Quantity(Sample.flat(low, high, best),
+                        units, doc, nom, fullname, sample, *args, **what)
+
 del kind_prop_lookup
 
 def base_unit(nom, fullname, doc, **what):
@@ -815,7 +832,17 @@ def base_unit(nom, fullname, doc, **what):
     return result
 
 gaussish = Quantity(Sample.gaussish, doc=Sample.gaussish.__doc__)
-tophat = Quantity(Sample.tophat, doc=Sample.tophat.__doc__)
-upward = Quantity(Sample.upward)
+
+# Deprecated: use Quantity.flat() instead:
+tophat = Quantity.flat(-.5, +.5, 0,
+                       doc="""Unit width zero-centred error bar.
+
+Also known as 0 +/- .5, which can readily be used as a simple way to implement
+a+/-b as a + 2*b*tophat.  For error bars where the lower bound is the best
+estimate, use upward, which has best estimate zero, like tophat, but is
+uniformly distributed on the interval from zero to one.  For general asymmetric
+flat error bars, use Quantity.flat (q.v.).
+""")
+upward = Quantity.flat(0, 1, 0)
 # 0 +/- .5: scale and add offset to taste, e.g.:
-def sample(mid, tol, flat=2*tophat): return mid + tol * flat
+def sample(mid, tol): return Quantity.flat(mid - tol, mid + tol)
