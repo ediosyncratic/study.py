@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.5 2008-10-19 22:15:56 eddy Exp $
+$Id: ticker.py,v 1.6 2008-10-19 22:25:02 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -122,6 +122,11 @@ class StockSVG (Cached):
     def __del__(self): self.__dom.unlink()
 
     def __id_by_tag(self, tag):
+        """Iterate over nodes, of given kind, with id attribute.
+
+        Required argument, tag, is the element type of interest.  Those which
+        have no id attribute are ignored.  For each of the remainder, this
+        yields a twople; the node and the value of its id attribute.\n"""
         for node in self.__dom.getElementsByTagName(tag):
             try: nom = node.attributes['id']
             except KeyError: pass
@@ -129,7 +134,7 @@ class StockSVG (Cached):
         raise StopIteration
 
     def save(self):
-        if 0: # 1 toggle when testing !
+        if 1: # 0 toggle when testing !
             fd = open(svg + '.new')
             try: dom.writexml(fd, '', '  ', '\n')
             finally: fd.close()
@@ -137,7 +142,7 @@ class StockSVG (Cached):
         else:
             print self.__dom.toxml('utf-8')
 
-    def __revisepaths(self, dayval, data):
+    def __revise_paths(self, dayval, data):
         top = None
         for line, nom in self.__id_by_tag('path'):
             for k, v in data.items():
@@ -179,6 +184,35 @@ class StockSVG (Cached):
         assert top is not None
         return top
 
+    @lazyattr.group(2)
+    def __price_axis(self, mode=None):
+        price = date = None
+        for node, nom in self.__id_by_tag('line'):
+            if nom == 'date-axis': date = node
+            elif nom == 'price-axis': price = node
+        assert None not in (price, date)
+        return price, date
+    __price_axis, __date_axis = __price_axis
+
+    @lazyattr.group(3)
+    def __price_labels(self, mode=None):
+        price = date = shunt = None
+        for node, nom in self.__id_by_tag('g'):
+            if nom == 'fix-vertical': shunt = node
+            elif nom == 'date-labels': date = node
+            elif nom == 'price-labels': price = node
+        assert None not in (date, price, shunt)
+        return date, price, shunt
+    __date_labels, __price_labels, __fix_vertical = __price_labels
+
+    def __rescale_price(self, top, view):
+        self.__price_labels, self.__price_axis, self.__fix_vertical
+        # TODO: Adjust price axis, and labels if necessary
+
+    def __rescale_date(self, when, view):
+        # TODO: Adjust date axis and labels
+        self.__date_labels, self.__date_axis
+
     import os, datetime, time
 
     def readdate(what,
@@ -210,35 +244,6 @@ class StockSVG (Cached):
         raise AttributeError('No id="date-origin" text node found in SVG',
                              self.__path)
 
-    @lazyattr.group(2)
-    def __price_axis(self, mode=None):
-        price = date = None
-        for node, nom in self.__id_by_tag('line'):
-            if nom == 'date-axis': date = node
-            elif nom == 'price-axis': price = node
-        assert None not in (price, date)
-        return price, date
-    __price_axis, __date_axis = __price_axis
-
-    @lazyattr.group(3)
-    def __price_labels(self, mode=None):
-        price = date = shunt = None
-        for node, nom in self.__id_by_tag('g'):
-            if nom == 'fix-vertical': shunt = node
-            elif nom == 'date-labels': date = node
-            elif nom == 'price-labels': price = node
-        assert None not in (date, price, shunt)
-        return date, price, shunt
-    __date_labels, __price_labels, __fix_vertical = __price_labels
-
-    def __rescale_price(self, top, view):
-        self.__price_labels, self.__price_axis, self.__fix_vertical
-        # TODO: Adjust price axis, and labels if that requires it
-
-    def __rescale_date(self, when, view):
-        # TODO: Adjust date axis and labels
-        self.__date_labels, self.__date_axis
-
     def update(self, data,
                move=os.rename, date=datetime.date, getdate=readdate):
         """Update an svg graph of stock ticker data from report().
@@ -259,7 +264,7 @@ class StockSVG (Cached):
         dayval = when.toordinal() - self.startdate.toordinal()
         assert dayval > 0
 
-        top = self.__revisepaths(dayval * 10, data)
+        top = self.__revise_paths(dayval * 10, data)
         view = self.__dom.documentElement.attributes['viewBox']
 
         trans = self.__fix_vertical.attributes['transform']
