@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.9 2008-10-19 20:33:39 eddy Exp $
+$Id: property.py,v 1.10 2008-10-19 20:39:02 eddy Exp $
 """
 
 class docprop (property):
@@ -26,53 +26,6 @@ class docprop (property):
 
         self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
-
-class dictprop (docprop):
-    """Provides support for set/del in an object's __dict__
-
-    This is a convenience class intended for mixing with other classes derived
-    from docprop: it provides for use of an object's usual attribute dictionary
-    for the setting and deletion of the attribute; derived classes should call
-    its getter to extract the attribute from that dictionary, if present
-    (whether they do so before or after any other approach they have is their
-    own choice).
-
-    In support of this, its constructor takes the name of the attribute it
-    implements, as an extra first argument; but it doesn't need (or accept) a
-    setter or deleter function.  Its class method .nominate(name) can be used to
-    obtain a decorator (and works sensibly for derived classes).
-
-    Because this class is intended as a mix-in for other property classes, so
-    that its attribute may be available even if not in __dict__, the deleter
-    does not raise AttributeError when the attribute is absent from __dict__;
-    the deletion is deemed fatuously successful in this case.\n"""
-
-    @classmethod
-    def nominate(klaz, name, doc=None, check=None):
-        return lambda x, n=name, d=doc, c=check: klaz(n, x, d, c)
-
-    __upinit = docprop.__init__
-    def __init__(self, name, getit, doc=None, check=None):
-        if doc is not None:
-            assert isinstance(doc, basestring), 'Pass me no setter'
-        self.__upinit(getit, self.__set, self.__del, doc)
-        self.__name, self.__check = name, check
-
-    def __del(self, obj):
-        try: del obj.__dict__[self.__name]
-        except KeyError: pass
-
-    def __set(self, obj, val):
-        if self.__check is not None: self.__check(val)
-        obj.__dict__[self.__name] = val
-
-    __upget = docprop.__get__
-    def __get__(self, obj, mode=None):
-        try:
-            if obj is None: return mode.__dict__[self.__name]
-            else: return obj.__dict__[self.__name]
-        except KeyError: pass
-        return self.__upget(obj, mode)
 
 class recurseprop (docprop):
     """Cope with recursion in getters of properties.
@@ -132,3 +85,50 @@ class recurseprop (docprop):
         try: ans = self.__upget(obj) # might AttributeError
         finally: del check[self]
         return ans
+
+class dictprop (recurseprop):
+    """Provides support for set/del in an object's __dict__
+
+    This is a convenience class intended for mixing with other classes derived
+    from docprop: it provides for use of an object's usual attribute dictionary
+    for the setting and deletion of the attribute; derived classes should call
+    its getter to extract the attribute from that dictionary, if present
+    (whether they do so before or after any other approach they have is their
+    own choice).
+
+    In support of this, its constructor takes the name of the attribute it
+    implements, as an extra first argument; but it doesn't need (or accept) a
+    setter or deleter function.  Its class method .nominate(name) can be used to
+    obtain a decorator (and works sensibly for derived classes).
+
+    Because this class is intended as a mix-in for other property classes, so
+    that its attribute may be available even if not in __dict__, the deleter
+    does not raise AttributeError when the attribute is absent from __dict__;
+    the deletion is deemed fatuously successful in this case.\n"""
+
+    @classmethod
+    def nominate(klaz, name, doc=None, check=None):
+        return lambda x, n=name, d=doc, c=check: klaz(n, x, d, c)
+
+    __upinit = recurseprop.__init__
+    def __init__(self, name, getit, doc=None, check=None):
+        if doc is not None:
+            assert isinstance(doc, basestring), 'Pass me no setter'
+        self.__upinit(getit, self.__set, self.__del, doc)
+        self.__name, self.__check = name, check
+
+    def __del(self, obj):
+        try: del obj.__dict__[self.__name]
+        except KeyError: pass
+
+    def __set(self, obj, val):
+        if self.__check is not None: self.__check(val)
+        obj.__dict__[self.__name] = val
+
+    __upget = recurseprop.__get__
+    def __get__(self, obj, mode=None):
+        try:
+            if obj is None: return mode.__dict__[self.__name]
+            else: return obj.__dict__[self.__name]
+        except KeyError: pass
+        return self.__upget(obj, mode)
