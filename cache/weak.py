@@ -12,7 +12,7 @@ Provides:
   weakattr -- recurseprop using attrstore to cache weakrefs to attribute values
   weakprop -- combines weakattr and dictprop
 
-$Id: weak.py,v 1.3 2008-08-15 06:45:13 eddy Exp $
+$Id: weak.py,v 1.4 2008-10-19 20:54:28 eddy Exp $
 """
 
 from study.snake.sequence import ReadSeq
@@ -78,7 +78,9 @@ class weakattr (attrstore, recurseprop):
         return ans
     del weakref
 
-class weakprop (weakattr, dictprop):
+class weakprop (dictprop, weakattr):
+    # TODO: is this right ?  Shall the weak prop be saved in __dict__ ?  Shall
+    # values set (in __dict__) be weakly held ?  Should either answer be Yes ?
     __wget = weakattr.__get__
     __dget = dictprop.__get__
     def __get__(self, obj, mode=None):
