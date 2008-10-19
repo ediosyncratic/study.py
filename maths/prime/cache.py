@@ -52,7 +52,7 @@ Caches:
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.49 2008-09-19 03:20:51 eddy Exp $
+$Id: cache.py,v 1.50 2008-10-19 20:32:26 eddy Exp $
 """
 
 from study.cache import whole
@@ -62,6 +62,7 @@ from base64 import standard_b64encode, standard_b64decode
 from bz2 import decompress
 
 class Node (whole.Node):
+    @lazyprop.nominate('indices')
     def indices(self, ig=None):
         """Range of prime indices"""
         try: ind = self.__indices
@@ -74,8 +75,6 @@ class Node (whole.Node):
             ind += self.parent.indices.start
 
         return ind
-
-    indices = lazyprop('indices', indices) # so _gap_ can set it
 
     @lazyattr
     def prime(self, ig=None):
