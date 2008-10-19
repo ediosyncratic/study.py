@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.5 2008-10-19 20:34:09 eddy Exp $
+$Id: property.py,v 1.6 2008-10-19 22:01:03 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictprop
 
@@ -71,12 +71,15 @@ class attrstore (docprop):
 class lazyattr (attrstore, recurseprop):
     """Lazy attribute look-up.
 
-    Sub-classes recurseprop and attrstore and uses the latter's cache to store
+    Sub-classes recurseprop and attrstore; uses the latter's cache to store
     attribute values.  This ensures that the value only gets computed once,
     unless you actively delete or set the value (thereby clearing the cached
     value).  Since the attribute it tacitly present even when it hasn't yet been
     computed, deleting it never raises an AttributeError (unless some derived
-    class choses to over-ride that).\n"""
+    class choses to over-ride that).
+
+    See .group for support (both here and on any derived class) for several
+    attributes all computed together by one function call.\n"""
 
     assert attrstore.__init__.im_func is recurseprop.__init__.im_func is docprop.__init__.im_func
     __upinit = docprop.__init__
@@ -89,9 +92,43 @@ class lazyattr (attrstore, recurseprop):
         bok = self.cache(obj)
         try: ans = bok[self]
         except KeyError:
-            bok[self] = ans = self.__upget(obj)
+            bok[self] = ans = self.__upget(obj, mode)
 
         return ans
+
+    class each (property):
+        def __init__(self, group, index):
+            self.__all = group
+            self.__ind = index
+        def __get__(self, obj, mode=None):
+            return self.__all.__get__(obj, mode)[self.__ind]
+
+    @classmethod
+    def group(klaz, count, hvert=each):
+        """Decorator for several attributes computed by one function.
+
+        Required argument, count, is the number of attributes whose values the
+        function computes.  Returns a function which, given a callable, maps it
+        to a tuple of count property objects.  Use as a decorator on the
+        definition of a callable named for one of the attributes being computed;
+        subsequently assign this to the tuple of all those attribute names.  For
+        example, in an imaginary sequence class:
+
+            @lazyattr.group(2)
+            def variance(self, mode=None):
+                tot= totsq = 0
+                for it in self:
+                    tot += it
+                    totsq += it**2
+                mean = tot * 1. / len(self)
+                return mean, totsq * 1. / (len(self) - 1) - mean**2
+            mean, variance = variance
+        """
+        def deco(get, k=klaz, n=count, e=hvert):
+            all = klaz(get)
+            return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
+        return deco
+    del each
 
 class lazyprop (dictprop, lazyattr):
     __lget = lazyattr.__get__
