@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.10 2008-10-19 20:39:02 eddy Exp $
+$Id: property.py,v 1.11 2008-10-19 20:50:12 eddy Exp $
 """
 
 class docprop (property):
@@ -97,9 +97,15 @@ class dictprop (recurseprop):
     own choice).
 
     In support of this, its constructor takes the name of the attribute it
-    implements, as an extra first argument; but it doesn't need (or accept) a
-    setter or deleter function.  Its class method .nominate(name) can be used to
-    obtain a decorator (and works sensibly for derived classes).
+    implements, as a required second argument; but it doesn't need (or accept) a
+    setter or deleter function (it provides its own, using __dict__).  Its class
+    method .nominate(name) can be used to obtain a decorator (and works sensibly
+    for derived classes).
+
+    As well as the usual doc parameter it (and .nominate) can take, its
+    constructor and .nominate also accept a callable, check, which shall be
+    called on any value set for the value, before storing in __dict__; this
+    callable can raise an error on inappropriate setting.
 
     Because this class is intended as a mix-in for other property classes, so
     that its attribute may be available even if not in __dict__, the deleter
@@ -108,10 +114,10 @@ class dictprop (recurseprop):
 
     @classmethod
     def nominate(klaz, name, doc=None, check=None):
-        return lambda x, n=name, d=doc, c=check: klaz(n, x, d, c)
+        return lambda g, n=name, d=doc, c=check: klaz(g, n, d, c)
 
     __upinit = recurseprop.__init__
-    def __init__(self, name, getit, doc=None, check=None):
+    def __init__(self, getit, name, doc=None, check=None):
         if doc is not None:
             assert isinstance(doc, basestring), 'Pass me no setter'
         self.__upinit(getit, self.__set, self.__del, doc)
