@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.6 2008-10-19 22:25:02 eddy Exp $
+$Id: ticker.py,v 1.7 2008-10-19 22:55:24 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -133,14 +133,21 @@ class StockSVG (Cached):
             else: yield node, nom.value
         raise StopIteration
 
-    def save(self):
-        if 1: # 0 toggle when testing !
-            fd = open(svg + '.new')
-            try: dom.writexml(fd, '', '  ', '\n')
-            finally: fd.close()
-            move(svg + '.new', svg)
-        else:
-            print self.__dom.toxml('utf-8')
+    import os
+    def save(self, move=os.rename):
+        name = self.__path + '.new'
+        fd = open(name, 'w')
+        try: fd.write(self.toxml())
+        finally: fd.close()
+        move(name, self.__path)
+    del os
+
+    def toxml(self):
+        out = self.__dom.toxml('utf-8')
+        # gnn ... puts mode-line comment after first newline :-(
+        ind = out.find('\n')
+        cut = out.find('-->', ind) + 3
+        return out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
 
     def __revise_paths(self, dayval, data):
         top = None
@@ -213,11 +220,8 @@ class StockSVG (Cached):
         # TODO: Adjust date axis and labels
         self.__date_labels, self.__date_axis
 
-    import os, datetime, time
-
-    def readdate(what,
-                 dt=datetime,
-                 date=datetime.date, parse=time.strptime):
+    import datetime, time
+    def readdate(what, date=datetime.date, parse=time.strptime):
         try: when = parse(what, '%d %b %Y') # issue: %b depends on locale
         except ValueError: pass
         else: return date(when.tm_year, when.tm_mon, when.tm_mday)
@@ -232,6 +236,7 @@ class StockSVG (Cached):
             if (now - then) < (when - now):
                 return then
         return when
+    del datetime, time
 
     @lazyattr
     def startdate(self, mode=None, getdate=readdate):
@@ -244,14 +249,12 @@ class StockSVG (Cached):
         raise AttributeError('No id="date-origin" text node found in SVG',
                              self.__path)
 
-    def update(self, data,
-               move=os.rename, date=datetime.date, getdate=readdate):
+    def update(self, data, getdate=readdate):
         """Update an svg graph of stock ticker data from report().
 
         Required argument, data, is a dictionary mapping headings to data, as
         obtained by report (q.v.).  Updates the SVG's DOM to extend its graph
         with the data supplied.\n"""
-        now = date.today()
         for k, v in data.items():
             if k.lower() in ('date', 'time'):
                 try: when = getdate(v)
@@ -273,6 +276,6 @@ class StockSVG (Cached):
         if top * 100 > vert: self.__rescale_price(top, view)
         self.__rescale_date(when, view)
 
-    del os, datetime, time, readdate
+    del readdate
 del Cached, lazyattr
 
