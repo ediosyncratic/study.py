@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.4 2008-10-19 20:35:18 eddy Exp $
+$Id: ticker.py,v 1.5 2008-10-19 22:15:56 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -110,7 +110,7 @@ def report(ticker, parser=StockPageParser()):
 del StockPageParser
 
 # Managing an SVG graph of results
-from study.cache.property import Cached, lazyprop
+from study.cache.property import Cached, lazyattr
 class StockSVG (Cached):
     from xml.dom.minidom import parse
     def __init__(self, path, ingest=parse):
@@ -199,7 +199,7 @@ class StockSVG (Cached):
                 return then
         return when
 
-    @lazyprop.nominate('startdate')
+    @lazyattr
     def startdate(self, mode=None, getdate=readdate):
         assert mode is None
         for node, nom in self.__id_by_tag('text'):
@@ -210,6 +210,35 @@ class StockSVG (Cached):
         raise AttributeError('No id="date-origin" text node found in SVG',
                              self.__path)
 
+    @lazyattr.group(2)
+    def __price_axis(self, mode=None):
+        price = date = None
+        for node, nom in self.__id_by_tag('line'):
+            if nom == 'date-axis': date = node
+            elif nom == 'price-axis': price = node
+        assert None not in (price, date)
+        return price, date
+    __price_axis, __date_axis = __price_axis
+
+    @lazyattr.group(3)
+    def __price_labels(self, mode=None):
+        price = date = shunt = None
+        for node, nom in self.__id_by_tag('g'):
+            if nom == 'fix-vertical': shunt = node
+            elif nom == 'date-labels': date = node
+            elif nom == 'price-labels': price = node
+        assert None not in (date, price, shunt)
+        return date, price, shunt
+    __date_labels, __price_labels, __fix_vertical = __price_labels
+
+    def __rescale_price(self, top, view):
+        self.__price_labels, self.__price_axis, self.__fix_vertical
+        # TODO: Adjust price axis, and labels if that requires it
+
+    def __rescale_date(self, when, view):
+        # TODO: Adjust date axis and labels
+        self.__date_labels, self.__date_axis
+
     def update(self, data,
                move=os.rename, date=datetime.date, getdate=readdate):
         """Update an svg graph of stock ticker data from report().
@@ -219,7 +248,7 @@ class StockSVG (Cached):
         with the data supplied.\n"""
         now = date.today()
         for k, v in data.items():
-            if k.lower() in ('date', 'time'): # Parse v as a date:
+            if k.lower() in ('date', 'time'):
                 try: when = getdate(v)
                 except ValueError:
                     print 'Failed to parse %s "%s" as a date' % (k, v)
@@ -233,28 +262,12 @@ class StockSVG (Cached):
         top = self.__revisepaths(dayval * 10, data)
         view = self.__dom.documentElement.attributes['viewBox']
 
-        paxis = daxis = None
-        for node, nom in self.__id_by_tag('line'):
-            if nom == 'date-axis': daxis = node
-            elif nom == 'price-axis': paxis = node
-        assert None not in (paxis, daxis)
-
-        plabel = dlabel = shunt = None
-        for node, nom in self.__id_by_tag('g'):
-            if nom == 'fix-vertical': shunt = node
-            elif nom == 'date-labels': dlabel = node
-            elif nom == 'price-labels': plabel = node
-        assert None not in (dlabel, plabel, shunt)
-
-        trans = shunt.attributes['transform']
+        trans = self.__fix_vertical.attributes['transform']
         assert trans.value[:12] == 'translate(0 ' and trans.value[-1] == ')'
         vert = int(trans.value[12:-1])
-        if top * 100 > vert:
-            revisevertical(top, plabel, pax, view, shunt)
-
-        # TODO: Adjust price axis if necessary, and labels if that requires it
-        # TODO: Adjust date axis and labels
+        if top * 100 > vert: self.__rescale_price(top, view)
+        self.__rescale_date(when, view)
 
     del os, datetime, time, readdate
-del Cached, lazyprop
+del Cached, lazyattr
 
