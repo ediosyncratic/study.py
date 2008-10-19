@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.45 2008-09-26 08:08:19 eddy Exp $
+$Id: sample.py,v 1.46 2008-10-19 21:49:58 eddy Exp $
 """
 
 class _baseWeighted:
@@ -1188,7 +1188,7 @@ class statWeighted (_baseWeighted):
     def _variance(self):
         norm, sum, squares = self._moments(2)
         mean = sum * 1. / norm
-        return norm, mean, squares * 1. / norm - mean * mean
+        return norm, mean, squares * 1. / norm - mean**2
 
     def variance(self): return self._variance()[2]
 
