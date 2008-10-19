@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.8 2008-08-10 13:13:31 eddy Exp $
+$Id: property.py,v 1.9 2008-10-19 20:33:39 eddy Exp $
 """
 
 class docprop (property):
@@ -39,20 +39,24 @@ class dictprop (docprop):
 
     In support of this, its constructor takes the name of the attribute it
     implements, as an extra first argument; but it doesn't need (or accept) a
-    setter or deleter function.  Like docprop, it is intended for use as a
-    decorator (or a base for property classes to be used as such).
+    setter or deleter function.  Its class method .nominate(name) can be used to
+    obtain a decorator (and works sensibly for derived classes).
 
     Because this class is intended as a mix-in for other property classes, so
     that its attribute may be available even if not in __dict__, the deleter
     does not raise AttributeError when the attribute is absent from __dict__;
     the deletion is deemed fatuously successful in this case.\n"""
 
+    @classmethod
+    def nominate(klaz, name, doc=None, check=None):
+        return lambda x, n=name, d=doc, c=check: klaz(n, x, d, c)
+
     __upinit = docprop.__init__
-    def __init__(self, name, getit, doc=None):
+    def __init__(self, name, getit, doc=None, check=None):
         if doc is not None:
             assert isinstance(doc, basestring), 'Pass me no setter'
         self.__upinit(getit, self.__set, self.__del, doc)
-        self.__name = name
+        self.__name, self.__check = name, check
 
     def __del(self, obj):
         try: del obj.__dict__[self.__name]
@@ -103,7 +107,7 @@ class recurseprop (docprop):
      * the satellite's orbit's period
      * the semi-major axis of the satellite's orbit
     one can compute the third; objects representing celestial bodies and their
-    satellites's orbits can thus have lazy attributes that attempt to compute
+    satellitess' orbits can thus have lazy attributes that attempt to compute
     each quantity from the other two, failing if they aren't both set.  We can
     thus compute the celestial body's mass from any satellite orbit, or from its
     volume and density, in so far as data is available.  Using recurseprop, the
