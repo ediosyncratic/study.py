@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.2 2008-10-19 15:33:56 eddy Exp $
+$Id: ticker.py,v 1.3 2008-10-19 15:43:15 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -110,7 +110,6 @@ def report(ticker, parser=StockPageParser()):
 del StockPageParser
 
 # Managing an SVG graph of results
-from xml.dom.minidom import parse
 import os, datetime, time
 
 def readdate(what, now,
@@ -128,38 +127,7 @@ def readdate(what, now,
             return then
     return when
 
-def update(data, svg,
-           ingest=parse, move=os.rename,
-           date=datetime.date, getdate=readdate):
-    """Update an svg graph of stock ticker data from report().
-
-    Required argument, data, is a dictionary mapping headings to data, as
-    obtained by report (q.v.).  Second argument is an SVG graph in a format I
-    should probably document at some point ...  Updates the SVG to extend its
-    graph with the data supplied.\n"""
-    now = date.today()
-    for k, v in data.items():
-        if k.lower() in ('date', 'time'): # Parse v as a date:
-            try: when = getdate(v, now)
-            except ValueError:
-                print 'Failed to parse %s "%s" as a date' % (k, v)
-            else: break
-    else:
-        raise ValueError('No date provided in ticker data', data)
-
-    dom = ingest(svg)
-    for label in dom.getElementsByTagName('text'):
-        if not label.attributes.get('id', None): continue
-        if label.attributes['id'].value == 'date-origin':
-            assert label.firstChild is label.lastChild
-            startdate = getdate(label.firstChild.nodeValue, now)
-            break
-    else:
-        raise ValueError('No id="date-origin" text node found in SVG', svg)
-    dayval = when.toordinal() - startdate.toordinal()
-    assert dayval > 0
-    dayval *= 10
-
+def revisepaths(dom, dayval, data):
     top = None
     for line in dom.getElementsByTagName('path'):
         nom = line.attributes.get('id', None)
@@ -200,8 +168,44 @@ def update(data, svg,
                       'from', prior, 'to', value, 'at', more[2:-1]
                 path.value = path.value[:off] + value + path.value[off+len(prior):]
 
-    # Adjust price axis if necessary
     assert top is not None
+    return top
+
+from xml.dom.minidom import parse
+def update(data, svg,
+           ingest=parse, move=os.rename, date=datetime.date,
+           getdate=readdate, repave=revisepaths):
+    """Update an svg graph of stock ticker data from report().
+
+    Required argument, data, is a dictionary mapping headings to data, as
+    obtained by report (q.v.).  Second argument is an SVG graph in a format I
+    should probably document at some point ...  Updates the SVG to extend its
+    graph with the data supplied.\n"""
+    now = date.today()
+    for k, v in data.items():
+        if k.lower() in ('date', 'time'): # Parse v as a date:
+            try: when = getdate(v, now)
+            except ValueError:
+                print 'Failed to parse %s "%s" as a date' % (k, v)
+            else: break
+    else:
+        raise ValueError('No date provided in ticker data', data)
+
+    dom = ingest(svg)
+    for label in dom.getElementsByTagName('text'):
+        if not label.attributes.get('id', None): continue
+        if label.attributes['id'].value == 'date-origin':
+            assert label.firstChild is label.lastChild
+            startdate = getdate(label.firstChild.nodeValue, now)
+            break
+    else:
+        raise ValueError('No id="date-origin" text node found in SVG', svg)
+    dayval = when.toordinal() - startdate.toordinal()
+    assert dayval > 0
+
+    top = repave(dom, dayval * 10, data)
+    # TODO: Adjust price axis if necessary, and labels if that requires it
+    # TODO: Adjust date axis and labels
 
     if 1: # 0 toggle when testing !
         fd = open(svg + '.new')
@@ -212,5 +216,5 @@ def update(data, svg,
         print dom.toxml('utf-8')
     dom.unlink()
 
-del parse, os, readdate
+del parse, os, readdate, revisepaths
 
