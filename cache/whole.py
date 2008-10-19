@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.29 2008-09-19 03:20:34 eddy Exp $
+$Id: whole.py,v 1.30 2008-10-19 20:30:22 eddy Exp $
 """
 
 Adaptation = """
@@ -280,6 +280,8 @@ class WriteRoot (WriteDir, whole.WriteRoot):
 # (Note: this is a good example of where classic single-inheritance falls down,
 # although ruby's variation on that theme would be able to cope.)
 """
+# Google's protocol buffers might be a neat replacement for saving to a module:
+# http://code.google.com/apis/protocolbuffers/docs/proto.html
 
 from study.snake.regular import Interval
 from property import Cached, lazyattr, lazyprop
@@ -577,7 +579,7 @@ class WriteFile (CacheFile, WriteSubNode):
         if self.parent.straddles0:
             start, sign = span.start, self.sign * self.parent.sign
         else: start, sign = span.start - self.parent.span.start, None
-        return klaz(name, self.parent, types, start, len(span), sign, self)
+        return klaz(name, self.parent, self.types, start, len(span), sign, self)
 
     # TODO: support being split.
 
@@ -645,9 +647,9 @@ class CacheDir (Node, LockDir):
         return ans
     del re, Ordered
 
+    @lazyprop.nominate('depth')
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
-    depth = lazyprop('depth', depth)
 
     def _ontidy_(self):
         """Update attributes after directory contents have changed.
@@ -1194,7 +1196,7 @@ class WriteDir (WriteNode, CacheDir):
                 if node.tidy(): change = True
 
         if self.__changed or change:
-            self._ontidy_()
+            self._ontidy_() # premature ?
         elif len(self.__listing) == 12:
             return False # nothing to do
 
