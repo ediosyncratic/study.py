@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.3 2008-10-19 15:43:15 eddy Exp $
+$Id: ticker.py,v 1.4 2008-10-19 20:35:18 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -110,111 +110,151 @@ def report(ticker, parser=StockPageParser()):
 del StockPageParser
 
 # Managing an SVG graph of results
-import os, datetime, time
+from study.cache.property import Cached, lazyprop
+class StockSVG (Cached):
+    from xml.dom.minidom import parse
+    def __init__(self, path, ingest=parse):
+        self.__path = path
+        self.__dom = ingest(path)
+        assert self.__dom.documentElement.tagName == 'svg'
+    del parse
 
-def readdate(what, now,
-             date=datetime.date, parse=time.strptime):
-    try: when = parse(what, '%d %b %Y') # issue: %b depends on locale
-    except ValueError: pass
-    else: return date(when.tm_year, when.tm_mon, when.tm_mday)
+    def __del__(self): self.__dom.unlink()
 
-    when = parse(what, '%d %b') # issue: %b depends on locale
-    # That may raise ValueError again - try other formats ?
-    when = date(now.year, when.tm_mon, when.tm_mday)
-    if when > now: # year rolled round since page generated ?
-        then = date(now.year - 1, when.tm_mon, when.tm_mday)
-        if (now - then) < (when - now):
-            return then
-    return when
+    def __id_by_tag(self, tag):
+        for node in self.__dom.getElementsByTagName(tag):
+            try: nom = node.attributes['id']
+            except KeyError: pass
+            else: yield node, nom.value
+        raise StopIteration
 
-def revisepaths(dom, dayval, data):
-    top = None
-    for line in dom.getElementsByTagName('path'):
-        nom = line.attributes.get('id', None)
-        if not nom: continue
-        nom = nom.value
-        for k, v in data.items():
-            if k.lower() == nom:
-                value = v
-                break
-        else: continue
-        price = float(value)
-        if top is None or price > top: top = price
-
-        # Multiply value by 100
-        tail = '00'
-        while tail and '.' in value:
-            if '.' == value[-1]: value = value[:-1]
-            else:
-                row = value.split('.')
-                row[-2], row[-1] = row[-2] + row[-1][0], row[-1][1:]
-                value = '.'.join(row)
-                tail = tail[1:]
-        if '.' == value[-1]: value = value[:-1]
-        value = value + tail
-
-        path = line.attributes['d']
-        assert dayval >= int(path.value.split()[-1].split(',')[0][1:]), \
-               'Update got out-of-date "new" data'
-
-        more = ' L%d,' % dayval
-        off = path.value.find(more)
-        if off < 0: path.value += more + value
+    def save(self):
+        if 0: # 1 toggle when testing !
+            fd = open(svg + '.new')
+            try: dom.writexml(fd, '', '  ', '\n')
+            finally: fd.close()
+            move(svg + '.new', svg)
         else:
-            off += len(more)
-            prior = path.value[off:].split()[0]
-            if prior != value:
-                print 'Warning: changing datum for', nom, \
-                      'from', prior, 'to', value, 'at', more[2:-1]
-                path.value = path.value[:off] + value + path.value[off+len(prior):]
+            print self.__dom.toxml('utf-8')
 
-    assert top is not None
-    return top
-
-from xml.dom.minidom import parse
-def update(data, svg,
-           ingest=parse, move=os.rename, date=datetime.date,
-           getdate=readdate, repave=revisepaths):
-    """Update an svg graph of stock ticker data from report().
+    def __revisepaths(self, dayval, data):
+        top = None
+        for line, nom in self.__id_by_tag('path'):
+            for k, v in data.items():
+                if k.lower() == nom:
+                    value = v
+                    break
+            else: continue
+            price = float(value)
+            if top is None or price > top: top = price
 
-    Required argument, data, is a dictionary mapping headings to data, as
-    obtained by report (q.v.).  Second argument is an SVG graph in a format I
-    should probably document at some point ...  Updates the SVG to extend its
-    graph with the data supplied.\n"""
-    now = date.today()
-    for k, v in data.items():
-        if k.lower() in ('date', 'time'): # Parse v as a date:
-            try: when = getdate(v, now)
-            except ValueError:
-                print 'Failed to parse %s "%s" as a date' % (k, v)
-            else: break
-    else:
-        raise ValueError('No date provided in ticker data', data)
+            # Multiply value by 100
+            tail = '00'
+            while tail and '.' in value:
+                if '.' == value[-1]: value = value[:-1]
+                else:
+                    row = value.split('.')
+                    row[-2], row[-1] = row[-2] + row[-1][0], row[-1][1:]
+                    value = '.'.join(row)
+                    tail = tail[1:]
+            if '.' == value[-1]: value = value[:-1]
+            value = value + tail
 
-    dom = ingest(svg)
-    for label in dom.getElementsByTagName('text'):
-        if not label.attributes.get('id', None): continue
-        if label.attributes['id'].value == 'date-origin':
-            assert label.firstChild is label.lastChild
-            startdate = getdate(label.firstChild.nodeValue, now)
-            break
-    else:
-        raise ValueError('No id="date-origin" text node found in SVG', svg)
-    dayval = when.toordinal() - startdate.toordinal()
-    assert dayval > 0
+            path = line.attributes['d']
+            assert dayval >= int(path.value.split()[-1].split(',')[0][1:]), \
+                   'Update got out-of-date "new" data'
 
-    top = repave(dom, dayval * 10, data)
-    # TODO: Adjust price axis if necessary, and labels if that requires it
-    # TODO: Adjust date axis and labels
+            more = ' L%d,' % dayval
+            off = path.value.find(more)
+            if off < 0: path.value += more + value
+            else:
+                off += len(more)
+                prior = path.value[off:].split()[0]
+                if prior != value:
+                    print 'Warning: changing datum for', nom, \
+                          'from', prior, 'to', value, 'at', more[2:-1]
+                    path.value = (path.value[:off] + value +
+                                  path.value[off + len(prior):])
 
-    if 1: # 0 toggle when testing !
-        fd = open(svg + '.new')
-        try: dom.writexml(fd, '', '  ', '\n')
-        finally: fd.close()
-        move(svg + '.new', svg)
-    else:
-        print dom.toxml('utf-8')
-    dom.unlink()
+        assert top is not None
+        return top
 
-del parse, os, readdate, revisepaths
+    import os, datetime, time
+
+    def readdate(what,
+                 dt=datetime,
+                 date=datetime.date, parse=time.strptime):
+        try: when = parse(what, '%d %b %Y') # issue: %b depends on locale
+        except ValueError: pass
+        else: return date(when.tm_year, when.tm_mon, when.tm_mday)
+
+        when = parse(what, '%d %b') # issue: %b depends on locale
+        # That may raise ValueError again - try other formats ?
+
+        now = date.today()
+        when = date(now.year, when.tm_mon, when.tm_mday)
+        if when > now: # year rolled round since page generated ?
+            then = date(now.year - 1, when.tm_mon, when.tm_mday)
+            if (now - then) < (when - now):
+                return then
+        return when
+
+    @lazyprop.nominate('startdate')
+    def startdate(self, mode=None, getdate=readdate):
+        assert mode is None
+        for node, nom in self.__id_by_tag('text'):
+            if nom == 'date-origin':
+                assert node.firstChild is node.lastChild
+                return getdate(node.firstChild.nodeValue)
+
+        raise AttributeError('No id="date-origin" text node found in SVG',
+                             self.__path)
+
+    def update(self, data,
+               move=os.rename, date=datetime.date, getdate=readdate):
+        """Update an svg graph of stock ticker data from report().
+
+        Required argument, data, is a dictionary mapping headings to data, as
+        obtained by report (q.v.).  Updates the SVG's DOM to extend its graph
+        with the data supplied.\n"""
+        now = date.today()
+        for k, v in data.items():
+            if k.lower() in ('date', 'time'): # Parse v as a date:
+                try: when = getdate(v)
+                except ValueError:
+                    print 'Failed to parse %s "%s" as a date' % (k, v)
+                else: break
+        else:
+            raise ValueError('No date provided in ticker data', data)
+
+        dayval = when.toordinal() - self.startdate.toordinal()
+        assert dayval > 0
+
+        top = self.__revisepaths(dayval * 10, data)
+        view = self.__dom.documentElement.attributes['viewBox']
+
+        paxis = daxis = None
+        for node, nom in self.__id_by_tag('line'):
+            if nom == 'date-axis': daxis = node
+            elif nom == 'price-axis': paxis = node
+        assert None not in (paxis, daxis)
+
+        plabel = dlabel = shunt = None
+        for node, nom in self.__id_by_tag('g'):
+            if nom == 'fix-vertical': shunt = node
+            elif nom == 'date-labels': dlabel = node
+            elif nom == 'price-labels': plabel = node
+        assert None not in (dlabel, plabel, shunt)
+
+        trans = shunt.attributes['transform']
+        assert trans.value[:12] == 'translate(0 ' and trans.value[-1] == ')'
+        vert = int(trans.value[12:-1])
+        if top * 100 > vert:
+            revisevertical(top, plabel, pax, view, shunt)
+
+        # TODO: Adjust price axis if necessary, and labels if that requires it
+        # TODO: Adjust date axis and labels
+
+    del os, datetime, time, readdate
+del Cached, lazyprop
 
