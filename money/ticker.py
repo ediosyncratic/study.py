@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.7 2008-10-19 22:55:24 eddy Exp $
+$Id: ticker.py,v 1.8 2008-10-20 07:08:08 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -149,7 +149,22 @@ class StockSVG (Cached):
         cut = out.find('-->', ind) + 3
         return out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
 
-    def __revise_paths(self, dayval, data):
+    def text_by_100(value):
+            # Multiply value by 100, without converting from text:
+            tail = '00'
+            while tail and '.' in value:
+                if '.' == value[-1]: value = value[:-1]
+                else:
+                    row = value.split('.')
+                    row[-2], row[-1] = row[-2] + row[-1][0], row[-1][1:]
+                    value = '.'.join(row)
+                    tail = tail[1:]
+
+            if tail: return value + tail
+            if '.' == value[-1]: return value[:-1]
+            return value
+
+    def __revise_paths(self, dayval, data, rescale=text_by_100):
         top = None
         for line, nom in self.__id_by_tag('path'):
             for k, v in data.items():
@@ -160,23 +175,11 @@ class StockSVG (Cached):
             price = float(value)
             if top is None or price > top: top = price
 
-            # Multiply value by 100
-            tail = '00'
-            while tail and '.' in value:
-                if '.' == value[-1]: value = value[:-1]
-                else:
-                    row = value.split('.')
-                    row[-2], row[-1] = row[-2] + row[-1][0], row[-1][1:]
-                    value = '.'.join(row)
-                    tail = tail[1:]
-            if '.' == value[-1]: value = value[:-1]
-            value = value + tail
-
             path = line.attributes['d']
             assert dayval >= int(path.value.split()[-1].split(',')[0][1:]), \
                    'Update got out-of-date "new" data'
 
-            more = ' L%d,' % dayval
+            more, value = ' L%d,' % dayval, rescale(value)
             off = path.value.find(more)
             if off < 0: path.value += more + value
             else:
@@ -190,6 +193,8 @@ class StockSVG (Cached):
 
         assert top is not None
         return top
+
+    del text_by_100
 
     @lazyattr.group(2)
     def __price_axis(self, mode=None):
@@ -213,12 +218,35 @@ class StockSVG (Cached):
     __date_labels, __price_labels, __fix_vertical = __price_labels
 
     def __rescale_price(self, top, view):
-        self.__price_labels, self.__price_axis, self.__fix_vertical
-        # TODO: Adjust price axis, and labels if necessary
+        if top > int(top): top = 1 + int(top)
+        else: top = int(top)
+        prior = self.__price_axis.attributes['y2']
+        grow = top * 100 - int(prior.value)
+        if 0 < grow:
+            prior.value = str(top * 100)
 
-    def __rescale_date(self, when, view):
-        # TODO: Adjust date axis and labels
-        self.__date_labels, self.__date_axis
+            box = view.value.split()
+            box[3] = str(int(box[3]) + grow)
+            view.value = ' '.join(box)
+
+            trans = self.__fix_vertical.attributes['transform']
+            assert trans.value[:12] == 'translate(0 ' and trans.value[-1] == ')'
+            vert = int(trans.value[12:-1]) + grow
+            trans.value = 'translate(0 %d)' % vert
+
+            # TODO: Adjust labels if necessary
+            self.__price_labels
+
+    def __rescale_date(self, dayval, when, view):
+        prior = self.__date_axis.attributes['x2']
+        grow = dayval - int(prior.value)
+        if 0 < grow:
+            prior.value = str(dayval)
+            box = view.value.split()
+            box[2] = str(int(box[2]) + grow)
+            view.value = ' '.join(box)
+            # TODO: Adjust date labels
+            self.__date_labels
 
     import datetime, time
     def readdate(what, date=datetime.date, parse=time.strptime):
@@ -232,7 +260,7 @@ class StockSVG (Cached):
         now = date.today()
         when = date(now.year, when.tm_mon, when.tm_mday)
         if when > now: # year rolled round since page generated ?
-            then = date(now.year - 1, when.tm_mon, when.tm_mday)
+            then = date(now.year - 1, when.month, when.day)
             if (now - then) < (when - now):
                 return then
         return when
@@ -252,7 +280,7 @@ class StockSVG (Cached):
     def update(self, data, getdate=readdate):
         """Update an svg graph of stock ticker data from report().
 
-        Required argument, data, is a dictionary mapping headings to data, as
+        Sole argument, data, is a dictionary mapping headings to data, as
         obtained by report (q.v.).  Updates the SVG's DOM to extend its graph
         with the data supplied.\n"""
         for k, v in data.items():
@@ -266,15 +294,12 @@ class StockSVG (Cached):
 
         dayval = when.toordinal() - self.startdate.toordinal()
         assert dayval > 0
+        dayval *= 10
 
-        top = self.__revise_paths(dayval * 10, data)
         view = self.__dom.documentElement.attributes['viewBox']
-
-        trans = self.__fix_vertical.attributes['transform']
-        assert trans.value[:12] == 'translate(0 ' and trans.value[-1] == ')'
-        vert = int(trans.value[12:-1])
-        if top * 100 > vert: self.__rescale_price(top, view)
-        self.__rescale_date(when, view)
+        self.__rescale_date(dayval, when, view)
+        top = self.__revise_paths(dayval, data)
+        self.__rescale_price(top, view)
 
     del readdate
 del Cached, lazyattr
