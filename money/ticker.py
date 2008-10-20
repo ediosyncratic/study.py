@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.8 2008-10-20 07:08:08 eddy Exp $
+$Id: ticker.py,v 1.9 2008-10-20 20:20:00 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -254,15 +254,18 @@ class StockSVG (Cached):
         except ValueError: pass
         else: return date(when.tm_year, when.tm_mon, when.tm_mday)
 
-        when = parse(what, '%d %b') # issue: %b depends on locale
-        # That may raise ValueError again - try other formats ?
-
         now = date.today()
-        when = date(now.year, when.tm_mon, when.tm_mday)
-        if when > now: # year rolled round since page generated ?
-            then = date(now.year - 1, when.month, when.day)
-            if (now - then) < (when - now):
-                return then
+        try: when = parse(what, '%d %b') # issue: %b depends on locale
+        except ValueError:
+            parse(what, '%H:%M') # daytime format
+            # That may raise ValueError again - try other formats ?
+            return now
+        else:
+            when = date(now.year, when.tm_mon, when.tm_mday)
+            if when > now: # year rolled round since page generated ?
+                then = date(now.year - 1, when.month, when.day)
+                if (now - then) < (when - now):
+                    return then
         return when
     del datetime, time
 
