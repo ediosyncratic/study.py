@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.7 2008-10-24 04:36:10 eddy Exp $
+$Id: property.py,v 1.8 2008-10-24 04:42:37 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictprop
 
@@ -74,12 +74,12 @@ class lazyattr (attrstore, recurseprop):
     Sub-classes recurseprop and attrstore; uses the latter's cache to store
     attribute values.  This ensures that the value only gets computed once,
     unless you actively delete or set the value (thereby clearing the cached
-    value).  Since the attribute it tacitly present even when it hasn't yet been
+    value).  Since the attribute is tacitly present even when it hasn't yet been
     computed, deleting it never raises an AttributeError (unless some derived
     class choses to over-ride that).
 
-    See .group for support (both here and on any derived class) for several
-    attributes all computed together by one function call.\n"""
+    See docprop.group() for support (both here and on any derived class) for
+    several attributes all computed together by one function call.\n"""
 
     assert attrstore.__init__.im_func is recurseprop.__init__.im_func is docprop.__init__.im_func
     __upinit = docprop.__init__
