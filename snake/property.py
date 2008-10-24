@@ -2,13 +2,13 @@
 
 This module should eventually replace lazy.Lazy; it provides:
   docprop -- extend property by borrowing getter's doc-string
-  dictprop -- extend docprop by implementing set/del via object's __dict__
-  recurseprop -- extend property to manage recursion in getters
+  recurseprop -- extend docprop to manage recursion in getters
+  dictprop -- extend recurseprop by implementing set/del via object's __dict__
 
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.12 2008-10-24 04:35:59 eddy Exp $
+$Id: property.py,v 1.13 2008-10-24 05:23:04 eddy Exp $
 """
 
 class docprop (property):
@@ -24,6 +24,7 @@ class docprop (property):
             try: doc = getit.__doc__
             except AttributeError: pass
 
+        self.__name__ = getit.__name__
         self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
 
@@ -78,6 +79,7 @@ class recurseprop (docprop):
     functions passed to the constructor can attempt to use other attributes
     which may have been set overtly even if these attributes' getters (when not
     overtly set) in their turn may attempt to use the first attribute's value.
+
     When such mutual dependencies among attributes leads to recursion - the
     getter for each property marks each object while it's actually computing
     that object's property value; it recognizes recursion if it finds its own
@@ -89,17 +91,18 @@ class recurseprop (docprop):
     look-up likewise has the opportunity to try some other way of getting its
     answer.
 
-    For example, an object representing a celestial body can, given any two of
-    mass, volume and density, compute the third; so properties of the object can
-    attempt to compute each from the other two; if only one is unknown, this
-    works.  However, if two of them are unknown, attempting to compute either
-    shall ask for the other's value, so attempt to compute it, so recurse into
-    attempting to compute the first.  Using recurseprop, getters for the
-    properties can simply do the naive computation and get an answer when
-    possible, raising AttributeError otherwise, instead of causing a
-    RuntimeError due to over-flowing the stack.
+    For example (see study.space.body.Body), an object representing a celestial
+    body can, given any two of mass, volume and density, compute the third; so
+    properties of the object can attempt to compute each from the other two; if
+    only one is unknown, this works.  However, if two of them are unknown,
+    attempting to compute either shall ask for the other's value, so attempt to
+    compute it, so recurse into attempting to compute the first.  Using
+    recurseprop, getters for the properties can simply do the naive computation
+    and get an answer when possible, raising AttributeError otherwise, instead
+    of causing a RuntimeError due to over-flowing the stack.
 
-    Furthermore, for any satellite of the celestial body, given any two of
+    Furthermore (see Object and Satellites in study.space.body), for any
+    satellite of the celestial body, given any two of
      * the celestial body's mass
      * the satellite's orbit's period
      * the semi-major axis of the satellite's orbit
@@ -138,47 +141,38 @@ class dictprop (recurseprop):
     for the setting and deletion of the attribute; derived classes should call
     its getter to extract the attribute from that dictionary, if present
     (whether they do so before or after any other approach they have is their
-    own choice).
+    own choice).  The attribute's name is the __name__ of the getter passed
+    to the constructor.
 
-    In support of this, its constructor takes the name of the attribute it
-    implements, as a required second argument; but it doesn't need (or accept) a
-    setter or deleter function (it provides its own, using __dict__).  Its class
-    method .nominate(name) can be used to obtain a decorator (and works sensibly
-    for derived classes).
-
-    As well as the usual doc parameter it (and .nominate) can take, its
-    constructor and .nominate also accept a callable, check, which shall be
-    called on any value set for the value, before storing in __dict__; this
-    callable can raise an error on inappropriate setting.
+    After the usual doc parameter it can take, its constructor also accepts a
+    callable, check, which shall be called on any value set for the value,
+    before storing in __dict__; this callable can raise an error on
+    inappropriate setting.
 
     Because this class is intended as a mix-in for other property classes, so
     that its attribute may be available even if not in __dict__, the deleter
     does not raise AttributeError when the attribute is absent from __dict__;
     the deletion is deemed fatuously successful in this case.\n"""
 
-    @classmethod
-    def nominate(klaz, name, doc=None, check=None):
-        return lambda g, n=name, d=doc, c=check: klaz(g, n, d, c)
-
     __upinit = recurseprop.__init__
-    def __init__(self, getit, name, doc=None, check=None):
+    def __init__(self, getit, doc=None, check=None):
         if doc is not None:
             assert isinstance(doc, basestring), 'Pass me no setter'
         self.__upinit(getit, self.__set, self.__del, doc)
-        self.__name, self.__check = name, check
+        self.__check = check
 
     def __del(self, obj):
-        try: del obj.__dict__[self.__name]
+        try: del obj.__dict__[self.__name__]
         except KeyError: pass
 
     def __set(self, obj, val):
         if self.__check is not None: self.__check(val)
-        obj.__dict__[self.__name] = val
+        obj.__dict__[self.__name__] = val
 
     __upget = recurseprop.__get__
     def __get__(self, obj, mode=None):
         try:
-            if obj is None: return mode.__dict__[self.__name]
-            else: return obj.__dict__[self.__name]
+            if obj is None: return mode.__dict__[self.__name__]
+            else: return obj.__dict__[self.__name__]
         except KeyError: pass
         return self.__upget(obj, mode)
