@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.30 2008-10-19 20:30:22 eddy Exp $
+$Id: whole.py,v 1.31 2008-10-24 05:24:09 eddy Exp $
 """
 
 Adaptation = """
@@ -647,7 +647,7 @@ class CacheDir (Node, LockDir):
         return ans
     del re, Ordered
 
-    @lazyprop.nominate('depth')
+    @lazyprop
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
 
