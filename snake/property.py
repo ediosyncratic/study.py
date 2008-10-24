@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.11 2008-10-19 20:50:12 eddy Exp $
+$Id: property.py,v 1.12 2008-10-24 04:35:59 eddy Exp $
 """
 
 class docprop (property):
@@ -26,6 +26,50 @@ class docprop (property):
 
         self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
+
+    class each (property):
+        def __init__(self, group, index):
+            self.__all = group
+            self.__ind = index
+        def __get__(self, obj, mode=None):
+            return self.__all.__get__(obj, mode)[self.__ind]
+
+    @classmethod
+    def group(klaz, count, hvert=each):
+        """Decorator for several attributes computed by one function.
+
+        Required argument, count, is the number of attributes whose values the
+        function computes.  Returns a function which, given a callable, maps it
+        to a tuple of count property objects.  Use as a decorator on the
+        definition of a callable named for one of the attributes being computed;
+        subsequently assign this to the tuple of all those attribute names.  The
+        callable should return the values for these attributes, as a tuple in
+        the same order.  This tuple is managed internally as a property of the
+        class whose .group() is used (i.e. group is a class method).
+
+        For example, using study.cache.property.lazyattr (q.v., based on
+        docprop), in an imaginary sequence class:
+
+            @lazyattr.group(2)
+            def variance(self, mode=None):
+                tot= totsq = 0
+                for it in self:
+                    tot += it
+                    totsq += it**2
+                mean = tot * 1. / len(self)
+                return mean, totsq / (len(self) - 1.) - mean**2
+            mean, variance = variance
+
+        Instances of the sequence class are then equipped with independently
+        accessible properties mean and variance, lazily computed together the
+        first time either is accessed (since that's how lazyattr manages the
+        tuple returned).\n"""
+
+        def deco(get, k=klaz, n=count, e=hvert):
+            all = klaz(get)
+            return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
+        return deco
+    del each
 
 class recurseprop (docprop):
     """Cope with recursion in getters of properties.

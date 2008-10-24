@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.6 2008-10-19 22:01:03 eddy Exp $
+$Id: property.py,v 1.7 2008-10-24 04:36:10 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictprop
 
@@ -95,40 +95,6 @@ class lazyattr (attrstore, recurseprop):
             bok[self] = ans = self.__upget(obj, mode)
 
         return ans
-
-    class each (property):
-        def __init__(self, group, index):
-            self.__all = group
-            self.__ind = index
-        def __get__(self, obj, mode=None):
-            return self.__all.__get__(obj, mode)[self.__ind]
-
-    @classmethod
-    def group(klaz, count, hvert=each):
-        """Decorator for several attributes computed by one function.
-
-        Required argument, count, is the number of attributes whose values the
-        function computes.  Returns a function which, given a callable, maps it
-        to a tuple of count property objects.  Use as a decorator on the
-        definition of a callable named for one of the attributes being computed;
-        subsequently assign this to the tuple of all those attribute names.  For
-        example, in an imaginary sequence class:
-
-            @lazyattr.group(2)
-            def variance(self, mode=None):
-                tot= totsq = 0
-                for it in self:
-                    tot += it
-                    totsq += it**2
-                mean = tot * 1. / len(self)
-                return mean, totsq * 1. / (len(self) - 1) - mean**2
-            mean, variance = variance
-        """
-        def deco(get, k=klaz, n=count, e=hvert):
-            all = klaz(get)
-            return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
-        return deco
-    del each
 
 class lazyprop (dictprop, lazyattr):
     __lget = lazyattr.__get__
