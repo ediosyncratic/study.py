@@ -6,8 +6,12 @@ Example linear spaces over the positive integers:
  the polynomials with integer coefficients
  the rational, real or complex numbers
  any vector or linear space over any of the above
-"""
 
+In particular, lattice (q.v.) provides for iteration over the space of tuples,
+of any given length, whose entries are integers or naturals.
+
+$Id: natural.py,v 1.15 2008-10-25 10:17:14 eddy Exp $
+"""
 
 # Modular division (where possible, e.g. prime base).
 def dividemod(num, den, base):
@@ -280,3 +284,43 @@ class Naturals (list):
 naturals = Naturals()
 del Naturals
 # NB: len(str(naturals[1+n])) = 13 * 3**n -2
+
+def lattice(dim, signed=False, total=None):
+    """Iterator over {({whole numbers}:|dim)}
+
+    Required argument dim is the dimension of the lattice, i.e. the length of
+    each tuple yielded by the resulting iterator.
+    Optional arguments:
+      signed -- selects whether to iterate over an integer lattice (when signed
+                is true) or a natural (non-negative integer) lattice (when
+                signed is false, as it is by default).
+      total -- defaults to None; otherwise, restrict iteration to those tuples
+               whose sum of absolute values is total.
+
+    Returns an iterator over the lattice of all dim-tuples whose entries are
+    whole numbers of the indicated kind.\n"""
+
+    if total is None:
+        total = 0
+        while True:
+            for it in lattice(dim, signed, total):
+                yield it
+            total += 1
+
+        assert False, 'We should never get here !'
+
+    elif dim == 0 and total == 0: yield ()
+    elif dim < 1: pass
+    elif total >= 0:
+        if signed and total > 0:
+            yield (-total,) + (0,) * (dim-1)
+            i = 1 - total
+        else: i = 0
+        if dim > 1: # avoid fatuous iteration in trivial case
+            while i < total:
+                for it in lattice(dim-1, signed, total - abs(i)):
+                    yield (i,) + it
+                i += 1
+        yield (total,) + (0,) * (dim-1)
+
+    raise StopIteration
