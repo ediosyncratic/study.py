@@ -10,7 +10,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.15 2008-10-25 10:17:14 eddy Exp $
+$Id: natural.py,v 1.16 2008-10-25 11:51:12 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -285,7 +285,7 @@ naturals = Naturals()
 del Naturals
 # NB: len(str(naturals[1+n])) = 13 * 3**n -2
 
-def lattice(dim, signed=False, total=None):
+def lattice(dim, signed=False, mode=True, total=None):
     """Iterator over {({whole numbers}:|dim)}
 
     Required argument dim is the dimension of the lattice, i.e. the length of
@@ -294,33 +294,70 @@ def lattice(dim, signed=False, total=None):
       signed -- selects whether to iterate over an integer lattice (when signed
                 is true) or a natural (non-negative integer) lattice (when
                 signed is false, as it is by default).
+      mode -- None to iterate over sets, False to skip permutations of earlier
+              results, True to iterate over all tuples; or a number used in
+              implementing these; see below for details.
       total -- defaults to None; otherwise, restrict iteration to those tuples
                whose sum of absolute values is total.
 
-    Returns an iterator over the lattice of all dim-tuples whose entries are
-    whole numbers of the indicated kind.\n"""
+    Returns an iterator which yields dim-tuples whose entries are whole numbers
+    of the indicated kind, subject to mode's constraint.  For present purposes,
+    use an ordering on the integers in our tuples which treats each negative
+    integer -n as the positive value n-.5; when mode is None or -ve, each tuple
+    yielded is in strictly decreasing order (so entries with smaller absolute
+    value appear later than those with larger absolute values; and, for any
+    natural n, -n appears after n if both appear); when mode is -ve, every entry
+    is, furthermore, less than -mode (which is either a natural or half more
+    than a natural, to encode a negative entry); when mode is False or +ve, each
+    tuple yielded is in non-increasing order (like decreasing, but allows an
+    entry to be repeated); when mode is +ve it is an upper bound on the entries;
+    otherwise, mode is True and there is no constraint on the order of entries
+    in the tuple.\n"""
 
     if total is None:
         total = 0
         while True:
-            for it in lattice(dim, signed, total):
+            for it in lattice(dim, signed, mode, total):
                 yield it
             total += 1
 
         assert False, 'We should never get here !'
 
     elif dim == 0 and total == 0: yield ()
-    elif dim < 1: pass
-    elif total >= 0:
-        if signed and total > 0:
-            yield (-total,) + (0,) * (dim-1)
-            i = 1 - total
-        else: i = 0
-        if dim > 1: # avoid fatuous iteration in trivial case
-            while i < total:
-                for it in lattice(dim-1, signed, total - abs(i)):
-                    yield (i,) + it
-                i += 1
-        yield (total,) + (0,) * (dim-1)
+    elif dim < 1 or total < 0: pass
+    else:
+        # Initialize i to one less (allowing for first iteration's increment)
+        # than the least allowable value for it, ignoring mode's constraint for
+        # now (it gets too complex !)
+        if signed:
+            i = - total - 1
+            if mode not in (True, False, None):
+                if -i > mode >= 0: i = - mode - 1
+        else: i = -1
+
+        while i < total + 1:
+            i += 1
+            if mode is True: clip = mode
+            elif mode is None:
+                if i < 0: clip = i + .5
+                else: clip = -i
+            elif mode is False:
+                if i < 0: clip = -(i + .5)
+                else: clip = i
+            elif mode < 0:
+                if i < 0:
+                    if i + .4 < mode: continue
+                    else: clip = i + .5
+                elif -i <= mode: break
+                else: clip = -i
+            else:
+                assert mode >= 0
+                if i > mode: break
+                elif -i > mode: continue
+                elif total - abs(i) > mode * (dim-1): continue
+                else: clip = i
+
+            for it in lattice(dim-1, signed, clip, total - abs(i)):
+                yield (i,) + it
 
     raise StopIteration
