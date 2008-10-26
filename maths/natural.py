@@ -10,7 +10,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.18 2008-10-26 11:34:22 eddy Exp $
+$Id: natural.py,v 1.19 2008-10-26 14:48:58 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -326,27 +326,32 @@ def lattice(dim, signed=False, mode=True, total=None):
     elif dim == 0 and total == 0: yield ()
     elif dim < 1 or total < 0: pass
     else:
-        # Initialize i to one less (allowing for first iteration's increment)
-        # than the least allowable value for it, ignoring mode's constraint for
-        # now (it gets too complex !)
+        # Initialize i to the least allowable first entry in our tuple:
         if signed:
-            i = - total - 1
-            if mode in (True, False): pass
+            if mode is True or mode is False: i = - total
             elif mode is None or mode < 0:
                 # sum of abs of dim distinct integers is at least:
                 if dim % 2: tail = (dim // 2) * (dim // 2 + 1)
                 else: tail = (dim // 2)**2
-                if total < tail: i = total # i.e. don't waste time iterating !
-            elif -i > mode >= 0:
-                if mode == int(mode): i = -1 - mode
-                else: i = -2 - int(mode)
+                if total < tail: raise StopIteration
+                elif mode is None or total + mode < 0: i = - total
+                else: i = int(mode)
+            else:
+                assert mode >= 0
+                if total < mode: i = - total
+                else:
+                    i = - int(mode + .6)
+                    if -i * dim < total: raise StopIteration
         else:
-            i = -1
-            if mode in (True, False): pass
+            i = 0
+            if mode is True or mode is False: pass
             elif mode is None or mode < 0:
-                if total < dim * (dim - 1) / 2:
-                    i = total # i.e. don't waste time iterating !
+                if total < dim * (dim - 1) / 2: raise StopIteration
+            else:
+                assert mode >= 0
+                if mode * dim < total: raise StopIteration
 
+        i -= 1 # to counter first iteration's += 1
         while i < total:
             i += 1
             if mode is True: clip = mode
@@ -357,19 +362,14 @@ def lattice(dim, signed=False, mode=True, total=None):
                 if i < 0: clip = -(i + .5)
                 else: clip = i
             elif mode < 0:
-                if i < 0:
-                    if i + .4 < mode: continue
-                    else: clip = i + .5
-                elif -i <= mode: break
+                if i < 0: clip = i + .5
+                elif i >= -mode: break
                 else: clip = -i
             else:
                 assert mode >= 0
                 if i > mode: break
-                elif -i > mode: continue
                 else: clip = abs(i)
                 if total > clip * dim: continue
 
             for it in lattice(dim-1, signed, clip, total - abs(i)):
                 yield (i,) + it
-
-    raise StopIteration
