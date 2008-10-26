@@ -10,7 +10,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.17 2008-10-26 11:11:12 eddy Exp $
+$Id: natural.py,v 1.18 2008-10-26 11:34:22 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -331,20 +331,28 @@ def lattice(dim, signed=False, mode=True, total=None):
         # now (it gets too complex !)
         if signed:
             i = - total - 1
-            if mode not in (True, False, None):
-                if -i > mode >= 0:
-                    if mode == int(mode): i = -1 - mode
-                    else: i = -2 - int(mode)
-        else: i = -1
+            if mode in (True, False): pass
+            elif mode is None or mode < 0:
+                # sum of abs of dim distinct integers is at least:
+                if dim % 2: tail = (dim // 2) * (dim // 2 + 1)
+                else: tail = (dim // 2)**2
+                if total < tail: i = total # i.e. don't waste time iterating !
+            elif -i > mode >= 0:
+                if mode == int(mode): i = -1 - mode
+                else: i = -2 - int(mode)
+        else:
+            i = -1
+            if mode in (True, False): pass
+            elif mode is None or mode < 0:
+                if total < dim * (dim - 1) / 2:
+                    i = total # i.e. don't waste time iterating !
 
         while i < total:
             i += 1
             if mode is True: clip = mode
             elif mode is None:
                 if i < 0: clip = i + .5
-                elif i > 0: clip = -i
-                elif dim > 1: continue
-                else: clip = -.1
+                else: clip = -i
             elif mode is False:
                 if i < 0: clip = -(i + .5)
                 else: clip = i
@@ -353,9 +361,7 @@ def lattice(dim, signed=False, mode=True, total=None):
                     if i + .4 < mode: continue
                     else: clip = i + .5
                 elif -i <= mode: break
-                elif i > 0: clip = -i
-                elif dim > 1: continue
-                else: clip = -.1
+                else: clip = -i
             else:
                 assert mode >= 0
                 if i > mode: break
