@@ -160,15 +160,15 @@ bleeding-edge of last nodes with between 8 and 20 children, at each depth, all
 others being tidy.  When a new node is added, it is always a new last file so it
 is added to the depth=1 last node; if a non-root last node finds it has 20
 children, it keeps its first 12 children and ceases being a last node by passing
-these to its parent, to turn into a new last node; this may take that parent up
-to 20 children, in which case it does likewise, unless it's the root.  When the
-root has 20 children all of equal depth, it collects 12 into a sub-node of one
-greater depth, retaining the other 8 as direct children; successive additions to
-the last of these cause it to push new children of their depth into the root;
-when it has n < 8 deeper nodes and 20-n > 12 shallower ones, it collects 12
-shallow ones into a fresh deeper node; when it has 7 or more deeper nodes and 8
-or more shallower ones, it can collect the shallow ones into a new deeper node
-and get itself back to having only one depth of child.
+the other eight to its parent, to turn into a new last node; this may take that
+parent up to 20 children, in which case it does likewise, unless it's the root.
+When the root has 20 children all of equal depth, it collects 12 into a sub-node
+of one greater depth, retaining the other 8 as direct children; successive
+additions to the last of these cause it to push new children of their depth into
+the root; when it has n < 8 deeper nodes and 20-n > 12 shallower ones, it
+collects 12 shallow ones into a fresh deeper node; when it has 7 or more deeper
+nodes and 8 or more shallower ones, it can collect the shallow ones into a new
+deeper node and get itself back to having only one depth of child.
 
 The situation is more complex when borrowing from another cache, or when we have
 borrowed from a cache in the past, that we no longer see.  If we're borrowing
@@ -191,7 +191,7 @@ have equal lengths but those of each type start at the mid-point of the other
 type's files.
 
 Applications shall be obliged to be able to split data of any types at any
-integer, on request from CacheDir.tidy(); however, this shall endeavour to avoid
+integer, on request from WriteDir.tidy(); however, this shall endeavour to avoid
 exercising this right.  If applications have limitations on the values at which
 they can split, they should identify a mapping from the integers to possible
 split-points and wrap the cache in an object that maps the integers the cache
@@ -221,7 +221,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.31 2008-10-24 05:24:09 eddy Exp $
+$Id: whole.py,v 1.32 2008-10-26 21:08:12 eddy Exp $
 """
 
 Adaptation = """
@@ -611,7 +611,10 @@ class LockDir (LockableDir):
 del LockableDir
 
 from weak import WeakTuple
-TYPES = 2 # index into each entry of __listing at which type string is held
+# Indices into each entry of __listing, at which to find:
+START = 0 # start of span, but with sign hacked (see WeakSeq)
+REACH = 1 # length of span
+TYPES = 2 # type string
 
 class CacheDir (Node, LockDir):
     @lazyattr
@@ -637,7 +640,7 @@ class CacheDir (Node, LockDir):
                     sign = None
 
                 start, size = int(got.group(2), 36), int(got.group(4), 36)
-                if sign is not None: # ensure sensible sort order
+                if sign is not None: # hack to ensure sensible sort order
                     start *= sign * self.sign
                 mode, isfile = got.group(3), got.group(5)
                 # Be sure to match WeakSeq:
@@ -1041,12 +1044,12 @@ class WriteDir (WriteNode, CacheDir):
           types -- an [A-Z]+ text specifying application-specific types of
                    information about integers to be stored in the new file.
 
-        Raises ValueError if the given span overlaps any existing file.
-        Otherwise, returns a self._child_class_(True, types) instance in the
-        hierarchy under self, into which the client may save its data of the
-        given types for the given range of integers.  The application should
-        subsequently call self.tidy() to ensure consistency of the resulting
-        cache.
+        Raises ValueError if the given span overlaps any existing file for data
+        of the given types.  Otherwise, returns a self._child_class_(True,
+        types) instance in the hierarchy under self, into which the client may
+        save its data of the given types for the given range of integers.  The
+        application should subsequently call self.tidy() to ensure consistency
+        of the resulting cache.
 
         This base-class implementation may instead raise an IndexError whose
         .args is a twople, (before, after), each entry in which is a node on the
@@ -1061,6 +1064,7 @@ class WriteDir (WriteNode, CacheDir):
         row, i = [], 0
         for it in self.__listing:
             if it[-1]: # isfile; only include if types match
+                # hmm ... perhaps include all with at least one matching type ?
                 for t in types:
                     if t not in it[TYPES]: break
                 else:
@@ -1183,17 +1187,26 @@ class WriteDir (WriteNode, CacheDir):
 
     __changed = False # see tidy() and WriteNode._save_()
     def _onchange_(self): self.__changed = True
-    def tidy(self):
+    def tidy(self, down=False):
         """Tidy up subordinate nodes.
+
+        Optional argument, down, defaults to False; if it's true, self is at the
+        end nearer zero of a contiguous block of data under the root directory:
+        it has the option of moving children towards zero instead of away from
+        it; likewise, so does each of its children that starts at its end nearer
+        zero.
 
         Ideally, each directory contains a dozen children, all of equal depth.
         This function sees how near that ideal it can bring this directory.\n"""
+        # root should over-ride this to organize setting down
 
         change = False
         for node in self.listing:
             if isinstance(node, WriteDir) and \
                    (node.__changed or len(node.__listing) != 12):
-                if node.tidy(): change = True
+                # TODO: [START] needs sign hack fixed
+                if node.tidy(down and node.span.start == self.__listing[0][START]):
+                    change = True
 
         if self.__changed or change:
             self._ontidy_() # premature ?
@@ -1201,10 +1214,97 @@ class WriteDir (WriteNode, CacheDir):
             return False # nothing to do
 
         raise NotImplementedError # TODO: implement
+        # Sort out number of entries.
+        # Revise type to union of types of children.
+        # Ensure range falls between adjacent peers and subsumes union of children.
+        # Ensure name on disk reflects range and types.
 
         del self.__changed # to expose the class value, False
         assert not self.__changed
         return True
+
+    # Don't @lazyattr: no way to know when to update it
+    def __upindex(self):
+        """Index in self.parent.listing at which self appears."""
+        seq = self.parent.__listing
+        i = len(seq)
+        while i > 0:
+            i -= 1
+            if seq[i][TYPES] == self.types and seq[i][START] == self.span.start:
+                assert self is self.parent.listing[i]
+                return i
+
+        raise ValueError
+
+    def __relocate(self, step, *kids):
+        """Re-parent some descendant nodes.
+
+        First argument, step, is either +1 or -1, indicating whether nodes are
+        to be moved, respectively, away from or twoards zero.  All subsequent
+        arguments are child nodes of self, when self has decided it's got too
+        many children: we need to find a new home for them.\n"""
+
+        assert step in (+1, -1) and self.parent is not None
+        # Initialize i to force first iteration to move up the directory tree:
+        if step < 0: i = 0
+        else: i = len(self.__listing)
+        tidy = True
+        while kids:
+            if not tidy or 0 <= i+step < len(self.__listing):
+                if tidy:
+                    i += step
+                    down = self.listing[i]
+                    if self.parent is None:
+                        # Have we run off the end of a contiguous block ?
+                        if step < 0:
+                            check = lambda k, s=down.span.stop: k.span.start <= s
+                        else:
+                            check = lambda k, s=down.span.start: k.span.stop >= s
+                        if not filter(check, kids): # No kid meets down
+                            tidy = False
+                            i -= step
+                            down = self.listing[i]
+                        del check
+
+                elif step < 0: down = self.listing[0]
+                else: down = self.listing[-1]
+
+                if filter(lambda x, d=down.depth-1: x.depth >= d, kids):
+                    kids = down.__adopt(tidy, *kids)
+                else:
+                    # TODO: self needs to adjust its span and (if not root) name
+                    self = down
+                    if (step < 0) == tidy:
+                        i = len(self.__listing) - 1
+                    else: i = 0
+                del down
+
+            elif self.parent is None: tidy = False # root can't delegate
+            else:
+                # Onwards and updwards !
+                # TODO: self needs to adjust its span and name
+                i = self.__upindex()
+                self = self.parent
+
+    def __adopt(self, tidy, *kids):
+        """Accept new descendant nodes.
+
+        If first argument, tidy, is true, self should aim to have a sensible
+        number of children on return.  All subsequent arguments are nodes self
+        should accept as children.  Each should have depth one less than that of
+        self.  The union of the ranges of the given child nodes should abut or
+        overlap self.span.
+
+        Adopting these children may, of course, cause self to have too many
+        child nodes: in which case, if tidy is true, self should return a tuple
+        of child nodes from self's opposite end, so that caller, __relocate, can
+        duly forward them to some other node for adoption.  When tidy is false,
+        this function must return () and self cannot give up any children for
+        onwards adoption.\n"""
+
+        assert not filter(lambda x, d=self.depth-1: x.depth != d, kids)
+
+        raise NotImplementedError # TODO: implement
 
     @staticmethod
     def _child_class_(isfile, mode): # configure __listing
