@@ -1,5 +1,18 @@
 """Simple tools for manipulating types linear over the positive integers.
 
+Exports:
+  dividemod(num, den, base) -- division modulo a base
+  gcd(a, b) -- pair-wise hcf
+  hcf(a, ...) -- highest common factor
+  lcm(a, ...) -- least common multiple
+  Euclid(a, b) -- solve for i, j for which: a*i + b*j == hcf(a, b)
+  factorsum(N) -- sum of proper factors of N
+  perfect() -- iterator over all N for which N == factorsum(N)
+  Collatz(n) -- iterate the Collatz conjecture's sequence starting at n
+  sqrt(n) -- integer square root (computed bit by bit)
+  naturals -- list: naturals[i][naturals[j]] is naturals[j+1] iff i > j are natural
+  lattice(dim, [signed, [mode, [total]]]) -- iterator over tuples of whole numbers
+
 Example linear spaces over the positive integers:
  the natural numbers
  the integers, whether modulo some value or not
@@ -10,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.19 2008-10-26 14:48:58 eddy Exp $
+$Id: natural.py,v 1.20 2008-10-26 15:34:45 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -262,7 +275,6 @@ def sqrt(val):
     # v**2 <= input < (1+v)**2
     return v
 
-# and now for something python-2.2-specific:
 class Naturals (list):
     class Suc (dict):
         def __init__(self, bok=None):
@@ -288,15 +300,16 @@ del Naturals
 def lattice(dim, signed=False, mode=True, total=None):
     """Iterator over {({whole numbers}:|dim)}
 
-    Required argument dim is the dimension of the lattice, i.e. the length of
+    Required argument, dim, is the dimension of the lattice, i.e. the length of
     each tuple yielded by the resulting iterator.
+
     Optional arguments:
       signed -- selects whether to iterate over an integer lattice (when signed
                 is true) or a natural (non-negative integer) lattice (when
                 signed is false, as it is by default).
       mode -- None to iterate over sets, False to skip permutations of earlier
-              results, True to iterate over all tuples; or a number used in
-              implementing these; see below for details.
+              results, True (the default) to iterate over all tuples; or a
+              number used in implementing these; see below for details.
       total -- defaults to None; otherwise, restrict iteration to those tuples
                whose sum of absolute values is total.
 
@@ -309,7 +322,7 @@ def lattice(dim, signed=False, mode=True, total=None):
     natural n, -n appears after n if both appear); when mode is -ve, every entry
     is, furthermore, less than -mode (which is either a natural or half more
     than a natural, to encode a negative entry); when mode is False or +ve, each
-    tuple yielded is in non-increasing order (like decreasing, but allows an
+    tuple yielded is in never-increasing order (like decreasing, but allows an
     entry to be repeated); when mode is +ve it is an upper bound on the entries;
     otherwise, mode is True and there is no constraint on the order of entries
     in the tuple.\n"""
