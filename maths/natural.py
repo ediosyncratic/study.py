@@ -10,7 +10,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.16 2008-10-25 11:51:12 eddy Exp $
+$Id: natural.py,v 1.17 2008-10-26 11:11:12 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -332,15 +332,19 @@ def lattice(dim, signed=False, mode=True, total=None):
         if signed:
             i = - total - 1
             if mode not in (True, False, None):
-                if -i > mode >= 0: i = - mode - 1
+                if -i > mode >= 0:
+                    if mode == int(mode): i = -1 - mode
+                    else: i = -2 - int(mode)
         else: i = -1
 
-        while i < total + 1:
+        while i < total:
             i += 1
             if mode is True: clip = mode
             elif mode is None:
                 if i < 0: clip = i + .5
-                else: clip = -i
+                elif i > 0: clip = -i
+                elif dim > 1: continue
+                else: clip = -.1
             elif mode is False:
                 if i < 0: clip = -(i + .5)
                 else: clip = i
@@ -349,13 +353,15 @@ def lattice(dim, signed=False, mode=True, total=None):
                     if i + .4 < mode: continue
                     else: clip = i + .5
                 elif -i <= mode: break
-                else: clip = -i
+                elif i > 0: clip = -i
+                elif dim > 1: continue
+                else: clip = -.1
             else:
                 assert mode >= 0
                 if i > mode: break
                 elif -i > mode: continue
-                elif total - abs(i) > mode * (dim-1): continue
-                else: clip = i
+                else: clip = abs(i)
+                if total > clip * dim: continue
 
             for it in lattice(dim-1, signed, clip, total - abs(i)):
                 yield (i,) + it
