@@ -211,7 +211,10 @@ Policy:
   * other directories shall be more liberal about numbers of children, but aim
     to keep within the range from eight to twenty or, when even that is not
     practical, within the range from six to thirty-two; these liberal
-    directories shall arise in chains at the boundaries of contiguous ranges.
+    directories shall arise in chains at the boundaries of contiguous ranges;
+  * any time root has eight or more contiguous children and at least seven (but
+    preferrably eleven) other children it can reasonably bunch up the contiguous
+    group.
 
 When two ranges, each contiguous, have expanded towards each other far enough
 that they meet, unifying them shall involve a messy interaction, where changes
@@ -221,7 +224,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.32 2008-10-26 21:08:12 eddy Exp $
+$Id: whole.py,v 1.33 2008-10-29 07:09:15 eddy Exp $
 """
 
 Adaptation = """
@@ -558,12 +561,12 @@ class WriteFile (CacheFile, WriteSubNode):
         self, covering both the given span and self.span; caller is responsible
         for supplying the extra data and ._save_()ing the new object.
 
-        Unlike WriteSubDir._extend_(), which is for internal use, the only use I
-        can think of for this is on the client side, to extend a file.  Derived
-        classes could over-ride this method, modifying the base class's return
-        as needed, but should be able to achieve the benefits of that by simply
-        supporting the replaces parameter in the classes returned by their
-        directories' _child_class_() methods.\n"""
+        Unlike WriteSubDir._revise_span_(), which is for internal use, the only
+        use I can think of for this is on the client side, to extend a file.
+        Derived classes could over-ride this method, modifying the base class's
+        return as needed, but should be able to achieve the benefits of that by
+        simply supporting the replaces parameter in the classes returned by
+        their directories' _child_class_() methods.\n"""
 
         if self.span.subsumes(span): return self
 
@@ -1018,7 +1021,136 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteDir (WriteNode, CacheDir):
-    def abuts(lo, gap, hi): # Tool function for newfile.
+    def __kids_by_type(self, types):
+        """List of self's children relevant when adding a file of given types.
+
+        All files of the given type are relevant, as are all sub-directories
+        (regardless of type).\n"""
+        row, i = [], 0
+        for it in self.__listing:
+            if it[-1]: # isfile; only include if types match
+                # hmm ... perhaps include all with at least one matching type ?
+                for t in types:
+                    if t not in it[TYPES]: break
+                else:
+                    row.append(self.listing[i])
+            else: # directory: always include
+                row.append(self.listing[i])
+
+        return row
+
+    # Tool functions for newfile:
+    def span_hi(span, row, chop, getargs):
+        """Find index in row at which span's end falls.
+
+        See __bracket for args.  Returns the index in row at which we should add
+        a file covering span.last; this is either the index of a directory in
+        row or a pair of adjacent indices (or None for 'index outside row') of
+        entries on either side of span.last; it is None if span is endless.
+
+        Raises ValueError if span strictly subsumes the span of a node in row or
+        ends part-way through a file in row.\n"""
+
+        if span.stop is None: return None
+
+        try: end = span.last
+        except AttributeError:
+            ep = span.step
+            if ep is None: ep = 1
+            q, r = divmod(span.stop - span.start, ep)
+            if not r: q -= 1
+            end = span.start + q * ep
+
+        try: hi = chop(row, end, 'span')
+        except IndexError, what:
+            hi = getargs(what)
+
+            if hi[0] is not None:
+                b = row[hi[0]]
+                assert b.span is not None
+                if b.span.step * span.step < 0:
+                    wide = span.step * (span.start - b.span.start) < 1
+                elif b.span.stop is None:
+                    assert False, "How did that happen ?"
+                    wide = True
+                else:
+                    wide = span.step * (span.start - b.span.stop) < 0
+
+                if wide:
+                    raise ValueError(span, 'straddles existing file', b)
+        else:
+            if isinstance(row[hi], CacheFile):
+                raise ValueError(span, 'overlaps existing file', row[hi])
+
+        return hi
+
+    def span_lo(span, row, chop, getargs):
+        """Find index in row at which span.start falls.
+
+        See __bracket for args.  Returns index in row at which we should add a
+        file covering span.start; this is either the index of a directory in row
+        or a pair of indices (or None for 'index outside row') of entries on
+        either side of span's start.
+
+        Raises ValueError if span strictly subsumes the span of a node in row or
+        starts part-way through a file in row.\n"""
+
+        try: lo = chop(row, span.start, 'span')
+        except IndexError, what:
+            lo = getargs(what)
+            if lo[1] is not None and span.stop is not None:
+                a = row[lo[1]]
+                assert a.span is not None
+                if a.span.step * span.step > 0:
+                    wide = span.step * (span.stop - a.span.start) > 0
+                elif a.span.stop is None:
+                    assert False, "How did that happen ?"
+                    wide = True
+                else:
+                    wide = span.step * (span.stop - a.span.stop) > 1
+
+                if wide:
+                    raise ValueError(span, 'straddles existing file', b)
+        else:
+            if isinstance(row[lo], CacheFile):
+                raise ValueError(span, 'overlaps existing file', row[lo])
+
+        return lo
+
+    def delimit(span, row, sign, chop, shi=span_hi, slo=span_lo):
+        def getargs(what, r=len(row), swap=sign<0):
+            b, a = what.args
+            # before, after: indices into row, possibly in reverse order:
+            if (None not in (a, b) and a < b) or \
+                   (b is None and a + 1 == r) or \
+                   (a is None and b == 0):
+                a, b = b, a
+            # Now we know their order in row,
+            # put them into their order relative to span:
+            if swap: return a, b
+            return b, a
+
+        hi = shi(span, row, chop, getargs)
+        lo = slo(span, row, chop, getargs)
+
+        # Set ind, the first and last interesting indices in row:
+        ind = [ None, None ]
+        if isinstance(hi, tuple): ind[1] = hi[0]
+        else: ind[1] = hi
+        if isinstance(lo, tuple): ind[0] = lo[1]
+        else: ind[0] = lo
+
+        # Now swap from span's order to row's:
+        if sign < 0: ind.reverse()
+        if ind[0] is None: ind[0] = 0
+        if ind[1] is None: ind[1] = len(row) - 1
+
+        assert ind[0] <= ind[1] or lo == (ind[1], ind[0]) == hi
+        return ind
+
+    del span_hi, span_lo
+
+    def abutting(lo, gap, hi):
         """Determines whether lo or hi can be grown to include gap.
 
         Arguments:
@@ -1036,7 +1168,7 @@ class WriteDir (WriteNode, CacheDir):
         else:                   loa = (ar - lo.start) * ep <= 1
         return loa, hia
 
-    def newfile(self, span, types, abutting=abuts):
+    def newfile(self, span, types, abuts=abutting, bracket=delimit):
         """Find where to create a new file to be added.
 
         Required arguments:
@@ -1061,109 +1193,20 @@ class WriteDir (WriteNode, CacheDir):
         assert span > -1 or span < 1, 'Only a cache root can straddle 0'
         assert self.span is None or self.span.subsumes(span)
 
-        row, i = [], 0
-        for it in self.__listing:
-            if it[-1]: # isfile; only include if types match
-                # hmm ... perhaps include all with at least one matching type ?
-                for t in types:
-                    if t not in it[TYPES]: break
-                else:
-                    row.append(self.listing[i])
-            else: # directory: always include
-                row.append(self.listing[i])
-
+        row = self.__kids_by_type(types)
         sign = span.step * self.span.step
-        def getargs(what, r=len(row), swap=sign<0):
-            b, a = what.args
-            # before, after: indices into row, possibly in reverse order:
-            if (None not in (a, b) and a < b) or \
-                   (b is None and a + 1 == r) or \
-                   (a is None and b == 0):
-                a, b = b, a
-            # Now we know their order in row,
-            # put them into their order relative to span:
-            if swap: return a, b
-            return b, a
 
-        endfile = midfile = hi = None
-        if span.stop is not None:
-            try: end = span.last
-            except AttributeError:
-                ep = span.step
-                if ep is None: ep = 1
-                q, r = divmod(span.stop - span.start, ep)
-                if not r: q -= 1
-                end = span.start + q * ep
-
-            try: hi = self._bchop(row, end, 'span')
-            except IndexError, what:
-                hi = (b, a) = getarts(what)
-
-                if b is not None:
-                    b = row[b]
-                    assert b.span is not None
-                    if b.span.step * span.step < 0:
-                        wide = span.step * (span.start - b.span.start) < 1
-                    elif b.span.stop is None:
-                        assert False, "How did that happen ?"
-                        wide = True
-                    else:
-                        wide = span.step * (span.start - b.span.stop) < 0
-
-                    if wide: midfile = b
-            else:
-                if isinstance(row[hi], CacheFile):
-                    endfile = row[hi]
-
-        try: lo = self._bchop(row, span.start, 'span')
-        except IndexError, what:
-            lo = (b, a) = getargs(what)
-            if a is not None and span.stop is not None:
-                a = row[a]
-                assert a.span is not None
-                if a.span.step * span.step > 0:
-                    wide = span.step * (span.stop - a.span.start) > 0
-                elif a.span.stop is None:
-                    assert False, "How did that happen ?"
-                    wide = True
-                else:
-                    wide = span.step * (span.stop - a.span.stop) > 1
-
-                if wide: midfile = b
-        else:
-            if isinstance(row[lo], CacheFile):
-                endfile = row[lo]
-
-        if endfile is not None:
-            raise ValueError(span, 'starts or ends in existing file', endfile)
-
-        if midfile is not None:
-            raise ValueError(span, 'straddles an existing file', midfile)
-
-        # Set ind, the first and last interesting indices in row:
-        ind = [ None, None ]
-        if isinstance(hi, tuple): ind[1] = hi[0]
-        else: ind[1] = hi
-        if isinstance(lo, tuple): ind[0] = lo[1]
-        else: ind[0] = lo
-
-        # Now swap from span's order to row's:
-        if sign < 0: ind.reverse()
-        if ind[0] is None: ind[0] = 0
-        if ind[1] is None: ind[1] = len(row) - 1
-
-        fom, tom = ind[0], ind[1] # fra-og-med, til-og-med
+        fom, tom = delimit(span, row, sign, self._bchop) # fra-og-med, til-og-med
         if tom > fom:
             raise ValueError('Interval spans several subordinate nodes',
                              span, row[fom:tom+1])
         elif tom < fom:
-            assert lo == (tom, fom) == hi
             assert fom == 1 + tom
 
             tom, fom = row[tom], row[fom]
             # tab, fab: True if tom, fom abut span, not across zero:
-            if sign < 0: fab, tab = abutting(fom.span, span, tom.span)
-            else:        tab, fab = abutting(tom.span, span, fom.span)
+            if sign < 0: fab, tab = abuts(fom.span, span, tom.span)
+            else:        tab, fab = abuts(tom.span, span, fom.span)
 
             assert not tab or not fab or tom.span.sign * fom.span.sign > 0
             # Grow the one further from zero, given a choice:
@@ -1178,12 +1221,13 @@ class WriteDir (WriteNode, CacheDir):
             kid = row[tom]
 
         assert isinstance(kid, WriteSubDir), \
-               'I should have raised ValueError above' # endfile or midfile
+               'I should have raised ValueError in span_{hi,lo}'
 
-        kid = kid._extend_(span, types)
+        # Extend kid to cover union (but filling in gaps to make regular):
+        kid = kid._revise_span_(self.span.meet(span), types)
         return kid.newfile(span, types)
 
-    del abuts
+    del abutting
 
     __changed = False # see tidy() and WriteNode._save_()
     def _onchange_(self): self.__changed = True
@@ -1388,10 +1432,10 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         self.__onchange()
         self.parent._onchange_()
 
-    def _extend_(self, span=None, types='',
-                 rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
-                 remove=os.unlink, rmdir=os.rmdir):
-        """Replace self with an expanded sub-directory.
+    def _revise_span_(self, span=None, types='',
+                      rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
+                      remove=os.unlink, rmdir=os.rmdir):
+        """Replace self with a directory covering an altered range.
 
         Optional arguments:
           span -- None or a range of integers
@@ -1416,14 +1460,12 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         types = ''.join(ts)
 
         # Is it sufficient to simply rename self ?
-        if self.span.subsumes(span):
+        if self.span.subsumes(span) and span.subsumes(self.span): # i.e. same
             if types == self.types: return self
             alias = True
         else:
             assert self.sign == self.span.step
             assert self.sign * self.span.start >= 0
-            # Union (but filling in gaps to make regular):
-            span = self.span.meet(span)
             if span.step * self.sign < 0: span = span.reversed()
             alias = span.start == self.span.start
 
