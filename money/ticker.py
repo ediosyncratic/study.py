@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.9 2008-10-20 20:20:00 eddy Exp $
+$Id: ticker.py,v 1.10 2008-11-06 18:07:34 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -76,7 +76,10 @@ class StockPageParser (HTMLParser):
                 del self.__cell
             if tag == stack.pop(): break
 
-    def handle_data(self, data):
+    def handle_data(self, data,
+                    notoeng={ 'Siste': 'Last', 'Tid': 'Time',
+                              'H\xf8y': 'High', 'Lav': 'Low',
+                              'Kj\xf8per': 'Buy', 'Selger': 'Sell' }):
         if not data: return # not interesting
         try: i = self.__cell
         except AttributeError: return
@@ -90,7 +93,13 @@ class StockPageParser (HTMLParser):
             assert self.__stack[-1] == 'td'
             assert 0 <= i < len(keys), (i, keys, data, self.__stack)
             if keys[i] and data:
-                self.data[keys[i]] = self.data.get(keys[i], '') + data
+                key = keys[i]
+                try: key = notoeng[key]
+                except KeyError: pass
+                else: data = '.'.join(data.split(','))
+                try: key.lower()
+                except UnicodeDecodeError: pass
+                else: self.data[key] = self.data.get(key, '') + data
 
 del HTMLParser, urlopen
 def report(ticker, parser=StockPageParser()):
