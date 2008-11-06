@@ -9,18 +9,20 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.10 2008-11-06 18:07:34 eddy Exp $
+$Id: ticker.py,v 1.11 2008-11-06 19:07:04 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
-from urllib import urlopen
+from urllib2 import urlopen, Request
 from HTMLParser import HTMLParser
 
 class StockPageParser (HTMLParser):
-    def process(self, name, wget=urlopen,
+    def process(self, name, wget=urlopen, req=Request,
                 url='http://www.oslobors.no/markedsaktivitet/stockOverview'):
         self.__stack, self.__keys, self.data = [], [], None
-        fd = wget(url + '?newt__ticker=' + name)
+        fd = wget(req(url + '?newt__ticker=' + name, None,
+                      { 'Accept-Language':
+                        'en-GB;q=1.0, en;q=0.9, no-nb;0.5, no-nn;0.4' }))
         try:
             try:
                 while True:
@@ -101,7 +103,7 @@ class StockPageParser (HTMLParser):
                 except UnicodeDecodeError: pass
                 else: self.data[key] = self.data.get(key, '') + data
 
-del HTMLParser, urlopen
+del HTMLParser, urlopen, Request
 def report(ticker, parser=StockPageParser()):
     """Return summary data for the selected stock.
 
