@@ -1,4 +1,4 @@
-"""Tools and data for studying various topics.
+"""Tools (and data) for studying various topics.
 
 Sub-packages:
  cache -- remembering things to save working them out again
@@ -19,10 +19,12 @@ object and feed it data subsequently - via, for each data source, a method which
 knows how to handle that source's data; or via some general-purpose method which
 most source-specific methods call after massaging the source's data (e.g. adding
 units, scalings and error bars; or combining things the source gives to obtain
-the attributes we actually want).  However, this requires some fairly
-far-reaching re-design, so I'll make do with what I have in the mean time ;-)
+the attributes we actually want).  In particular, the data should not be part of
+this package: it should be contained in data files digested by the code in this
+package.  However, this requires some fairly far-reaching re-design, so I'll
+make do with what I have in the mean time ;-)
 
-$Id: __init__.py,v 1.6 2008-11-21 08:14:29 eddy Exp $
+$Id: __init__.py,v 1.7 2008-11-21 08:16:46 eddy Exp $
 """
 
 # Basics:
