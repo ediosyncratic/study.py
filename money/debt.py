@@ -1,6 +1,6 @@
 """The joys of compound interest ...
 
-$Id: debt.py,v 1.8 2008-05-31 11:14:39 eddy Exp $
+$Id: debt.py,v 1.9 2009-01-14 09:19:40 eddy Exp $
 """
 from datetime import date, timedelta
 from study.snake.lazy import Lazy
@@ -53,9 +53,9 @@ class Debt (Lazy):
 
         Either pass a single argument, a date(year, month, day) object, or pass
         the three, year month and day needed to create such an object.\n"""
-        if len(what) == 1: when = what
+        if len(what) == 1: when = what[0]
         else: when = date(*what)
-        return int(self.__asat(when))
+        return int(self.__asat(when) + 1e-4) # 1e-4 to fix stupidly tiny rounding errors.
 
     from math import log
     def __log(self, value, ln=log):
