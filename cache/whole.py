@@ -224,7 +224,7 @@ neighbour transfering nodes into it as if the nearer-zero node were simply
 having nodes added to it after the manner of simple growth - albeit these
 additions may be done in bulk, rather than one at a time.
 
-$Id: whole.py,v 1.33 2008-10-29 07:09:15 eddy Exp $
+$Id: whole.py,v 1.34 2009-01-23 06:37:40 eddy Exp $
 """
 
 Adaptation = """
@@ -561,7 +561,7 @@ class WriteFile (CacheFile, WriteSubNode):
         self, covering both the given span and self.span; caller is responsible
         for supplying the extra data and ._save_()ing the new object.
 
-        Unlike WriteSubDir._revise_span_(), which is for internal use, the only
+        Unlike WriteSubDir._update_name_(), which is for internal use, the only
         use I can think of for this is on the client side, to extend a file.
         Derived classes could over-ride this method, modifying the base class's
         return as needed, but should be able to achieve the benefits of that by
@@ -618,6 +618,7 @@ from weak import WeakTuple
 START = 0 # start of span, but with sign hacked (see WeakSeq)
 REACH = 1 # length of span
 TYPES = 2 # type string
+SIGN  = 3 # orientation relative to parent
 
 class CacheDir (Node, LockDir):
     @lazyattr
@@ -646,7 +647,7 @@ class CacheDir (Node, LockDir):
                 if sign is not None: # hack to ensure sensible sort order
                     start *= sign * self.sign
                 mode, isfile = got.group(3), got.group(5)
-                # Be sure to match WeakSeq:
+                # Be sure to match WeakSeq, and capital indices above:
                 ans.append((start, size, mode, sign, name, isfile))
                 # WriteDir.newfile relies on isfile being last
 
@@ -1224,7 +1225,7 @@ class WriteDir (WriteNode, CacheDir):
                'I should have raised ValueError in span_{hi,lo}'
 
         # Extend kid to cover union (but filling in gaps to make regular):
-        kid = kid._revise_span_(self.span.meet(span), types)
+        kid = kid._update_name_(self.span.meet(span), types)
         return kid.newfile(span, types)
 
     del abutting
@@ -1296,7 +1297,7 @@ class WriteDir (WriteNode, CacheDir):
         while kids:
             if not tidy or 0 <= i+step < len(self.__listing):
                 if tidy:
-                    i += step
+                    i += step # still a valid index in listing
                     down = self.listing[i]
                     if self.parent is None:
                         # Have we run off the end of a contiguous block ?
@@ -1316,7 +1317,7 @@ class WriteDir (WriteNode, CacheDir):
                 if filter(lambda x, d=down.depth-1: x.depth >= d, kids):
                     kids = down.__adopt(tidy, *kids)
                 else:
-                    # TODO: self needs to adjust its span and (if not root) name
+                    self.__revise_span(*kids)
                     self = down
                     if (step < 0) == tidy:
                         i = len(self.__listing) - 1
@@ -1326,9 +1327,58 @@ class WriteDir (WriteNode, CacheDir):
             elif self.parent is None: tidy = False # root can't delegate
             else:
                 # Onwards and updwards !
-                # TODO: self needs to adjust its span and name
+                self.__revise_span(*kids)
                 i = self.__upindex()
                 self = self.parent
+
+    def __revise_span(self, *kids):
+        """Update span and types as we gain or lose children.
+
+        All arguments are nodes being added to self, that aren't yet reflected
+        in self's children's properties..\n"""
+
+        bok, first = {}, True
+        for k in self.__listing:
+            for t in k[TYPES]: bok[t] = True
+            sign, klo, reach = k[SIGN], k[START], k[REACH]
+            if sign is None:
+                sign = self.sign
+            else:
+                sign *= self.sign
+                klo /= sign
+            if sign < 0:
+                khi = -klo
+                klo = khi + 1 - reach
+            else:
+                khi = klo + reach - 1
+
+            if first: lo, hi, first = klo, khi, False
+            else:
+                if klo < lo: lo = klo
+                if khi > hi: hi = khi
+
+        if kids:
+            assert not filter(lambda k: k.stop is None, kids)
+            khi = max(map(lambda k: k.max, kids))
+            klo = min(map(lambda k: k.min, kids))
+            if first: lo, hi, first = klo, khi, False
+            else:
+                if klo < lo: lo = klo
+                if khi > hi: hi = khi
+
+            for k in kids:
+                for t in k.types:
+                    bok[t] = True
+
+        types = bok.keys()
+        types.sort()
+        types = ''.join(types)
+
+        span = self.span # replace with one derived from lo, hi
+        raise NotImplementedError # TODO: implement
+
+        if self.parent is not None:
+            self._update_name_(span, types)
 
     def __adopt(self, tidy, *kids):
         """Accept new descendant nodes.
@@ -1432,7 +1482,7 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         self.__onchange()
         self.parent._onchange_()
 
-    def _revise_span_(self, span=None, types='',
+    def _update_name_(self, span=None, types='',
                       rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
                       remove=os.unlink, rmdir=os.rmdir):
         """Replace self with a directory covering an altered range.
