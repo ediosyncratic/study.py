@@ -1,6 +1,6 @@
 """Master object controlling primes list.
 
-$Id: master.py,v 1.3 2008-07-30 19:27:32 eddy Exp $
+$Id: master.py,v 1.4 2009-01-23 06:43:52 eddy Exp $
 """
 import os, cache
 
@@ -54,6 +54,7 @@ class Master (object):
         return tuple(out)
 
     del readroot, realabs
+    from study.snake.sequence import Ordered
     def __init__(self,
                  pwrite=None,
                  fwrite=None,
@@ -66,7 +67,8 @@ class Master (object):
                  study=None,
                  home=os.curdir,
                  join=os.path.join, OSError=os.error,
-                 writedir=writedir, readpath=readpath):
+                 writedir=writedir, readpath=readpath,
+                 List=Ordered):
         """Initialize master object.
 
         All arguments are optional:
@@ -95,7 +97,7 @@ class Master (object):
           home: fall-back to use for '~', in the default for study, if
                 env['HOME'] is unset (default: os.curdir).
 
-        Use of key-word calling is encouraged and passing more than nine
+        Use of key-word calling is encouraged and passing more than ten
         positional arguments may lead to surprises and brokenness.  Note that
         memsize only affects decisions made by this master prime object (and its
         servants): objects needed in order to interact with existing caches
@@ -119,16 +121,17 @@ class Master (object):
         this class is first loaded; for example, setting os.pathsep after that
         shall not affect the default used for pathsep (but changes in os.env
         shall take effect as long as os.env is the same mapping object as was
-        saved here as env).\n"""
+        saved here as the default for env).\n"""
 
         self.__disk, self.__ram = disksize, memsize
+        self.__chunks = List(unique=None) # treat attempted duplication as error
 
         if pwrite and fwrite: pass
         elif study is None: study = join(env.get('HOME', home), '.study')
 
         if pread is None: pread = env.get('STUDY_PRIME_PATH', '')
         if fread is None: fread = env.get('STUDY_FACTOR_PATH', '')
-        seen, pread, fread = [], pathsep.split(pread), pathsep.split(fread)
+        seen, pread, fread = [], pread.split(pathsep), fread.split(pathsep)
 
         if pwrite is None: pwrite = env.get('STUDY_PRIME_DIR', None)
         if not pwrite: pwrite = join(study, 'prime')
@@ -145,4 +148,4 @@ class Master (object):
         self.__prime_path = readpath(pread + fread, pwrite, seen, 'prime')
         self.__factor_path = readpath(fread + pread, fwrite, seen, 'factor')
 
-    del writedir, readpath
+    del writedir, readpath, Ordered
