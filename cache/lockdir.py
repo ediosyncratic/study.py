@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.12 2008-08-10 22:25:56 eddy Exp $
+$Id: lockdir.py,v 1.13 2009-01-23 07:24:26 eddy Exp $
 """
 
 class LockableDir (object):
@@ -18,7 +18,7 @@ class LockableDir (object):
     locks.
 
     Locking a directory for reading means locking it so that the current process
-    may read it.  LIkewise, locking for writing means locking so as to be able
+    may read it.  Likewise, locking for writing means locking so as to be able
     to write.  A directory which is being written is not safe to read, except
     (if they're careful) by whoever is writing it; so a directory locked by
     someone else for reading cannot be locked for writing; and a directory
@@ -52,7 +52,7 @@ class LockableDir (object):
         parent directories, without ill effects as long as they've correctly
         over-ridden lock and unlock.\n"""
 
-        # I'm not sure this assertion is reliable, but let's give it a try:
+        # I'm not sure this precondition is reliable, but let's give it a try:
         finished = self.__read <= 0 and self.__write <= 0
 
         while ((self.__read > 0 or self.__write > 0) and
@@ -161,7 +161,7 @@ class LockableDir (object):
                 modes={
         fcntl.LOCK_EX: (os.O_WRONLY | os.O_NONBLOCK | os.O_CREAT, 'w'),
         fcntl.LOCK_SH: (os.O_RDONLY | os.O_NONBLOCK, 'r'),
-        fcntl.LOCK_UN: None}, NOW=fcntl.LOCK_NB,
+        fcntl.LOCK_UN: ()}, NOW=fcntl.LOCK_NB,
                 EXCLUDE=fcntl.LOCK_EX, UNLOCK=fcntl.LOCK_UN):
         """Perform actual lock file management.
 
@@ -193,7 +193,7 @@ class LockableDir (object):
             return fd, fo
 
         if content is None:
-            if flag & UNLOCK: del self.__fd
+            if flag & UNLOCK: del self.__fd # closed later as old.close()
             else:
                 if old is None: # initialize
                     assert (flag & UNLOCK) == 0 == (self.__mode & ~UNLOCK)
