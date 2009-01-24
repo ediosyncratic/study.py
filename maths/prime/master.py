@@ -1,6 +1,6 @@
 """Master object controlling primes list.
 
-$Id: master.py,v 1.5 2009-01-24 11:20:35 eddy Exp $
+$Id: master.py,v 1.6 2009-01-24 11:47:52 eddy Exp $
 """
 import os, cache
 
@@ -89,7 +89,8 @@ class Master (object):
                    of various data objects used in the primes infrastructure
                    (the OctetType object, the largest Huffman encoder for
                    factors).  May be violated by objects created in response to
-                   existing cache files.
+                   existing cache files.  Note that several objects of this size
+                   are apt to be created, in any case.
           disksize: approximate limit on size of cache files (default: 1 MB),
                     actual cache files may be a few kB over this limit.
           pathsep: separator used in the read-only paths, pread and fread,
@@ -102,31 +103,43 @@ class Master (object):
           home: parent directory in which to look for study if env['HOME'] is
                 unset (default: os.curdir, at the time this module was loaded).
 
-        Use of key-word calling is encouraged and passing more than ten
-        positional arguments may lead to surprises and brokenness.  Note that
-        memsize only affects decisions made by this master prime object (and its
-        servants): objects needed in order to interact with existing caches
-        shall be created even if they violate the memsize constraint wildly.
+	Notes:
 
-        If the value of either write directory, as specified above, is empty
-        then the relevant sub-directory of study is used.  If a write directory
-        is unwritable (because this process lacks necessary privileges, or
-        because it is locked by another process) it is added to the read paths
-        as if it had been included (as first entry, if not already present) in
-        the read path corresponding to the write category for which it was
-        specified; otherwise, if it was present in either path, it shall be
-        removed from that path.  All directory names are mapped to canonical
-        absolute paths when the instance is created, so any resolution of
-        symbolic links is unaffected by subsequent changes in the file-system.
-        Any directory in either read path that provides data of the kind sought
-        by the other shall in fact be included at the end of the other, if not
-        already present in it.
-
-        Note that all defaults taken from os are read when python loads the
-        module containing this class; for example, setting os.pathsep after that
-        shall not affect the default used for pathsep (but changes in os.env
-        shall take effect as long as os.env is the same mapping object as was
-        saved here as the default for env).\n"""
+	  * This API is very likely to change (it has far too many parameters),
+	    for example to take most of the data from a configuration file in
+	    $STUDYRC (by default).
+	  * Use of key-word calling is encouraged (if only so as to ensure that
+	    you notice any change to the API, by provoking an error until you
+	    change your calls); in any case, passing more positional arguments
+	    than the ten described above may lead to surprises and brokenness.
+	  * memsize only affects decisions made by this master prime object (and
+	    its servants): objects needed in order to interact with existing
+	    caches shall be created even if they violate the memsize constraint
+	    wildly.
+          * All defaults taken from os are read when python loads the module
+            containing this class; for example, setting os.pathsep after that
+            shall not affect the default used for pathsep (but changes in os.env
+            shall take effect as long as os.env is the same mapping object as
+            was saved here as the default for env).
+	  * All directory names are mapped to canonical absolute paths when the
+	    instance is created: any resolution of symbolic links is unaffected
+	    by subsequent changes in the file-system; changes to the environment
+	    variables won't change which cache directories are in use.
+          * If the value of either write directory, as specified above, is empty
+            then the relevant sub-directory of study is used.
+	  * The write directories are read-locked for the lifetime of the Master
+	    object, so as to prevent any other process from using them as write
+	    directory (this may be excessive, so may change at a later
+	    revision).
+	  * If a write directory is unwritable (because this process lacks
+	    necessary privileges, or because it is in use by another process) it
+	    is added to the read paths as if it had been included (as first
+	    entry, if not already present) in the read path corresponding to the
+	    write category for which it was specified; otherwise, if it was
+	    present in either path, it shall be removed from that path.
+	  * Any directory, in either read path, that provides data of the kind
+	    sought by the other shall in fact be included at the end of the
+	    other, if not already present in it.\n"""
 
         self.__disk, self.__ram = disksize, memsize
         self.__chunks = List(unique=None) # treat attempted duplication as error
@@ -154,3 +167,11 @@ class Master (object):
         self.__factor_path = readpath(fread + pread, fwrite, seen, 'factor')
 
     del writedir, readpath, Ordered
+
+    def __del__(self):
+	try: self.__prime_root.unlock(read=True)
+	except AttributeError: pass
+	try: self.__factor_root.unlock(read=True)
+	except AttributeError: pass
+
+    # TODO: write methods that put all those directory tree objects to use
