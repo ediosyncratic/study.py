@@ -1,6 +1,6 @@
 """Master object controlling primes list.
 
-$Id: master.py,v 1.4 2009-01-23 06:43:52 eddy Exp $
+$Id: master.py,v 1.5 2009-01-24 11:20:35 eddy Exp $
 """
 import os, cache
 
@@ -18,8 +18,10 @@ class Master (object):
 
         root = WriteCacheRoot(name)
         if root.lock(write=True):
-            if not root.lock(read=True): assert False, 'Ouch - broken lockery'
-            root.unlock(write=True)
+	    try: 
+		if not root.lock(read=True):
+		    assert False, 'Ouch - broken lockery'
+	    finally: root.unlock(write=True)
             return root
 
         raise IOError
@@ -27,6 +29,8 @@ class Master (object):
     def readroot(name, kind, CacheRoot=cache.CacheRoot):
         r = CacheRoot(name)
         if not getattr(r, kind): raise AttributeError
+	# Provoke early OSError if use of this directory is problematic (but
+	# being locked is no problem):
         if r.lock(read=True): r.unlock(read=True)
         return r
 
@@ -60,12 +64,13 @@ class Master (object):
                  fwrite=None,
                  pread=None,
                  fread=None,
-                 memsize=0x1000000, # 16 MB
-                 disksize=0x100000, # 1 MB
+                 memsize=0x1000000, # 16 MB total
+                 disksize=0x100000, # 1 MB / file
                  pathsep=os.pathsep,
                  env=os.environ,
                  study=None,
                  home=os.curdir,
+		 # Tunnels:
                  join=os.path.join, OSError=os.error,
                  writedir=writedir, readpath=readpath,
                  List=Ordered):
@@ -73,11 +78,11 @@ class Master (object):
 
         All arguments are optional:
           pwrite: modifiable prime cache directory or (default) None to use
-                  $STUDY_PRIME_DIR; else '~/.study/prime/'
+                  $STUDY_PRIME_DIR; else 'prime/' sub-dir of study
           pread: path of read-only cache directories or (default) None to use
                  $STUDY_PRIME_PATH if set, else ''
           fwrite: modifiable factor cache directory or (default) None to use
-                  $STUDY_FACTOR_DIR if set, else '~/.study/factor/'
+                  $STUDY_FACTOR_DIR if set, else 'factor/' sub-dir of study
           fread: path of read-only factor cache directories or (default) None to
                  use $STUDY_FACTOR_PATH if set, else ''
           memsize: limit on (crudely-estimated) in-memory size (default: 16 MB)
@@ -92,10 +97,10 @@ class Master (object):
           env: environment (default: os.environ), a mapping in which to look up
                the defaults for [pf]{read,write}
           study: resource directory for the study package or (default) None to
-                 use env['STUDYRC'] if set, else '~/.study'; used in place of
-                 '~/.study' in the fall-back defaults above.
-          home: fall-back to use for '~', in the default for study, if
-                env['HOME'] is unset (default: os.curdir).
+                 use env['STUDYRC'] if set, else '.study' sub-directory of home;
+                 used in defaults for pwrite and fwrite.
+          home: parent directory in which to look for study if env['HOME'] is
+                unset (default: os.curdir, at the time this module was loaded).
 
         Use of key-word calling is encouraged and passing more than ten
         positional arguments may lead to surprises and brokenness.  Note that
@@ -117,8 +122,8 @@ class Master (object):
         by the other shall in fact be included at the end of the other, if not
         already present in it.
 
-        Note that all defaults taken from os are read when the module containing
-        this class is first loaded; for example, setting os.pathsep after that
+        Note that all defaults taken from os are read when python loads the
+        module containing this class; for example, setting os.pathsep after that
         shall not affect the default used for pathsep (but changes in os.env
         shall take effect as long as os.env is the same mapping object as was
         saved here as the default for env).\n"""
