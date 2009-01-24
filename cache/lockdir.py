@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.13 2009-01-23 07:24:26 eddy Exp $
+$Id: lockdir.py,v 1.14 2009-01-24 11:48:47 eddy Exp $
 """
 
 class LockableDir (object):
@@ -59,7 +59,7 @@ class LockableDir (object):
                self.unlock(self.__read > 0, self.__write > 0)):
             pass
 
-        assert finished, 'why not ?'
+        assert finished, 'Apparently we did need this method, after all'
 
     def unlock(self, read=False, write=False):
         """Release locks.
@@ -96,7 +96,8 @@ class LockableDir (object):
 
         Arguments, read and write, are optional booleans (defaulting to False)
         selecting the kind of lock desired; at least one of them should be
-        specified True.\n"""
+        specified True.  Specifying which are true in keyword form is likely
+        clearer for anyone reading your code.\n"""
 
         assert read or write, 'Fatuous call'
 
@@ -182,6 +183,7 @@ class LockableDir (object):
         elif not exist(self.__file): content = False # need to create it
         else: content = None # no change
 
+	# Remember old __fd so we can .close() it when we're done with it:
         try: old = self.__fd
         except AttributeError: old = None
 
