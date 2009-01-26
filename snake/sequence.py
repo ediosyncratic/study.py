@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.29 2008-08-03 21:01:18 eddy Exp $
+$Id: sequence.py,v 1.30 2009-01-26 08:17:51 eddy Exp $
 """
 
 class Iterable (object):
@@ -47,6 +47,7 @@ class Iterable (object):
         iterator over the values.\n"""
 
         others = map(self.__endless, others)
+	if func is None: func = lambda *args: args
         for val in self:
             yield func(val, *map(lambda x: x.next(), others))
 
@@ -114,9 +115,9 @@ class ReadSeq (Iterable):
     del Slice
 
     def __get(self, ind):
-        try:
-            for i in ind: yield self[i]
-        except IndexError: pass
+	for i in ind:
+	    try: yield self[i]
+	    except IndexError: pass
         raise StopIteration
 
     def __repr__(self):
@@ -283,7 +284,7 @@ class Tuple (ReadSeq):
     constructor is passed to tuple's constructor (which barfs if there are too
     many arguments), before your __init__ can do anything about it; and __init__
     can't usefully call tuple.__init__ later, to supply what you wanted it to
-    get.\n""" # How messed up is that ?
+    get.\n""" # How messed up is that ?  At least list is saner ...
 
     __slots__ = ('__tuple',)
     def __init__(self, vals=()): self.__tuple = tuple(vals)
@@ -431,14 +432,15 @@ class Ordered (List):
     """An ordered set.
 
     Like a list except that you don't get to chose where in it to put each
-    entry; and duplication can be silently ignored.  Entries (or their values of
-    the selected sort-key attribute) must support comparison with one another;
-    they shall be kept in increasing (or decreasing, if reversed) order.  The
-    comparison may be customised in the same ways as are supported by the usual
-    list.sort method; calling sort() can revise the customisation and .reverse()
-    reverses it.  Slicing with a reversed slice order yields a reverse-ordered
-    slice; other operations that would normally yield a list yield an Ordered
-    (but see __ordered__) with the same sort properties as self.\n"""
+    entry; and duplication can be allowed, silently ignored, or treated as
+    error.  Entries (or their values of the selected sort-key attribute) must
+    support comparison with one another; they shall be kept in increasing (or
+    decreasing, if reversed) order.  The comparison may be customised in the
+    same ways as are supported by the usual list.sort method; calling sort() can
+    revise the customisation and .reverse() reverses it.  Slicing with a
+    reversed slice order yields a reverse-ordered slice; other operations that
+    would normally yield a list yield an Ordered (but see __ordered__) with the
+    same sort properties as self.\n"""
 
     __upinit = List.__init__
     def __init__(self, val=None, reverse=False, key=None, cmp=None,
@@ -462,8 +464,9 @@ class Ordered (List):
         on the value (or its attribute) and the resulting value used in
         comparisons; reverse has the same effect as composing lambda x: -x after
         cmp.  If two entries compare equal in terms of these, and unique is
-        true, one of the entries is discarded; this is rarely desirable when key
-        is given.\n"""
+        true, the entry supplied later is discarded; this is rarely desirable
+        when key is given.\n"""
+
         self.__upinit()
         self.__unique, self.__attr = unique, attr
         self.__cmp, self.__key, self.__rev = cmp, key, reverse
@@ -560,11 +563,11 @@ class Ordered (List):
         Parameters are all optional, with the usual semantics for list.sort(),
         but each defaults to self's corresponding sort property.  If given, cmp
         replaces self's prior comparison function, if any (you can restore the
-        effect of no custom comparison by passing the built-in cmp function).
-        If key is omitted, self's existing key is preserved; if it is passed as
-        None, any prior key is discarded and self uses values as they are,
-        subject to any attribute name look-up; otherwise, key replaces self's
-        prior key.  If reverse is true, it is combined with self's prior
+        effect of no custom comparison by passing the built-in cmp function). If
+        key is omitted, self's existing key is preserved; if it is any other
+        false value, any prior key is discarded and self uses values as they
+        are, subject to any attribute name look-up; otherwise, key replaces
+        self's prior key.  If reverse is true, it is combined with self's prior
         reversal using xor (so reverse-sorting a reverse-sorted list yields a
         normally sorted list, for example).  Since no list.sort() parameter
         matches attribute look-up (for all that key may be used to do this),
@@ -588,6 +591,17 @@ class Ordered (List):
         self.sort(reverse=True)
 
     def __ne(self, ind, val):
+	"""Compares an entry in self to a given value.
+
+	Arguments:
+	  ind -- an index into self
+	  val -- a value
+
+	Returns the result of self's defined comparison; if val is less than
+	self[ind], the return is -1, if greater +1; otherwise 0.  Caller is
+	responsible for deciding whether less or greater values belong earlier
+	or later in the list (i.e. handling of self.__rev).\n"""
+
         if self.__attr:
             ind, val = getattr(self[ind], self.__attr), getattr(val, self.__attr)
         else: ind = self[ind]
@@ -601,14 +615,17 @@ class Ordered (List):
         else: return 0 # even if not(ind == val)
 
     def __eq(self, ind, val):
+	"""True precisely if val belongs at position ind."""
         return self.__ne(ind, val) == 0
 
     def __lt(self, ind, val):
+	"""True precisely if val belongs before position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans > 0
         return ans < 0
 
     def __gt(self, ind, val):
+	"""True precisely if val belongs after position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans < 0
         return ans > 0
@@ -617,9 +634,9 @@ class Ordered (List):
         """Where does value belong in this list ?
 
         Required argument, value, is the value whose position is to be
-        determined.  Optinal arguments lo (default: 0) and hi (default: -1)
+        determined.  Optional arguments lo (default: 0) and hi (default: -1)
         constrain the range of answers; it shall be assumed that value belongs
-        in seq[lo:hi].
+        at an index no later than lo or earlier than hi.
 
         If value is equal to some entry in this list, return the index of that
         entry; otherwise, return the index at which it should be inserted.  A
@@ -640,13 +657,24 @@ class Ordered (List):
         return hi
 
     def __contains__(self, value):
+	"""True if self would consider value a duplicate entry, if inserted.
+
+	Note that this happens if self has an entry that self deems neither less
+	nor greater than value, even if this entry does not compare equal to
+	value.\n"""
         ind = self.__locate(value)
         return not ( ind < 0 or self.__ne(ind, value) )
 
     def index(self, value, lo=0, hi=-1):
         """Extends and optimises list.index
 
-        Required argument, value, is an entry to look for in this list.
+        Required argument, value, is an entry to look for in this list.  Note,
+	however, that the comparison self uses may be non-simple (see __ne) and
+	that value shall be `found' if this comparison considers it neither less
+	nor greater than some entry in the list; the entry found need not be
+	equal to value (although it likely is for most sensible choices of
+	comparison).
+
         Optional arguments lo (default: 0) and hi (default: -1) bound the range
         in which to look for it; self[lo:hi] is searched instead of the whole of
         self.  Exploits the fact that self is ordered so that the search only
@@ -666,24 +694,26 @@ class Ordered (List):
     def append(self, ind, value=None):
         """Put a value into the list.
 
-        Should be called with one argument, the value to be added to the list.
-        Supports being called like list.insert(ind, value), in which case it
-        silently ignores the index, ind, and uses its second argument as the
-        value to insert.  Returns True if self ignores duplicates and the new
-        item was a duplicate; else None.\n"""
+        Should be called with one argument, the value to be added to the
+        list.  Supports being called like list.insert(ind, value), provided
+        value is not None (which would be an odd thing to add to an ordered
+        list), in which case it silently ignores the index, ind, and uses its
+        second argument as the value to insert.  Returns True if self ignores
+        duplicates and the new item was a duplicate; else None, unless it raises
+        ValueError due to rejecting the new item as a duplicate.\n"""
         if value is None: value = ind
         # Insert in correctly-ordered position.
         at = self.__locate(value)
         if at < 0: self.__listapp(value)
         elif self.__unique and self.__eq(at, value): return True
         elif self.__unique is None and self.__eq(at, value):
-            raise ValueError("Duplicate", value, self[ind])
+            raise ValueError("Duplicate", value, ind, self)
         else: self.__listins(at, value)
 
     insert = append
 
     def prune(self, upto):
-        """Discard all entries <= upto.
+        """Discard all entries that belong no later than upto.
 
         Returns the discarded entries.\n"""
         at = self.__locate(upto)
