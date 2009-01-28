@@ -1,6 +1,9 @@
 """Lazily-evaluated and cache-aware mappings.
 
-$Id: mapping.py,v 1.1 2009-01-26 08:37:23 eddy Exp $
+Contents:
+  LazyDict -- mapping populated with data only when needed
+
+$Id: mapping.py,v 1.2 2009-01-28 08:35:46 eddy Exp $
 """
 
 class LazyDict (dict):
