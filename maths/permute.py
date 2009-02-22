@@ -253,6 +253,11 @@ def Iterator(size, P=Permutation):
         while i < j:
             row[j], row[i] = row[i], row[j]
             i, j = 1+i, j-1
+
+# TODO: devise an alternate-order iterator which ensures each index appears in
+# each position roughly once per n steps.  Useful, e.g., for a "taking turns to
+# chose which chores to do" rota,
+# c.f. http://www.chaos.org.uk/~eddy/when/2009/squalor.html
 
 def permute(*indices):
     """Returns row permuted by a sequence of indices.
