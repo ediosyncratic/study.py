@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.22 2008-05-11 15:42:48 eddy Exp $
+$Id: polynomial.py,v 1.23 2009-03-01 21:47:55 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -759,5 +759,29 @@ class Polynomial (Lazy):
 
         # assert: determinant(ans) == self.resultant
         return tuple(ans)
+
+    @staticmethod
+    def Chose(gap):
+	"""Returns x!/(x-gap)!/gap! &larr;x
+
+	Single argument, gap, should be a natural number, although other numeric
+	values are handled gracefully: if negative, the constant polynomial 1
+	&larr;x is returned, as for Chose(0); otherwise, the resulting
+	polynomial has gap.(gap-1)... as divisors, ending with the fractional
+	part of gap (i.e. gap-floor(gap)) and, as numerators, x+1 minus each of
+	these.
+
+	Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
+	Chose(1+gap)(n), give or take rounding erros; see
+	http://www.chaos.org.uk/~eddy/math/sumplex.html - Chose is formally the
+	transpose of Pascal.chose in the sense Pascal.chose(n, g) = Chose(g)(n),
+	so chose(gap) maps every natural to a natural, when gap is natural.\n"""
+
+	res, x = Polynomial(1), Polynomial(0, 1)
+	while gap > 0:
+	    res *= 1. / gap
+	    gap -= 1
+	    res *= x - gap
+	return res
 
 del types, Lazy
