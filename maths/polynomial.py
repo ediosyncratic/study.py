@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.23 2009-03-01 21:47:55 eddy Exp $
+$Id: polynomial.py,v 1.24 2009-03-01 22:16:18 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -46,6 +46,13 @@ class Polynomial (Lazy):
       integral([start=0, base=0]) -- integration
       unafter(poly) -- input to poly yielding self as output
       Weierstrass([tol=1e-6]) -- finds roots
+      resultant(self, other) -- 
+      Sylvester(other) -- Sylvester matrix of self and another polynomial
+      Bezout(other) -- B&eacute;zout matrix of self and another polynomial
+
+    An alternate constructor is also provided via the static method Chose(gap),
+    which returns the polynomial lambda x: x!/(x-gap)!/gap!, which has some
+    convenient properties under summation.
 
     See individual methods' docs for details.\n"""
 
@@ -717,6 +724,7 @@ class Polynomial (Lazy):
         return ans
 
     def resultant(self, other):
+	"""See .Sylvester(other); this is its determinant.\n"""
         return reduce(lambda x, y: x * y, map(other, self.roots),
                       self.__coefs[self.rank] ** other.rank)
 
@@ -731,6 +739,12 @@ class Polynomial (Lazy):
         return tuple(ans)
 
     def Sylvester(self, other):
+	"""The Sylvester matrix associated with self and other.
+
+	See http://en.wikipedia.org/wiki/Sylvester_matrix - the metrix is
+	singular if the two polynomials have a non-constant common factor; its
+	determinant is self.resultant(other).\n"""
+
         return self.__Sylvester(other.rank) + other.__Sylvester(self.rank)
 
     # assert: self.resultant(other) == determinant(self.Sylvester(other))
@@ -738,8 +752,7 @@ class Polynomial (Lazy):
     def Bezout(self, other):
         """The B&eacute;zout matrix of two polynomials.
 
-        See http://en.wikipedia.org/wiki/Bezout_matrix
-        """
+        See http://en.wikipedia.org/wiki/Bezout_matrix\n"""
         n, i, ans = max(self.rank, other.rank), 0, []
         while i < n:
             j, row = 0, []
