@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.24 2009-03-01 22:16:18 eddy Exp $
+$Id: polynomial.py,v 1.25 2009-03-02 05:33:23 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -56,6 +56,8 @@ class Polynomial (Lazy):
 
     See individual methods' docs for details.\n"""
 
+    # TODO: add support for tracking a whole-number denominator (via **what),
+    # so that we can keep coefficients whole where possible.  Use None if unset.
     def __init__(self, *args):
         """Constructor.
 
@@ -111,7 +113,11 @@ class Polynomial (Lazy):
     # Coefficients only require the ability to add, multiply and divmod.
     def _get_coeff(val, oktypes=(types.IntType, types.ComplexType, types.FloatType, types.LongType)):
         if type(val) in oktypes:
-            if val == long(val): return long(val)
+	    try:
+		if val.imag: return val
+		val = val.real
+	    except AttributeError: pass # not complex:
+	    if val == int(val): return int(val)
             return val
         elif hasattr(val, '__add__') and hasattr(val, '__mul__'):
             # This means we can use polynomials as coefficients ...
@@ -378,14 +384,9 @@ class Polynomial (Lazy):
 
         if res: raise ValueError
         return ans
-
     del divide, scalarroot
 
-    def whole(val):
-        try: return int(val)
-        except OverflowError: return long(val)
-
-    def coefficient(self, key, int=whole):
+    def coefficient(self, key):
         val = self.__coefs.get(key, self._zero)
         try:
             i = int(val)
@@ -393,7 +394,7 @@ class Polynomial (Lazy):
         except (TypeError, AttributeError): pass
         return val
 
-    def __pow__(self, other, mod=None, int=whole,
+    def __pow__(self, other, mod=None,
                 ok=lambda i, t=(types.IntType, types.LongType): type(i) in t):
         if mod is None:
             wer, result = self, 1
@@ -446,8 +447,6 @@ class Polynomial (Lazy):
             wer, result = step(b, wer, result)
 
 	return result
-
-    del whole
 
     # use << as repeated integration, >> as repeated differentiation
     def __lshift__(self, other):
@@ -698,16 +697,63 @@ class Polynomial (Lazy):
 
         return tuple(r)
 
+    def rationalize(x, abort=5, tol=1e-6): # tool for .roots; tune via abort and tol
+	seq, r = [], x
+	while len(seq) < abort:
+	    q, r = divmod(r, 1)
+	    if r > .5: q, r = q+1, r-1
+	    assert q == int(q)
+	    seq.append(int(q))
+	    if abs(r) < tol: break
+	    r = 1. / r
+	else:
+	    raise ValueError('Hard to approximate', x)
+
+	# x == seq[0] + 1/(seq[1] + 1/(...))
+	n, d = seq.pop(), 1
+	while seq: n, d = d + n * seq.pop(), n
+	return n, d
+
     from cardan import cubic
-    def _lazy_get_roots_(self, ignored, cub=cubic):
+    from natural import gcd
+    def _lazy_get_roots_(self, ignored, cub=cubic, rat=rationalize, hcf=gcd):
         if self.rank < 1: return ()
         if self.rank < 3 or (self.rank == 3 and self.__pure_real()):
             # for cubics, we know how to be exact ...
             return cub(*map(self.coefficient, (3, 2, 1, 0)))
 
         # Otherwise, be as exact as we know how to be:
-        return self.Weierstrass(1e-9)
-    del cubic
+        rough, ans = self.Weierstrass(1e-9), []
+	# First, deal with any obvious approximations to rationals:
+	for v in rough:
+	    try: im, re = v.imag, v.real
+	    except AttributeError:
+		try: n, d = rat(v)
+		except ValueError: continue
+	    else:
+		try:
+		    n, d = rat(re)
+		    q, r = rat(im) # temp
+		except ValueError: continue
+		if q:
+		    i = hcf(d, r)
+		    n = n * r / i + 1j * q * d / i
+		    d *= r / i
+
+	    # So v is approximately n / d, with n whole:
+	    if d < 0: n, d = -n, -d
+	    q, r = divmod(self, Polynomial(-n, d))
+	    if r.rank == -1:
+		if d == 1: ans.append(n)
+		else: ans.append(n * 1. / d)
+		self = q
+
+	# If we refined any rough root, we also refined self:
+	if ans:
+	    ans.sort()
+	    return tuple(ans) + self.roots # recurse
+	return tuple(rough)
+    del cubic, rationalize, gcd
 
     def _lazy_get__bigcoef_(self, ignored):
         return max(map(abs, self.__coefs.values()))
@@ -775,26 +821,84 @@ class Polynomial (Lazy):
 
     @staticmethod
     def Chose(gap):
-	"""Returns x!/(x-gap)!/gap! &larr;x
+	"""Returns (lambda x: x!/(x-gap)!, gap!)
+
+	The return is a pair (n, d) representing the polynomial n/d; d is a
+	natural number and n(i) is a multiple of it whenever i is natural,
+	provided the input to this function is natural.
 
 	Single argument, gap, should be a natural number, although other numeric
-	values are handled gracefully: if negative, the constant polynomial 1
-	&larr;x is returned, as for Chose(0); otherwise, the resulting
-	polynomial has gap.(gap-1)... as divisors, ending with the fractional
-	part of gap (i.e. gap-floor(gap)) and, as numerators, x+1 minus each of
+	values are handled gracefully: if negative, the constant polynomial
+	lambda x: 1 is returned, paired with denominator 1, as for Chose(0);
+	otherwise, the resulting polynomial has gap.(gap-1)... as factors of its
+	denominator, ending with the fractional part of gap
+	(i.e. gap-floor(gap)) and, as numerator factors, x+1 minus each of
 	these.
 
-	Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
-	Chose(1+gap)(n), give or take rounding erros; see
-	http://www.chaos.org.uk/~eddy/math/sumplex.html - Chose is formally the
-	transpose of Pascal.chose in the sense Pascal.chose(n, g) = Chose(g)(n),
-	so chose(gap) maps every natural to a natural, when gap is natural.\n"""
+	Note that, when gap is natural, if C(gap) is a rounding-error-less form
+	of (lambda (n, d): n*1./d)(Chose(gap)), then sum(map(C(gap), range(n)))
+	== C(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html - C
+	is formally the transpose of Pascal.chose in the sense Pascal.chose(n,
+	g) = C(g)(n), so Chose(gap)[0] maps every natural to a multiple of
+	Chose(gap)[1], when gap is natural.\n"""
 
-	res, x = Polynomial(1), Polynomial(0, 1)
+	num, den, x = Polynomial(1), 1, Polynomial(0, 1)
 	while gap > 0:
-	    res *= 1. / gap
+	    den *= gap
 	    gap -= 1
-	    res *= x - gap
-	return res
+	    num *= x - gap
+
+	assert num.__coefs[num.rank] == 1
+	return num, den
+
+    @staticmethod
+    def PowerSum(k):
+	"""That p for which, for natural n, p(n) = sum(map(lambda i**k, range(n))).
+
+	Single input, k, must be a natural number.  Returns a twople num, den in
+	which num is a polynomial with integer coefficients and den is a
+	natural; for every natural i, num(i) shall be a multiple of den.  This
+	twople is to be understood as representing the polynomial num/den (but
+	without the rounding errors ...)"""
+
+	cache = Polynomial.__power_sum
+	while len(cache) <= k:
+	    if cache:
+		# Compute cache[len(cache)];
+		tum, ten = Polynomial.Chose(len(cache))
+		i, j = tum.rank, 1 + len(cache)
+		# the lambda i: i**len(cache) we want to sum is leading term in tum(i);
+		num, den = Polynomial.Chose(j)
+		# while num(n) is j.sum(map(tum, range(n))) since:
+		assert den == ten * j
+		# Now, from num, subtract terms matching tum's non-leading ones:
+		while i > 0:
+		    i -= 1
+		    try: c = tum.__coefs[i]
+		    except KeyError: pass # implicit zero
+		    else:
+			assert c, 'Asking for tum.rank should have purged its zero .__coefs'
+			p, d = cache[i]
+			num, den = num * d, den * d
+			num -= p * c * j
+			j *= d
+
+		num.rank # evaluated to flush zero .__coefs
+		d = j # compute hcf of j and num.__coefs.values():
+		for v in num.__coefs.values():
+		    if v < 0: v = -v
+		    if v > d: d, v = v, d
+		    while v: v, d = v % d, v
+
+		num, j = num / d, j / d
+		assert j == int(j)
+		cache.append((num, int(j)))
+
+	    else: cache.append((Polynomial(0, 1), 1))
+
+	return cache[k]
+
+    __power_sum = []
+
 
 del types, Lazy
