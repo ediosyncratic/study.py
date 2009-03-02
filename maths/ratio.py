@@ -4,7 +4,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: ratio.py,v 1.6 2008-05-11 19:35:08 eddy Exp $
+$Id: ratio.py,v 1.7 2009-03-02 05:22:53 eddy Exp $
 """
 
 def asint(val):
@@ -151,6 +151,9 @@ class Rational:
 	except KeyError:
             raise AttributeError(self, key)
 
+# For better rational approximations, use continued fractions; see
+# http://en.wikipedia.org/wiki/Continued_fraction
+# and polynomial.Polynomial's tool rationalize().
 prior = {}
 def approximate(val, toler=None, assess=None, old=prior):
     # pi is very close to 355 / 113: within 3e-7
