@@ -4,7 +4,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: ratio.py,v 1.8 2009-03-03 09:20:40 eddy Exp $
+$Id: ratio.py,v 1.9 2009-03-03 09:21:50 eddy Exp $
 """
 
 def asint(val):
@@ -156,8 +156,8 @@ def rationalize(x, tol=1e-7, depth=5):
 
     Required parameter, x, is a real number; complex is not handled and there is
     no point doing this to integers.  Optional arguments are:
-      tol -- error tolerance
-      depth -- depth of search, see below.
+      tol -- error tolerance (default: 1e-7)
+      depth -- depth of search (default: 5), see below.
     Returns a twople n, d of integers for which n = d * x, give or take errors
     of order tol, raising ValueError if unable to find suitable n and d.
 
