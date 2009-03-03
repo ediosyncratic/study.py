@@ -4,7 +4,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: ratio.py,v 1.7 2009-03-02 05:22:53 eddy Exp $
+$Id: ratio.py,v 1.8 2009-03-03 09:20:40 eddy Exp $
 """
 
 def asint(val):
@@ -151,9 +151,42 @@ class Rational:
 	except KeyError:
             raise AttributeError(self, key)
 
-# For better rational approximations, use continued fractions; see
-# http://en.wikipedia.org/wiki/Continued_fraction
-# and polynomial.Polynomial's tool rationalize().
+def rationalize(x, tol=1e-7, depth=5):
+    """Find rational approximation to a real.
+
+    Required parameter, x, is a real number; complex is not handled and there is
+    no point doing this to integers.  Optional arguments are:
+      tol -- error tolerance
+      depth -- depth of search, see below.
+    Returns a twople n, d of integers for which n = d * x, give or take errors
+    of order tol, raising ValueError if unable to find suitable n and d.
+
+    Result is sought by using continued fractions; that is, by first trying to
+    approximate x as s[0] + 1./(s[1] + 1./(s[2] + ...)) for some sequence s of
+    integers, then unwinding this expression to obtain n and d.  The search
+    aborts if it needs more than depth entries in s to get within tol of x.
+
+    For more on the theory of continued fractions, see
+    http://en.wikipedia.org/wiki/Continued_fraction\n"""
+
+    seq, r = [], x
+    while len(seq) < depth:
+	q, r = divmod(r, 1)
+	if r > .5: q, r = q+1, r-1
+	seq.append(int(q))
+	assert q == seq[-1], 'divmod(,1)[0] should be whole !'
+	if abs(r) < tol: break
+	tol *= (abs(r) + tol)**2
+	r = 1. / r
+    else:
+	raise ValueError('Hard to approximate', x)
+
+    # x == seq[0] + 1/(seq[1] + 1/(...))
+    n, d = seq.pop(), 1
+    while seq: n, d = d + n * seq.pop(), n
+    return n, d
+
+# TODO: re-work the following to exploit rationalize().
 prior = {}
 def approximate(val, toler=None, assess=None, old=prior):
     # pi is very close to 355 / 113: within 3e-7
