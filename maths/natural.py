@@ -23,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.20 2008-10-26 15:34:45 eddy Exp $
+$Id: natural.py,v 1.21 2009-03-03 23:10:41 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -247,14 +247,15 @@ def Collatz(n):
 
     raise StopIteration
 
+# TODO: can this be generalized to higher powers ?
 def sqrt(val):
     """Returns the highest natural whose square does not exceed val"""
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
 
     v, bit = val, 0
-    while v:
-        v >>= 2
+    while v >= 1:
+        v /= 4
         bit += 1
 
     # input = val; assert v == 0 # hereafter, val stores input - v**2
