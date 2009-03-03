@@ -23,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.21 2009-03-03 23:10:41 eddy Exp $
+$Id: natural.py,v 1.22 2009-03-03 23:16:00 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -226,27 +226,6 @@ def perfect():
 
         i += 1
 
-def Collatz(n):
-    """Iterator for the Collatz conjecture's sequence for n.
-
-    It is conjectured that, whatever positive integer n you give to this
-    function, the resulting sequence shall ultimately terminate (by yielding 1).
-    It is known (by experiment) that the conjecture is good up to n = 10 * 2**58
-    (and, hence, also good for any n which is just a power of 2 times some
-    positive integer less than this limit).
-
-    The function iterated is, with Z+ = {positive integers}, the union of (: n
-    &larr; 2.n :Z+) and (: 6.j+4 &larr;2.j+1 :Z+).  The conjecture effectively
-    says that its transitive closure subsumes ({1}:|Z+).\n"""
-
-    yield n
-    while n != 1:
-        if n % 2: n = 3 * n + 1
-        else: n = n / 2
-        yield n
-
-    raise StopIteration
-
 # TODO: can this be generalized to higher powers ?
 def sqrt(val):
     """Returns the highest natural whose square does not exceed val"""
@@ -275,6 +254,27 @@ def sqrt(val):
 
     # v**2 <= input < (1+v)**2
     return v
+
+def Collatz(n):
+    """Iterator for the Collatz conjecture's sequence for n.
+
+    It is conjectured that, whatever positive integer n you give to this
+    function, the resulting sequence shall ultimately terminate (by yielding 1).
+    It is known (by experiment) that the conjecture is good up to n = 10 * 2**58
+    (and, hence, also good for any n which is just a power of 2 times some
+    positive integer less than this limit).
+
+    The function iterated is, with Z+ = {positive integers}, the union of (: n
+    &larr; 2.n :Z+) and (: 6.j+4 &larr;2.j+1 :Z+).  The conjecture effectively
+    says that its transitive closure subsumes ({1}:|Z+).\n"""
+
+    yield n
+    while n != 1:
+        if n % 2: n = 3 * n + 1
+        else: n = n / 2
+        yield n
+
+    raise StopIteration
 
 class Naturals (list):
     class Suc (dict):
