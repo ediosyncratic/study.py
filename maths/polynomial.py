@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.25 2009-03-02 05:33:23 eddy Exp $
+$Id: polynomial.py,v 1.26 2009-03-04 09:29:18 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -41,7 +41,7 @@ class Polynomial (Lazy):
     Methods:
     ========
 
-      coefficient(n) -- yields coefficient of (: x**n &larr;x :) in polynomial
+      coefficient(n) -- coefficient of (: x**n &larr;x :) in polynomial
       hcf([poly, ...]) -- yields highest common factor of arbitrarily many
       integral([start=0, base=0]) -- integration
       unafter(poly) -- input to poly yielding self as output
@@ -56,18 +56,25 @@ class Polynomial (Lazy):
 
     See individual methods' docs for details.\n"""
 
-    # TODO: add support for tracking a whole-number denominator (via **what),
-    # so that we can keep coefficients whole where possible.  Use None if unset.
-    def __init__(self, *args):
+    def __init__(self, *args, **what):
         """Constructor.
 
-        If exactly one argument is passed and it is a mapping, its keys are used
-        as powers and values as coefficients of each power's term in the
-        polynomial; if exactly one argument is passed and it is a sequence, it
-        is interpreted as a mapping whose keys are indices into the list and
-        values are entries in the list.  Otherwise, each argument must be
-        numeric and the arguments are interpreted as if they'd been passed as a
-        sequence.
+        Takes arbitrary arguments, but only two keyword arguments, denominator
+        and variate, are meaningful; all other arguments should be given
+        positionally.  If denominator is given with value None it is ignored;
+        otherwise, if given with value d, the result is effectively 1/d times
+        what you would get without it; however, when coefficients are
+        (otherwise) whole numbers, tracking denominator avoids rounding
+        errors.  If variate is given, it should be a string and is used as the
+        new instance's .variablename - see below.
+
+        If exactly one positional argument is passed and it is a mapping, its
+        keys are used as powers and values as coefficients of each power's term
+        in the polynomial; if exactly one argument is passed and it is a
+        sequence, it is interpreted as a mapping whose keys are indices into the
+        list and values are entries in the list.  Otherwise, each argument must
+        be numeric and the arguments are interpreted as if they'd been passed as
+        a sequence.
 
         Thus:
           Polynomial({ power: coeff ... }) == (: sum(: coeff * x**power :) <- x :)
@@ -95,9 +102,18 @@ class Polynomial (Lazy):
         this, Polynomial(1,2,3) can simply be written 3*z*z +2*z +1.  If you
         want a polynomial's representation to use the name z (rather than x),
         simply set the polynomial's .variablename to 'z' (but note that this
-        only applies to that polynomial, not to ones computed from it).\n"""
+        only applies to that polynomial, not to ones computed from it).
 
-	self.__coefs = {}	# dictionary with natural keys
+        See also the pseudo-constructors .Chose() and .PowerSum().\n"""
+
+        try: denom = what['denominator']
+        except KeyError: self.__denom = None
+        else:
+            if denom is not None:
+                1 / denom # raise suitable error if unsuitable as denominator !
+            self.__denom = denom
+
+        self.__coefs = {}       # dictionary with natural keys
         try:
             arg, = args # do we have just one arg ?
             arg[:] # if so, is it a sequence ?
@@ -105,19 +121,25 @@ class Polynomial (Lazy):
         except ValueError: self.__fromseq(args) # several args
         except (AttributeError, TypeError, KeyError): # one non-sequence arg
             try: arg.items, arg.get(0, None) # is it a mapping ?
-            except AttributeError: self.__store(0, arg) # constant polynomial
+            except AttributeError: self.__fromseq((arg,)) # constant polynomial
             else: self.__frombok(arg) # dictionary
 
-        # self.__coefs should now be construed as immutable.
+        # self.__coefs and self.__denom should now be construed as immutable.
+
+        try: var = what['variate']
+        except KeyError: pass
+        else:
+            if var: self.variablename = var
 
     # Coefficients only require the ability to add, multiply and divmod.
-    def _get_coeff(val, oktypes=(types.IntType, types.ComplexType, types.FloatType, types.LongType)):
+    def _get_coeff(val, oktypes=(types.IntType, types.LongType,
+                                 types.ComplexType, types.FloatType)):
         if type(val) in oktypes:
-	    try:
-		if val.imag: return val
-		val = val.real
-	    except AttributeError: pass # not complex:
-	    if val == int(val): return int(val)
+            try:
+                if val.imag: return val
+                val = val.real
+            except AttributeError: pass # not complex:
+            if val == int(val): return int(val)
             return val
         elif hasattr(val, '__add__') and hasattr(val, '__mul__'):
             # This means we can use polynomials as coefficients ...
@@ -125,46 +147,113 @@ class Polynomial (Lazy):
             return val
         else: raise invalidCoefficient
 
+    from natural import gcd
+    def __descale(self, cs, hcf=gcd, get=_get_coeff):
+        """Eliminate common factor from denominator and coefficients.
+
+        Single argument, cs, is a sequence of all the coefficients to be used
+        for this polynomial; should be called after self.__denom is set but
+        before these coefficients are __store()d; each non-zero coefficient,
+        before it is passed to __store(), should be divided by the return from
+        this function, which is 1 if self.__denom is None (or 1).
+
+        When self.__denom is not None, this method considers it in combination
+        with each whole number that appear as a real coefficient or as the real
+        or imaginary part of a complex ones.  If none of these are whole,
+        tracking a denominator shall do us no good, so self.__denom is set to
+        None and its prior value is returned.  Otherwise, we compute the highest
+        common factor, n, of self.__denom and of the whole values found;
+        self.__denom is scaled down by n and n is returned; this should not lead
+        to any rounding errors.
+
+        Note that no attempt is made to detect coefficients which might be
+        rationals being poorly represented by reals; doing so would cause bugs
+        when we come to look at polynomials which deliberately have coefficients
+        slightly different from actual rationals.  If reals are to be replaced
+        by rationals, that's a job for the caller of the constructor.\n"""
+
+        d, w = self.__denom, False
+        if d is None: return 1
+        for c in cs:
+            c = get(c) # ensure sane value
+            try: im, re = c.imag, c.real
+            except AttributeError:
+                if c == int(c): d, w = hcf(c, d), True
+            else:
+                if im == int(im): d, w = hcf(im, d), True
+                if re == int(re): d, w = hcf(re, d), True
+            if w and d in (1, -1): break # pointless to continue
+        if w:
+            if d < 0: d = -d
+            if d != 1: self.__denom /= d
+        else: # nothing is whole
+            assert d is self.__denom
+            self.__denom = None
+
+        return d
+
     def __store(self, power, coeff, g=_get_coeff):
         if coeff: self.__coefs[power] = g(coeff)
         else: self._zero = g(coeff)
     del _get_coeff
 
     def __fromseq(self, seq):
+        d = self.__descale(seq)
         i = 0
         for v in seq:
-            self.__store(i, v)
+            self.__store(i, v / d)
             i = 1 + i
 
     def __frombok(self, bok, ok=lambda k, i=(types.IntType, types.LongType): type(k) in i):
+        d = self.__descale(bok.values())
         for key, val in bok.items():
             if not ok(key) or key < 0: raise unNaturalPower
-            else: self.__store(key, val)
+            else: self.__store(key, val / d)
 
     def _lazy_get_rank_(self, ignored):
-	for key in self.__coefs.keys():
-	    if self.__coefs[key] == 0.0:
-		del self.__coefs[key]
-	try: return max(self.__coefs.keys())
-	except ValueError: return -1
+        for k, v in self.__coefs.items():
+            if not v:
+                assert False, 'How did that get past __store ?'
+                del self.__coefs[k]
+        try: return max(self.__coefs.keys())
+        except ValueError: return -1
+
+    def coefficient(self, key):
+        val, om = self.__coefs.get(key, self._zero), self.__denom
+        if om is not None: val *= 1. / om
+        try:
+            i = int(val)
+            if val == i: return i
+        except (TypeError, AttributeError): pass
+        return val
+
+    def __numerator(self, key):
+        # as for coefficient, but ignoring .__denom
+        val = self.__coefs.get(key, self._zero)
+        try:
+            i = int(val)
+            if val == i: return i
+        except (TypeError, AttributeError): pass
+        return val
 
     def hcf(self, *others):
-	for other in others:
+        for other in others:
             # Euclid's algorithm
             while other: self, other = other, self % other
-	return self
+        return self
 
     def coprime(self, *others):
-	# coprime <=> hcf is a non-zero scalar
-	return self.hcf(others).rank == 0
+        # coprime <=> hcf is a non-zero scalar
+        return self.hcf(others).rank == 0
 
     def _lazy_get_normalised_(self, ignored):
-	if self.rank < 0: raise ValueError, "Can't normalise zero"
-        scale = self.__coefs[self.rank]
-        if scale == 1: return self
-	return self / scale
+        if self.rank < 0: raise ValueError, "Can't normalise zero"
+        scale, om = self.__coefs[self.rank], self.__denom
+        if om is None: om = 1
+        if scale == om: return self
+        return om * self / scale
 
-    variablename = 'z' # over-ride to taste
+    variablename = 'z' # over-ride to taste, on each instance
     def __repr__(self):
         try: return self.__repr
         except AttributeError: pass
@@ -188,30 +277,45 @@ class Polynomial (Lazy):
         except AttributeError: return str(num)
 
     def __represent(self, names, depth, fmt=format):
+        if depth > 52: raise ValueError, "We're going to run out of names !"
         while depth >= len(names):
             if names[-1][0] == 'a': names.append('Z')
+            elif names[-1][0] == 'A': names.append('z')
             else: names.append(chr(ord(names[-1][0]) - 1))
 
-	result, name = '', names[depth]
-	for key in self._powers:
-            val = self.coefficient(key)
+        result, name = '', names[depth]
+        for key in self._powers:
+            val = self.__numerator(key)
             if key:
                 if val == 1: frag = ''
                 elif val == -1: frag = '-'
                 else:
                     frag = fmt(val, names, depth)
-                    if ' ' in frag: frag = '(' + frag + ')*'
+                    if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
+                        frag = '(' + frag + ')*'
                     else: frag += '*'
 
                 if key == 1: frag += name
                 else: frag += '%s**%d' % (name, key)
             else: frag = fmt(val, names, depth)
 
-            if frag[:1] == '-': result += ' ' + frag
+            if not result: result = frag
+            elif frag[:1] == '-': result += ' ' + frag
             else: result += ' +' + frag
+        assert result[:2] != ' +' and result[:1] != ' '
 
-        if result[:2] == ' +': return result[2:]
-        elif result[:1] == ' ': return result[1:]
+        om = self.__denom
+        if om is not None and om != 1:
+            if ' ' in result: result = '(' + result + ')/'
+            else: result += '/'
+            try:
+                if om.imag == 0: om = om.real
+            except AttributeError: pass
+            frag = str(om)
+            if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
+                result += '(' + frag + ')'
+            else: result += frag
+
         return result
 
     del format
@@ -219,7 +323,7 @@ class Polynomial (Lazy):
     def __eachattr(self, each):
         bok = {}
         for k, v in self.__coefs.items(): bok[k] = each(v)
-        return Polynomial(bok)
+        return Polynomial(bok, denominator=self.__denom)
 
     def toreal(val):
         try: return val.real
@@ -247,112 +351,181 @@ class Polynomial (Lazy):
     del conjug8
 
     def _lazy_get__powers_(self, ignored):
-	keys = self.__coefs.keys()
-	keys.sort()
+        keys = self.__coefs.keys()
+        keys.sort()
         keys.reverse()
         return tuple(keys)
 
     def __add__(self, other):
-        try: sum = other.__coefs.copy()
-        except AttributeError: sum = {0: other}
+        try: sum, den = other.__coefs.copy(), other.__denom
+        except AttributeError: sum, den = {0: other}, None
+        om = self.__denom
+        if om is None: denom = den
+        else:
+            if den is None: denom = om
+            else: denom = den * om
+            for k in sum.keys(): sum[k] *= om
+        if den is None: den = 1
 
         zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, zero) + v
+            sum[k] = sum.get(k, zero) + v * den
 
-        return Polynomial(sum)
+        return Polynomial(sum, denominator=denom)
 
     __radd__ = __add__
-
-    def __sub__(self, other):
-	sum, zero = self.__coefs.copy(), self._zero
-
-        try: bok = other.__coefs
-        except AttributeError: sum[0] = sum.get(0, zero) - other
-        else:
-            for key, val in bok.items():
-                sum[key] = sum.get(key, zero) - val
-
-	return Polynomial(sum)
-
-    def __rsub__(self, other):
-        try: sum = other.__coefs.copy()
-        except AttributeError: sum = {0: other}
-
-        zero = self._zero
-        for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, zero) - v
-
-        return Polynomial(sum)
+    def __pos__(self): return self
+    def __neg__(self, neg=lambda v: -v): return self.__eachattr(neg)
+    def __sub__(self, other): return self + (- other)
+    def __rsub__(self, other): return other + (- self)
 
     def __mul__(self, other):
-	term = {}
-        try: bok = other.__coefs
+        term = {}
+        try: bok, den = other.__coefs, other.__denom
         except AttributeError:
-	    for key, val in self.__coefs.items():
-		term[key] = val * other
-	else:
+            denom = self.__denom
+            for key, val in self.__coefs.items():
+                term[key] = val * other
+        else:
             zero = self._zero * other._zero
-	    for key, val in self.__coefs.items():
-		for cle, lue in bok.items():
-		    sum = key + cle
+            for key, val in self.__coefs.items():
+                for cle, lue in bok.items():
+                    sum = key + cle
                     term[sum] = term.get(sum, zero) + val * lue
 
-	return Polynomial(term)
+            om = self.__denom
+            if den is None: denom = om
+            elif om is None: denom = den
+            else: denom = om * den
+
+        return Polynomial(term, denominator=denom)
 
     __rmul__ = __mul__ # abelian multiplication
     def __div__(self, other):
         q, r = self.__divmod__(other)
-        if r and not r.__istiny(self._bigcoef):
+        try: n = other.rank - 1
+        except AttributeError: n = self.rank
+        else: n = max(n, self.rank)
+        if r and not r.__istiny(self._bigcoef, max(0, n)):
             raise ValueError(self, 'not a multiple of', other, r)
         return q
     __floordiv__ = __div__
 
     def __mod__(self, other): return self.__divmod__(other)[1]
 
-    def divide(num, div):
-        rat = num / div
-        if div * rat == num: return rat
-        return num * 1. / div
+    def __divmod__(self, other, hcf=gcd):
+        """Solves self = q.other + r for r of rank < other.rank: returns (q, r)
 
-    def __divmod__(self, other, ratio=divide):
-	"""Solves self = q.other + r for r of rank < other.rank: returns (q, r)
+        This depends on our coefficients forming a field.
+        """
+        om = self.__denom
+        try: top, den = other.rank, other.__denom
+        except AttributeError: other, top, den = Polynomial({0: other}), 0, 1
+        else:
+            if top < 0: raise ZeroDivisionError
+            if den is None: den = 1
+            elif om is not None:
+                o = hcf(om, den)
+                om, den = om / o, den / o
 
-	This depends on our coefficients forming a field.
-	"""
-        try: top = other.rank
-        except AttributeError: top, other = 0, Polynomial({0: other})
-	if top < 0: raise ZeroDivisionError
-        o = other.coefficient(top)
+        o = other.__numerator(top)
         if top == 0:
             bok = {}
             for k, v in self.__coefs.items():
-                bok[k] = v / o
-            return Polynomial(bok), Polynomial(0)
+                bok[k] = den * v
+            if om is not None: o *= om
+            return Polynomial(bok, denominator=o), Polynomial(0)
 
-	q, r = Polynomial(0.0), self
-	got = self.rank
+        if om is not None: o *= om
+        q, r = Polynomial(self._zero), self
+        got = self.rank
 
-	# We now reduce the rank of r (by at least 1) at each iteration, by
-	# shifting other*x**(got-top) times a scalar from r to q*other; thus, as
-	# rank r is finite, it must eventually descend to 0.
-	while got >= top:
-            m = r.coefficient(got)
+        # We now reduce the rank of r (by at least 1) at each iteration, by
+        # shifting other*x**(got-top) times a scalar from r to q*other; thus, as
+        # rank r is finite, it must eventually descend to 0.
+        while got >= top:
+            m = r.__numerator(got)
             while m: # take several slices off, in case of arithmetic error ...
-                scale = Polynomial({ got - top: ratio(m, o) })
+                scale = Polynomial({ got - top: m * den }, denominator = o)
                 q, r = q + scale, r - scale * other
-                n = r.coefficient(got)
-                if abs(n) * 10 > abs(m):
+                n = r.__numerator(got)
+                if abs(n) * 10 > abs(m): # drowning in rounding errors :-(
                     print "Wiping %g x**%d in Polynomial.__divmod__" % (
-			r.__coefs[got], got )
-                    del r.__coefs[got]	# => forcefully set to zero
+                        r.__coefs[got], got )
+                    del r.__coefs[got]  # => forcefully set to zero
                     break
                 m = n
             assert r.rank < got
-	    got = r.rank
+            got = r.rank
 
         # assert r == self - q * other # tends to fail on small errors
-	return q, r
+        return q, r
+
+    from ratio import rationalize
+    def ratcom(num, rat=rationalize):
+        """Expresses a (possibly complex) number in rational form.
+
+        Single argument is the number.  If it can be approximated by n / d, with
+        d natural and n either an integer or a complex number with at least one
+        of its real and imaginary parts a whole number, then the pair n, d is
+        returned.  Otherwise, a ValueError is raised.\n"""
+
+        try:
+            if num.imag == 0:
+                num = num.real
+                raise AttributeError # to handle as the simple real it is
+            if num.real == 0:
+                n, d = rat(num.imag)
+                n *= 1j
+            else:
+                try: n, d = rat(num.real)
+                except ValueError:
+                    n, d = rat(num.imag)
+                    n = 1j * n + num.real * d
+                else:
+                    try: q, r = rat(num.imag)
+                    except ValueError: n += num.imag * 1j * d
+                    else:
+                        i = hcf(d, r)
+                        n = n * r / i + 1j * q * d / i
+                        d *= r / i
+        except AttributeError:
+            n, d = rat(num)
+        if d < 0: return -n, -d
+        return n, d
+
+    from cardan import cubic
+    def _lazy_get_roots_(self, ignored, cub=cubic, rat=ratcom, hcf=gcd):
+        if self.rank < 1: return ()
+        if self.rank < 3:
+            # for quadratics, we know how to be exact ...
+            return cub(*map(self.__numerator, (3, 2, 1, 0)))
+        elif self.rank == 3 and self.__pure_real():
+            # and, for cubics, pretty accurate:
+            rough, tol = cub(*map(self.__numerator, (3, 2, 1, 0))), 1e-9
+        else:
+            rough, tol = self.Weierstrass(1e-9), 1e-7
+
+        # Not try to refine our rough calculation; if any of them is almost an
+        # exact rational, check to see if that rational yields a factor; if so,
+        # record the rational and divide out the factor.
+        ans = []
+        # First, deal with any obvious approximations to rationals:
+        for v in rough:
+            # Try to approximate v as n / d, with n and d whole:
+            n, d = rat(v)
+            q, r = divmod(self, Polynomial(-n, d))
+            if r.rank == -1:
+                if d == 1: ans.append(n)
+                else: ans.append(n * 1. / d)
+                self = q
+
+        # If we refined any rough root, we also refined self:
+        if ans:
+            ans.sort()
+            return tuple(ans) + self.roots # recurse
+        return tuple(rough)
+    del cubic
 
     def scalarroot(val, exp, odd):
         assert val
@@ -364,38 +537,35 @@ class Polynomial (Lazy):
 
         return val ** exp
 
-    def __root(self, num, mod=None, ratio=divide, root=scalarroot):
+    def __root(self, num, mod=None, root=scalarroot, rat=ratcom, hcf=gcd):
+        """Solves self = ans ** num for a num-th root of self."""
         # TODO: support equality modulo mod
-        # solve self = ans ** num
         assert num > 0 == self.rank % num
 
-        top = self.rank / num
-        ans = Polynomial({
-            top: root(self.coefficient(self.rank), 1./num, num%2)})
+        top, res = self.rank / num, root(self.coefficient(self.rank), 1./num, num%2)
+        try:
+	    n, d = rat(res)
+            if n**num * (self.__denom or 1) != d**num * self.__numerator(self.rank):
+		raise ValueError # heigh ho, not good enough, fall back on real:
+        except ValueError: ans = Polynomial({ top: res })
+        else: ans = Polynomial({ top: n }, denominator = d)
+
         res = self - ans ** num
         while top > 0 and res:
             next = res.rank - (num-1)*ans.rank
             if next < top: top = next
             else: raise ValueError
-            ans = ans + Polynomial({
-                top: ratio(res.coefficient(res.rank),
-                           num * ans.coefficient(ans.rank)**(num-1))})
+            ans = ans + Polynomial({ top: res.coefficient(res.rank)},
+                                   denominator = num * ans.coefficient(ans.rank)**(num-1))
             res = self - ans ** num
 
         if res: raise ValueError
         return ans
-    del divide, scalarroot
-
-    def coefficient(self, key):
-        val = self.__coefs.get(key, self._zero)
-        try:
-            i = int(val)
-            if val == i: return i
-        except (TypeError, AttributeError): pass
-        return val
+    del scalarroot, ratcom
 
     def __pow__(self, other, mod=None,
-                ok=lambda i, t=(types.IntType, types.LongType): type(i) in t):
+                ok=lambda i, t=(types.IntType, types.LongType): type(i) in t,
+                rat=rationalize, hcf=gcd):
         if mod is None:
             wer, result = self, 1
             def step(b, x, r):
@@ -407,46 +577,41 @@ class Polynomial (Lazy):
                 if b: r = (r * x) % mod
                 return (x * x) % mod, r
 
-	# Require other to be natural
+        # Require other to be natural
         try:
             if other.rank < 1: other = other.coefficient(0)
             # For some bizarre reason, x**0 isn't evaluated as x.__pow__(0) !
             # When evaluating x ** 0 I find other == Polynomial(0) instead.
         except AttributeError: pass
         try:
-            if other < 0: raise TypeError
+            if other < 0:
+                if wer.rank != 0: raise TypeError
+                return Polynomial(power(wer.__denom, other),
+                                  denominator = power(wer.__numerator(0), other))
             if wer.rank < 0: return self # zero**+ve is zero
-            m = 0
             if not ok(other):
-                i = int(other)
-                if i == other: other = i
-                elif mod is None:
-                    # bad, unless we're very lucky
-                    i = other * self.rank
-                    if i != int(i): raise TypeError
-                    m = 1L
-                else: m = 1L
+                # We *may* be able to cope with a fractional power, if rational:
+                n, d = rat(other * self.rank) # ValueError if not possible
+                # The factor of self.rank is there to favour factors of it in
+                # the eventual denominator, as these are most readilly endured;
+                # now take this factor back out:
+                i = hcf(n, self.rank)
+                if d * i < 0: i = -i
+                d *= self.rank / i
+                n /= i
+                # so other == n / d, give or take rounding.
+                if d > 1: wer = wer.__root(d, mod) # ValueError if not possible
+                other = n
 
         except (AttributeError, TypeError, ValueError):
             raise unNaturalPower, other
 
-        if m:
-            # OK, we *might* be able to get away with this ...
-            if mod is None: stop = wer.rank
-            else: stop = wer.rank * mod.rank # wild guess
-            while m < stop:
-                m = 1 + m
-                i = m * other
-                if i == int(i): break
-            else: raise unNaturalPower(other)
-            # ... other is i/m; see if we have an m-th root:
-            other, wer = int(i), self.__root(m, mod) # will ValueError if not possible
-
-	while other >= 1:
+        while other >= 1:
             other, b = divmod(other, 2)
             wer, result = step(b, wer, result)
 
-	return result
+        return result
+    del rationalize, gcd
 
     # use << as repeated integration, >> as repeated differentiation
     def __lshift__(self, other):
@@ -468,7 +633,7 @@ class Polynomial (Lazy):
         bok = {}
         for k, v in self.__coefs.items():
             if k: bok[k-1] = k * v
-        return Polynomial(bok)
+        return Polynomial(bok, denominator = self.__denom)
 
     def integral(self, start=0, base=0):
         """Integrate a polynomial.
@@ -482,7 +647,7 @@ class Polynomial (Lazy):
         bok = {}
         for k, v in self.__coefs.items():
             bok[k+1] = v / (1.+k)
-        ans = Polynomial(bok)
+        ans = Polynomial(bok, denominator = self.__denom)
         # assert: ans(0) == 0
         if start: ans = ans - ans(start)
         if base: ans = ans + base
@@ -498,23 +663,25 @@ class Polynomial (Lazy):
     # *Stronger* test for equality ...
     def __eq__(self, other): return (self - other).rank < 0
 
-    def __pos__(self): return self
-    def __neg__(self): return 0 - self
-
     def __coerce__(self, other, boktyp=types.DictionaryType):
         try:
             if type(other.__coefs) == boktyp: return self, other
         except AttributeError: pass
 
-	try: return self, Polynomial(other)
-	except (unNaturalPower, invalidCoefficient): return None
+        try: return self, Polynomial(other)
+        except (unNaturalPower, invalidCoefficient): return None
 
-    # Only useful if we want polys as keys in dictionaries ...
+    # Only useful if we want polys as keys in dictionaries ... but see .assquares
     def _lazy_get__lazy_hash_(self, ignored):
-	result = 0
-	for key, val in self.__coefs.items():
-	    result = result ^ hash(key) ^ hash(val)
-	return result
+        if self.__denom is None: om = 1
+        else: om = self.__denom
+        result = 0
+        for key, val in self.__coefs.items():
+            r = val / om
+            if r * om == val: val = r
+            else: val *= 1. / om
+            result = result ^ hash(key) ^ hash(val)
+        return result
 
     # How to evaluate a polynomial ...
     # For any T supporting
@@ -522,28 +689,33 @@ class Polynomial (Lazy):
     # evaluation is ({(V: :T)}: :{polynomials})
     # but the following should also suffice ...
     def __call__(self, arg):
-	"""Evaluate a polynomial as a function
+        """Evaluate a polynomial as a function
 
-	For a polynomial, p, with coefficients in some domain V, and a value t
-	in some domain T supporting *: T-> V-> V and +: V-> V-> V, we can
-	evaluate p(t) by substituting t in as the value of p's formal
-	parameter.\n"""
+        For a polynomial, p, with coefficients in some domain V, and a value t
+        in some domain T supporting *: T-> V-> V and +: V-> V-> V, we can
+        evaluate p(t) by substituting t in as the value of p's formal
+        parameter.\n"""
 
-	keys = self._powers
+        keys = self._powers
         try: top, keys = keys[0], keys[1:]
         except IndexError: return self._zero
-        result = self.coefficient(top)
+        result, om = self.__numerator(top), self.__denom
 
-	for key in keys:	# highest first
+        for key in keys:        # highest first
             while top > key:
                 result, top = result * arg, top - 1
 
-	    result = result + self.coefficient(key)
+            result = result + self.__numerator(key)
 
-	while top > 0:
-	    result, top = result * arg, top - 1
+        while top > 0:
+            result, top = result * arg, top - 1
 
-	return result
+        if om is not None:
+            r = result / om
+            if r * om == result: return r
+            result *= 1. / om
+
+        return result
 
     # Calling one polynomial with another as input yields the composite of the two;
     # the following explores undoing that:
@@ -580,15 +752,39 @@ class Polynomial (Lazy):
         its order.  The name is slighly misguided but not unreasonable.  See
         atomic.py for a sub-class using this.\n"""
 
-        n = self.rank
-        ans = self.coefficient(n)
+        n, om = self.rank, self.__denom
+        ans = self.__numerator(n)
         while n > 0:
             ans, n = ans * n, n - 1
-            ans = ans + self.coefficient(n)
+            ans = ans + self.__numerator(n)
+
+        if om is not None:
+            r = ans / om
+            if r * om == ans: return r
+            ans *= 1. / om
 
         return ans
 
-    def _lazy_get_assquares_(self, ignored):
+    from natural import sqrt
+    def intassquare(n, s=sqrt):
+        d, m, i = n, n, s(n)
+        # invariant: d**2 = m * n and i**2 < m
+        while i > 1 < m:
+            q, r = divmod(m, i**2)
+            if r == 0:
+                m = q
+                q, r = divmod(d, i)
+                assert r == 0
+                d = q
+                if i**2 > m > 1: i = s(m)
+                else: i -= 1
+            else: i -= 1
+
+        assert d**2 == m * n
+        return d, m
+    del sqrt
+
+    def _lazy_get_assquares_(self, ignored, squint=intassquare):
         """Decompose self as a sum of scaled squares, as far as possible.
 
         Returns a twople, (bok, poly) in which: poly is zero or a polynomial of
@@ -596,32 +792,37 @@ class Polynomial (Lazy):
         bok is squared and multiplied by the corresponding value, summing the
         results and adding poly will yield self. """
 
-        bok, rem = {}, self
-        while rem.rank % 2 == 0:
-            i = rem.rank
-            k, i = rem.coefficient(i), i / 2
+        bok, rem, i = {}, self, self.rank
+        while i % 2 == 0:
+            k, i = rem.__numerator(i), i / 2
             assert k != 0
-            z = Polynomial({i: 1})
+            if k.__denom is None: d = 1
+            else:
+                d, n = squint(k.__denom) # denom * n = d**2
+                k *= n
+            z = Polynomial({i: 1}, denominator=d)
 
             while i > 0:
                 i = i - 1
                 q, ign = divmod(rem - k*z*z, 2*z*k)
                 assert q.rank <= i
-                z = z + Polynomial({i: q.coefficient(i)})
+                z = z + Polynomial({i: q.__numerator(i)}, denominator=q.__denom)
 
             bok[z], rem = k, rem - k * z * z
-            #print bok, rem
+            i = rem.rank
 
         assert self == rem + reduce(lambda y, (x, k): y + x*x*k, bok.items(), 0)
         return bok, rem
 
+    del intassquare
+
     def __pure_real(self):
         for v in self.__coefs.values():
             try:
-                if v.imag: return None
+                if v.imag: return False
             except AttributeError: pass
 
-        return 1
+        return True
 
     def _lazy_get_isreal_(self, ignored): return self.__pure_real()
     def _lazy_get__zero_(self, ignored):
@@ -697,66 +898,10 @@ class Polynomial (Lazy):
 
         return tuple(r)
 
-    def rationalize(x, abort=5, tol=1e-6): # tool for .roots; tune via abort and tol
-	seq, r = [], x
-	while len(seq) < abort:
-	    q, r = divmod(r, 1)
-	    if r > .5: q, r = q+1, r-1
-	    assert q == int(q)
-	    seq.append(int(q))
-	    if abs(r) < tol: break
-	    r = 1. / r
-	else:
-	    raise ValueError('Hard to approximate', x)
-
-	# x == seq[0] + 1/(seq[1] + 1/(...))
-	n, d = seq.pop(), 1
-	while seq: n, d = d + n * seq.pop(), n
-	return n, d
-
-    from cardan import cubic
-    from natural import gcd
-    def _lazy_get_roots_(self, ignored, cub=cubic, rat=rationalize, hcf=gcd):
-        if self.rank < 1: return ()
-        if self.rank < 3 or (self.rank == 3 and self.__pure_real()):
-            # for cubics, we know how to be exact ...
-            return cub(*map(self.coefficient, (3, 2, 1, 0)))
-
-        # Otherwise, be as exact as we know how to be:
-        rough, ans = self.Weierstrass(1e-9), []
-	# First, deal with any obvious approximations to rationals:
-	for v in rough:
-	    try: im, re = v.imag, v.real
-	    except AttributeError:
-		try: n, d = rat(v)
-		except ValueError: continue
-	    else:
-		try:
-		    n, d = rat(re)
-		    q, r = rat(im) # temp
-		except ValueError: continue
-		if q:
-		    i = hcf(d, r)
-		    n = n * r / i + 1j * q * d / i
-		    d *= r / i
-
-	    # So v is approximately n / d, with n whole:
-	    if d < 0: n, d = -n, -d
-	    q, r = divmod(self, Polynomial(-n, d))
-	    if r.rank == -1:
-		if d == 1: ans.append(n)
-		else: ans.append(n * 1. / d)
-		self = q
-
-	# If we refined any rough root, we also refined self:
-	if ans:
-	    ans.sort()
-	    return tuple(ans) + self.roots # recurse
-	return tuple(rough)
-    del cubic, rationalize, gcd
-
     def _lazy_get__bigcoef_(self, ignored):
-        return max(map(abs, self.__coefs.values()))
+        if self.__denom is None: scale = 1
+        else: scale = 1. / abs(self.__denom)
+        return max(map(abs, self.__coefs.values())) * scale
 
     def __istiny(self, scale=1, maxrank=0):
         if self.rank > maxrank: return None
@@ -766,13 +911,14 @@ class Polynomial (Lazy):
     def _lazy_get_factors_(self, ignored):
         ans = map(lambda x: Polynomial(-x, 1), self.roots)
         lead = self.__coefs[self.rank]
+        if self.__denom is not None: lead *= 1. / self.__denom
         if lead != 1: ans.append(lead)
         return ans
 
     def resultant(self, other):
-	"""See .Sylvester(other); this is its determinant.\n"""
+        """See .Sylvester(other); this is its determinant.\n"""
         return reduce(lambda x, y: x * y, map(other, self.roots),
-                      self.__coefs[self.rank] ** other.rank)
+                      self.coefficient(self.rank) ** other.rank)
 
     def __Sylvester(self, i):
         ans = []
@@ -785,11 +931,11 @@ class Polynomial (Lazy):
         return tuple(ans)
 
     def Sylvester(self, other):
-	"""The Sylvester matrix associated with self and other.
+        """The Sylvester matrix associated with self and other.
 
-	See http://en.wikipedia.org/wiki/Sylvester_matrix - the metrix is
-	singular if the two polynomials have a non-constant common factor; its
-	determinant is self.resultant(other).\n"""
+        See http://en.wikipedia.org/wiki/Sylvester_matrix - the metrix is
+        singular if the two polynomials have a non-constant common factor; its
+        determinant is self.resultant(other).\n"""
 
         return self.__Sylvester(other.rank) + other.__Sylvester(self.rank)
 
@@ -821,84 +967,85 @@ class Polynomial (Lazy):
 
     @staticmethod
     def Chose(gap):
-	"""Returns (lambda x: x!/(x-gap)!, gap!)
+        """Returns (lambda x: x!/(x-gap)!, gap!)
 
-	The return is a pair (n, d) representing the polynomial n/d; d is a
-	natural number and n(i) is a multiple of it whenever i is natural,
-	provided the input to this function is natural.
+        The return is a pair (n, d) representing the polynomial n/d; d is a
+        natural number and n(i) is a multiple of it whenever i is natural,
+        provided the input to this function is natural.
 
-	Single argument, gap, should be a natural number, although other numeric
-	values are handled gracefully: if negative, the constant polynomial
-	lambda x: 1 is returned, paired with denominator 1, as for Chose(0);
-	otherwise, the resulting polynomial has gap.(gap-1)... as factors of its
-	denominator, ending with the fractional part of gap
-	(i.e. gap-floor(gap)) and, as numerator factors, x+1 minus each of
-	these.
+        Single argument, gap, should be a natural number, although other numeric
+        values are handled gracefully: if negative, the constant polynomial
+        lambda x: 1 is returned, paired with denominator 1, as for Chose(0);
+        otherwise, the resulting polynomial has gap.(gap-1)... as factors of its
+        denominator, ending with the fractional part of gap
+        (i.e. gap-floor(gap)) and, as numerator factors, x+1 minus each of
+        these.
 
-	Note that, when gap is natural, if C(gap) is a rounding-error-less form
-	of (lambda (n, d): n*1./d)(Chose(gap)), then sum(map(C(gap), range(n)))
-	== C(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html - C
-	is formally the transpose of Pascal.chose in the sense Pascal.chose(n,
-	g) = C(g)(n), so Chose(gap)[0] maps every natural to a multiple of
-	Chose(gap)[1], when gap is natural.\n"""
+        Note that, when gap is natural, if C(gap) is a rounding-error-less form
+        of (lambda (n, d): n*1./d)(Chose(gap)), then sum(map(C(gap), range(n)))
+        == C(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html - C
+        is formally the transpose of Pascal.chose in the sense Pascal.chose(n,
+        g) = C(g)(n), so Chose(gap)[0] maps every natural to a multiple of
+        Chose(gap)[1], when gap is natural.\n"""
 
-	num, den, x = Polynomial(1), 1, Polynomial(0, 1)
-	while gap > 0:
-	    den *= gap
-	    gap -= 1
-	    num *= x - gap
+        num, den, x = Polynomial(1), 1, Polynomial(0, 1)
+        while gap > 0:
+            den *= gap
+            gap -= 1
+            num *= x - gap
 
-	assert num.__coefs[num.rank] == 1
-	return num, den
+        assert num.__coefs[num.rank] == 1
+        return Polynomial(num.__coefs, denominator=den)
 
     @staticmethod
     def PowerSum(k):
-	"""That p for which, for natural n, p(n) = sum(map(lambda i**k, range(n))).
+        """That p for which, for natural n, p(n) = sum(map(lambda i**k, range(n))).
 
-	Single input, k, must be a natural number.  Returns a twople num, den in
-	which num is a polynomial with integer coefficients and den is a
-	natural; for every natural i, num(i) shall be a multiple of den.  This
-	twople is to be understood as representing the polynomial num/den (but
-	without the rounding errors ...)"""
+        Single input, k, must be a natural number.  Returns a twople num, den in
+        which num is a polynomial with integer coefficients and den is a
+        natural; for every natural i, num(i) shall be a multiple of den.  This
+        twople is to be understood as representing the polynomial num/den (but
+        without the rounding errors ...)"""
 
-	cache = Polynomial.__power_sum
-	while len(cache) <= k:
-	    if cache:
-		# Compute cache[len(cache)];
-		tum, ten = Polynomial.Chose(len(cache))
-		i, j = tum.rank, 1 + len(cache)
-		# the lambda i: i**len(cache) we want to sum is leading term in tum(i);
-		num, den = Polynomial.Chose(j)
-		# while num(n) is j.sum(map(tum, range(n))) since:
-		assert den == ten * j
-		# Now, from num, subtract terms matching tum's non-leading ones:
-		while i > 0:
-		    i -= 1
-		    try: c = tum.__coefs[i]
-		    except KeyError: pass # implicit zero
-		    else:
-			assert c, 'Asking for tum.rank should have purged its zero .__coefs'
-			p, d = cache[i]
-			num, den = num * d, den * d
-			num -= p * c * j
-			j *= d
+        cache = Polynomial.__power_sum
+        while len(cache) <= k:
+            if cache:
+                # Compute cache[len(cache)];
+                j = 1 + len(cache)
+                term = Polynomial.Chose(j)
+                num, den = Polynomial(term.__coefs), term.__denom
+                term = Polynomial.Chose(len(cache))
+                tum, ten = term.__coefs, term.__denom
+                i = max(tum.keys())
+                # the lambda i: i**len(cache) we want to sum is leading term in term(i),
+                # while num(n) is j.sum(map(term, range(n))) since:
+                assert den == ten * j
+                # Now, from num, subtract terms matching term's non-leading ones:
+                while i > 0:
+                    i -= 1
+                    try: c = tum[i]
+                    except KeyError: pass # implicit zero
+                    else:
+                        assert c, 'Zero entry in .__coefs'
+                        p, d = cache[i]
+                        num, den = num * d, den * d
+                        num -= p * c * j
+                        j *= d
 
-		num.rank # evaluated to flush zero .__coefs
-		d = j # compute hcf of j and num.__coefs.values():
-		for v in num.__coefs.values():
-		    if v < 0: v = -v
-		    if v > d: d, v = v, d
-		    while v: v, d = v % d, v
+                d = j # compute hcf of j and num.__coefs.values():
+                for v in num.__coefs.values():
+                    assert not(v == 0)
+                    if v < 0: v = -v
+                    if v > d: d, v = v, d
+                    while v: v, d = v % d, v
 
-		num, j = num / d, j / d
-		assert j == int(j)
-		cache.append((num, int(j)))
+                num, j = num / d, j / d
+                assert j == int(j)
+                cache.append((num, int(j)))
 
-	    else: cache.append((Polynomial(0, 1), 1))
+            else: cache.append((Polynomial(0, 1), 1))
 
-	return cache[k]
-
+        return Polynomial(cache[k][0].__coefs, denominator=cache[k][1])
     __power_sum = []
-
 
 del types, Lazy
