@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.30 2009-03-05 08:42:05 eddy Exp $
+$Id: polynomial.py,v 1.31 2009-03-05 08:57:16 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -455,31 +455,32 @@ class Polynomial (Lazy):
         returned.  Otherwise, a ValueError is raised.\n"""
 
         try:
-            if num.imag == 0:
-                num = num.real
-                raise AttributeError # to handle as the simple real it is
-	    # Note, however, that this only dealt with *exact* real; rat may
-	    # approximate num.imag with zero all the same.
-            if num.real == 0:
-                n, d = rat(num.imag)
-		if n: n *= 1j
-            else:
-                try: n, d = rat(num.real)
-                except ValueError:
-                    n, d = rat(num.imag)
-		    if n: n *= 1j
-                    n += num.real * d
-                else:
-                    try: q, r = rat(num.imag)
-                    except ValueError: n += num.imag * 1j * d
-                    else:
-			if q:
-			    i = hcf(d, r)
-			    n = n * r / i + 1j * q * d / i
-			    d *= r / i
+	    try: q, r = rat(num.imag)
+	    except ValueError:
+		if num.real == 0: raise
+		q = 0 # sentinel
+	    else:
+		if q == 0:
+		    num = num.real
+		    raise AttributeError # to handle as the simple real it is
+		q *= 1j
+		if num.real == 0: return q, r
+	    # so now, if q == 0, r is unset; otherwise q/r approximates 1j * num.imag
+
+	    try: n, d = rat(num.real)
+	    except ValueError:
+		if q == 0: raise # neither part is well-approximated
+		n, d = num.real * r + q, r
+	    else:
+		if q == 0: n += 1j * num.imag * d
+		else:
+		    i = hcf(d, r)
+		    n = n * r / i + 1j * q * d / i
+		    d *= r / i
         except AttributeError:
             n, d = rat(num)
-        if d < 0: return -n, -d
+
+	if d < 0: return -n, -d
         return n, d
 
     from cardan import cubic
