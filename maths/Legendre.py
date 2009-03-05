@@ -2,7 +2,7 @@
 
 See http://www.chaos.org.uk/~eddy/math/smooth/harmony.html
 
-$Id: Legendre.py,v 1.4 2008-05-11 16:21:52 eddy Exp $
+$Id: Legendre.py,v 1.5 2009-03-05 07:17:45 eddy Exp $
 """
 from polynomial import Polynomial
 
@@ -35,7 +35,7 @@ class Legendre (Polynomial):
     del hcf, factorial
 
     # The factor of sqrt(2.pi) actually belongs to the longitude.
-    def _lazy_get_scale_(self, ig, cosp=Polynomial(1,0,-1)):
+    def _lazy_get_scale_(self, ig, cosp=Polynomial((1,0,-1))):
         return (self**2 * cosp**self.__q).integral(-1, 0)(1) ** .5
 
 del Polynomial

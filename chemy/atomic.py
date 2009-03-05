@@ -1,6 +1,6 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.6 2008-09-14 15:12:50 eddy Exp $
+$Id: atomic.py,v 1.7 2009-03-05 07:16:32 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
@@ -26,7 +26,7 @@ class Laguerre (Polynomial):
 
     del hcf, factorial
 
-    def _lazy_get_scale_(self, ig, linear=Polynomial(0,1)):
+    def _lazy_get_scale_(self, ig, linear=Polynomial((0,1))):
         return ((self * linear)**2).Gamma ** .5
 
 del Polynomial
