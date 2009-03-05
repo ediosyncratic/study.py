@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.28 2009-03-05 08:01:54 eddy Exp $
+$Id: polynomial.py,v 1.29 2009-03-05 08:16:57 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -67,7 +67,7 @@ class Polynomial (Lazy):
 	indices as keys and entries as values, so (a, b, c) is construed as {0:
 	a, 1: b, 2: c}, so specifies a quadratic lambda x: a +b*x +c*x**2; the
 	sequence form is particularly apt for low rank.  Any other value for
-	coeffs shall provoke an exception.
+	coeffs shall provoke a TypeError.
 
 	Optional arguments (with defaults):
 	  denominator (None): specifies an over-all scaling
@@ -108,7 +108,7 @@ class Polynomial (Lazy):
         except (AttributeError, TypeError, KeyError): # non-sequence arg
             try: coeffs.items, coeffs.get(0, None) # is it a mapping ?
             except AttributeError:
-		raise ValueError('First argument must be mapping or sequence', coeffs)
+		raise TypeError('First argument must be mapping or sequence', coeffs)
             else: self.__frombok(coeffs) # mapping
 
         # self.__coefs and self.__denom should now be construed as immutable.
@@ -958,26 +958,26 @@ class Polynomial (Lazy):
 
     @staticmethod
     def Chose(gap):
-        """Returns (lambda x: x!/(x-gap)!, gap!)
+        """Returns lambda x: x!/(x-gap)!/gap!
 
-        The return is a pair (n, d) representing the polynomial n/d; d is a
-        natural number and n(i) is a multiple of it whenever i is natural,
-        provided the input to this function is natural.
+        The return is a polynomial, using gap! as denominator so as to keep all
+	coefficients whole, so that evaluation on any natural x shall return a
+	natural, as it should - Chose is formally the transpose of Pascal.chose
+	(q.v.) in the sense Pascal.chose(n, g) = Chose(g)(n), so Chose(gap) maps
+	every natural to a natural.
 
         Single argument, gap, should be a natural number, although other numeric
         values are handled gracefully: if negative, the constant polynomial
-        lambda x: 1 is returned, paired with denominator 1, as for Chose(0);
-        otherwise, the resulting polynomial has gap.(gap-1)... as factors of its
-        denominator, ending with the fractional part of gap
-        (i.e. gap-floor(gap)) and, as numerator factors, x+1 minus each of
-        these.
+        lambda x: 1 is returned, as for Chose(0); otherwise, the resulting
+        polynomial has gap.(gap-1)... as factors of its denominator, ending with
+        the fractional part of gap (i.e. gap-floor(gap)) and, as numerator
+        factors, x+1 minus each of these.
 
-        Note that, when gap is natural, if C(gap) is a rounding-error-less form
-        of (lambda (n, d): n*1./d)(Chose(gap)), then sum(map(C(gap), range(n)))
-        == C(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html - C
-        is formally the transpose of Pascal.chose in the sense Pascal.chose(n,
-        g) = C(g)(n), so Chose(gap)[0] maps every natural to a multiple of
-        Chose(gap)[1], when gap is natural.\n"""
+	For the closely-related lambda x: (x+gap)!/x!/gap!, you can use
+	Polynomial.Chose(gap)(Polynomial((gap, 1)))
+
+        Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
+        Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html\n"""
 
         num, den, x = Polynomial((1,)), 1, Polynomial((0, 1))
         while gap > 0:
@@ -990,13 +990,11 @@ class Polynomial (Lazy):
 
     @staticmethod
     def PowerSum(k):
-        """That p for which, for natural n, p(n) = sum(map(lambda i**k, range(n))).
+        """That p for which, for natural n, p(n) = sum(map(lambda i: i**k, range(n))).
 
-        Single input, k, must be a natural number.  Returns a twople num, den in
-        which num is a polynomial with integer coefficients and den is a
-        natural; for every natural i, num(i) shall be a multiple of den.  This
-        twople is to be understood as representing the polynomial num/den (but
-        without the rounding errors ...)"""
+        Single input, k, must be a natural number.  Returns a Polynomial p; for
+        every natural i, num(i) shall be a natural; i.e. p stores its
+        coefficients as whole numbers, along with a suitable denominator.\n"""
 
         cache = Polynomial.__power_sum
         while len(cache) <= k:
