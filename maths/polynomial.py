@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.31 2009-03-05 08:57:16 eddy Exp $
+$Id: polynomial.py,v 1.32 2009-03-05 22:06:36 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -420,7 +420,6 @@ class Polynomial (Lazy):
             if om is not None: o *= om
             return Polynomial(bok, o), Polynomial((0,))
 
-        if om is not None: o *= om
         q, r = Polynomial((self._zero,)), self
         got = self.rank
 
@@ -430,9 +429,9 @@ class Polynomial (Lazy):
         while got >= top:
             m = r.__numerator(got)
             while m: # take several slices off, in case of arithmetic error ...
-                scale = Polynomial({ got - top: m * den }, o)
+                scale = Polynomial({ got - top: m * den }, o * (om or 1))
                 q, r = q + scale, r - scale * other
-                n = r.__numerator(got)
+                n, om = r.__numerator(got), r.__denom
                 if abs(n) * 10 > abs(m): # drowning in rounding errors :-(
                     print "Wiping %g x**%d in Polynomial.__divmod__" % (
                         r.__coefs[got], got )
@@ -509,6 +508,8 @@ class Polynomial (Lazy):
                 if d == 1: ans.append(n)
                 else: ans.append(n * 1. / d)
                 self = q
+
+	# TODO: see if we have any conjugate pairs we can resolve ?
 
         # If we refined any rough root, we also refined self:
         if ans:
