@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.26 2009-03-04 09:29:18 eddy Exp $
+$Id: polynomial.py,v 1.27 2009-03-05 07:14:07 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -790,15 +790,20 @@ class Polynomial (Lazy):
         Returns a twople, (bok, poly) in which: poly is zero or a polynomial of
         odd rank; bok is a mapping from polynomials to scalars; if each key of
         bok is squared and multiplied by the corresponding value, summing the
-        results and adding poly will yield self. """
+        results and adding poly will yield self.
+
+	Unfortunately, by the experiment of adding a sum of multiples of squares
+	of polynomials and asking the result for its .assquares, I find the this
+	algorithm is apt to leave a linear residue when an exact decomposition
+	into squares is actually possible.\n"""
 
         bok, rem, i = {}, self, self.rank
         while i % 2 == 0:
             k, i = rem.__numerator(i), i / 2
             assert k != 0
-            if k.__denom is None: d = 1
+            if rem.__denom is None: d = 1
             else:
-                d, n = squint(k.__denom) # denom * n = d**2
+                d, n = squint(rem.__denom) # denom * n = d**2
                 k *= n
             z = Polynomial({i: 1}, denominator=d)
 
