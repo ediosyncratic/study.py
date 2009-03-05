@@ -1,4 +1,6 @@
 """Polynomial interpolation.
+
+$Id: interpolate.py,v 1.2 2009-03-05 07:19:47 eddy Exp $
 """
 
 from polynomial import Polynomial
@@ -29,6 +31,6 @@ def interpolator(data):
             assert len(coeffs) == n + 1
             coeffs, scale = coeffs[:n], coeffs[n]
             if scale != 1:
-                return Polynomial(coeffs) * 1. / scale
+                return Polynomial(coeffs, denominator=scale)
 
     return Polynomial(coeffs)
