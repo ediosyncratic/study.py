@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.32 2009-03-05 22:06:36 eddy Exp $
+$Id: polynomial.py,v 1.33 2009-03-05 22:46:37 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -402,23 +402,19 @@ class Polynomial (Lazy):
 
         This depends on our coefficients forming a field.
         """
-        om = self.__denom
         try: top, den = other.rank, other.__denom
-        except AttributeError: other, top, den = Polynomial({0: other}), 0, 1
+        except AttributeError:
+	    if other: other, top, den = Polynomial({0: other}), 0, 1
+	    else: raise ZeroDivisionError, other
         else:
-            if top < 0: raise ZeroDivisionError
+            if top < 0: raise ZeroDivisionError, other
             if den is None: den = 1
-            elif om is not None:
-                o = hcf(om, den)
-                om, den = om / o, den / o
 
         o = other.__numerator(top)
         if top == 0:
-            bok = {}
-            for k, v in self.__coefs.items():
-                bok[k] = den * v
-            if om is not None: o *= om
-            return Polynomial(bok, o), Polynomial((0,))
+	    bok = {}
+            for k, v in self.__coefs.items(): bok[k] = den * v
+            return Polynomial(bok, o * (self.__denom or 1)), Polynomial((0,))
 
         q, r = Polynomial((self._zero,)), self
         got = self.rank
@@ -427,7 +423,7 @@ class Polynomial (Lazy):
         # shifting other*x**(got-top) times a scalar from r to q*other; thus, as
         # rank r is finite, it must eventually descend to 0.
         while got >= top:
-            m = r.__numerator(got)
+            m, om = r.__numerator(got), r.__denom
             while m: # take several slices off, in case of arithmetic error ...
                 scale = Polynomial({ got - top: m * den }, o * (om or 1))
                 q, r = q + scale, r - scale * other
