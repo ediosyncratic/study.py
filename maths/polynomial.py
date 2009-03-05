@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.29 2009-03-05 08:16:57 eddy Exp $
+$Id: polynomial.py,v 1.30 2009-03-05 08:42:05 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -446,7 +446,7 @@ class Polynomial (Lazy):
         return q, r
 
     from ratio import rationalize
-    def ratcom(num, rat=rationalize):
+    def ratcom(num, rat=rationalize, hcf=gcd):
         """Expresses a (possibly complex) number in rational form.
 
         Single argument is the number.  If it can be approximated by n / d, with
@@ -458,28 +458,32 @@ class Polynomial (Lazy):
             if num.imag == 0:
                 num = num.real
                 raise AttributeError # to handle as the simple real it is
+	    # Note, however, that this only dealt with *exact* real; rat may
+	    # approximate num.imag with zero all the same.
             if num.real == 0:
                 n, d = rat(num.imag)
-                n *= 1j
+		if n: n *= 1j
             else:
                 try: n, d = rat(num.real)
                 except ValueError:
                     n, d = rat(num.imag)
-                    n = 1j * n + num.real * d
+		    if n: n *= 1j
+                    n += num.real * d
                 else:
                     try: q, r = rat(num.imag)
                     except ValueError: n += num.imag * 1j * d
                     else:
-                        i = hcf(d, r)
-                        n = n * r / i + 1j * q * d / i
-                        d *= r / i
+			if q:
+			    i = hcf(d, r)
+			    n = n * r / i + 1j * q * d / i
+			    d *= r / i
         except AttributeError:
             n, d = rat(num)
         if d < 0: return -n, -d
         return n, d
 
     from cardan import cubic
-    def _lazy_get_roots_(self, ignored, cub=cubic, rat=ratcom, hcf=gcd):
+    def _lazy_get_roots_(self, ignored, cub=cubic, rat=ratcom):
         if self.rank < 1: return ()
         if self.rank < 3:
             # for quadratics, we know how to be exact ...
@@ -497,7 +501,8 @@ class Polynomial (Lazy):
         # First, deal with any obvious approximations to rationals:
         for v in rough:
             # Try to approximate v as n / d, with n and d whole:
-            n, d = rat(v)
+	    try: n, d = rat(v)
+	    except ValueError: continue # give up on this one
             q, r = divmod(self, Polynomial((-n, d)))
             if r.rank == -1:
                 if d == 1: ans.append(n)
@@ -506,7 +511,9 @@ class Polynomial (Lazy):
 
         # If we refined any rough root, we also refined self:
         if ans:
-            ans.sort()
+	    # sort - but complex has no order, so order by real part; but, to be
+	    # able to select .real, we have to treat all entries as complex:
+	    ans.sort(lambda x, y: cmp((x + 0j).real, (y + 0j).real))
             return tuple(ans) + self.roots # recurse
         return tuple(rough)
     del cubic
@@ -521,7 +528,7 @@ class Polynomial (Lazy):
 
         return val ** exp
 
-    def __root(self, num, mod=None, root=scalarroot, rat=ratcom, hcf=gcd):
+    def __root(self, num, mod=None, root=scalarroot, rat=ratcom):
         """Solves self = ans ** num for a num-th root of self."""
         # TODO: support equality modulo mod
         assert num > 0 == self.rank % num
