@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.34 2009-03-06 05:52:00 eddy Exp $
+$Id: polynomial.py,v 1.35 2009-03-06 05:52:47 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -651,7 +651,7 @@ class Polynomial (Lazy):
 	This is the discrete equivalent of integral.  Also accepts optional
 	arguments, start and base, as for integral(): each defaults to zero and,
 	if f is the result without them, when they're specified the result is f
-	- f(start) + base.  See delta() for the inverse operation.\n"""
+	- f(start) + base.  See delta for the inverse operation.\n"""
 
 	ans, om = Polynomial((self._zero,)), self.__denom
 	for k, v in self.__coefs.items():
