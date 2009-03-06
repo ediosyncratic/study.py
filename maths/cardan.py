@@ -2,7 +2,7 @@
 
 See also HAKMEM note on cubics in search.py
 
-$Id: cardan.py,v 1.9 2009-03-06 06:31:57 eddy Exp $
+$Id: cardan.py,v 1.10 2009-03-06 06:45:33 eddy Exp $
 """
 from math import cos, acos, pi
 
@@ -82,11 +82,20 @@ def quadratic(square, linear, constant, realonly=None):
     mid, gap = -linear * .5 / square, .5 * disc / square
     return mid + gap, mid - gap
 
-def cubic(cube, square, linear, constant, realonly=None):
+def cubic(cube, square, linear, constant, realonly=False):
+    """Returns a tuple of roots of the specified cubic polynomial.
+
+    Required arguments cube, square, linear and constant give the coefficients
+    of the eponymous powers.  Optional argument, realonly, controls whether
+    complex roots should be included (at least when all coefficients are real;
+    it's possible this implementation ignores it when some are complex): its
+    default is False, allowing complex roots; setting it True restricts results
+    to complex roots.\n"""
+
     if not cube:
         # deal with degenerate cases
         if not square:
-            try: return (-constant * 1. / linear)
+            try: return -constant * 1. / linear,
             except ZeroDivisionError:
                 raise ValueError, 'Constant cubic has no roots (or everything)'
         try: return quadratic(square, linear, constant, realonly)
