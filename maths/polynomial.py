@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.33 2009-03-05 22:46:37 eddy Exp $
+$Id: polynomial.py,v 1.34 2009-03-06 05:52:00 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -644,6 +644,31 @@ class Polynomial (Lazy):
 
     # assert: self.integral().derivative == self
     # assert: self.derivative.integral(x, self(x)) == self, for any x
+
+    def sum(self, start=0, base=0):
+	"""Returns lambda n: sum(map(self, range(n)))
+
+	This is the discrete equivalent of integral.  Also accepts optional
+	arguments, start and base, as for integral(): each defaults to zero and,
+	if f is the result without them, when they're specified the result is f
+	- f(start) + base.  See delta() for the inverse operation.\n"""
+
+	ans, om = Polynomial((self._zero,)), self.__denom
+	for k, v in self.__coefs.items():
+	    ans += v * Polynomial.PowerSum(k)
+	if om is not None: ans /= om
+	if start: ans -= ans(start)
+	if base: ans += base
+	return ans
+
+    def _lazy_get_delta_(self, ignored):
+	"""Returns lambda n: self(1+n) - self(n)
+
+	This is the discrete equivalent of differentiation, the taking of
+	'finite differences'.  Note that, for any s and b:
+	self.sum(s, b).delta == self == self.delta.sum(0, self(0)).\n"""
+	n = Polynomial((0, 1))
+	return self(1+n) - self(n)
 
     # non-zero: safe and unambiguous
     def __nonzero__(self): return self.rank >= 0
