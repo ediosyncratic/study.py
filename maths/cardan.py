@@ -1,10 +1,8 @@
 """Cardan's solution of the cubic.
 
 See also HAKMEM note on cubics in search.py
-"""
 
-_rcs_id_ = """
-$Id: cardan.py,v 1.8 2007-03-08 23:25:18 eddy Exp $
+$Id: cardan.py,v 1.9 2009-03-06 06:31:57 eddy Exp $
 """
 from math import cos, acos, pi
 
@@ -119,29 +117,3 @@ def cardan(u, s, i, c, realonly=1, tol=1e-14):
             assert abs(v) < tol, '%s -> %s' % (x, v)
 
     return ans
-
-_rcs_log_ = """
-$Log: cardan.py,v $
-Revision 1.8  2007-03-08 23:25:18  eddy
-comment on HAKMEM
-
-Revision 1.7  2004/04/18 11:38:41  eddy
-added a comment assertion
-
-Revision 1.6  2003/07/26 22:34:05  eddy
-Separated out degenerate cases and added support for finding complex roots.
-
-Revision 1.5  2003/07/26 15:20:07  eddy
-missed out the factor of 1/2 in the quadratic special-case !
-
-Revision 1.4  2003/07/26 13:19:47  eddy
-Halved F, introduced cuberoot() to deal with a gotcha.
-
-Revision 1.3  2003/07/26 12:49:03  eddy
-Made assertion's tolerance an optional parameter.
-
-Revision 1.2  2003/07/26 12:46:24  eddy
-Refined the assertion.
-
-Initial Revision 1.1  2003/07/26 12:37:25  eddy
-"""
