@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.35 2009-03-06 05:52:47 eddy Exp $
+$Id: polynomial.py,v 1.36 2009-03-07 14:43:39 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -1027,19 +1027,22 @@ class Polynomial (Lazy):
         coefficients as whole numbers, along with a suitable denominator.\n"""
 
         cache = Polynomial.__power_sum
+	if __debug__: check = lambda n, j, z=Polynomial((0, 1)): n(1+z) -n(z) -z**j
         while len(cache) <= k:
             if cache:
                 # Compute cache[len(cache)];
-                j = 1 + len(cache)
+		i = len(cache)
+		j = 1 + i
                 term = Polynomial.Chose(j)
-                num, den = Polynomial(term.__coefs), term.__denom
-                term = Polynomial.Chose(len(cache))
+		assert term.__coefs[j] == 1
+                num, den = Polynomial(term.__coefs, j), term.__denom
+                term = Polynomial.Chose(i)
                 tum, ten = term.__coefs, term.__denom
-                i = max(tum.keys())
-                # the lambda i: i**len(cache) we want to sum is leading term in term(i),
-                # while num(n) is j.sum(map(term, range(n))) since:
+		assert i == max(tum.keys()) and tum[i] == 1
+                # the lambda h: h**len(cache) we want to sum is the leading term
+                # in term(h), while num(n) is sum(map(term, range(n))) since:
                 assert den == ten * j
-                # Now, from num, subtract terms matching term's non-leading ones:
+                # Now, from num, subtract contributions from term's non-leading powers:
                 while i > 0:
                     i -= 1
                     try: c = tum[i]
@@ -1047,20 +1050,11 @@ class Polynomial (Lazy):
                     else:
                         assert c, 'Zero entry in .__coefs'
                         p, d = cache[i]
-                        num, den = num * d, den * d
-                        num -= p * c * j
-                        j *= d
+			num -= c * p / d
 
-                d = j # compute hcf of j and num.__coefs.values():
-                for v in num.__coefs.values():
-                    assert not(v == 0)
-                    if v < 0: v = -v
-                    if v > d: d, v = v, d
-                    while v: v, d = v % d, v
-
-                num, j = num / d, j / d
-                assert j == int(j)
-                cache.append((num, int(j)))
+		assert check(num, len(cache)).rank == -1 and num(0) == 0, (len(cache), num)
+		# i.e. num(1+n)-num(n) == n**j for all n
+                cache.append((Polynomial(num.__coefs), num.__denom))
 
             else: cache.append((Polynomial((0, 1)), 1))
 
