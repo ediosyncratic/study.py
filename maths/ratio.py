@@ -4,14 +4,22 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: ratio.py,v 1.10 2009-03-08 09:41:49 eddy Exp $
+$Id: ratio.py,v 1.11 2009-03-08 09:49:12 eddy Exp $
 """
 
 def intsplitfrac(val):
-    try: res = val.asint()
-    except AttributeError: res = int(val)
-    while val > res + 1: res = 1 + res
-    while val < res: res = res - 1
+    try:
+	if val.imag == 0:
+	    val = val.real
+	    raise AttributeError
+	v = val.real
+    except AttributeError: v = val
+
+    try: res = v.asint()
+    except AttributeError: res = int(v)
+    while v > res + 1: res = 1 + res
+    while v < res: res = res - 1
+
     return res, val - res
 
 from natural import hcf
@@ -19,13 +27,13 @@ from natural import hcf
 class Rational:
     def __init__(self, numer, denom=1):
 	try: val = intsplitfrac(denom)[0]
-	except: pass
+	except TypeError: pass
 	else:
             if val == denom: denom = val
 	if denom == 0: raise ZeroDivisionError(numer, denom)
 
         try: val = intsplitfrac(numer)[0]
-	except: pass
+	except TypeError: pass
 	else:
             if val == numer: numer = val
 
