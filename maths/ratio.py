@@ -4,25 +4,15 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: ratio.py,v 1.9 2009-03-03 09:21:50 eddy Exp $
+$Id: ratio.py,v 1.10 2009-03-08 09:41:49 eddy Exp $
 """
 
-def asint(val):
-    try: return val.asint()
-    except AttributeError: pass
-
-    try: return int(val)
-    except OverflowError: pass
-
-    return long(val)
-
-def intsplitfrac(val, int=asint):
-    res = int(val)
+def intsplitfrac(val):
+    try: res = val.asint()
+    except AttributeError: res = int(val)
     while val > res + 1: res = 1 + res
     while val < res: res = res - 1
     return res, val - res
-
-del asint
 
 from natural import hcf
 
