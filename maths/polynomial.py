@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.36 2009-03-07 14:43:39 eddy Exp $
+$Id: polynomial.py,v 1.37 2009-03-09 04:56:26 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -440,7 +440,7 @@ class Polynomial (Lazy):
         # assert r == self - q * other # tends to fail on small errors
         return q, r
 
-    from ratio import rationalize
+    from continued import rationalize
     def ratcom(num, rat=rationalize, hcf=gcd):
         """Expresses a (possibly complex) number in rational form.
 
