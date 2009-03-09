@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.1 2009-03-09 04:55:17 eddy Exp $
+$Id: continued.py,v 1.2 2009-03-09 05:20:56 eddy Exp $
 """
 
 def real_continued(val):
@@ -279,75 +279,55 @@ class Continued (object):
 	    self.__n = ds = self.__d
 	    self.__d = map(lambda n, d, c=p: n -c*d, ns, ds)
 
-	def stir(p, b, cs):
-	    """Coefficient update for __chomp(), q.v.
+	def stir(p, bit, cs):
+	    """Coefficient update for X[b] with 1<<b == bit
 
-	    Consider a pair i, j of indices into cs with j = i|(1<<b) and i =
-	    j&~(1<<b); the term in P(X, cs) with cs[j] as coefficient has X[b]
-	    as a factor along with all the same X-factors as the cs[i] term,
-	    which doesn't have X[b] as a factor.  Aside from these shared
-	    factors, then, these two terms are cs[j]*X[b] +cs[i] and we replace
-	    X[b] by p+1/X[b] then multiply every term (both in numerator and in
+	    Consider a pair i, j of indices into cs with j = i|bit and i =
+	    j&~bit; the term in P(X, cs) with cs[j] as coefficient has X[b] as a
+	    factor along with all the same X-factors as the cs[i] term, which
+	    doesn't have X[b] as a factor.  Aside from these shared factors,
+	    then, these two terms are cs[j]*X[b] +cs[i] and we replace X[b] by
+	    p+1/X[b] then multiply every term (both in numerator and in
 	    denominator, so that it cancels) by X[b].  This turns our pair of
 	    terms into cs[j]*(p*X[b] +1) +cs[i]*X[b] = (cs[j]*p +cs[i])*X[b]
 	    +cs[j], so we replace cs[j] and cs[i] with cs[j]*p +cs[i] and cs[j],
-	    respectively.  Every index into cs either has 1<<b set or not, so
+	    respectively.  Every index into cs either has bit set or not, so
 	    shows up in exactly one such pair of indices.\n"""
 
-	    i, bit = len(cs), 1<<b
+	    i = len(cs)
 	    while i > 0:
 		i -= 1
 		if i & bit: continue
 		j = i | bit
 		cs[i], cs[j] = cs[j], cs[i] + p * cs[j]
 
-	def __chomp(self, p, b, mix=stir):
-	    """Substitute p +1/X[b] everywhere F used to have X[b].
+	def clear(bit, cs):
+	    """Coefficient adjustment when x[b] runs out, with 1<<b == bit.
 
-	    Other X[j] are unaffected, and we'll multiply both numerator and
-	    denominator by X[b] to get back to normal form, without any mixing
-	    between numerator and denominator terms.\n"""
-	    mix(p, b, self.__n)
-	    mix(p, b, self.__d)
-	del stir
+	    As for stir, consider i, j with j = i|bit, i = j&~bit; the terms in
+	    P(X, cs) with cs[i] and cs[j] as coefficient are, aside from a
+	    shared product of X-factors other than X[b], cs[j]*X[b]
+	    +cs[i].  Replacing X[b] simply with p, this becomes cs[j]*p +cs[i],
+	    which is exactly what we replaced cs[j] with when we supposed we
+	    should replace X[b] with p+1/X[b].  So we can correct our error by
+	    replacing what we now have as cs[j] and cs[i] with 0 and the value
+	    we computed earlier for cs[j].\n"""
 
-	def clear(b, cs):
-	    """Coefficient update for __stop(), q.v.
-
-	    As for __chomp's stir, consider i, j with j = i|(1<<b), i =
-	    j&~(1<<b); the terms in P(X, cs) with cs[i] and cs[j] as coefficient
-	    are, aside from a shared product of X-factors other than X[b],
-	    cs[j]*X[b] +cs[i].  Replacing X[b] simply with p, this becomes
-	    cs[j]*p +cs[i], which is exactly what we replaced cs[j] with when we
-	    supposed we should replace X[b] with p+1/X[b].  So we can correct
-	    our error by replacing what we now have as cs[j] and cs[i] with 0
-	    and the value we computed earlier for cs[j].\n"""
-
-	    i, bit = len(cs), 1<<b
+	    i = len(cs)
 	    while i > 0:
 		i -= 1
 		if i & bit: continue
 		j = i | bit
 		cs[i], cs[j] = cs[j], 0
 
-	def __stop(self, b, mix=clear):
-	    """Deal with x[b] iteration having terminated.
-
-	    Where last __chomp(p, b) substituted p +1/X[b] everywhere Z used
-	    to have X[b], we now find it should simply have substituted p.\n"""
-
-	    mix(b, self.__n)
-	    mix(b, self.__d)
-	del clear
-
-	def __step(self, b):
+	def __step(self, b, fix=clear, mix=stir):
 	    """Advance .__x[b], if not yet exhausted.
 
 	    When we step x[b] we get some integer p = x[b].next() and x[b]
 	    (hence X[b]) changes; we can write our prior value of X[b] in terms
 	    of the new value X[b] represented by x[b] after iterating as p
 	    +1/X[b], which we can then substitute in everywhere we had X[b] in
-	    our formula for F; after a little rearrangement, see .__chomp(),
+	    our formula for F; after a little rearrangement, see stir(),
 	    we'll have mixed the coefficients up with one another and with p but
 	    we get back an expression of the same form as before.
 
@@ -358,7 +338,7 @@ class Continued (object):
 	    .next() value, without a +1/X[b] term, in place of our prior X or
 	    Y.  Fortunately, what would then have resulted can indeed be
 	    inferred from what we worked out before we knew we'd reached the end
-	    of our iteration; see .__stop().
+	    of our iteration; see clear().
 
 	    We also have to take account of the possibility that .next() may
 	    give us a Token; in that case, we need to record relevant
@@ -367,11 +347,12 @@ class Continued (object):
 	    .next(); it is presumed that every Token functions as a non-empty
 	    iterator.\n"""
 
-	    src = self.__x[b]
+	    src, bit = self.__x[b], 1<<b
 	    if src is None: raise StopIteration
 	    try: p = src.next()
 	    except StopIteration:
-		self.__stop(b)
+		fix(bit, self.__n)
+		fix(bit, self.__d)
 		self.__x[b] = None
 	    else:
 		while isinstance(p, Token):
@@ -381,7 +362,10 @@ class Continued (object):
 			self.__p[b] = 1
 		    self.__x[b] = src = iter(p)
 		    p = src.next()
-		self.__chomp(p, b)
+		mix(p, bit, self.__n)
+		mix(p, bit, self.__d)
+
+	del clear, stir
 
 	def next(self):
 	    """Compute next integer in continued fraction for our number.
