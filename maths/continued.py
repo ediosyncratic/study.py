@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.2 2009-03-09 05:20:56 eddy Exp $
+$Id: continued.py,v 1.3 2009-03-09 05:46:27 eddy Exp $
 """
 
 def real_continued(val):
@@ -234,15 +234,14 @@ class Continued (object):
 	    """Set up the iterator.
 
             Requires three arguments:
-
-              src -- a tuple of iterators over the sequences representing the
-                     numbers to combine as continued fractions;
+              srcs -- a tuple of iterators over the sequences representing the
+                      numbers to combine as continued fractions;
               numerator -- a tuple of coefficients for the numerator and
               denominator -- a tuple of coefficients for the denominator.
 
-            The length of each tuple of coefficients is 2**len(src).  The
+            The length of each tuple of coefficients is 2**len(srcs).  The
             numbers to be combined are referred to as X[b], described by
-            iterators x[b], for b in range(len(src)).  In each tuple of
+            iterators x[b], for b in range(len(srcs)).  In each tuple of
             coefficients, the one at index i is the multiplier for a product of
             the X[b] with i&(1<<b) set; so, if cs is a tuple of coefficients,
             the actual numerator or denominator it represents is:
@@ -253,25 +252,27 @@ class Continued (object):
                         cs,
                         map(lambda i: map(lambda b, X=X: X(b),
                                           filter(lambda b, i=i: i & (1<<b),
-                                                 range(len(src)))),
-                            range(1<<len(src)))))
+                                                 range(len(srcs)))),
+                            range(1<<len(srcs)))))
 
-	    A typical term in P(X, cs) can be understood as
+	    Note that the case len(srcs) is explicitly allowed; then self just
+	    represents numerator[0] / denominator[0].  A typical term in P(X,
+	    cs) can be understood as
 
 	    T(X, cs, bs) =
 	      reduce(lambda b, p, X=X: X[b] * p, bs, cs[sum(map(lambda b: 1<<b, bs))])
 
 	    for some sorted tuple bs of distinct (so the sum in cs[...]
-	    implements | on the bits) naturals < len(src).
+	    implements | on the bits) naturals < len(srcs); when srcs is empty,
+	    the only candidate for bs is (). For details of how these data are
+	    used, see next().\n"""
 
-	    For details of how these data are used, see next().\n"""
-
-	    assert len(numerator) == 1<<len(src) == len(denominator)
-	    self.__x = list(src)
+	    assert len(numerator) == 1<<len(srcs) == len(denominator)
+	    self.__x = list(srcs)
 	    self.__n = list(numerator)
 	    self.__d = list(denominator)
-	    # .__p[i] = Period of Token in which src[i] terminated, if any:
-	    self.__p = [ None ] * len(src)
+	    # .__p[i] = Period of Token in which srcs[i] terminated, if any:
+	    self.__p = [ None ] * len(srcs)
 
 	def __pop(self, p):
 	    """Rearrange our expression F to represent 1/(F-p)."""
@@ -279,7 +280,7 @@ class Continued (object):
 	    self.__n = ds = self.__d
 	    self.__d = map(lambda n, d, c=p: n -c*d, ns, ds)
 
-	def stir(p, bit, cs):
+	def stir(p, bit, cs): # tool used by __step, not method
 	    """Coefficient update for X[b] with 1<<b == bit
 
 	    Consider a pair i, j of indices into cs with j = i|bit and i =
@@ -301,7 +302,7 @@ class Continued (object):
 		j = i | bit
 		cs[i], cs[j] = cs[j], cs[i] + p * cs[j]
 
-	def clear(bit, cs):
+	def clear(bit, cs): # tool used by __step, not method
 	    """Coefficient adjustment when x[b] runs out, with 1<<b == bit.
 
 	    As for stir, consider i, j with j = i|bit, i = j&~bit; the terms in
@@ -319,6 +320,13 @@ class Continued (object):
 		if i & bit: continue
 		j = i | bit
 		cs[i], cs[j] = cs[j], 0
+
+	    i = len(cs)
+	    while i > 0:
+		i -= 1
+		if i & bit:
+		    assert cs[i] == 0
+		    del cs[i]
 
 	def __step(self, b, fix=clear, mix=stir):
 	    """Advance .__x[b], if not yet exhausted.
@@ -353,7 +361,7 @@ class Continued (object):
 	    except StopIteration:
 		fix(bit, self.__n)
 		fix(bit, self.__d)
-		self.__x[b] = None
+		del self.__x[b], self.__p[b]
 	    else:
 		while isinstance(p, Token):
 		    if isinstance(p, Cycle):
@@ -383,6 +391,7 @@ class Continued (object):
 	    For purposes of working out error-bar estimates, this code assumes
 	    that only the first term in any sequence might be -1, 0 or 1.\n"""
 
+	    # NB: if len(.__x) == 0, self is the rational .__n[0] / .__d[0]
 	    raise NotImplementedError
 
     def ingest(val):
