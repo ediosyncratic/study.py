@@ -1,10 +1,13 @@
 """The rationals.
 
-See also:
-http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
-expounding the virtues of continued fractions.
+Exports:
+  Rational(n, d) -- represents the ratio n / d without rounding artefacts
+  approximate(val [, tol, chatty [, assess]]) -- approximate val with a Rational
+  refine(val [, best]) -- improve on an earlier approximation to val
 
-$Id: ratio.py,v 1.11 2009-03-08 09:49:12 eddy Exp $
+See also: study.maths.continued, compared to which this is crude and ugly.
+
+$Id: ratio.py,v 1.12 2009-03-09 05:01:45 eddy Exp $
 """
 
 def intsplitfrac(val):
@@ -15,31 +18,112 @@ def intsplitfrac(val):
 	v = val.real
     except AttributeError: v = val
 
-    try: res = v.asint()
-    except AttributeError: res = int(v)
-    while v > res + 1: res = 1 + res
-    while v < res: res = res - 1
+    try: res = v.nearint
+    except AttributeError:
+	res = int(v)
+	if res != v:
+	    res = divmod(int(2 * v + 1), 2)[0]
+	    while 2*(v - res) > 1: res += 1
+	    while 2*(v - res) < -1: res -= 1
+	    if res % 2 and 2 * (v - res) in (1, -1): # prefer even if at exact mid-point:
+		res += cmp(v, res)
 
     return res, val - res
 
-from natural import hcf
+from study.cache.property import Cached, lazyattr
 
-class Rational:
+class Rational (Cached):
     def __init__(self, numer, denom=1):
-	try: val = intsplitfrac(denom)[0]
+	self.__ratio = self.__coprime(numer, denom)
+	assert self.__ratio[1] > 0
+
+    from natural import hcf
+    def asint(v, isf=intsplitfrac):
+	try: a = isf(v)[0]
 	except TypeError: pass
 	else:
-            if val == denom: denom = val
-	if denom == 0: raise ZeroDivisionError(numer, denom)
+	    if a == v: return a
+	return v
 
-        try: val = intsplitfrac(numer)[0]
-	except TypeError: pass
-	else:
-            if val == numer: numer = val
+    @staticmethod
+    def __coprime(n, d, clean=asint, gcd=hcf):
+	n, d = clean(n), clean(d)
+	i = gcd(n, d)
+	if i * d < 0: i = -i
+	return n/i, d/i
 
-	common = hcf(numer, denom)
-	if denom < 0: common = -common
-	self.__ratio = (numer / common, denom / common)
+    del asint, hcf
+    from continued import rationalize
+
+    @staticmethod
+    def from_float(val, tol=1e-9, depth=12, rat=rationalize):
+	"""Approximates a real number.
+
+	Required argument, val, is the real number to be approximated. Optional
+	arguments tol and depth are as for rationalize(), q.v., but with
+	defaults changed to 1e-9 and 12, respectively.  Raises ValueError
+	precisely if rationalize() does, due to being unable to find an adequate
+	approximation; otherwise, returns a Rational object approximating
+	val.\n"""
+
+	n, d = rat(val, tol, depth)
+	return Rational(n, d)
+
+    del rationalize
+
+    @property
+    def denominator(self, ig=None): return self.__ratio[1]
+    @property
+    def numerator(self, ig=None): return self.__ratio[0]
+
+    @lazyattr
+    def floor(self, ig=None): # round down (towards -infinity)
+	num, den = self.__ratio
+	rat = int(num // den)
+	assert num >= rat * den
+	return rat
+
+    @lazyattr
+    def ceil(self, ig=None): # round up (towards +infinity)
+	num, den = self.__ratio
+	rat = int(num / den)
+	if num > rat * den: return rat + 1
+	return rat
+
+    @lazyattr
+    def nearint(self, ig=None): # round to nearest int, preferring even when ambiguous
+	num, den = self.__ratio
+	q = int(divmod(2 * num + den, 2 * den)[0])
+	while 2 * (num - q * den) >  den: q += 1
+	while 2 * (num - q * den) < -den: q -= 1
+	r = num - q * den
+	if q % 2 and 2 * r in (den, -den): q += cmp(r, 0)
+	return q
+
+    @lazyattr
+    def truncate(self, ig=None): # round towards zero
+	num, den = self.__ratio
+	if num > 0: return int(num / den)
+	return -int(-num / den)
+
+    @lazyattr
+    def real(self, ig=None):
+	num, den = self.__ratio
+	return float(num) / den
+
+    def __nonzero__(self): return self.__ratio[0] != 0
+    def __pos__(self): return self
+    def __neg__(self):
+	num, den = self.__ratio
+	return Rational(-num, den)
+    def __abs__(self):
+	num, den = self.__ratio
+	return Rational(abs(num), den)
+
+    def __long__(self):    return long(self.truncate)
+    def __int__(self):     return self.truncate
+    def __complex__(self): return self.real + 0j
+    def __float__(self):   return self.real
 
     def __add__(self, other):
 	num, den = self.__ratio
@@ -69,32 +153,32 @@ class Rational:
 
     __rmul__ = __mul__
 
-    def __div__(self, other):
+    def __truediv__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
 	return Rational(num * q, den * p)
-    __truediv__ = __div__
+    __div__ = __truediv__
 
-    def __rdiv__(self, other):
+    def __rtruediv__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
 	return Rational(p * den, q * num)
-    __rtruediv__ = __rdiv__
+    __rdiv__ = __rtruediv__
 
+    def __floordiv__(self, other): return self.__truediv(other).floor
+    def __mod__(self, other): self - self.__floordiv__(other) * other
     def __divmod__(self, other):
-	rat = self.__div__(other)
+	rat = self.__floordiv__(other)
 	return rat, self - rat * other
 
-    def __mod__(self, other):
-	return self.__divmod__(other)[1]
-
-    def __pow__(self, count): # third arg, if given, would request modular arithmetic
+    def __pow__(self, count, mod=None):
 	num, den = self.__ratio
-        return Rational(num**count, den**count)
+        ans = Rational(num**count, den**count)
+	if mod is None: return ans
+	return ans % mod
 
-    def __nonzero__(self): return self.__ratio[0]
     def __cmp__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
@@ -120,77 +204,43 @@ class Rational:
         elif den[-1].upper() != 'L': return num + ' / ' + den + '.'
         else: return num + ' * 1. / ' + den
 
-    def floor(self):
-	num, den = self.__ratio
-	rat = int(num / den)
-
-	if num < rat * den: return rat - 1
-	return rat
-
-    asint = floor
-
-    def ceil(self):
-	num, den = self.__ratio
-	rat = int(num / den)
-
-	if num > rat * den: return rat + 1
-	return rat
-
-    def asfloat(self):
-	num, den = self.__ratio
-
-	try: top = num.asfloat()
-	except AttributeError: top = float(num)
-
-	return top / den
-
-    def __getattr__(self, key, bok={'denominator': 1, 'numerator': 0}):
-	try: return self.__ratio[bok[key]]
-	except KeyError:
-            raise AttributeError(self, key)
+del Cached, lazyattr
 
-def rationalize(x, tol=1e-7, depth=5):
-    """Find rational approximation to a real.
-
-    Required parameter, x, is a real number; complex is not handled and there is
-    no point doing this to integers.  Optional arguments are:
-      tol -- error tolerance (default: 1e-7)
-      depth -- depth of search (default: 5), see below.
-    Returns a twople n, d of integers for which n = d * x, give or take errors
-    of order tol, raising ValueError if unable to find suitable n and d.
-
-    Result is sought by using continued fractions; that is, by first trying to
-    approximate x as s[0] + 1./(s[1] + 1./(s[2] + ...)) for some sequence s of
-    integers, then unwinding this expression to obtain n and d.  The search
-    aborts if it needs more than depth entries in s to get within tol of x.
-
-    For more on the theory of continued fractions, see
-    http://en.wikipedia.org/wiki/Continued_fraction\n"""
-
-    seq, r = [], x
-    while len(seq) < depth:
-	q, r = divmod(r, 1)
-	if r > .5: q, r = q+1, r-1
-	seq.append(int(q))
-	assert q == seq[-1], 'divmod(,1)[0] should be whole !'
-	if abs(r) < tol: break
-	tol *= (abs(r) + tol)**2
-	r = 1. / r
-    else:
-	raise ValueError('Hard to approximate', x)
-
-    # x == seq[0] + 1/(seq[1] + 1/(...))
-    n, d = seq.pop(), 1
-    while seq: n, d = d + n * seq.pop(), n
-    return n, d
-
-# TODO: re-work the following to exploit rationalize().
+# TODO: re-work the following to exploit continued.rationalize().
 prior = {}
-def approximate(val, toler=None, assess=None, old=prior):
+def approximate(val, tol=None, chatty=False, assess=abs, old=prior, isf=intsplitfrac):
+    """Brute-force approximation.
+
+    Required argument, val, is a numeric value to be approximated by a
+    rational.  Complex values probably won't work.  Optional arguments (details
+    below):
+      tol -- None (default) or an error tolerance.
+      chatty -- whether to report findings (default: False)
+      assess -- cost function (default: abs), ignored unless chatty
+    Do not pass any further arguments.  When tol is None (or unspecified) the
+    computed value 1e-12 * max(abs(val), 1) is used for it.
+
+    The return from this function is always recorded in a cache (shared with
+    refine(), q.v.); if val has been studied previously, we pick up where we
+    left off.  Otherwise, we start with the nearest whole number to val, using
+    denominator 1.  We then search, with progressively higher denominators, for
+    rational approximations to val.  When an improved approximation is found it
+    is optionally reported.  If an approximation is found that comes within tol
+    of val, it is returned.  If any exception (notably including interrupt,
+    since this function may run indefinitely) is caught, it is reported
+    (regardless of chatty) and the current best approximation is returned.
+
+    If chatty is true, this function also produces output describing the
+    approximations found.  The output may be partly customized using asses: this
+    function is called on the numerator and denominator; the results are added;
+    this sum is scaled by denominator times the absolute error and the product
+    is used as a 'score' for this approximation, which is output along with the
+    error itself and the approximation.\n"""
+
     # pi is very close to 355 / 113: within 3e-7
-    print '%9s %9s\t' % ('score', 'error'), 'Approximation to', val
-    floor, frac = intsplitfrac(val)
-    if toler is None: toler = 1.e-12 * max(abs(val), 1)
+    if chatty: print '%9s %9s\t' % ('score', 'error'), 'Approximation to', val
+    floor, frac = isf(val)
+    if tol is None: tol = 1e-12 * max(abs(val), 1)
 
     try: best, denom = old[val]
     except KeyError: best, denom = Rational(floor), 1
@@ -198,33 +248,31 @@ def approximate(val, toler=None, assess=None, old=prior):
 
     try:
         while True:
-	    err = abs(val - best.asfloat())
-            if assess: weigh = assess(denom) + assess(numer)
-            else: weigh = denom + numer
-	    print '%9.3g %9.2e\t' % (err * denom * weigh, err), best
-	    if err < toler: break
+	    err = abs(val - float(best))
+            weigh = assess(denom) + assess(numer)
+	    if chatty: print '%9.3g %9.2e\t' % (err * denom * weigh, err), best
+	    if err < tol: break
 
 	    while True:
 		denom = 1 + denom
-		numer, gap = intsplitfrac(frac * denom + .5)
-		if abs(gap - .5) < err: break
+		numer, gap = isf(frac * denom)
+		if abs(gap) < err: break
 
 	    best = Rational(numer, denom) + floor
 
-        else: print   # to match printing the exception that might break.
     except Exception, what:
         if what.__class__.__module__ == 'exceptions':
             klaz = what.__class__.__name__
         else: klaz = str(what.__class__)
-        print 'Exception:', klaz + `what.args`
+        print 'Caught:', klaz + `what.args`, 'in study.maths.ratio.approximate()'
 
-        print 'Aborted at denominator', denom, 'using', best
+	if chatty: print 'Aborted at denominator', denom, 'using', best
 
     old[val] = best, denom
     return best
 
-def refine(val, best=None, old=prior):
-    floor, frac = intsplitfrac(val)
+def refine(val, best=None, old=prior, isf=intsplitfrac):
+    floor, frac = isf(val)
 
     if best is None:
 	try: best = old[val][0]
@@ -234,17 +282,17 @@ def refine(val, best=None, old=prior):
     numer = best.numerator
     denom = best.denominator
 
-    err = val - best.asfloat()
-    count = intsplitfrac(1 / abs(err) + .5)[0]
+    err = val - float(best)
+    count = isf(1 / abs(err))[0]
 
     # val = err + numer / denom = err + (numer * count) / (denom * count)
     # val = (err * count + (numer * count / denom)) / count
     # and err * count is pretty close to 1 or -1.
 
-    new = Rational(intsplitfrac(frac * denom * count + .5)[0],
+    new = Rational(isf(frac * denom * count)[0],
                    denom * count) + floor
 
-    gap = val - new.asfloat()
+    gap = val - float(new)
     if abs(gap) < abs(err):
 	try: best, denom = old[val]
 	except KeyError: pass
@@ -255,4 +303,4 @@ def refine(val, best=None, old=prior):
 
     print 'Not as good: %g error from' % gap, new
 
-del prior
+del prior, intsplitfrac
