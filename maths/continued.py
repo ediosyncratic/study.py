@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.4 2009-03-10 21:39:10 eddy Exp $
+$Id: continued.py,v 1.5 2009-03-10 21:43:07 eddy Exp $
 """
 
 def real_continued(val):
@@ -158,7 +158,7 @@ class Continued (object):
 	first, should be non-zero (the code might cope with zeros; but ending on
 	a zero is very impolite) and should preferrably avoid 1 and -1, too.\n"""
 
-	if iter(ns) is ns: self.__ns = self.__iterStore(ns)
+	if iter(ns) is ns: self.__ns = self.__IterStore(ns)
 	else: self.__ns = self.__digest(ns)
 
     class __IterStore (list):
@@ -550,7 +550,7 @@ class Continued (object):
 		    tn += xs * ns[j]
 		    td += xs * ds[j]
 
-		ans.append(tn, td)
+		ans.append((tn, td))
 		i += 1
 
 	    return tuple(ans)
