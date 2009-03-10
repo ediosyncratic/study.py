@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.3 2009-03-09 05:46:27 eddy Exp $
+$Id: continued.py,v 1.4 2009-03-10 21:39:10 eddy Exp $
 """
 
 def real_continued(val):
@@ -103,7 +103,7 @@ class Cycle (Token):
 
     def __init__(self, first, *rest): self.__values = (first,) + rest
     def __iter__(self):
-	int i = 0
+	i = 0
 	while True:
 	    try: yield self.__values[i]
 	    except IndexError:
@@ -221,13 +221,15 @@ class Continued (object):
 	return ns
 
     class Grinder (object):
-	"""Iterator to represent combination of continued fractions.
+	"""Iterator to orchestrate combination of continued fractions.
 
-	Represents a combination (e.g. product, sum, difference, ratio) of two
-	continued fractions as an iterator that generates the
+	Represents a combination (e.g. product, sum, difference, ratio) of some
+	(e.g. two) continued fractions as an iterator that generates the
+	integers of the continued fraction for the combined value.
 
 	See 'Item 101B (Gosper): Continued Fraction Arithmetic' in the hakmem
-	document referenced in this module's header.\n"""
+	document referenced in this module's header.  This class generalizes
+	Gosper's analysis to any natural number of variables.\n"""
 
 	def __iter__(self): return self
 	def __init__(self, srcs, numerator, denominator):
@@ -274,13 +276,48 @@ class Continued (object):
 	    # .__p[i] = Period of Token in which srcs[i] terminated, if any:
 	    self.__p = [ None ] * len(srcs)
 
+	    # Now digest the first term of each iterator, to deal with all
+	    # entries that might be -1, 0 or 1, to spare next() having to think
+	    # about them:
+	    b = len(srcs)
+	    while b > 0:
+		b -= 1
+		self.__step(b)
+
 	def __pop(self, p):
 	    """Rearrange our expression F to represent 1/(F-p)."""
 	    ns = self.__n
 	    self.__n = ds = self.__d
 	    self.__d = map(lambda n, d, c=p: n -c*d, ns, ds)
 
-	def stir(p, bit, cs): # tool used by __step, not method
+	def edges(i, bit): # tool used by other tools
+	    """Yields naturals < i in pairs, without and with the given bit."""
+	    while i > 0:
+		i -= 1
+		if i & bit: pass
+		yield i, i | bit
+
+	def span(cs, bit, each=edges): # tool used by worst
+	    """Indicates how bad the edges associated with bit are.
+
+	    Required argument are a list of values of F at the corners of our
+	    bounding cube; and a bit encoding 1<<b for some X[b]; the edges on
+	    which only this X[b] varies are studied.  If any such edge sees a
+	    change of sign in F's denominator, ValueError is raised; this bit
+	    should be __step()ped.  Otherwise, a pair n, d of positives denoting
+	    n/d is returned, for which n/d is the biggest difference between F's
+	    values at the end-points of any of the edges studied.\n"""
+
+	    t, b = 0, 1
+	    for i, j in each(bit):
+		(n, d), (m, e) = cs[i], cs[j]
+		if d * e <= 0: raise ValueError
+		n, d = abs(e * n -m * d), d * e
+		if n * b > t * d: t, b = n, d
+
+	    return t, b
+
+	def stir(p, bit, ns, ds, pairs=edges): # tool used by __step, not method
 	    """Coefficient update for X[b] with 1<<b == bit
 
 	    Consider a pair i, j of indices into cs with j = i|bit and i =
@@ -295,14 +332,11 @@ class Continued (object):
 	    respectively.  Every index into cs either has bit set or not, so
 	    shows up in exactly one such pair of indices.\n"""
 
-	    i = len(cs)
-	    while i > 0:
-		i -= 1
-		if i & bit: continue
-		j = i | bit
-		cs[i], cs[j] = cs[j], cs[i] + p * cs[j]
+	    for i, j in pairs(len(ns), bit):
+		ns[i], ns[j] = ns[j], ns[i] + p * ns[j]
+		ds[i], ds[j] = ds[j], ds[i] + p * ds[j]
 
-	def clear(bit, cs): # tool used by __step, not method
+	def clear(bit, ns, ds, pairs=edges): # tool used by __step, not method
 	    """Coefficient adjustment when x[b] runs out, with 1<<b == bit.
 
 	    As for stir, consider i, j with j = i|bit, i = j&~bit; the terms in
@@ -314,19 +348,11 @@ class Continued (object):
 	    replacing what we now have as cs[j] and cs[i] with 0 and the value
 	    we computed earlier for cs[j].\n"""
 
-	    i = len(cs)
-	    while i > 0:
-		i -= 1
-		if i & bit: continue
-		j = i | bit
-		cs[i], cs[j] = cs[j], 0
+	    for i, j in pairs(len(ns), bit):
+		ns[i], ds[i] = ns[j], ds[j]
+		del ns[j], ds[j]
 
-	    i = len(cs)
-	    while i > 0:
-		i -= 1
-		if i & bit:
-		    assert cs[i] == 0
-		    del cs[i]
+	del edges
 
 	def __step(self, b, fix=clear, mix=stir):
 	    """Advance .__x[b], if not yet exhausted.
@@ -359,8 +385,7 @@ class Continued (object):
 	    if src is None: raise StopIteration
 	    try: p = src.next()
 	    except StopIteration:
-		fix(bit, self.__n)
-		fix(bit, self.__d)
+		fix(bit, self.__n, self.__d)
 		del self.__x[b], self.__p[b]
 	    else:
 		while isinstance(p, Token):
@@ -370,10 +395,42 @@ class Continued (object):
 			self.__p[b] = 1
 		    self.__x[b] = src = iter(p)
 		    p = src.next()
-		mix(p, bit, self.__n)
-		mix(p, bit, self.__d)
+		mix(p, bit, self.__n, self.__d)
 
 	del clear, stir
+
+	def worst(cs, wide=span): # tool
+	    bit, bad, bent, t, b = len(cs), [], [], 0, 1
+	    while bit > 1:
+		bit >>= 1
+		try: n, d = wide(cs, bit)
+		except ValueError: bent.append(bit)
+		else:
+		    if n * b > t * n: bad, t, b = [ bit ], n, d
+		    elif n * b == t * n: bad.append(bit)
+
+	    assert bad # at least some direction has some difference along at least one edge
+	    if bent: return tuple(bent)
+	    return tuple(bad)
+
+	def __shrink(cs, judge=worst):
+	    for bit in judge(cs):
+		self.__step(bit)
+
+	from natural import gcd
+
+	def __paracheck(self, hcf=gcd):
+	    """Checks whether .__n and .__d are parallel"""
+	    n, d = sum(map(abs, self.__n)), sum(map(abs, self.__d))
+	    if filter(None, map(lambda i, e, n=n, d=d: n*e -d*i, self.__n, self.__d)):
+		return
+
+	    # self just represents the rational n/d.
+	    i = hcf(n, d)
+	    self.__n[:], self.__d[:] = [ n/i ], [ d/i ]
+	    del self.__x[:], self.__p[:]
+
+	del gcd
 
 	def next(self):
 	    """Compute next integer in continued fraction for our number.
@@ -389,10 +446,114 @@ class Continued (object):
 	    culprit, by calling .__step(b).
 
 	    For purposes of working out error-bar estimates, this code assumes
-	    that only the first term in any sequence might be -1, 0 or 1.\n"""
+	    that, aside from the first terms (which the constructor steps
+	    through), no iterator yields any integers strictly between -2 and
+	    2.  This is equivalent to assuming that, for each b, 1/X[b] is
+	    always between -1/2 and +1/2.
 
-	    # NB: if len(.__x) == 0, self is the rational .__n[0] / .__d[0]
-	    raise NotImplementedError
+	    Since F is a ratio P(.__n, X)/P(.__d, X), we can divide both
+	    numerator and denominator by product(X) to get each into the form of
+	    a function with the same form as P, using the same coefficients, but
+	    with X replaced by the variables Y[b] = 1/X[b] for b < len(X) and
+	    Y[b] shows up as a factor in the [i] coefficient's term precisely if
+	    bit b of i is *not* set.  Since each Y[b] lies between -.5 and +.5,
+	    we can fairly readilly compute bounds on the values the result can
+	    take.
+
+	    If F's denominator is zero anywhere inside our unit cube (and F's
+	    numerator isn't also zero in all the same places - but __paracheck()
+	    deals with this possibility), then the range of values F may take is
+	    unbounded and, in particular, not restricted to any interval from
+	    p-.5 to p+.5 with p natural.\n"""
+
+	    # First, check __n and __d aren't parallel; if so, we can reduce our
+	    # complex expression to a simple rational:
+	    if len(self.__x): self.__paracheck()
+	    if len(self.__x) == 0:
+		# This can also happen if .__step() has hit StopIteration enough
+		if self.__d[0] == 0:
+		    # self is infinite, represented by the empty sequence
+		    raise StopIteration
+
+		n, d = self.__n[0], self.__d[0]
+		if d < 0: n, d = -n, -d
+		q, r = divmod(n, d)
+		if 2 * r > d or (2 * r == d and q % 1): q += 1
+		self.__pop(q)
+		return q
+
+	    cs = self.__corners()
+	    try: q = self.__consensus(cs)
+	    except ValueError: pass
+	    else:
+		self.__pop(q)
+		return q
+
+	    self.__shrink(cs)
+
+	@staticmethod
+	def __consensus(cs):
+	    """See if corner values agree on a single integer.
+	    """
+
+	    n, d = cs[0]
+	    if filter(lambda (m, e): e * d <= 0, cs[1:]):
+		raise ValueError, "Denominator's sign varies"
+
+	    if d > 0: j = 1
+	    else: j, n, d = -1, -n, -d
+	    q, r = divmod(n, d)
+	    if 2 * r > d: ok = ( q + 1, )
+	    elif 2 * r < d: ok = ( q, )
+	    else: ok = (q, q + 1)
+
+	    i = len(cs),
+	    while i > 1 and ok:
+		i -= 1
+		m, e = cs[i]
+		m, e = m * j, e * j
+		ok = filter(lambda q: 2 * abs(m - q) < e, ok)
+
+	    if len(ok) > 1: # When we have a choice, prefer even
+		ok = filter(lambda q: q % 2 == 0, ok)
+		assert ok
+	    elif len(ok) < 1:
+		raise ValueError, "No consensus integer"
+
+	    return ok[0]
+
+	def __corners(self):
+	    """Returns F's values at the corners of X's range of values.
+
+	    At each corner, each X[b] is either -2 or 2; each corner can be
+	    characterised by the subset of b with either sign; each such subset
+	    can be encoded as an integer with as many bits as there are
+	    variables in X.  The return is a tuple of twoples, (n, d), giving
+	    the values of numerator and denominator; its entry at index i is for
+	    the corner at which each X[b] is 2 if bit b of i is set, else -2.\n"""
+
+	    ns, ds, ans, i = self.__n, self.__d, [], 0
+	    assert len(ds) == len(ns) == 1 << len(self.__x)
+	    while i < len(ns):
+		tn = td = 0 # accumulators
+		j = len(ns)
+		while j > 0:
+		    j -= 1
+		    # First, compute product({ X[b]: bit b of j is set}):
+		    bit, xs = len(ns), 1
+		    while bit > 1:
+			bit >>= 1
+			if bit & j:
+			    xs *= 2
+			    if bit & i == 0: xs = -xs
+
+		    tn += xs * ns[j]
+		    td += xs * ds[j]
+
+		ans.append(tn, td)
+		i += 1
+
+	    return tuple(ans)
 
     def ingest(val):
 	try: return iter(val.__ns)
