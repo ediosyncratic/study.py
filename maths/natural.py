@@ -23,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.22 2009-03-03 23:16:00 eddy Exp $
+$Id: natural.py,v 1.23 2009-03-11 04:49:41 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -72,24 +72,7 @@ def dividemod(num, den, base):
 
     return q % base
 
-def gcd(a, b):
-    """Pair-wise highest common factor.
-
-    The value returned is, strictly, that value whose set of factors is the
-    intersection of the sets of factors of the two arguments, ignoring all
-    universal factors (e.g. 1, -1: values which are factors of everything).\n"""
-
-    # Any negative factor's matching positive is also a factor, and is
-    # greater than any negative.
-    if b < 0: b = -b
-    if a < 0: a = -a # to make gcd(a,0) fall out naturally, below.
-    elif a == 0: return b	# gcd(0,b) = abs(b)
-
-    # Euclid's algorithm (see also its extension, below):
-    while b > 0: a, b = b, a % b
-    return a
-
-def hcf(*others):
+def hcf(*args):
     """The highest natural common factor of its arguments.
 
     All arguments should be members of a linear space over the natural numbers,
@@ -122,8 +105,17 @@ def hcf(*others):
     transitive binary operator.\n"""
 
     this = 0
-    for other in others: this = gcd(this, other)
+    for n in args:
+	# Any negative factor's matching positive is also a factor, and is
+	# greater than any negative.
+	if n < 0: n = -n
+	# Euclid's algorithm (see also its extension, below):
+	while n:
+	    n, this = this % n, n
     return this
+
+# Legacy / Alias: "greatest common divisor".
+gcd = hcf
 
 def lcm(*others):
     """The smallest (non-negative) common multiple of its arguments.
