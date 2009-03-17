@@ -21,8 +21,7 @@ Note that Numeric python's numarray infrastructure provides for quite a lot of
 the same things as the following.\n"""
 
 from study.snake.lazy import Lazy
-from study.snake.sequence import Tuple
-class Permutation (Tuple, Lazy):
+class Permutation (tuple, Lazy):
     """Immutable sequence type representing a permutation.
 
     Theory
@@ -66,11 +65,9 @@ class Permutation (Tuple, Lazy):
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
-    __slots__ = ('inverse', 'period')
-
-    __upinit = Tuple.__init__
-    def __init__(self, perm):
-        """Initialize a permutation.
+    __upnew = tuple.__new__
+    def __new__(klaz, perm):
+        """Construct a permutation.
 
         Single argument is either a natural number, in which case the identity
         permutation of the given length is constructed, or a sequence of natural
@@ -78,8 +75,10 @@ class Permutation (Tuple, Lazy):
         entry is present in the sequence.  (This constraint is not checked
         unless you evaluate the .inverse attribute.)\n"""
         try: perm[:]
-        except TypeError: self.__upinit(range(perm))
-        else: self.__upinit(perm)
+        except TypeError: return klaz.__upnew(klaz, range(perm))
+        else: return klaz.__upnew(klaz, perm)
+
+    def __init__(self, perm): pass # Suppress misguided call to Lazy.__init__().
 
     def __call__(self, *seqs):
         """Apply permutation.
@@ -182,7 +181,7 @@ class Permutation (Tuple, Lazy):
     def cycle(self, by=1):
         return Permutation(cycle(self, by))
 
-del Lazy, Tuple
+del Lazy
 
 def Iterator(size, P=Permutation):
     # for a rather elegant application, see queens.py's derived iterator
