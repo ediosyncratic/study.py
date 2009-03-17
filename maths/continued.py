@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.5 2009-03-10 21:43:07 eddy Exp $
+$Id: continued.py,v 1.6 2009-03-17 08:10:27 eddy Exp $
 """
 
 def real_continued(val):
@@ -113,6 +113,8 @@ class Cycle (Token):
 
     @property
     def values(self, ig=None): return self.__values
+    def __repr__(self): return 'Cycle%s' % (self.__values,)
+    __str__ = __repr__
 
 class Series (Token):
     """Token representing an arithmetic succession.
@@ -123,17 +125,19 @@ class Series (Token):
     and other irrational values.  It exposes the values of a and b as properties
     .first and .step, respectively\n"""
 
-    def __init__(self, first, step): self.__first, self.__step = first, step
+    def __init__(self, first, step): self.__data = first, step
     def __iter__(self):
-	n, s = self.__first, self.__step
+	n, s = self.__data
 	while True:
 	    yield n
 	    n += s
 
     @property
-    def first(self, ig=None): return self.__first
+    def first(self, ig=None): return self.__data[0]
     @property
-    def step(self, ig=None): return self.__step
+    def step(self, ig=None): return self.__data[1]
+    def __repr__(self): return 'Series(%s, %s)' % self.__data
+    __str__ = __repr__
 
 class Continued (object):
     """Continued fractions.
@@ -158,14 +162,17 @@ class Continued (object):
 	first, should be non-zero (the code might cope with zeros; but ending on
 	a zero is very impolite) and should preferrably avoid 1 and -1, too.\n"""
 
-	if iter(ns) is ns: self.__ns = self.__IterStore(ns)
-	else: self.__ns = self.__digest(ns)
+	if iter(ns) is ns: self.__ds = self.__IterStore(ns)
+	else: self.__ds = self.__digest(ns)
 
     class __IterStore (list):
 	__upinit = list.__init__
 	def __init__(self, it):
 	    self.__upinit()
 	    self.__src = it
+
+	@property
+	def source(self, ig=None): return self.__src
 
 	__upget = list.__getitem__
 	def __getitem__(self, key):
@@ -216,6 +223,21 @@ class Continued (object):
 
 		    ns = head + (last + next,) + tail
 		    i = max(1, i-1) # NB: last+next may be zero, too !
+
+	if isinstance(ns[-1], Cycle):
+	    vs = ns[-1].values
+	    while len(ns) > len(vs) and ns[-1-len(vs):-1] == vs:
+		ns = ns[:-1-len(vs)] + ns[-1:]
+	elif isinstance(ns[-1], Series):
+	    f, s = ns[-1].first, ns[-1].step
+	    i = len(ns) -1
+	    while i > 0:
+		if ns[i-1] != f - s: break
+		i -= 1
+		f -= s
+	    if i+1 < len(ns):
+		ns = ns[:i] + (Series(f, s),)
+
 	# NB: if ns is now empty, it denotes infinity (of both signs)
 	# while i > 1: i -= 1 and weed out the ns[i] in (1, -1) ?
 	return ns
@@ -284,18 +306,91 @@ class Continued (object):
 		b -= 1
 		self.__step(b)
 
-	def __pop(self, p):
-	    """Rearrange our expression F to represent 1/(F-p)."""
-	    ns = self.__n
-	    self.__n = ds = self.__d
-	    self.__d = map(lambda n, d, c=p: n -c*d, ns, ds)
+	@classmethod
+	def __show(G, it):
+	    try: src = it.source # __IterStore
+	    except AttributeError:
+		if isinstance(it, Token): return it
+	    else:
+		if isinstance(src, G): return src.status
+	    return True
 
-	def edges(i, bit): # tool used by other tools
-	    """Yields naturals < i in pairs, without and with the given bit."""
-	    while i > 0:
+	@property
+	def status(self, ig=None):
+	    return tuple(map(self.__show, self.__x))
+
+	@staticmethod
+	def _pop(p, ns, ds):
+	    """Rearrange F(.__x, ns, ds) to take account of emitting an integer, p.
+
+	    Takes three parameters - integer p and lists ns and ds of
+	    coefficients for numerator and denominator respectively - and
+	    returns the result of rearranging the coefficients, as a twople of
+	    lists of coefficients. This base-class version rearranges the
+	    expression for F to represent 1/(F-p). Note, however, that Digits
+	    (q.v.) does a different re-arrangement.\n"""
+
+	    return ds, map(lambda n, d, c=p: n -c*d, ns, ds)
+
+	def edges(i, bit): # tool used by other tools and __prune
+	    """Yields naturals < i in pairs, without and with the given bit.
+
+	    Both integers should be powers of two; the first is the length of an
+	    array of coefficients; it should be greater than the second, which
+	    is the bit 1<<b associated with a variable X[b].  Result iterates
+	    over pairs of indices into the array, in strictly decreasing order
+	    (of each member of the pair separately); each pair (i, j) yielded
+	    has i ^ j == bit and i == j | bit.\n"""
+
+	    while i > bit:
 		i -= 1
-		if i & bit: pass
-		yield i, i | bit
+		if i & bit:
+		    yield i ^ bit, i
+
+	from natural import hcf
+	def __prune(self, gcd=hcf, pairs=edges):
+	    """Simplifies self, in so far as practical.
+
+	    If .__n and .__d are parallel, self can be reduced to a simple
+	    rational.  If any bit has all associated coefficients zero, we can
+	    eliminate the variable associated with that bit.\n"""
+
+	    ns, ds = self.__n, self.__d
+
+	    n, d = sum(map(abs, ns)), sum(map(abs, ns))
+	    if not filter(None, map(lambda i, e, n=n, d=d: n*e -d*i, self.__n, self.__d)):
+		# self just represents the rational n/d.
+		i = gcd(n, d) or 1
+		ns[:], ds[:] = [ n/i ], [ d/i ]
+		del self.__x[:], self.__p[:]
+		return
+
+	    # Which bits aren't set in any index with a non-zero coefficient ?
+	    zs = ~ reduce(lambda x, y: x | y,
+			  filter(lambda i, ns=ns, ds=ds: not(ns[i] == 0 == ds[i]),
+				 range(1, len(ns))), 0)
+	    if zs:
+		b, bit = len(self.__x), len(ns)
+		assert bit == 1<<b
+		while b > 0: # It's crucial to start with highest bit and work down.
+		    b -= 1
+		    bit >>= 1
+		    if zs & bit:
+			del self.__x[b], self.__p[b]
+			for i, j in pairs(len(ns), bit):
+			    assert ns[j] == 0 == ds[j]
+			    del ns[j], ds[j]
+		assert bit == 1
+
+	    # Eliminate any global common factor:
+	    i = gcd(*(ns + ds))
+	    assert i > 0
+	    if i > 1:
+		ns[:] = map(lambda n, i: n/i, ns)
+		ds[:] = map(lambda n, i: n/i, ds)
+
+	    # TODO: any special magic we can do when len(self.__x) == 1 ?
+	del hcf
 
 	def span(cs, bit, each=edges): # tool used by worst
 	    """Indicates how bad the edges associated with bit are.
@@ -309,7 +404,7 @@ class Continued (object):
 	    values at the end-points of any of the edges studied.\n"""
 
 	    t, b = 0, 1
-	    for i, j in each(bit):
+	    for i, j in each(len(cs), bit):
 		(n, d), (m, e) = cs[i], cs[j]
 		if d * e <= 0: raise ValueError
 		n, d = abs(e * n -m * d), d * e
@@ -399,50 +494,37 @@ class Continued (object):
 
 	del clear, stir
 
-	def worst(cs, wide=span): # tool
-	    bit, bad, bent, t, b = len(cs), [], [], 0, 1
+	def worst(cs, wide=span): # tool used by __shrink
+	    bit, bad, bent, m, e = len(cs), [], [], 0, 1
 	    while bit > 1:
 		bit >>= 1
 		try: n, d = wide(cs, bit)
 		except ValueError: bent.append(bit)
 		else:
-		    if n * b > t * n: bad, t, b = [ bit ], n, d
-		    elif n * b == t * n: bad.append(bit)
+		    if n * e > m * n: bad, m, e = [ bit ], n, d
+		    elif n * e == m * n: bad.append(bit)
 
-	    assert bad # at least some direction has some difference along at least one edge
+	    assert bent or bad
 	    if bent: return tuple(bent)
 	    return tuple(bad)
 
-	def __shrink(cs, judge=worst):
+	def __shrink(self, cs, judge=worst):
+	    b = len(self.__x)
 	    for bit in judge(cs):
-		self.__step(bit)
-
-	from natural import gcd
-
-	def __paracheck(self, hcf=gcd):
-	    """Checks whether .__n and .__d are parallel"""
-	    n, d = sum(map(abs, self.__n)), sum(map(abs, self.__d))
-	    if filter(None, map(lambda i, e, n=n, d=d: n*e -d*i, self.__n, self.__d)):
-		return
-
-	    # self just represents the rational n/d.
-	    i = hcf(n, d)
-	    self.__n[:], self.__d[:] = [ n/i ], [ d/i ]
-	    del self.__x[:], self.__p[:]
-
-	del gcd
+		while 1<<b > bit: b -= 1
+		self.__step(b)
 
 	def next(self):
 	    """Compute next integer in continued fraction for our number.
 
 	    At any moment, self represents
-		F = P(.__n, X) / P(.__d, Y)
+		F(X, .__n, .__d) = P(.__n, X) / P(.__d, Y)
 	    and, if the range of possible values this could represent lies
 	    entirely between p-.5 and p+.5 for some integer p, we can return p
 	    after changing the coefficients around to make self represent
-	    1/(F-p); see .__pop(p).  Otherwise we can work out which X[b], by
-	    the uncertainty in its value, contributed most to the width of the
-	    range of values for Z; we then step the iterator associated with the
+	    1/(F-p); see ._pop(p).  Otherwise we can work out which X[b], by the
+	    uncertainty in its value, contributed most to the width of the range
+	    of values for Z; we then step the iterator associated with the
 	    culprit, by calling .__step(b).
 
 	    For purposes of working out error-bar estimates, this code assumes
@@ -461,40 +543,69 @@ class Continued (object):
 	    take.
 
 	    If F's denominator is zero anywhere inside our unit cube (and F's
-	    numerator isn't also zero in all the same places - but __paracheck()
+	    numerator isn't also zero in all the same places - but __prune()
 	    deals with this possibility), then the range of values F may take is
 	    unbounded and, in particular, not restricted to any interval from
 	    p-.5 to p+.5 with p natural.\n"""
 
-	    # First, check __n and __d aren't parallel; if so, we can reduce our
-	    # complex expression to a simple rational:
-	    if len(self.__x): self.__paracheck()
-	    if len(self.__x) == 0:
-		# This can also happen if .__step() has hit StopIteration enough
-		if self.__d[0] == 0:
-		    # self is infinite, represented by the empty sequence
-		    raise StopIteration
+	    while True:
+		# First, see if we can simplify our expression:
+		if len(self.__x): self.__prune()
+		# If it's really simple, life's easy:
+		if len(self.__x) == 0:
+		    if self.__d[0] == 0:
+			# self is infinite, represented by the empty sequence
+			raise StopIteration
 
-		n, d = self.__n[0], self.__d[0]
-		if d < 0: n, d = -n, -d
-		q, r = divmod(n, d)
-		if 2 * r > d or (2 * r == d and q % 1): q += 1
-		self.__pop(q)
-		return q
+		    n, d = self.__n[0], self.__d[0]
+		    if d < 0: n, d = -n, -d
+		    qs = self._nice(n, d)
+		    if len(qs) > 1: qs = filter(lambda q: q % 2 == 1, qs)
+		    self.__n, self.__d = self._pop(qs[0], self.__n, self.__d)
+		    return qs[0]
 
-	    cs = self.__corners()
-	    try: q = self.__consensus(cs)
-	    except ValueError: pass
-	    else:
-		self.__pop(q)
-		return q
-
-	    self.__shrink(cs)
+		# Otherwise, we have to think a bit:
+		cs = self.__corners()
+		try: q = self.__consensus(cs, self._nice, self._match)
+		except ValueError: self.__shrink(cs) # ... and try again ...
+		else:
+		    self.__n, self.__d = self._pop(q, self.__n, self.__d)
+		    return q
 
 	@staticmethod
-	def __consensus(cs):
-	    """See if corner values agree on a single integer.
-	    """
+	def _nice(n, d):
+	    """Which integers can legitimately represent n/d ?
+
+	    Takes two integers - n and d, with d positive - and returns a tuple
+	    of integers, each of which is a suitable approximation for
+	    n/d.  This base-class deems nearest integers suitable; if n/d is
+	    exactly half way between two integers, both are suitable.  Note that
+	    the preference for an even integer, given ambiguity, is handled
+	    later in __consensus()'s decision-making process, so should be
+	    ignored here.  Derived class Digits shows how to do this for
+	    rounding towards zero.\n"""
+
+	    assert d > 0
+	    q, r = divmod(n, d)
+	    if 2 * r > d: return ( q + 1, )
+	    elif 2 * r < d: return ( q, )
+	    else: return (q, q + 1)
+
+	@staticmethod
+	def _match(w, n, d):
+	    """Can w legitimately represent n/d ?
+
+	    Takes three integers - w, n and d with d positive - and returns true
+	    precisely if w is a legitimate representation of n/d.  This
+	    base-class deems nearest integers to be suitable.  Derived class
+	    Digits over-rides this to handle rounding towards zero.\n"""
+
+	    assert d > 0
+	    return 2 * abs(n - w * d) < d
+
+	@staticmethod
+	def __consensus(cs, nice, match):
+	    """See if corner values agree on a single integer."""
 
 	    n, d = cs[0]
 	    if filter(lambda (m, e): e * d <= 0, cs[1:]):
@@ -502,17 +613,14 @@ class Continued (object):
 
 	    if d > 0: j = 1
 	    else: j, n, d = -1, -n, -d
-	    q, r = divmod(n, d)
-	    if 2 * r > d: ok = ( q + 1, )
-	    elif 2 * r < d: ok = ( q, )
-	    else: ok = (q, q + 1)
+	    ok = nice(n, d)
 
 	    i = len(cs),
 	    while i > 1 and ok:
 		i -= 1
-		m, e = cs[i]
-		m, e = m * j, e * j
-		ok = filter(lambda q: 2 * abs(m - q) < e, ok)
+		n, d = cs[i]
+		n, d = n * j, d * j
+		ok = filter(lambda q, n=n, d=d, y=match: y(q, n, d), ok)
 
 	    if len(ok) > 1: # When we have a choice, prefer even
 		ok = filter(lambda q: q % 2 == 0, ok)
@@ -554,48 +662,146 @@ class Continued (object):
 		i += 1
 
 	    return tuple(ans)
+	# </Grinder>
+
+    @property
+    def status(self, ig=None, G=Grinder):
+	n = len(self.__ds)
+	if isinstance(self.__ds, self.__IterStore):
+	    src = self.__ds.source
+	    if isinstance(src, Token):
+		return n, src
+	    elif isinstance(src, G):
+		return n, src.status
+	    return n, True
+	return n, False
 
     def ingest(val):
-	try: return iter(val.__ns)
+	try: return iter(val.__ds)
 	except AttributeError: pass
 	return real_continued(val)
 
     def __add__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, 1, 1, 0),
 			       (1, 0, 0, 0)))
     __radd__ = __add__
     def __sub__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, -1, 1, 0),
 			       (1, 0, 0, 0)))
 
     def __rsub__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, 1, -1, 0),
 			       (1, 0, 0, 0)))
 
     def __mul__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, 0, 0, 1),
 			       (1, 0, 0, 0)))
     __rmul__ = __mul__
 
     def __truediv__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, 0, 1, 0),
 			       (0, 1, 0, 0)))
 
     def __rtruediv__(self, other, get=ingest, grind=Grinder):
-	return Continued(grind((iter(self.__ns), get(other)),
+	return Continued(grind((iter(self.__ds), get(other)),
 			       (0, 1, 0, 0),
 			       (0, 0, 1, 0)))
 
+    class Digits (Grinder):
+	"""Iterator over a continued fraction's sequence of digits.
+
+	Can take any base, or even an iterator; yields the whole-number part of
+	multiplying the continued fraction successively by the base or by
+	successive yields of the iterator.  Initial yield is thus the
+	whole-number part of the continued fraction, which may itself need to be
+	expressed as a sequence of digits in terms of your base.\n"""
+
+	def endless(b):
+	    while True: yield b
+	def __init__(self, ctd, base, repeat=endless):
+	    """Set up a digit-emitter.
+
+	    Takes two arguments:
+	      ctd -- iterator over the denominators of x = d[0] +1/(d[1] +1/(d[2] + ...))
+	      base -- number base, or iterator over successive multipliers
+
+	    First yield is the non-fractional part of x; each subsequent yield
+	    is the non-fractional part of multiplying the fractional part, left
+	    by the previous yield, by base or its .next(), if it's an
+	    iterator.\n"""
+
+	    try: base + 1
+	    except TypeError:
+		if base is not iter(base): # iter() may raise TypeError, too.
+		    raise TypeError("If it's not numeric, it should be an iterator", base)
+		self.__src = base
+	    else: self.__src = repeat(base)
+
+	    try: self.__grindit
+	    except AttributeError:
+		# Digits' body can't reference Grinder to set this ...
+		D = self.__class__
+		D.__grindit = D.__bases__[0].__init__
+
+	    self.__grindit((ctd,), (0, 1), (1, 0))
+
+	del endless
+
+	def _pop(self, p, ns, ds):
+	    """Rearranges coefficients on digit p being emitted.
+
+	    Unlike Grinder, we here want to change F(.__x, ns, ds) to represent
+	    base * (F - p), with base being our number base or other multiplier,
+	    when using an iterator instead of a base.  Furthermore, if F is 0,
+	    we simply want to end the digit iteration.\n"""
+
+	    if not filter(None, ns):
+		assert p == 0
+		raise StopIteration
+
+	    return map(lambda n, d, s=self.__src.next(), c=p: s * (n - c * d), ns, ds), ds
+
+	@staticmethod
+	def _nice(n, d):
+	    """Round n/d towards zero.
+
+	    See Grinder._nice for details.\n"""
+	    if d * n < 0: d, n = -d, -n
+	    q, r = divmod(n, d)
+	    return ( q, )
+
+	@staticmethod
+	def _match(w, n, d):
+	    """Does n/d rounded towards zero give w ?
+
+	    See Grinder._match for details.\n"""
+	    if d < 0: n, d = -n, -d
+	    if w > 0: return n <= w * d < n + d
+	    elif w < 0: return n - d < w * d <= n
+	    else: return -d < n < d
+
+    def digits(self, base, D=Digits):
+	"""Emit self's digits to a given base.
+
+	Takes one argument, base: this should either be the number base to be
+	used or an iterator whose yields are successive multipliers for our
+	number.  Returns an iterator yielding: first, the whole-number part of
+	self; then, after each yield, the whole number part that results when
+	the fractional part left over by the previous yield is multiplied by the
+	base or its .next(), if it's an iterator.\n"""
+
+	return D(iter(self.__ds), base)
+
     # any more ?
-    del Grinder
+    del Grinder, Digits
 
     def __cmp__(self, other, get=ingest):
-	i, ns = 0, self.__ns
+	i, ns = 0, self.__ds
 	try:
 	    for y in get(other):
 		y = cmp(ns[i], y)
