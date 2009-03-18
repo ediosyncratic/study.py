@@ -112,7 +112,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.15 2009-03-18 08:41:10 eddy Exp $
+$Id: octet.py,v 1.16 2009-03-18 21:30:10 eddy Exp $
 """
 
 def coprimes(primes):
@@ -141,27 +141,73 @@ def coprimes(primes):
 from study.snake.sequence import Tuple
 
 class OctetType (Tuple):
-    __slots__ = ('primes', 'modulus', 'size')
-    def __tuple__(self, val, seq=Tuple): return seq(val) # for slicing, etc.
+    """A descriptor for a generalized 'octet' type.
+
+    The primitive 'octet' type is generated from the primes 2, 3 and 5; these
+    have product 30, but only 8 naturals < 30 are coprime to all of
+    them.  Consequently, for any positive natural n, there are only 8 candidate
+    primes in range(n*30, (1+n)*30), so a single 8-bit byte (a.k.a. octet)
+    suffices to record which of these thirty naturals actually are primes.  In
+    the language of this class's attributes, the generator primes are saved as
+    .primes, their product is saved as .modulus, the coprime naturals less than
+    .modulus are the entries in an instance (which is a tuple) and .size is 1/8
+    of the length of the instance (as a tuple).
+
+    Each prime p that we add to .primes adds a factor p to .modulus but only a
+    factor p-1 to the number of coprime candidates in each range(n*.modulus,
+    (1+n)*.modulus), i.e. to the length of the tuple that the OctetType object
+    is.  Thus primeness data for each .modulus naturals can be saved in .size
+    bytes and .size/.modulus gets smaller as we add primes to .primes; indeed,
+    8*.size/.modulus is simply the product, over p in .primes, of 1-1/p.  For
+    the OctetType normally used by this package, using the primes up to (and
+    including) 17, the ratio .size/.modulus is less than 1/44 and only slightly
+    more than 2/3 of the 1/30 that the primitive octet type achieves.  Using all
+    the primes up to (and including) 61 would get .size/.modulus down below half
+    the 1/30 achieved by the primitive type.  (However, when I tried to
+    instantiate the OctetType for primes up to 61, on a 2.6 GHz quad 64-bit
+    machine with only 4GB of RAM, the system became 'unresponsive' until the
+    system scheduler killed the python process in which I'd tried it.  Creating
+    a tuple whose length is a 24-digit number can do that.)\n"""
 
     __upnew = Tuple.__new__
     def __new__(klaz, ps):
         """Create a descriptor for a type of octet-based block.
 
         Required argument, ps, is an initial segment of the infinite sequence of
-        primes.\n"""
+        primes.  The new object is a sorted tuple of all the naturals, coprime
+        to every p in ps, less than the product of the ps.  This product is
+        saved as .modulus on the new object.  The new object, as per the
+        semantics of __new__, is returned.
+
+        (An arbitrary sequence of distinct primes could be used analogously, but
+        the present implementation exploits certain simplifications arising from
+        using an initial one.  In any case, the compression ratio gets a factor
+        of 1-1/p from each prime, which is most efficient if p is small; so
+        using smaller primes is better than using larger ones, making an initial
+        segment more efficient than any alternative of the same length.)\n"""
 
         assert tuple(ps[:3]) == (2, 3, 5), \
                "I need at least the first three primes to work with octets"
         # ... actually, 17 and arbitrary others would suffice without them; and
         # 2's not crucial.  But I want an initial chunk of primes, anyway.
 
-	mod, vals = coprimes(ps)
-	self = klaz.__upnew(klaz, vals)
+        mod, vals = coprimes(ps)
+        self = klaz.__upnew(klaz, vals)
         self.modulus = mod
-	return self
+        return self
 
+    def __repr__(self): return 'OctetType(%s)' % (self.primes,) # tuple-repr gets long fast !
+    def __tuple__(self, val, seq=Tuple): return seq(val) # for slicing, etc.
+    # Tuple.__init__ isn't interesting.
     def __init__(self, ps):
+        """Complete initialization of an OctetType object.
+
+        Receives the same argument as __new__ (q.v.), an initial segment of the
+        infinite sequence of primes.  Saves this as .primes attribute.  Verifies
+        that __new__ has set self up with a length that's a multiple of 8 (the
+        number of bits in an octet, a.k.a. byte) and saves 1/8 of self's length
+        as .size attribute.\n"""
+
         self.primes = tuple(ps)
         self.size, r = divmod(len(self), 8)
         assert r == 0
