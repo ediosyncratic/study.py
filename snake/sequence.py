@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.30 2009-01-26 08:17:51 eddy Exp $
+$Id: sequence.py,v 1.31 2009-03-18 08:33:56 eddy Exp $
 """
 
 class Iterable (object):
@@ -277,56 +277,41 @@ class ReadSeq (Iterable):
         ReadSeq.__order = order # over-writing this boot-strap implementation
         return permute.order(self[:], par)
 
-class Tuple (ReadSeq):
+class Tuple (ReadSeq, tuple):
     """Pretend to be a tuple.
 
-    Infuriatingly, if a class inherits from tuple, whatever you pass to its
-    constructor is passed to tuple's constructor (which barfs if there are too
-    many arguments), before your __init__ can do anything about it; and __init__
-    can't usefully call tuple.__init__ later, to supply what you wanted it to
-    get.\n""" # How messed up is that ?  At least list is saner ...
-
-    __slots__ = ('__tuple',)
-    def __init__(self, vals=()): self.__tuple = tuple(vals)
-    def __len__(self): return len(self.__tuple)
-    def __repr__(self): return `self.__tuple`
-    def __hash__(self): return hash(self.__tuple)
-    def __iter__(self): return iter(self.__tuple)
-    def __contains__(self, val): return val in self.__tuple
-
-    def __eq__(self, other): return other == self.__tuple
-    def __ge__(self, other): return other <= self.__tuple
-    def __le__(self, other): return other >= self.__tuple
-    def __lt__(self, other): return other > self.__tuple
-    def __gt__(self, other): return other < self.__tuple
-    def __ne__(self, other): return other != self.__tuple
+    Note that classes based on this need to over-ride __new__(), which *returns*
+    the newly created object (obtained by calling base-class's __new__(), of
+    course), instead of (or as well as) __init__().\n"""
 
     def __tuple__(self, val):
         """Pseudo-constructor.
 
-        Takes a sequence and returns an instance of Tuple.  If derived classes
-        have constructors taking different parameter lists, they should
-        over-ride this with something suitable; if they don't support arithmetic
-        and slicing, they should over-ride it with something that raises an
-        error.  Otherwise, it uses the class of self to construct a new Tuple of
-        suitable type.\n"""
+        Takes a sequence and returns an instance of Tuple.  If a derived class
+        has __new__ or __init__ taking some different parameter list, it should
+        over-ride this with something suitable; if it doesn't support arithmetic
+        and slicing, it should over-ride this with something that raises an
+        error.  Otherwise, this uses the class of self to construct a new Tuple
+        of suitable type.\n"""
         return self.__class__(val)
 
-    def __mul__(self, other): return self.__tuple__(self.__tuple * other)
-    def __rmul__(self, other): return self.__tuple__(other * self.__tuple)
+    __upmul = tuple.__mul__
+    def __mul__(self, other): return self.__tuple__(self.__upmul(other))
+    __uprmul = tuple.__rmul__
+    def __rmul__(self, other): return self.__tuple__(self.__uprmul(other))
     __upadd = ReadSeq.__add__
     def __add__(self, other): return self.__tuple__(self.__upadd(other))
     __upradd = ReadSeq.__radd__
     def __radd__(self, other): return self.__tuple__(self.__upradd(other))
 
-    __upget = ReadSeq.__getitem__
+    __rsget, __tpget = ReadSeq.__getitem__, tuple.__getitem__
     def __getitem__(self, key):
         try: iter(key)
         except TypeError:
             if not isinstance(key, slice):
-                return self.__tuple[key]
+                return self.__tpget(key)
 
-        return self.__tuple__(self.__upget(key))
+        return self.__tuple__(self.__rsget(key))
 
 class List (ReadSeq, list): # list as base => can't use __slots__
 
