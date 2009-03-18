@@ -20,7 +20,7 @@ permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ... and there must be such a thing as complex
 primes.
 
-$Id: primes.py,v 1.24 2008-08-03 09:16:03 eddy Exp $
+$Id: primes.py,v 1.25 2009-03-18 08:24:01 eddy Exp $
 """
 
 checking = None
@@ -71,7 +71,7 @@ class lazyTuple:
     Some of what's in this class should be split out into _Prime, below.
     """
     def __init__(self, row=None):
-	"""Initialises a lazy Tuple.
+	"""Initialises a lazy tuple.
 
 	Optional argument, row, should be a sorted list.
 	"""
@@ -184,7 +184,7 @@ class _Prime(lazyTuple):
 
     _private_doc_ = """
 
-    From Tuple, this inherits ._item_carrier in which we store all the primes
+    From lazyTuple, this inherits ._item_carrier in which we store all the primes
     less than ._ask, which is the next number we're going to check to see if
     it's prime.  Any higher primes we've discovered (usually thanks to
     factorise(), see below) are kept in _sparse (in their correct order, albeit
