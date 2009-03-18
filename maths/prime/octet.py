@@ -112,7 +112,7 @@ combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
 
-$Id: octet.py,v 1.14 2008-07-24 08:04:50 eddy Exp $
+$Id: octet.py,v 1.15 2009-03-18 08:41:10 eddy Exp $
 """
 
 def coprimes(primes):
@@ -144,9 +144,9 @@ class OctetType (Tuple):
     __slots__ = ('primes', 'modulus', 'size')
     def __tuple__(self, val, seq=Tuple): return seq(val) # for slicing, etc.
 
-    __upinit = Tuple.__init__
-    def __init__(self, ps):
-        """Sets up a descriptor for a type of octet-based block.
+    __upnew = Tuple.__new__
+    def __new__(klaz, ps):
+        """Create a descriptor for a type of octet-based block.
 
         Required argument, ps, is an initial segment of the infinite sequence of
         primes.\n"""
@@ -156,10 +156,14 @@ class OctetType (Tuple):
         # ... actually, 17 and arbitrary others would suffice without them; and
         # 2's not crucial.  But I want an initial chunk of primes, anyway.
 
+	mod, vals = coprimes(ps)
+	self = klaz.__upnew(klaz, vals)
+        self.modulus = mod
+	return self
+
+    def __init__(self, ps):
         self.primes = tuple(ps)
-        self.modulus, vals = coprimes(ps)
-        self.__upinit(vals)
-        self.size, r = divmod(len(vals), 8)
+        self.size, r = divmod(len(self), 8)
         assert r == 0
 
     def index(self, p):
