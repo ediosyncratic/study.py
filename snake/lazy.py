@@ -1,6 +1,6 @@
 """Lazy toys.
 
-$Id: lazy.py,v 1.5 2008-06-15 22:53:52 eddy Exp $
+$Id: lazy.py,v 1.6 2009-03-18 09:12:57 eddy Exp $
 """
 # This is in the same spirit as cacheing, but quite independent.
 class Lazy (object):
@@ -384,8 +384,8 @@ class lazyClass (Lazy):
     classes derived from Lazy should usually call their parent._lazy_early_
     before doing anything else (see lazyClass.why_early_doc).
 
-    A derived class' _lazy_class_lookup_() should call that of its parent before
-    doing its own effort.  
+    A derived class's _lazy_class_lookup_() should call that of its parent
+    before doing its own effort.
 
     might cause your parent's lookup to happen sometimes before you, and your
     program will behave differently if so (unless, for some reason, you're
