@@ -1,6 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
 
-$Id: regular.py,v 1.11 2008-09-07 08:44:46 eddy Exp $
+$Id: regular.py,v 1.12 2009-03-21 11:11:46 eddy Exp $
 """
 
 class Regular (object):
@@ -79,7 +79,7 @@ class Regular (object):
         if self.step > 0: return self.start <= last < self.stop
         return self.start >= last > self.stop
 
-    def asslice(self): return slice(self.start, self.stop, self.step)
+    def to_slice(self): return slice(self.start, self.stop, self.step)
 
     # Iteration:
     def __iter__(self):
@@ -352,6 +352,7 @@ class Regular (object):
 class Interval (Regular):
     def __init__(self, start, span): self.__start, self.__span = start, span
     def __repr__(self): return 'Interval(%s, %s)' % (self.__start, self.__span)
+    def __nonzero__(self): return self.__span is None or self.__span > 0
 
     from infinite import Aleph0
     def __len__(self, huge=Aleph0):
@@ -401,14 +402,29 @@ class Slice (Regular):
     the following's way of thinking about slices regards the latter as the right
     answer, in each case.\n"""
 
-    # Can't actually use slice as a base class, so fake it:
+    # Can't actually use slice as a base class (not even using __new__: its
+    # metaclass refuses), so fake it:
     def __init__(self, *args):
-        if len(args) == 1 and isinstance(args[0], slice): self.__seq = args[0]
-        else: self.__seq = slice(*args)
+	if len(args) == 1:
+	    try: args = args[0].start, args[0].stop, args[0].step
+	    except AttributeError: pass
+        self.__seq = slice(*args)
 
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
+    def __nonzero__(self):
+	if self.__seq.stop is None: return True
+	if self.step == 0: return self.__seq.stop != self.start
+	return (self.__seq.stop - self.start) * self.step > 0
 
     def __getattr__(self, key):
+	"""Attribute look-up for attributes not in .__dict__
+
+	Adds .last, .max and .min to the attributes of .__seq, delegating to the
+	latter for its but mediating the defaults that .start and .step mean
+	when None.  Thus other code of this class references these two
+	attributes directly off self, instead of via .__seq, to avoid having to
+	repeat the special handling of None.\n"""
+
         if key == 'last':
             if self.isempty:
                 raise AttributeError, 'No last element in empty slice'
@@ -436,9 +452,9 @@ class Slice (Regular):
     from infinite import Aleph0
     def __len__(self, infinity=Aleph0):
         if self.__seq.stop is None: return infinity
-        if self.__seq.stop == self.start: q, r = -1, self.step
-        elif self.__seq.step == 0: return infinity
-        else: q, r = divmod(self.stop - self.start, self.step)
+        if self.__seq.stop == self.start: return 0
+        if self.__seq.step == 0: return infinity
+        q, r = divmod(self.stop - self.start, self.step)
         if r: q += 1
         return max(q, 0)
     del Aleph0
