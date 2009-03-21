@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.31 2009-03-18 08:33:56 eddy Exp $
+$Id: sequence.py,v 1.32 2009-03-21 11:12:12 eddy Exp $
 """
 
 class Iterable (object):
@@ -370,7 +370,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
 
         try:
             if key.step == 1:
-                return self.__upset(key.asslice(), val)
+                return self.__upset(key.to_slice(), val)
         except AttributeError: pass
         if len(key) != len(val):
             raise ValueError('Mismatched lengths in extended slice assignment',
