@@ -59,8 +59,8 @@ they know about.
 
 Details:
 
- * Within a cache, each sub-directory or file describes the range for which it
-   holds data only relative to the start-point of the range of the directory in
+ * Within a cache, each sub-directory or file describes the range, for which it
+   holds data, only relative to the start-point of the range of the directory in
    which it resides, so as to keep numbers small (and hence names, of files and
    directories, short).  The numbers in question are also remembered base 36
    (using 'a' through 'z' as the digits from ten to thirty-five) to help keep
@@ -84,7 +84,7 @@ Details:
  * The root directory shall typically use its __init__.py to record data
    relevant to the whole cache.  Since the root's name is not controlled by this
    cache code, this name does not encode the span of the cache, so the root
-   directory generally records this span in its __init__.py file.
+   directory records this span in its __init__.py file.
 
  * Directories support locking so as to prevent clashes and confusion when two
    processes are accessing the same cache.  Locking a directory for reading may
@@ -121,25 +121,30 @@ wherein:
    that of the node's parent directory; otherwise, the start-point is absolute,
    in the specified direction.
 
-Thus N0X42.py would be a file providing application-specific information of
+Thus N00X42.py would be a file providing application-specific information of
 category 'X'; it could only appear in the root directory of its hierarchy, it
 would relate to values between 0 (included) down to (ecluded) minus one hundred
 and fourty-six (i.e. 4*36 + 2).  In all likelihood, there would be something in
-the same cache root directory whose name would start P1X (for an integer cache;
+the same cache root directory whose name would start P01X (for an integer cache;
 but P0X in a real cache), providing the same kind of information for positive
 values up to some limit.
 
 Files should generally be named for the exact range about which they hold data;
 but a file describing work-in-progress to discover data about some range should
-be named for that range even if its data are incomplete.  The ranges of files
-containing different types of data may overlap.  Sub-directories of any given
-directory shall always have distinct ranges, except while the parent is
-write-locked and the exception is required for re-arringement of the
-sub-directories.  Each directory's range must subsume the range of each of its
-children; it should normally be exactly the union of the ranges of its children,
-although the root directory (whose range is not encoded in its name) can have,
-as its nominal span, the full range of integers for which its data are
-potentially of interest.
+be named for that range even if its data are incomplete.  Such partial nodes
+should be stored as files of the same type (i.e. [A-Z] above) as they shall have
+once complete, with their internal data indicating the incompleteness.  If data
+of a particular type may be stored in several formats, these should likewise be
+stored using the same type letter, with internal data indicating the format.
+
+The ranges of files containing different types of data may
+overlap.  Sub-directories of any given directory shall always have distinct
+ranges, except while the parent is write-locked and the exception is required
+for re-arringement of the sub-directories.  Each directory's range must subsume
+the range of each of its children; it should normally be exactly the union of
+the ranges of its children, although the root directory (whose range is not
+encoded in its name) can have, as its nominal span, the full range of integers
+for which its data are potentially of interest.
 
 
 Hierarchical tidiness
@@ -160,26 +165,26 @@ bleeding-edge of last nodes with between 8 and 20 children, at each depth, all
 others being tidy.  When a new node is added, it is always a new last file so it
 is added to the depth=1 last node; if a non-root last node finds it has 20
 children, it keeps its first 12 children and ceases being a last node by passing
-the other eight to its parent, to turn into a new last node; this may take that
-parent up to 20 children, in which case it does likewise, unless it's the root.
-When the root has 20 children all of equal depth, it collects 12 into a sub-node
-of one greater depth, retaining the other 8 as direct children; successive
-additions to the last of these cause it to push new children of their depth into
-the root; when it has n < 8 deeper nodes and 20-n > 12 shallower ones, it
-collects 12 shallow ones into a fresh deeper node; when it has 7 or more deeper
-nodes and 8 or more shallower ones, it can collect the shallow ones into a new
-deeper node and get itself back to having only one depth of child.
+the other eight to its parent, to turn into a new last node; if this is that
+parent's 20 child, it does likewise, unless it's the root.  When the root has 20
+children all of equal depth, it collects 12 into a sub-node of one greater
+depth, retaining the other 8 as direct children; successive additions to the
+last of these cause it to push new children of their depth into the root; when
+it has n < 8 deeper nodes and 20-n > 12 shallower ones, it collects 12 shallow
+ones into a fresh deeper node; when it has 7 or more deeper nodes and 8 or more
+shallower ones, it can collect the shallow ones into a new deeper node and get
+itself back to having only one depth of child.
 
 The situation is more complex when borrowing from another cache, or when we have
 borrowed from a cache in the past, that we no longer see.  If we're borrowing
 from a simple cache, as above, then our cache only saves data past the end of
 the other, so the dynamics are as before.  This creates a cache that covers a
 range, albeit one distant from zero.  If we borrow from several such caches, not
-necessarily including the ones that they referenced while being built, we have a
-read-cache with holes in it and we want to grow a write-cache to fill the holes.
-This write-cache then ends up covering several disjoint ranges.  It could be
-structured as above, but I chose to place gaps in the intervals between
-directories.
+necessarily including the ones that they referenced while being built, these
+constitute a read-cache with holes in it and we want to grow a write-cache to
+fill the holes.  This write-cache then ends up covering several disjoint
+ranges.  It could be structured as above, but I chose to place gaps in the
+intervals between directories.
 
 The situation is further complicated in a mixed cache, with some diverse types
 of application-specific information.  An interval may be covered by the types
@@ -214,17 +219,19 @@ Policy:
     directories shall arise in chains at the boundaries of contiguous ranges;
   * any time root has eight or more contiguous children and at least seven (but
     preferrably eleven) other children it can reasonably bunch up the contiguous
-    group.
+    group; if it has more than twenty children in total, it certainly should do
+    so.
 
 When two ranges, each contiguous, have expanded towards each other far enough
-that they meet, unifying them shall involve a messy interaction, where changes
-ripple through them to ensure tidiness in the internal child nodes.  This should
-be mediated by the nearer-zero node preserving such tidiness as it has, with its
-neighbour transfering nodes into it as if the nearer-zero node were simply
-having nodes added to it after the manner of simple growth - albeit these
-additions may be done in bulk, rather than one at a time.
+that they meet, other than at zero, unifying them shall involve a messy
+interaction, where changes ripple through them to ensure tidiness in the
+internal child nodes.  This should be mediated by the nearer-zero node
+preserving such tidiness as it has, with its neighbour transfering nodes into it
+as if the nearer-zero node were simply having nodes added to it after the manner
+of simple growth - albeit these additions may be done in bulk, rather than one
+at a time.
 
-$Id: whole.py,v 1.34 2009-01-23 06:37:40 eddy Exp $
+$Id: whole.py,v 1.35 2009-03-21 20:27:27 eddy Exp $
 """
 
 Adaptation = """
@@ -323,7 +330,7 @@ class Node (Cached):
         way back out.\n"""
         # TODO: want to be able to GET a URL instead of reading a file
 
-        if bok is None: bok = Bok()
+        if bok is None: bok = Dict()
         if not self.lock(True):
             raise IOError(BLOCKED, 'File temporarily unreadable',
                           self._cache_file)
@@ -485,6 +492,8 @@ class CacheSubNode (SubNode):
         self.__gapinit(parent, types, start, span, sign)
         self.__name = name
 
+    @property
+    def name(self, ig=None): return self.__name
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
     @lazyattr
@@ -557,7 +566,7 @@ class WriteFile (CacheFile, WriteSubNode):
         """Replaces self with an expanded file.
 
         Single argument, span, is the range of the new file.  Returns a new
-        self.parent._child_node_(True, self.types) instance which can replace
+        self.parent._child_class_(True, self.types) instance which can replace
         self, covering both the given span and self.span; caller is responsible
         for supplying the extra data and ._save_()ing the new object.
 
@@ -584,7 +593,7 @@ class WriteFile (CacheFile, WriteSubNode):
         else: start, sign = span.start - self.parent.span.start, None
         return klaz(name, self.parent, self.types, start, len(span), sign, self)
 
-    # TODO: support being split.
+    # TODO: support being split.  How ?
 
 from lockdir import LockableDir
 
@@ -614,21 +623,27 @@ class LockDir (LockableDir):
 del LockableDir
 
 from weak import WeakTuple
-# Indices into each entry of __listing, at which to find:
-START = 0 # start of span, but with sign hacked (see WeakSeq)
-REACH = 1 # length of span
-TYPES = 2 # type string
-SIGN  = 3 # orientation relative to parent
+from study.snake.sequence import Ordered
 
 class CacheDir (Node, LockDir):
     @lazyattr
     def _cache_file(self, ig=None):
         return self.path('__init__.py')
 
-    from study.snake.sequence import Ordered
+    class NameFragments (tuple):
+        """Give tuples in .__listing handy names for their entries."""
+        def __getattr__(self, key,
+                        index={ 'start': 0, 'reach': 1, 'types': 2,
+                                'sign': 3, 'name': 4, 'isfile': 5 }):
+            try: i = index[key]
+            except KeyError: pass
+            else: return self[i]
+
+            raise AttributeError, key
+
     import re
     @lazyattr
-    def __listing(self, ig=None, get=os.listdir, seq=Ordered,
+    def __listing(self, ig=None, get=os.listdir, seq=Ordered, row=NameFragments,
                   pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
                   signmap={ 'N': -1, 'P': +1, '': None }):
         """The (suitably sorted) list of contents of this directory.
@@ -638,21 +653,18 @@ class CacheDir (Node, LockDir):
         for name in get(self.path()):
             got = pat.match(name)
             if got is not None:
-                try: sign = signmap(got.group(1))
-                except KeyError:
-                    assert False, "Bad sign; shouldn't have matched regex"
-                    sign = None
-
+                sign = signmap[got.group(1)]
                 start, size = int(got.group(2), 36), int(got.group(4), 36)
                 if sign is not None: # hack to ensure sensible sort order
                     start *= sign * self.sign
                 mode, isfile = got.group(3), got.group(5)
                 # Be sure to match WeakSeq, and capital indices above:
-                ans.append((start, size, mode, sign, name, isfile))
+                ans.append(row((start, size, mode, sign, name, isfile)))
                 # WriteDir.newfile relies on isfile being last
 
         return ans
-    del re, Ordered
+
+    del re, NameFragments
 
     @lazyprop
     def depth(self, ig=None): # but usually we'll read this from __init__.py
@@ -745,11 +757,11 @@ class CacheDir (Node, LockDir):
             def get(ind, s=cdir, g=getseq, f=test):
                 j = 0
                 for it in g(s):
-                    if f(it[TYPES]):
+                    if f(it.types):
                         if ind: ind -= 1
                         else:
                             ans = s.listing[j]
-                            assert ans.types == it[TYPES] and f(ans.types)
+                            assert ans.types == it.types and f(ans.types)
                             return ans
                     j += 1
 
@@ -807,7 +819,7 @@ class CacheDir (Node, LockDir):
         At most one of before and after shall be None; when neither is, they
         share a common .parent, each is an entry in its .listing and before's
         index therein is less than after's.  In particular, each shall be an
-        instance of some class returned by the ._child_node_() of .parent; and
+        instance of some class returned by the ._child_class_() of .parent; and
         .parent's class is the one whose _gap_ implementation is used.
 
         Returns a Gap object describing the interval between the given nodes.
@@ -977,7 +989,7 @@ class CacheDir (Node, LockDir):
             row, i = [], 0
             for it in self.__listing:
                 for t in types:
-                    if t not in it[TYPES]: break
+                    if t not in it.types: break
                 else:
                     row.append(self.listing[i])
                 i += 1
@@ -1002,7 +1014,7 @@ class CacheDir (Node, LockDir):
         assert isinstance(kid, CacheFile)
         return kid
 
-del WeakTuple, LockDir, Interval, lazyprop
+del WeakTuple, LockDir, lazyprop
 
 class CacheRoot (CacheDir):
     def __init__(self, path): self.__dir = path
@@ -1016,6 +1028,12 @@ class CacheRoot (CacheDir):
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
 
+class TypeSet (set):
+    def __str__(self):
+        types = list(self)
+        types.sort()
+        types = ''.join(types)
+        return types
 
 from study.crypt.base import intbase
 nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
@@ -1029,10 +1047,10 @@ class WriteDir (WriteNode, CacheDir):
         (regardless of type).\n"""
         row, i = [], 0
         for it in self.__listing:
-            if it[-1]: # isfile; only include if types match
+            if it.isfile: # only include if types match
                 # hmm ... perhaps include all with at least one matching type ?
                 for t in types:
-                    if t not in it[TYPES]: break
+                    if t not in it.types: break
                 else:
                     row.append(self.listing[i])
             else: # directory: always include
@@ -1169,7 +1187,7 @@ class WriteDir (WriteNode, CacheDir):
         else:                   loa = (ar - lo.start) * ep <= 1
         return loa, hia
 
-    def newfile(self, span, types, abuts=abutting, bracket=delimit):
+    def newfile(self, span, types, abuts=abutting, bracket=delimit, set=TypeSet):
         """Find where to create a new file to be added.
 
         Required arguments:
@@ -1225,33 +1243,45 @@ class WriteDir (WriteNode, CacheDir):
                'I should have raised ValueError in span_{hi,lo}'
 
         # Extend kid to cover union (but filling in gaps to make regular):
-        kid = kid._update_name_(self.span.meet(span), types)
+        ts = set(types)
+        ts.update(kid.types)
+        kid = kid._update_name_(self.span.meet(span), str(ts))
         return kid.newfile(span, types)
 
     del abutting
 
     __changed = False # see tidy() and WriteNode._save_()
     def _onchange_(self): self.__changed = True
-    def tidy(self, down=False):
+    def tidy(self, down=True):
         """Tidy up subordinate nodes.
 
-        Optional argument, down, defaults to False; if it's true, self is at the
-        end nearer zero of a contiguous block of data under the root directory:
-        it has the option of moving children towards zero instead of away from
-        it; likewise, so does each of its children that starts at its end nearer
-        zero.
+        Optional argument, down, defaults to True (because this method should
+        normally be called on a root object); if it's true, self has the option
+        of moving children towards zero instead of away from it.  For non-root
+        directories, this means it's is at the end nearer zero of a contiguous
+        block of data under the root directory.
 
-        Ideally, each directory contains a dozen children, all of equal depth.
-        This function sees how near that ideal it can bring this directory.\n"""
-        # root should over-ride this to organize setting down
+        Ideally, each directory contains a dozen children, all of equal
+        depth.  This method sees how near that ideal it can bring this
+        directory.\n"""
+
+        rev = 0
+        if self.straddles0:
+            try:
+                while self.__listing[rev].sign * self.sign < 0: rev += 1
+            except IndexError: pass # ran off end of list
+        assert not filter(lambda x: x.sign * self.sign < 0, self.__listing[rev:])
+
+        # ISSUE: if root contains a wide file of one type, whose range straddles
+        # some directories of another type, this fails to recognize the
+        # directory nearest zero.  Not a problem for the prime cache ...
 
         change = False
         for node in self.listing:
             if isinstance(node, WriteDir) and \
-                   (node.__changed or len(node.__listing) != 12):
-                # TODO: [START] needs sign hack fixed
-                if node.tidy(down and node.span.start == self.__listing[0][START]):
-                    change = True
+               (node.__changed or len(node.__listing) != 12):
+                if node.tidy(down and rev in (0, 1)): change = True
+            rev -= 1 # so it's 1 on last reversed child, 0 on first forward one.
 
         if self.__changed or change:
             self._ontidy_() # premature ?
@@ -1259,7 +1289,7 @@ class WriteDir (WriteNode, CacheDir):
             return False # nothing to do
 
         raise NotImplementedError # TODO: implement
-        # Sort out number of entries.
+        # Sort out number of entries, e.g. using self.parent.__relocate
         # Revise type to union of types of children.
         # Ensure range falls between adjacent peers and subsumes union of children.
         # Ensure name on disk reflects range and types.
@@ -1271,17 +1301,29 @@ class WriteDir (WriteNode, CacheDir):
     # Don't @lazyattr: no way to know when to update it
     def __upindex(self):
         """Index in self.parent.listing at which self appears."""
-        seq = self.parent.__listing
+        up = self.parent
+        if up.straddles0: target = self.span.start
+        else: target = self.span.start - up.span.start
+        seq = up.__listing
         i = len(seq)
         while i > 0:
             i -= 1
-            if seq[i][TYPES] == self.types and seq[i][START] == self.span.start:
-                assert self is self.parent.listing[i]
+            p = seq[i]
+            start, sign = p.start, p.sign
+            if sign: start /= sign * up.sign
+            if p.types == self.types and start == target:
+                assert self is up.listing[i]
                 return i
 
         raise ValueError
 
-    def __relocate(self, step, *kids):
+    @staticmethod
+    def __child_types(kids, ts=None, lo=None, hi=None, set=TypeSet):
+        if ts is None: ts = set()
+        for kid in kids: ts.update(kid.types)
+        return str(ts)
+
+    def __relocate(self, step, kids, Range=Interval):
         """Re-parent some descendant nodes.
 
         First argument, step, is either +1 or -1, indicating whether nodes are
@@ -1293,13 +1335,13 @@ class WriteDir (WriteNode, CacheDir):
         # Initialize i to force first iteration to move up the directory tree:
         if step < 0: i = 0
         else: i = len(self.__listing)
-        tidy = True
+        node, tidy = self, True
         while kids:
-            if not tidy or 0 <= i+step < len(self.__listing):
+            if not tidy or 0 <= i+step < len(node.__listing):
                 if tidy:
                     i += step # still a valid index in listing
-                    down = self.listing[i]
-                    if self.parent is None:
+                    down = node.listing[i]
+                    if node.parent is None:
                         # Have we run off the end of a contiguous block ?
                         if step < 0:
                             check = lambda k, s=down.span.stop: k.span.start <= s
@@ -1308,97 +1350,175 @@ class WriteDir (WriteNode, CacheDir):
                         if not filter(check, kids): # No kid meets down
                             tidy = False
                             i -= step
-                            down = self.listing[i]
+                            down = node.listing[i]
                         del check
 
-                elif step < 0: down = self.listing[0]
-                else: down = self.listing[-1]
+                elif step < 0: down = node.listing[0]
+                else: down = node.listing[-1]
 
                 if filter(lambda x, d=down.depth-1: x.depth >= d, kids):
-                    kids = down.__adopt(tidy, *kids)
+                    kids = down.__adopt(tidy, kids)
+                    if not tidy:
+                        while kids:
+                            ts = self.__child_types(kids)
+                            klaz = self._child_class_(False, ts)
+                            assert issubclass(klaz, WriteDir)
+                            if step < 0: lo = down.span.start - self.span.start
+                            else: lo = down.span.stop - self.span.start
+                            lo *= self.span.sign
+                            down = klaz(self.child_name(Range(lo, 0), False, ts),
+                                        self, ts, None, lo, 0)
+                            kids = down.__adopt(tidy, kids)
+                            # kids should now be empty, unless it was really long before ...
                 else:
-                    self.__revise_span(*kids)
-                    self = down
+                    node.__revise_span(kids)
+                    node = down
                     if (step < 0) == tidy:
-                        i = len(self.__listing) - 1
+                        i = len(node.__listing) - 1
                     else: i = 0
                 del down
 
-            elif self.parent is None: tidy = False # root can't delegate
+            elif node.parent is None: tidy = False # root can't delegate
             else:
-                # Onwards and updwards !
-                self.__revise_span(*kids)
-                i = self.__upindex()
-                self = self.parent
+                # Onwards and upwards !
+                node = node.__revise_span(kids) # these are being removed, not added
+                i = node.__upindex()
+                node = node.parent
 
-    def __revise_span(self, *kids):
+    def __revise_span(self, kids, set=TypeSet, Range=Interval):
         """Update span and types as we gain or lose children.
 
-        All arguments are nodes being added to self, that aren't yet reflected
-        in self's children's properties..\n"""
+        All arguments are nodes being added to or removed from self, that aren't
+        yet reflected in self's children's properties.  Returns the node that
+        replaces self after revising its span.\n"""
 
-        bok, first = {}, True
+        if self.parent is None:
+            self.clear_attrstore_cache()
+            return # root doesn't record its span anyway.
+
+        types, first = set(), True
         for k in self.__listing:
-            for t in k[TYPES]: bok[t] = True
-            sign, klo, reach = k[SIGN], k[START], k[REACH]
-            if sign is None:
-                sign = self.sign
-            else:
-                sign *= self.sign
-                klo /= sign
-            if sign < 0:
-                khi = -klo
-                klo = khi + 1 - reach
-            else:
-                khi = klo + reach - 1
+            if filter(lambda x, n=k.name: x.name == n, kids): # i.e. k in kids
+                # Ignore k, it's being moved out; and remove it from kids, it's
+                # not being moved in:
+                kids = filter(lambda x, n=k.name: x.name != n, kids)
+                continue
+
+            types.update(k.types)
+            sign, klo, reach = k.sign, k.start, k.reach
+            assert sign is None, "Only root node's children specify sign"
+            khi = klo + reach
 
             if first: lo, hi, first = klo, khi, False
             else:
                 if klo < lo: lo = klo
                 if khi > hi: hi = khi
+
+        assert not first
+        if self.sign < 0: span = Range(self.span.start + 1 - hi, hi - lo)
+        else: span = Range(self.span.start + lo, hi - lo)
 
         if kids:
+            # We've removed the ones in self.listing; the rest are moving in:
             assert not filter(lambda k: k.stop is None, kids)
-            khi = max(map(lambda k: k.max, kids))
-            klo = min(map(lambda k: k.min, kids))
-            if first: lo, hi, first = klo, khi, False
-            else:
-                if klo < lo: lo = klo
-                if khi > hi: hi = khi
+            span = span.meet(*map(lambda k: k.span, kids))
+            types = self.__child_types(kids, types)
+        else:
+            types = str(types)
 
-            for k in kids:
-                for t in k.types:
-                    bok[t] = True
+        return self._update_name_(span, types)
 
-        types = bok.keys()
-        types.sort()
-        types = ''.join(types)
-
-        span = self.span # replace with one derived from lo, hi
-        raise NotImplementedError # TODO: implement
-
-        if self.parent is not None:
-            self._update_name_(span, types)
-
-    def __adopt(self, tidy, *kids):
+    def __adopt(self, tidy, kids, seq=Ordered):
         """Accept new descendant nodes.
 
         If first argument, tidy, is true, self should aim to have a sensible
         number of children on return.  All subsequent arguments are nodes self
         should accept as children.  Each should have depth one less than that of
-        self.  The union of the ranges of the given child nodes should abut or
-        overlap self.span.
+        self.  The union of the ranges of the given child nodes should be
+        contiguous and abut or overlap self.span.
 
         Adopting these children may, of course, cause self to have too many
         child nodes: in which case, if tidy is true, self should return a tuple
         of child nodes from self's opposite end, so that caller, __relocate, can
         duly forward them to some other node for adoption.  When tidy is false,
-        this function must return () and self cannot give up any children for
-        onwards adoption.\n"""
+        this function may leave self untidy by adopting all kids and returning
+        (); otherwise, it should make self tidy and return a tuple of at least
+        six (and ideally at least eight) nodes, either from kids or from self's
+        prior children, from the same end of self as the given kids abut (this
+        is also the end of the range of self's ancestors all the way back to
+        root, where it is the end of a contiguous range).\n"""
 
-        assert not filter(lambda x, d=self.depth-1: x.depth != d, kids)
+        # NB: self may be a freshly-created empty node with no real directory yet.
+        assert kids, 'Pointless !'
+        assert not self.span or not filter(lambda x, d=self.depth-1: x.depth != d, kids)
 
-        raise NotImplementedError # TODO: implement
+        before = (self.listing[0].span.start - kids[0].span.start) * self.span.sign > 0
+        # kids should either all be before listing[0] or all be after listing[-1]:
+        if before:
+            assert not filter(lambda k, b=self.listing[0].span.stop, s=self.span.sign: (b - k.span.start) * s < 0, kids)
+        else:
+            assert not filter(lambda k, e=self.listing[-1].span.stop, s=self.span.sign: (k.span.start - e) * s < 0, kids)
+
+        all = seq(self.listing)
+        for kid in kids: all.append(kid)
+        all = tuple(all)
+
+        if self.sign > 0:
+            def after(a, b): return a.span > b.span
+        else:
+            def after(a, b): return a.span < b.span
+        # Either way: after(a, b) iff a belongs (wholly) after b in self.listing
+        assert not filter(lambda i, k=all, a=after: a(k[i], k[i+1]), range(len(k)-1)), \
+            'Broken sorting in Ordered :-('
+
+        # Where do we want to cut all ?
+        n = len(all)
+        if before == tidy: # we want to keep all[:12]
+            cut, lo, hi = 12, 6, min(n, 24)
+        else: # we want to keep all[-12:]
+            cut, hi, lo = n - 12, n - 5, max(0, n - 24)
+        # Where can we cut all ?
+        cs = filter(lambda i, k=all, a=after: a(k[i], k[i-1]), range(lo, hi))
+
+        if cut in cs: pass
+        elif cs: # Make do with the closest cs[i] to cut:
+            if cs[0] > cut: cut = cs[0]
+            elif cs[-1] < cut: cut = cs[-1]
+            else:
+                lo, hi = 0, len(cs) - 1
+                while lo + 1 < hi:
+                    assert cs[lo] < cut < cs[hi]
+                    mid = (lo + hi) / 2
+                    if cs[mid] < cut: lo = mid
+                    else:
+                        assert cs[mid] > cut
+                        hi = mid
+                lo, hi = cs[lo], cs[hi] # Candidate cut-points on either side of cut.
+                # Which is closer to cut ?
+                gap = cmp(cut - lo, hi - cut)
+                if gap > 0 or (gap == 0 and before): cut = hi
+                else: cut = lo
+
+        else if tidy: # Ouch !  No valid split-point exists.
+            raise NotImplementedError # TODO: create a suitable split-point
+        else: # Arrange to keep all and live with the untidiness:
+            if before: cut = 0
+            else: cut = len(all)
+
+        lo, hi = all[:cut], all[cut:]
+        if before == tidy: keep, ans = lo, hi
+        else: keep, ans = hi, lo
+        assert len(keep) > min(5, len(all))
+
+        ts = self.__child_types(keep)
+        span = keep[0].span.meet(*map(lambda k: k.span, keep[1:]))
+        peer = self._update_name_(span, ts)
+
+        # NB: relocate after _update_name_, to ensure directory exists !
+        for kid in kids: kid.relocate(peer)
+        del self.__listing, self.listing, peer.__listing, peer.listing
+
+        return ans # so someone else takes them off our hands !
 
     @staticmethod
     def _child_class_(isfile, mode): # configure __listing
@@ -1414,6 +1534,7 @@ class WriteDir (WriteNode, CacheDir):
         return len(fmt(max(abs(self.listing[0].last),
                            abs(self.listing[-1].last))))
 
+    # annoyance: child_name needs span, but _child_class_() wants sign, hi, lo :-(
     def child_name(self, span, isfile, types, fmt=nameber.encode):
         """Determine name of a child.
 
@@ -1448,7 +1569,7 @@ class WriteDir (WriteNode, CacheDir):
         if isfile: name += '.py'
         return name
 
-del nameber
+del nameber, Interval, Ordered
 
 class WriteRoot (WriteDir, CacheRoot):
     _child_class_ = WriteDir._child_class_
@@ -1482,36 +1603,32 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         self.__onchange()
         self.parent._onchange_()
 
-    def _update_name_(self, span=None, types='',
+    def _update_name_(self, span=None, types=None,
                       rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
-                      remove=os.unlink, rmdir=os.rmdir):
+                      remove=os.unlink, rmdir=os.rmdir, exists=os.path.exists,
+                      set=TypeSet):
         """Replace self with a directory covering an altered range.
 
-        Optional arguments:
+        Optional arguments (each defaults to None):
           span -- None or a range of integers
-          types -- string of type letters, [A-Z]+ (default: '')
+          types -- None or a string of type letters, [A-Z]+
 
-        If span is not None, the new sub-directory's range of integers shall
-        subsume both span and self.span; otherwise, its span shall be that of
-        self.  The new sub-directory shall have the union of types and
-        self.types as its list of types.  All children of self shall be suitably
-        renamed into the new directory and self shall be removed.
+        If span is not None, self.span is used.  It specifies the range of
+        integers covered by the new directory.  If types is None, self.types is
+        used; it specifies the new sub-directory's list of types.  All children
+        of self shall be suitably renamed into the new directory and self shall
+        be removed.
 
-        Returns an instance of self.parent._child_class_(False, t) where t is
-        the union of types and self.types (in alphabetic order).  Derived
+        Returns an instance of self.parent._child_class_(False, types).  Derived
         classes should over-load this method, taking the returned instance and
         adding appropriate attributes, based on those of self.\n"""
 
-        ts = {}
-        for t in self.types: ts[t] = None
-        for t in types: ts[t] = None
-        ts = ts.keys()
-        ts.sort()
-        types = ''.join(ts)
+        if types is None: types = self.types
 
         # Is it sufficient to simply rename self ?
-        if self.span.subsumes(span) and span.subsumes(self.span): # i.e. same
+        if span is None or (self.span.subsumes(span) and span.subsumes(self.span)): # i.e. same
             if types == self.types: return self
+            if span is None: span = self.span
             alias = True
         else:
             assert self.sign == self.span.step
@@ -1546,12 +1663,14 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         for kid in self.listing: kid.relocate(peer)
         peer._save_()
 
-        remove(self._cache_file) # __init__.py
-        # Move any remaining cruft across:
-        for name in listdir(self.path()):
-            rename(self.path(name), peer.path(name))
+        if exists(self.path()):
+            remove(self._cache_file) # __init__.py
+            # Move any remaining cruft across:
+            for name in listdir(self.path()):
+                rename(self.path(name), peer.path(name))
 
-        rmdir(self.path())
+            rmdir(self.path())
+
         return peer
 
     __newfile = WriteDir.newfile # q.v. for documentation
@@ -1569,4 +1688,4 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
                     self, types, None,
                     span.start - self.span.start, len(span))
 
-del lazyattr, os
+del lazyattr, os, TypeSet
