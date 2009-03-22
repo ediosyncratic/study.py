@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.14 2009-03-22 12:26:54 eddy Exp $
+$Id: property.py,v 1.15 2009-03-22 13:19:02 eddy Exp $
 """
 
 class docprop (property):
@@ -50,15 +50,15 @@ class docprop (property):
         class whose .group() is used (i.e. group is a class method).
 
         For example, using study.cache.property.lazyattr (q.v., based on
-        docprop), in an imaginary sequence class:
+        docprop), in an imagined sequence class:
 
             @lazyattr.group(2)
             def variance(self, mode=None):
-                tot= totsq = 0
+                tot = totsq = 0.
                 for it in self:
                     tot += it
                     totsq += it**2
-                mean = tot * 1. / len(self)
+                mean = tot / len(self)
                 return mean, totsq / (len(self) - 1.) - mean**2
             mean, variance = variance
 
@@ -143,7 +143,7 @@ class dictprop (recurseprop):
     its getter to extract the attribute from that dictionary, if present
     (whether they do so before or after any other approach they have is their
     own choice).  The attribute's name is the __name__ of the getter passed
-    to the constructor.
+    to the constructor (as for docprop).
 
     After the usual doc parameter it can take, its constructor also accepts a
     callable, check, which shall be called on any value set for the value,
