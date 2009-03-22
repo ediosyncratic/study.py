@@ -9,7 +9,7 @@ base-classes).  Fortunately, python's introspection mechanisms make it fairly
 easy to discover that hierarchy; and the graphviz package's 'dot' language makes
 it easy to turn the result into a picture.
 
-$Id: hierarch.py,v 1.1 2009-03-22 23:25:30 eddy Exp $
+$Id: hierarch.py,v 1.2 2009-03-22 23:39:32 eddy Exp $
 """
 
 class Diagram (object):
@@ -190,7 +190,7 @@ class Diagram (object):
 
                 best, score, ms, peers = None, 0, 0, []
                 for it in known:
-                    q = klaz.__match(item, it, prior)
+                    q = klaz.__match(item, it)
                     if q > score:
                         best, score, ms, peers = it, q, mark(it.__module__), []
                     elif 0 < q == score: # ambiguity; check module
@@ -255,7 +255,7 @@ class Diagram (object):
         improved if you parse each module after you've introduced self to the
         classes on which that module's classes are based.\n"""
 
-        raw, cs, prior = read(module, path), [], {}
+        raw, cs, prior = read(module, list(path)), [], {}
         for k in self.nodes():
             prior[k.__name__] = prior.get(k.__name__, ()) + (k,)
 
@@ -270,20 +270,19 @@ class Diagram (object):
     del FakeClass, readmodule
 
     import re
-    from colourviz import Colour
+    from colour import Colour
     @staticmethod
     def __colpat(pattern, colour, parse=re.compile, shade=Colour.from_gv):
 	"""Digest possible encodings of a regex-to-colour mapping.
 
 	Parameters:
 	  pattern -- either a regular expression or a string.
-	  colour -- either a colourviz.Colour or a valid colour string
+	  colour -- either a colour.Colour or a valid colour string
 
-	Returns a two-ple of a regular expression and a colourviz.Colour
+	Returns a two-ple of a regular expression and a colour.Colour
 	object.  If pattern is a string, it is re.compile()d to obtain a regular
 	expression.  For the allowable colour strings, see the
-	colourviz.Colour.from_text(), which shall be used to interpret
-	them.\n"""
+	colour.Colour.from_text(), which shall be used to interpret them.\n"""
 
 	if isinstance(pattern, basestring): pattern = parse(pattern)
 	if isinstance(colour, basestring): colour = shade(colour)
