@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.9 2008-10-24 04:44:47 eddy Exp $
+$Id: property.py,v 1.10 2009-03-22 13:26:01 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictprop
 
@@ -97,6 +97,14 @@ class lazyattr (attrstore, recurseprop):
         return ans
 
 class lazyprop (dictprop, lazyattr):
+    """Lazy attribute which can also be over-ridden in __dict__
+
+    Sub-classes dictprop and lazyattr, consulting the former (i.e. __dict__) in
+    preference to the latter, thereby ensuring that any explicitly set value
+    over-rides the lazily-computed one.  Note that clear_attrstore_cache() on
+    the object only clears the lazily-computed values; to also clear any
+    lazyprop, you need to do so explicitly.\n"""
+
     __lget = lazyattr.__get__
     __dget = dictprop.__get__
     def __get__(self, obj, mode=None):
