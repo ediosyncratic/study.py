@@ -1,14 +1,14 @@
 """Cached properties, with lazy and weekly referenced variants.
 
 This module should eventually replace lazy.Lazy; it provides:
-  docprop -- extend property by borrowing getter's doc-string
+  docprop -- extend property by borrowing getter's doc-string and name
   recurseprop -- extend docprop to manage recursion in getters
   dictprop -- extend recurseprop by implementing set/del via object's __dict__
 
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.13 2008-10-24 05:23:04 eddy Exp $
+$Id: property.py,v 1.14 2009-03-22 12:26:54 eddy Exp $
 """
 
 class docprop (property):
@@ -16,7 +16,8 @@ class docprop (property):
 
     Extends property merely by using the doc-string of the getter function as
     fall-back for the doc-string of the property; this makes it (and classes
-    derived from it) nicer to use as a decorator.\n"""
+    derived from it) nicer to use as a decorator.  Also borrows .__name__ from
+    the getter.\n"""
 
     __upinit = property.__init__
     def __init__(self, getit, setit=None, delit=None, doc=None):
