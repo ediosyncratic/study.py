@@ -1,11 +1,8 @@
 """Handling of colour semantics.
 
-$Id: colour.py,v 1.1 2009-01-28 08:42:51 eddy Exp $
+$Id: colour.py,v 1.2 2009-03-22 23:41:52 eddy Exp $
 """
-
-# TODO: borrow graphviz's colour parser
-# see: http://vortex/doc/graphviz/html/info/attrs.html#k:color
-
+
 def get_x11_rgb(src='/etc/X11/rgb.txt'):
     fd, bok = open(src), {}
     try:
@@ -21,14 +18,57 @@ def get_x11_rgb(src='/etc/X11/rgb.txt'):
 		    # wilful blank line after error message.
     finally: fd.close()
     return bok
-from study.cache.mapping import LazyDict
 
+from HTMLParser import HTMLParser
+class GVParse (HTMLParser):
+    def __init__(self, bok):
+	self.__bok = bok
+
+    def handle_starttag(self, tag, attrs):
+	raise NotImplementedError
+
+    def handle_startendtag(self, tag, attrs):
+	raise NotImplementedError
+
+    def handle_endtag(self, tag):
+	raise NotImplementedError
+
+    def handle_data(self, data):
+	raise NotImplementedError
+
+def get_gv_rgb(parse=GVParse,
+	       local='/usr/share/doc/graphviz/html/info/colors.html',
+	       x11=get_x11_rgb):
+    # see http://vortex/doc/graphviz/html/info/colors.html
+    bok = {}
+    # Initially fill with system x11; let graphviz over-ride any over-lap.
+    for k, v in x11().getitems():
+	bok['/x11/' + k] = v
+
+    try: fd = open(local)
+    except IOError:
+	raise NotImplementedError, 'Need URL for public version'
+
+    try:
+	parser = parse(bok)
+	while True:
+	    line = fd.readline()
+	    if line: parser.feed(line)
+	    else: break
+	parser.close()
+    finally: fd.close()
+    return bok
+
+from study.cache.mapping import LazyDict
+
 class Colour (object):
     def __init__(self, red, green, blue, alpha=None):
 	if alpha is not None: self.alpha = alpha
 	self.red, self.green, self.blue = red, green, blue
 
     alpha = 0xff # default, if not specified.
+
+    # Ruby idiom: {from,to}_otherformat() constructors:
 
     @staticmethod
     def from_x11(txt, bok=LazyDict(fill=get_x11_rgb)):
@@ -37,7 +77,18 @@ class Colour (object):
 	return Colour(r, g, b)
 
     @staticmethod
-    def from_gv(txt): # Ruby got this idiom right ...
+    def from_gv(txt, scheme='x11', bok=LazyDict(fill=get_gv_rgb)):
+	# see: http://vortex/doc/graphviz/html/info/attrs.html#k:color
+	# TODO: is it possible to borrow graphviz's colour parser ?
+	if txt == 'transparent': return Colour(0, 0, 0, 0)
+	try:
+	    if txt[0] != '/': r, g, b = bok['/%s/%s' % (scheme, txt)]
+	    elif txt[:2] == '//': r, g, b = bok['/%s/%s' % (scheme, txt[2:])]
+	    elif '/' in txt[1:]: r, g, b = bok[txt]
+	    else: r, g, b = bok['/x11' + txt]
+	except KeyError: pass
+	else: return Colour(r, g, b)
+
 	if txt.lstrip()[0] == '#':
 	    ws = txt.lstrip()[1:].split()
 	    cols = []
@@ -58,11 +109,9 @@ class Colour (object):
 
 	row = txt.split('+')
 	if len(row) == 3: # HSV; 0.0 <= min(row) <= max(row) <= 1.0
-	    raise NotImplementedError, 'digesting graphviz HSV'
+	    return Colour.from_hsv(*map(float(row)))
 	elif len(row) > 1:
 	    raise ValueError('Malformed HSV-style graphviz colour code', txt)
-	else:
-	    raise NotImplementedError, 'decoding graphviz colour names'
 
     def to_gv(self):
 	raise NotImplementedError
@@ -82,11 +131,13 @@ class Colour (object):
 	raise NotImplementedError
 
     @staticmethod
-    def from_hsv(hue, saturation, value):
+    def from_hsv(hue, saturation, value): # ranges 0.0 <= H, S, V <= 1.0
 	raise NotImplementedError
 
     def to_hsv(self):
 	raise NotImplementedError
+
+    # Combine attributes in some standard ways:
 
     @property
     def rgba(self, ig=None):
