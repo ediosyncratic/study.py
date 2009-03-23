@@ -9,7 +9,7 @@ base-classes).  Fortunately, python's introspection mechanisms make it fairly
 easy to discover that hierarchy; and the graphviz package's 'dot' language makes
 it easy to turn the result into a picture.
 
-$Id: hierarch.py,v 1.2 2009-03-22 23:39:32 eddy Exp $
+$Id: hierarch.py,v 1.3 2009-03-23 08:51:50 eddy Exp $
 """
 
 class Diagram (object):
@@ -142,23 +142,25 @@ class Diagram (object):
             return n
 
         @classmethod
-        def __find(klaz, item, prior, module):
-            """Find something in prior that looks like item, if possible.
+        def express(klaz, name, item, prior, module=None):
+            """Represent a named item from module as a FakeClass object.
 
             Required arguments:
-              item -- a pyclbr.Class instance or a string.
-              prior -- as for express (q.v.)
-              module -- None or the full name, if known, of a module in which a
-                        class has item as a base.
+              name -- name of the item.
+              item -- a pyclbr.Class instance.
+              prior -- mapping from names to tuple of known class and FakeClass
+                       objects with the given name.
+              module -- full name of the module item came from, if known.
 
-            Tries to find an entry in prior[item.name] that item might plausibly
-            be; returns that entry if found.  Otherwise, if item is a string is
-            is returned; else .express() is called to create a new object to
-            represent the item.\n"""
+            The fiddly part of this is identifying a class or FakeClass object
+            from prior, when available.\n"""
 
-            try: known = prior[item.name]
+            if module is None: module = item.module
+            try:
+                assert name == item.name
+                known = prior[item.name]
             except AttributeError: # item is a string
-                assert isinstance(item, basestring)
+                assert isinstance(item, basestring) and name is item
                 try: known = prior[item]
                 except KeyError: pass
                 else:
@@ -166,7 +168,7 @@ class Diagram (object):
                     # else ambiguity :-(
                 return item
 
-            except KeyError: known = ()
+            except KeyError: known, best = (), None
             else:
                 if module is None:
                     def count(ks): return 0
@@ -200,43 +202,29 @@ class Diagram (object):
 
                 if peers:
                     print 'Arbitrailly preferring', best, 'to match', item, 'ignoring', peers
-                if best is not None:
-                    # If item provides more data than best, embelish best with it:
-                    if best.__module__ is None and item.module:
-                        best.__module__ = item.module
-                    if best.__bases__ is None and item.super:
-                        if '.' in item.module or ms <= 1: module = item.module
-                        else: module = best.__module__
-                        bases = []
-                        for k in item.super:
-                            bases.append(klaz.__find(k, prior, module))
-                        best.__bases__ = tuple(bases)
-                    return best
 
-            ans = klaz.express(item.name, item, prior)
-            prior[item.name] = known + (ans,)
+            if best is None or best.__bases__ is None:
+                if module and item.module in (module, module.split('.')[-1]): mod = module
+                elif '.' in item.module or ms <= 1: mod = item.module
+                else: mod = best.__module__
+                bases = []
+                for k in item.super:
+                    if isinstance(k, basestring): nom = k
+                    else: nom = k.name
+                    bases.append(klaz.express(nom, k, prior, mod))
+                bases = tuple(bases)
+
+            if best is not None:
+                # If item provides more data than best, embelish best with it:
+                if best.__module__ is None and item.module:
+                    best.__module__ = item.module
+                if best.__bases__ is None and item.super:
+                    best.__bases__ = bases
+                return best
+
+            ans = klaz(name, module, bases)
+            prior[name] = known + (ans,)
             return ans
-
-        @classmethod
-        def express(klaz, name, item, prior, module=None):
-            """Create a FakeClass to represent a named item from module.
-
-            Required arguments:
-              name -- name of the item.
-              item -- a pyclbr.Class instance.
-              prior -- mapping from names to tuple of known class and FakeClass
-                       objects with the given name.
-              module -- full name of the module item came from, if known.
-
-            The fiddly part of this is identifying item.super's entries with
-            class or FakeClass objects from prior, when available.\n"""
-
-            if module is None: module = item.module
-            bases = []
-            for k in item.super:
-                bases.append(klaz.__find(k, prior, module))
-
-            return klaz(name, module, tuple(bases))
 
     from pyclbr import readmodule
     def parse_module(self, module, path=(), faker=FakeClass.express, read=readmodule):
@@ -361,6 +349,8 @@ class Diagram (object):
 	fd.write('digraph ClassDiagram {\n' +
 		 '  rankdir="RL"\n' +
 		 '  node [shape=ellipse]\n')
+
+        # TODO: add colouring per node
 
 	for (d, i, b) in self.arcs():
 	    fd.write('  "%s" -> "%s" [taillabel="%d"];\n' %
