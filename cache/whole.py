@@ -231,7 +231,7 @@ as if the nearer-zero node were simply having nodes added to it after the manner
 of simple growth - albeit these additions may be done in bulk, rather than one
 at a time.
 
-$Id: whole.py,v 1.35 2009-03-21 20:27:27 eddy Exp $
+$Id: whole.py,v 1.36 2009-03-23 09:16:44 eddy Exp $
 """
 
 Adaptation = """
@@ -451,6 +451,31 @@ class SubNode (Node):
         try: return self.__sign * up
         except AttributeError: return up
 
+    def __cmp__(self, other):
+        if other is self: return 0
+
+        if isinstance(other, tuple): # NameFragments
+            # CacheSubNode layers name and isfile checks on top of this.
+            s = (cmp(self.__span.start, other.start) or
+                 cmp(len(self.__span), other.reach) or
+                 cmp(self.types, other.types))
+            if s: return s
+
+            try: s = self.__sign
+            except AttributeError: return cmp(None, other.sign)
+            return cmp(s, other.sign)
+
+        # If this raises AttributeError, comparison was misguided:
+        s = (cmp(self.__span.start, other.__span.start) or
+             cmp(len(self.__span), len(other.span)) or
+             cmp(self.types, other.types))
+        if s: return s
+
+        try: s = other.__sign
+        except AttributeError: s = None
+        try: return cmp(self.__sign, s)
+        except AttributeError: return cmp(None, s)
+
     @lazyattr
     def span(self, ig=None):
         ans = self.__span
@@ -492,6 +517,20 @@ class CacheSubNode (SubNode):
         self.__gapinit(parent, types, start, span, sign)
         self.__name = name
 
+    __upcmp = SubNode.__cmp__
+    def __cmp__(self, other):
+        s = self.__upcmp(other)
+
+        if not s and isinstance(other, tuple): # NameFragments
+            s = cmp(self.__name, other.name)
+            if s: return s
+
+            if isinstance(self, CacheFile): s = '.py'
+            else: s = ''
+            return cmp(s, other.isfile)
+
+        return s
+
     @property
     def name(self, ig=None): return self.__name
     def path(self, *tail): return self.parent.path(self.__name, *tail)
@@ -525,6 +564,32 @@ class WriteSubNode (CacheSubNode, WriteNode):
         peer = klaz(name, parent, self.types, start, len(span), sign, self)
         peer._save_()
         return peer
+
+    @property
+    def index(self):
+        return self.parent.child_index(self)
+
+    @property
+    def front(self):
+        """Returns the away-from-zero end of self's contiguous block.
+
+        As for rear (q.v.) but away from zero instead of towards it.\n"""
+
+        return self.parent.contiguous(self, self.sign)
+
+    @property
+    def rear(self):
+        """Returns the near-zero end of self's contiguous block.
+
+        Go up from self to a child of root; while this node's start abuts the
+        end of the one towards zero from it, move towards zero; this gets us to
+        the top-level node at the near-zero end of self's contiguous block.  If
+        this (with all its descendants) is tidy, it's the rear node; otherwise,
+        while the node has an untidy node as its nearest-zero child, step to
+        that node.  The result is then the lowest-depth untidy node at the
+        near-zero end of self's contiguous block.\n"""
+
+        return self.parent.contiguous(self, -self.sign)
 
 class CacheFile (CacheSubNode):
     @lazyattr
@@ -641,12 +706,24 @@ class CacheDir (Node, LockDir):
 
             raise AttributeError, key
 
+        def stop(self, sign):
+            ans = self.start + self.reach
+            if self.sign is None: return ans
+            return ans / (self.sign * sign)
+
+        def begin(self, sign):
+            if self.sign is None: return self.start
+            return self.start / (self.sign * sign)
+
     import re
     @lazyattr
     def __listing(self, ig=None, get=os.listdir, seq=Ordered, row=NameFragments,
                   pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
                   signmap={ 'N': -1, 'P': +1, '': None }):
         """The (suitably sorted) list of contents of this directory.
+
+        Sort order puts entries near self.span.start at low index and entries
+        near self.span.stop at high index.
 
         Ignores entries not matching the forms of cache file names.\n"""
         ans = seq()
@@ -658,9 +735,8 @@ class CacheDir (Node, LockDir):
                 if sign is not None: # hack to ensure sensible sort order
                     start *= sign * self.sign
                 mode, isfile = got.group(3), got.group(5)
-                # Be sure to match WeakSeq, and capital indices above:
+                # Be sure to match WeakSeq, and NameFragments' indexing, above:
                 ans.append(row((start, size, mode, sign, name, isfile)))
-                # WriteDir.newfile relies on isfile being last
 
         return ans
 
@@ -669,6 +745,130 @@ class CacheDir (Node, LockDir):
     @lazyprop
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
+
+    def child_index(self, child):
+        """Find index at which child appears in .listing\n"""
+
+        assert self is child.parent
+        if self.straddles0: target = child.span.start
+        else: target = child.span.start - self.span.start
+        # Would self.__listing.index(target) find this for us ?
+
+        seq = self.__listing
+        if seq[0] == child: return 0
+        lo, hi = 0, len(seq) - 1
+        if seq[-1] == child: return hi
+
+        while lo + 1 < hi:
+            mid = (lo + hi) / 2
+            p = seq[mid]
+            if p < child: lo = mid
+            elif p > child: hi = mid
+            else:
+                assert p == child
+                return mid
+
+        raise ValueError
+
+    def __abuts(self, rear, front):
+        """Does .listing[rear] abut .listing[front] ?
+
+        Arguments, rear and front, are indices into self.listing; the front
+        entry should be the one further from zero.  Loosely, the two .listing
+        entries abut if the front one's .span.start is the rear one's
+        .span.stop, except that we have to deal with the possibility that spans
+        may be nominal: if either node doesn't contain children that provide
+        actual data up to the boundary, then the two nodes don't actually abut,
+        even if their nominal spans claim they do.  Also, if the two nodes abut
+        one another at zero, in which case both start there, they aren't counted
+        as abutting.\n"""
+
+        lo = hi = self
+        while lo.__listing[rear].stop(lo.sign) >= hi.__listing[front].begin(hi.sign):
+            done = True
+            down = lo.listing[rear]
+            if isinstance(down, CacheDir): lo, done = down, False
+            down = hi.listing[front]
+            if isinstance(down, CacheDir): hi, done = down, False
+            if done: return True
+            if lo.sign * hi.sign < 0: return False
+            front, rear = 0, -1
+
+        return False
+
+    @staticmethod
+    def contiguous(child, sense):
+        """Returns a selected end of child's contiguous block.
+
+        Required arguments:
+          child -- an entry in self.listing
+          sense -- direction towards selected end
+
+        If sense is +1, we search for the upper end of child's contiguous block;
+        if -1, the lower end; pass child.sign to search away from zero or
+        -child.sign to search towards zero.  We first navigate from child up to
+        the top-level (direct child of root) node it's under; this is presumed
+        to be contiguous. Going in the selected direction from here, we search
+        for the first node whose span doesn't abut that of the next node in the
+        selected direction.  If this node is tidy, we return it.  Otherwise,
+        while its end-child in the selected direction is untidy, we step to
+        that, returning the lowest-depth untidy node at the selected end of the
+        contiguous block.  See WriteSubNode's .front and .rear for uses.\n"""
+
+        while child.parent is not None: child = child.parent
+        i, s, seq = child.index, child.sign * child.parent.sign, child.parent.__listing
+
+        # TODO: work out "abuts" test, allowing that even when the nominal spans
+        # of two top-level nodes abut, either may fail to be full up to the
+        # boundary, in which case they don't really abut.
+
+        while (seq[i-s].sign == seq[i].sign and
+               seq[i-s].start + seq[i-s].reach >= seq[i].start):
+            i -= s
+
+        raise NotImplementedError # TODO: implement
+
+    def _child_union(self, skip, ts): # tool for __revise_span
+        first = True
+        for k in self.__listing:
+            if filter(lambda x, n=k.name: x.name == n, skip): # i.e. k in skip
+                continue
+
+            ts.update(k.types)
+            klo, khi = k.begin(self.sign), k.stop(self.sign)
+ 
+            if first: lo, hi, first = klo, khi, False
+            else:
+                if klo < lo: lo = klo
+                if khi > hi: hi = khi
+
+        assert not first
+        return ts, lo, hi, map(lambda x: x.name, self.__listing)
+
+    @lazyattr
+    def _contrary(self):
+        """How many of self's children are reverse-oriented ?
+
+        If self straddles 0, this counts how many of its (direct) children are
+        have the opposite sign to self; these are the first entries in
+        self.listing and are all at the end of self's range closest to
+        .span.start (this is asserted).
+
+        Tool for WriteDir.tidy(), q.v., over-ridden on CacheSubDir and
+        WriteSubDir to save needless computation, since only root nodes can
+        straddle 0.\n"""
+
+        rev = 0
+        if self.straddles0:
+            try:
+                while self.__listing[rev].sign * self.sign < 0: rev += 1
+            except IndexError: pass # ran off end of list
+        assert not filter(lambda x: x.sign * self.sign < 0, self.__listing[rev:])
+
+        # ISSUE: if root contains a wide file of one type, whose range straddles
+        # some directories of another type, this fails to recognize the
+        # directory nearest zero.  Not a problem for the prime cache ...
+        return rev
 
     def _ontidy_(self):
         """Update attributes after directory contents have changed.
@@ -687,7 +887,8 @@ class CacheDir (Node, LockDir):
         Derived classes should extend this method, calling relevant base class
         version and deleting any attributes they add.\n"""
 
-        del self.__listing, self.listing, self.depth
+        self.clear_attrstore_cache()
+        del self.depth
 
     @staticmethod
     def _child_class_(isfile, mode):
@@ -715,12 +916,10 @@ class CacheDir (Node, LockDir):
         def __init__(self, cdir, getseq):
             def get(ind, s=cdir, g=getseq):
                 # be sure to match order in __listing(self, ...), above:
-                start, size, mode, sign, name, isfile = g(s)[ind]
-                if sign is not None: # undo __listing's sorting hack
-                    start /= sign * cdir.sign
-                klaz = s._child_class_(isfile, mode)
-                assert issubclass(klaz, CacheDir._child_class_(isfile, mode))
-                return klaz(name, s, mode, sign, start, size)
+                it = g(s)[ind]
+                klaz = s._child_class_(it.isfile, it.types)
+                assert issubclass(klaz, CacheDir._child_class_(it.isfile, it.types))
+                return klaz(it.name, s, it.types, it.sign, it.begin(cdir.sign), it.reach)
             self.__upinit(get)
             self.__who, self.__att = cdir, getseq
 
@@ -812,7 +1011,7 @@ class CacheDir (Node, LockDir):
           after -- extant cache node on the other side of the gap, or None
         Optional argument:
           limit -- None (default) or an existing Gap
-          Hole -- callable, taking the same parameters of Gap and returning an
+          Hole -- callable, taking the same parameters as Gap and returning an
                   instance of Gap; defaults to Gap, but derived classes might
                   wish to replace it with a class based on Gap.
 
@@ -824,7 +1023,7 @@ class CacheDir (Node, LockDir):
 
         Returns a Gap object describing the interval between the given nodes.
         If limit is not None, the returned Gap's interval is a sub-interval of
-        the one it describes.
+        the one limit describes.
 
         Derived classes should extend this method, calling their base-class's
         implementation (optionally with a class derived from Gap as Hole) and
@@ -985,14 +1184,7 @@ class CacheDir (Node, LockDir):
 
         if types is None: row = getattr(self, seq)
         elif not types: row = self.listing
-        else:
-            row, i = [], 0
-            for it in self.__listing:
-                for t in types:
-                    if t not in it.types: break
-                else:
-                    row.append(self.listing[i])
-                i += 1
+        else: row = self.typed_children(types)
 
         if not row: # hopeless !
             if gap is None:
@@ -1013,6 +1205,30 @@ class CacheDir (Node, LockDir):
 
         assert isinstance(kid, CacheFile)
         return kid
+
+    def typed_children(self, types, alldirs=False):
+        """Filter .listing on those entries relevant for given types.
+
+        Required argument, types, is a type string; entries in .listing are
+        deemed relevant if their type-string includes every type letter of
+        this.  Optional argument, alldirs, defaults to False; when it is true,
+        all directories are deemed relevant, regardless of type.  The returned
+        list preserves its entries' relative order within .listing (and doesn't
+        cause other entries in .listing to be created unnecessarily).\n"""
+
+        row, i = [], 0
+        for it in self.__listing:
+            if not alldirs or it.isfile:
+                for t in types:
+                    if t not in it.types: break
+                else:
+                    row.append(self.listing[i])
+            else:
+                row.append(self.listing[i])
+
+            i += 1
+
+        return row
 
 del WeakTuple, LockDir, lazyprop
 
@@ -1040,24 +1256,6 @@ nameber = intbase(36) # its .decode is equivalent to int(,36) used above.
 del intbase
 
 class WriteDir (WriteNode, CacheDir):
-    def __kids_by_type(self, types):
-        """List of self's children relevant when adding a file of given types.
-
-        All files of the given type are relevant, as are all sub-directories
-        (regardless of type).\n"""
-        row, i = [], 0
-        for it in self.__listing:
-            if it.isfile: # only include if types match
-                # hmm ... perhaps include all with at least one matching type ?
-                for t in types:
-                    if t not in it.types: break
-                else:
-                    row.append(self.listing[i])
-            else: # directory: always include
-                row.append(self.listing[i])
-
-        return row
-
     # Tool functions for newfile:
     def span_hi(span, row, chop, getargs):
         """Find index in row at which span's end falls.
@@ -1212,7 +1410,7 @@ class WriteDir (WriteNode, CacheDir):
         assert span > -1 or span < 1, 'Only a cache root can straddle 0'
         assert self.span is None or self.span.subsumes(span)
 
-        row = self.__kids_by_type(types)
+        row = self.typed_children(types, True)
         sign = span.step * self.span.step
 
         fom, tom = delimit(span, row, sign, self._bchop) # fra-og-med, til-og-med
@@ -1252,40 +1450,37 @@ class WriteDir (WriteNode, CacheDir):
 
     __changed = False # see tidy() and WriteNode._save_()
     def _onchange_(self): self.__changed = True
-    def tidy(self, down=True):
+    def tidy(self):
         """Tidy up subordinate nodes.
-
-        Optional argument, down, defaults to True (because this method should
-        normally be called on a root object); if it's true, self has the option
-        of moving children towards zero instead of away from it.  For non-root
-        directories, this means it's is at the end nearer zero of a contiguous
-        block of data under the root directory.
 
         Ideally, each directory contains a dozen children, all of equal
         depth.  This method sees how near that ideal it can bring this
         directory.\n"""
 
-        rev = 0
-        if self.straddles0:
+        # traversing kids away from zero ensures near-zero nodes are always tidy
+        # if they can be.
+
+        while self.__changed:
+            i, change = self._contrary, False
+            while i > 0:
+                i -= 1
+                node = self.listing[i]
+                if isinstance(node, WriteDir) and \
+                        (node.__changed or len(node.listing) != 12):
+                    if node.tidy(): change = True
+            i = self._contrary
             try:
-                while self.__listing[rev].sign * self.sign < 0: rev += 1
-            except IndexError: pass # ran off end of list
-        assert not filter(lambda x: x.sign * self.sign < 0, self.__listing[rev:])
-
-        # ISSUE: if root contains a wide file of one type, whose range straddles
-        # some directories of another type, this fails to recognize the
-        # directory nearest zero.  Not a problem for the prime cache ...
-
-        change = False
-        for node in self.listing:
-            if isinstance(node, WriteDir) and \
-               (node.__changed or len(node.__listing) != 12):
-                if node.tidy(down and rev in (0, 1)): change = True
-            rev -= 1 # so it's 1 on last reversed child, 0 on first forward one.
+                while True:
+                    node = self.listing[i]
+                    i += 1
+                    if isinstance(node, WriteDir) and \
+                            (node.__changed or len(node.listing) != 12):
+                        if node.tidy(): change = True
+            except IndexError: pass
 
         if self.__changed or change:
             self._ontidy_() # premature ?
-        elif len(self.__listing) == 12:
+        elif len(self.listing) == 12:
             return False # nothing to do
 
         raise NotImplementedError # TODO: implement
@@ -1298,25 +1493,6 @@ class WriteDir (WriteNode, CacheDir):
         assert not self.__changed
         return True
 
-    # Don't @lazyattr: no way to know when to update it
-    def __upindex(self):
-        """Index in self.parent.listing at which self appears."""
-        up = self.parent
-        if up.straddles0: target = self.span.start
-        else: target = self.span.start - up.span.start
-        seq = up.__listing
-        i = len(seq)
-        while i > 0:
-            i -= 1
-            p = seq[i]
-            start, sign = p.start, p.sign
-            if sign: start /= sign * up.sign
-            if p.types == self.types and start == target:
-                assert self is up.listing[i]
-                return i
-
-        raise ValueError
-
     @staticmethod
     def __child_types(kids, ts=None, lo=None, hi=None, set=TypeSet):
         if ts is None: ts = set()
@@ -1327,17 +1503,19 @@ class WriteDir (WriteNode, CacheDir):
         """Re-parent some descendant nodes.
 
         First argument, step, is either +1 or -1, indicating whether nodes are
-        to be moved, respectively, away from or twoards zero.  All subsequent
+        to be moved, respectively, away from or towards zero.  All subsequent
         arguments are child nodes of self, when self has decided it's got too
         many children: we need to find a new home for them.\n"""
+
+        # TODO: eliminate step; always sweep away from zero.
 
         assert step in (+1, -1) and self.parent is not None
         # Initialize i to force first iteration to move up the directory tree:
         if step < 0: i = 0
-        else: i = len(self.__listing)
+        else: i = len(self.listing)
         node, tidy = self, True
         while kids:
-            if not tidy or 0 <= i+step < len(node.__listing):
+            if not tidy or 0 <= i+step < len(node.listing):
                 if tidy:
                     i += step # still a valid index in listing
                     down = node.listing[i]
@@ -1374,7 +1552,7 @@ class WriteDir (WriteNode, CacheDir):
                     node.__revise_span(kids)
                     node = down
                     if (step < 0) == tidy:
-                        i = len(node.__listing) - 1
+                        i = len(node.listing) - 1
                     else: i = 0
                 del down
 
@@ -1382,7 +1560,7 @@ class WriteDir (WriteNode, CacheDir):
             else:
                 # Onwards and upwards !
                 node = node.__revise_span(kids) # these are being removed, not added
-                i = node.__upindex()
+                i = node.index
                 node = node.parent
 
     def __revise_span(self, kids, set=TypeSet, Range=Interval):
@@ -1396,25 +1574,9 @@ class WriteDir (WriteNode, CacheDir):
             self.clear_attrstore_cache()
             return # root doesn't record its span anyway.
 
-        types, first = set(), True
-        for k in self.__listing:
-            if filter(lambda x, n=k.name: x.name == n, kids): # i.e. k in kids
-                # Ignore k, it's being moved out; and remove it from kids, it's
-                # not being moved in:
-                kids = filter(lambda x, n=k.name: x.name != n, kids)
-                continue
+        types, lo, hi, names = self._child_union(kids, set())
+        kids = filter(lambda k, ns=names: k.name not in ns, kids)
 
-            types.update(k.types)
-            sign, klo, reach = k.sign, k.start, k.reach
-            assert sign is None, "Only root node's children specify sign"
-            khi = klo + reach
-
-            if first: lo, hi, first = klo, khi, False
-            else:
-                if klo < lo: lo = klo
-                if khi > hi: hi = khi
-
-        assert not first
         if self.sign < 0: span = Range(self.span.start + 1 - hi, hi - lo)
         else: span = Range(self.span.start + lo, hi - lo)
 
@@ -1452,10 +1614,18 @@ class WriteDir (WriteNode, CacheDir):
         assert kids, 'Pointless !'
         assert not self.span or not filter(lambda x, d=self.depth-1: x.depth != d, kids)
 
-        before = (self.listing[0].span.start - kids[0].span.start) * self.span.sign > 0
+        for it in kids:
+            n = cmp(self.listing[0].span.start, it.span.start)
+            if n:
+                before = n * self.span.sign > 0
+                break
+        else:
+            # all kids start at the same place as self !
+            before = not self.listing[0].span
+
         # kids should either all be before listing[0] or all be after listing[-1]:
         if before:
-            assert not filter(lambda k, b=self.listing[0].span.stop, s=self.span.sign: (b - k.span.start) * s < 0, kids)
+            assert not filter(lambda k, b=self.listing[0].span.start, s=self.span.sign: (b - k.span.stop) * s < 0, kids)
         else:
             assert not filter(lambda k, e=self.listing[-1].span.stop, s=self.span.sign: (k.span.start - e) * s < 0, kids)
 
@@ -1499,7 +1669,7 @@ class WriteDir (WriteNode, CacheDir):
                 if gap > 0 or (gap == 0 and before): cut = hi
                 else: cut = lo
 
-        else if tidy: # Ouch !  No valid split-point exists.
+        elif tidy: # Ouch !  No valid split-point exists.
             raise NotImplementedError # TODO: create a suitable split-point
         else: # Arrange to keep all and live with the untidiness:
             if before: cut = 0
@@ -1514,9 +1684,12 @@ class WriteDir (WriteNode, CacheDir):
         span = keep[0].span.meet(*map(lambda k: k.span, keep[1:]))
         peer = self._update_name_(span, ts)
 
-        # NB: relocate after _update_name_, to ensure directory exists !
+        # NB: relocate *after* _update_name_, to ensure directory exists !
         for kid in kids: kid.relocate(peer)
-        del self.__listing, self.listing, peer.__listing, peer.listing
+        # Now forget anything computed based on out-of-date file-system state:
+        self.clear_attrstore_cache()
+        peer.clear_attrstore_cache()
+        del self.depth, peer.depth
 
         return ans # so someone else takes them off our hands !
 
@@ -1593,9 +1766,10 @@ class WriteRoot (WriteDir, CacheRoot):
                     self, types, sign, start, len(span))
 
 class CacheSubDir (CacheSubNode, CacheDir):
-    pass
+    _contrary = 0
 
 class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
+    _contrary = 0
     _child_class_ = WriteDir._child_class_
 
     __onchange = WriteDir._onchange_
