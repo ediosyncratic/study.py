@@ -231,7 +231,7 @@ as if the nearer-zero node were simply having nodes added to it after the manner
 of simple growth - albeit these additions may be done in bulk, rather than one
 at a time.
 
-$Id: whole.py,v 1.36 2009-03-23 09:16:44 eddy Exp $
+$Id: whole.py,v 1.37 2009-03-26 08:38:07 eddy Exp $
 """
 
 Adaptation = """
@@ -567,6 +567,8 @@ class WriteSubNode (CacheSubNode, WriteNode):
 
     @property
     def index(self):
+        if self.parent is None:
+            raise AttributeError, 'Root has no parent in which to have an index'
         return self.parent.child_index(self)
 
     @property
@@ -575,7 +577,7 @@ class WriteSubNode (CacheSubNode, WriteNode):
 
         As for rear (q.v.) but away from zero instead of towards it.\n"""
 
-        return self.parent.contiguous(self, self.sign)
+        return self.parent.contiguous(self, +1)
 
     @property
     def rear(self):
@@ -589,7 +591,7 @@ class WriteSubNode (CacheSubNode, WriteNode):
         that node.  The result is then the lowest-depth untidy node at the
         near-zero end of self's contiguous block.\n"""
 
-        return self.parent.contiguous(self, -self.sign)
+        return self.parent.contiguous(self, -1)
 
 class CacheFile (CacheSubNode):
     @lazyattr
@@ -802,36 +804,52 @@ class CacheDir (Node, LockDir):
 
         Required arguments:
           child -- an entry in self.listing
-          sense -- direction towards selected end
+          sense -- relative direction flag
 
-        If sense is +1, we search for the upper end of child's contiguous block;
-        if -1, the lower end; pass child.sign to search away from zero or
-        -child.sign to search towards zero.  We first navigate from child up to
-        the top-level (direct child of root) node it's under; this is presumed
-        to be contiguous. Going in the selected direction from here, we search
-        for the first node whose span doesn't abut that of the next node in the
-        selected direction.  If this node is tidy, we return it.  Otherwise,
-        while its end-child in the selected direction is untidy, we step to
-        that, returning the lowest-depth untidy node at the selected end of the
-        contiguous block.  See WriteSubNode's .front and .rear for uses.\n"""
+        If sense is > 0, we search away from zero, else towards zero, for an end
+        of the child's contiguous block.  To search upwards (towards +ve
+        infinity) pass child.sign; for downwards, -child.sign works.  We first
+        navigate from child up to the top-level (direct child of root) node it's
+        under; this is presumed to be contiguous. Going in the selected
+        direction from here, we search for, and return, the first node whose
+        span doesn't abut that of the next node in the selected direction.  See
+        WriteDir.contiguous (which is what's actually used in practice) for a
+        refinement of this.\n"""
 
         while child.parent is not None: child = child.parent
-        i, s, seq = child.index, child.sign * child.parent.sign, child.parent.__listing
+        up = child.parent
+        i, s, seq = child.index, child.sign * up.sign, up.__listing
+        assert isinstance(up, CacheRoot) and seq[i] == child
 
-        # TODO: work out "abuts" test, allowing that even when the nominal spans
-        # of two top-level nodes abut, either may fail to be full up to the
-        # boundary, in which case they don't really abut.
+        if sense > 0:
+            while seq[i+s].sign == seq[i].sign and up.__abuts(i, i+s):
+                i += s
+        else:
+            assert sense < 0
+            while seq[i-s].sign == seq[i].sign and up.__abuts(i-s, i):
+                i -= s
 
-        while (seq[i-s].sign == seq[i].sign and
-               seq[i-s].start + seq[i-s].reach >= seq[i].start):
-            i -= s
+        return up.listing[i]
 
-        raise NotImplementedError # TODO: implement
+    def _child_union(self, skip, ts): # tool for WriteDir.__revise_span
+        """Data on self's children, optionally ignoring some.
 
-    def _child_union(self, skip, ts): # tool for __revise_span
+        Required arguments are skip, a list of nodes to ignore if they appear as
+        children of self, and ts, a set (typically a TypeSet, q.v.) to update()
+        with the types of all non-ignored children.  Computes the lowest offset,
+        lo, of any child's start within self and the highest offset, hi, of any
+        child's end and returns a tuple ts, lo, hi, with fourth element being
+        the list of members of skip that *didn't* show up as children of
+        self.\n"""
+
         first = True
         for k in self.__listing:
-            if filter(lambda x, n=k.name: x.name == n, skip): # i.e. k in skip
+            if k in skip:
+                assert len(filter(lambda s, p=k: s == p, skip)) == 1
+                assert len(filter(lambda k, f=filter(lambda s, p=k: s == p,
+                                                     skip)[0]: k == f,
+                                  self.__listing)) == 1
+                skip = filter(lambda s, p=k: s != p, skip)
                 continue
 
             ts.update(k.types)
@@ -843,7 +861,7 @@ class CacheDir (Node, LockDir):
                 if khi > hi: hi = khi
 
         assert not first
-        return ts, lo, hi, map(lambda x: x.name, self.__listing)
+        return ts, lo, hi, skip
 
     @lazyattr
     def _contrary(self):
@@ -865,9 +883,9 @@ class CacheDir (Node, LockDir):
             except IndexError: pass # ran off end of list
         assert not filter(lambda x: x.sign * self.sign < 0, self.__listing[rev:])
 
-        # ISSUE: if root contains a wide file of one type, whose range straddles
-        # some directories of another type, this fails to recognize the
-        # directory nearest zero.  Not a problem for the prime cache ...
+        # ISSUE(?): if root contains a wide file of one type, whose range
+        # straddles some directories of another type, this fails to recognize
+        # the directory nearest zero.  Not a problem for the prime cache ...
         return rev
 
     def _ontidy_(self):
@@ -875,7 +893,11 @@ class CacheDir (Node, LockDir):
 
         When the contents of the directory get changed (see WriteDir), this
         method is called to ensure attributes correctly reflect the contents of
-        the directory.  Note that changes to self.span are handled separately.
+        the directory.  Note that changes to self.span are handled separately;
+        also that this function doesn't clear any flags indicating self may need
+        tidying, as it's called when *some* tidying has happened, during the
+        course of which changes made may have provoked the need for *further*
+        tidying.
 
         Where possible, attributes that depend on directory contents should be
         lazy.  All lazy attributes (notably including every @weaklisting) can
@@ -885,7 +907,8 @@ class CacheDir (Node, LockDir):
         however, need to be updated.
 
         Derived classes should extend this method, calling relevant base class
-        version and deleting any attributes they add.\n"""
+        version and deleting any attributes they add, that are computed from
+        those of children.\n"""
 
         self.clear_attrstore_cache()
         del self.depth
@@ -1425,9 +1448,9 @@ class WriteDir (WriteNode, CacheDir):
             if sign < 0: fab, tab = abuts(fom.span, span, tom.span)
             else:        tab, fab = abuts(tom.span, span, fom.span)
 
-            assert not tab or not fab or tom.span.sign * fom.span.sign > 0
+            assert not tab or not fab or tom.sign * fom.sign > 0
             # Grow the one further from zero, given a choice:
-            if (tom.span.start - fom.span.start) * tom.span.sign > 0 and \
+            if (tom.span.start - fom.span.start) * tom.sign > 0 and \
                tab and isinstance(tom, CacheDir): kid = tom
             elif fab and isinstance(fom, CacheDir): kid = fom
             elif tab and isinstance(tom, CacheDir): kid = tom
@@ -1448,8 +1471,52 @@ class WriteDir (WriteNode, CacheDir):
 
     del abutting
 
+    @staticmethod
+    def contiguous(klaz, child, sense, contig=CacheDir.contiguous):
+        """Returns a selected end of child's contiguous block.
+
+        Required arguments:
+          child -- an entry in self.listing
+          sense -- relative direction flag
+
+        If sense is > 0, we search away from zero, else towards zero, for an end
+        of the child's contiguous block.  To search upwards (towards +ve
+        infinity) pass child.sign; for downwards, -child.sign works.  We start
+        at the node found by CacheDir.contiguous(), q.v.; if this node is tidy,
+        we return it.  Otherwise, while its end-child in the selected direction
+        is untidy, we step to that, returning the lowest-depth untidy node at
+        the selected end of the contiguous block.  See WriteSubNode's .front and
+        .rear for uses.\n"""
+
+        child = contig(child, sense)
+        try:
+            if child.__changed or len(child.listing) != 12:
+                if sense > 0: last = -1
+                else: last = 0
+                while True:
+                    down = child.listing[last]
+                    assert down.sign * child.sign > 0
+                    if down.__changed or len(down.listing) != 12:
+                        child = down
+                    else: break
+
+        except AttributeError: # missing .__changed
+            assert not isinstance(child, WriteDir)
+
+        return child
+
     __changed = False # see tidy() and WriteNode._save_()
-    def _onchange_(self): self.__changed = True
+    def _onchange_(self, seq=Ordered):
+        if not self.__changed:
+            self.__changed = True
+            if self.parent is not None:
+                self.parent._onchange_()
+                # Ensure changed node isn't garbage-collected before we tidy() it:
+                try: queue = self.parent.__changes
+                except AttributeError:
+                    queue = self.parent.__changes = seq()
+                queue.append(self)
+
     def tidy(self):
         """Tidy up subordinate nodes.
 
@@ -1457,40 +1524,63 @@ class WriteDir (WriteNode, CacheDir):
         depth.  This method sees how near that ideal it can bring this
         directory.\n"""
 
-        # traversing kids away from zero ensures near-zero nodes are always tidy
-        # if they can be.
-
+        change = False
         while self.__changed:
-            i, change = self._contrary, False
-            while i > 0:
-                i -= 1
-                node = self.listing[i]
-                if isinstance(node, WriteDir) and \
-                        (node.__changed or len(node.listing) != 12):
-                    if node.tidy(): change = True
-            i = self._contrary
-            try:
-                while True:
-                    node = self.listing[i]
-                    i += 1
-                    if isinstance(node, WriteDir) and \
-                            (node.__changed or len(node.listing) != 12):
-                        if node.tidy(): change = True
-            except IndexError: pass
+            del self.__changed # to expose the class value, False
+            assert not self.__changed
+            # ... but that may change when we tidy() children.
 
-        if self.__changed or change:
-            self._ontidy_() # premature ?
-        elif len(self.listing) == 12:
-            return False # nothing to do
+            # Clear .__changes (but hang onto its references for now):
+            try: changes = self.__changes
+            except AttributeError: continue
+            else: del self.__changes
+            # ... but that ma be put back when we tidy() children.
+            assert self.depth == 1 or changes
 
-        raise NotImplementedError # TODO: implement
-        # Sort out number of entries, e.g. using self.parent.__relocate
-        # Revise type to union of types of children.
-        # Ensure range falls between adjacent peers and subsumes union of children.
-        # Ensure name on disk reflects range and types.
+            idx = filter(lambda k, c=self._contrary: k.index < c, changes)
+            idx.reverse()
+            idx += filter(lambda k, c=self._contrary: k.index >= c, changes)
+            # Traversing kids away from zero ensures near-zero nodes are always
+            # tidy if they can be.
 
-        del self.__changed # to expose the class value, False
-        assert not self.__changed
+            for node in idx:
+                assert node.__changed and isinstance(node, WriteDir)
+                if node.tidy(): change = True
+
+            del changes, idx # allow old nodes to be garbage-collected
+
+        try: self.index
+        except AttributeError:
+            assert self.parent is None
+        except ValueError:
+            # Those recursive .tidy() have caused a __relocate which has sent
+            # kids back up and out through self, leading to self renaming
+            # (thanks to some of its children changing their .span), hence
+            # actually emptying itself and becoming redundant.  Telling .parent
+            # it's seen some change is all that remains to do.
+            return True
+
+        if change: self._ontidy_()
+        elif len(self.listing) == 12: return False # nothing to do
+
+        if self.parent is None:
+            chunks = tuple(self.contigua)
+            # Some chunks may have more mixed depth than we like, e.g. due to
+            # two previously disjoint ones of different depths colliding.
+            # Some chunks may be long enough to collapse; some of mixed depth
+            # may be ready to collapse their shallow ones.
+            # There may be too many chunks (we can't always fix that).
+            raise NotImplementedError # TODO: implement
+
+        elif len(self.listing) > 19:
+            # adopting none should sort out our surplus:
+            spare = self.__adopt(False, ())
+            if spare:
+                self.__relocate(spare)
+
+        # elif len(self.listing) < 12, not much we can do about it; we just try
+        # to avoid having that situation arise in the first place.
+        self._ontidy_() # (again)
         return True
 
     @staticmethod
@@ -1507,8 +1597,7 @@ class WriteDir (WriteNode, CacheDir):
         arguments are child nodes of self, when self has decided it's got too
         many children: we need to find a new home for them.\n"""
 
-        # TODO: eliminate step; always sweep away from zero.
-
+        # TODO eliminate step; always sweep away from zero
         assert step in (+1, -1) and self.parent is not None
         # Initialize i to force first iteration to move up the directory tree:
         if step < 0: i = 0
@@ -1543,7 +1632,7 @@ class WriteDir (WriteNode, CacheDir):
                             assert issubclass(klaz, WriteDir)
                             if step < 0: lo = down.span.start - self.span.start
                             else: lo = down.span.stop - self.span.start
-                            lo *= self.span.sign
+                            lo *= self.sign
                             down = klaz(self.child_name(Range(lo, 0), False, ts),
                                         self, ts, None, lo, 0)
                             kids = down.__adopt(tidy, kids)
@@ -1571,11 +1660,10 @@ class WriteDir (WriteNode, CacheDir):
         replaces self after revising its span.\n"""
 
         if self.parent is None:
-            self.clear_attrstore_cache()
+            self._ontidy_()
             return # root doesn't record its span anyway.
 
-        types, lo, hi, names = self._child_union(kids, set())
-        kids = filter(lambda k, ns=names: k.name not in ns, kids)
+        types, lo, hi, kids = self._child_union(kids, set()) # from CacheDir
 
         if self.sign < 0: span = Range(self.span.start + 1 - hi, hi - lo)
         else: span = Range(self.span.start + lo, hi - lo)
@@ -1594,40 +1682,43 @@ class WriteDir (WriteNode, CacheDir):
         """Accept new descendant nodes.
 
         If first argument, tidy, is true, self should aim to have a sensible
-        number of children on return.  All subsequent arguments are nodes self
-        should accept as children.  Each should have depth one less than that of
-        self.  The union of the ranges of the given child nodes should be
-        contiguous and abut or overlap self.span.
+        number of children on return.  Second argument is a sequence of nodes
+        self should accept as children.  Each should have depth one less than
+        that of self.  The union of the ranges of the given child nodes should
+        be contiguous and abut or overlap self.span.
 
-        Adopting these children may, of course, cause self to have too many
-        child nodes: in which case, if tidy is true, self should return a tuple
-        of child nodes from self's opposite end, so that caller, __relocate, can
-        duly forward them to some other node for adoption.  When tidy is false,
-        this function may leave self untidy by adopting all kids and returning
-        (); otherwise, it should make self tidy and return a tuple of at least
-        six (and ideally at least eight) nodes, either from kids or from self's
-        prior children, from the same end of self as the given kids abut (this
-        is also the end of the range of self's ancestors all the way back to
-        root, where it is the end of a contiguous range).\n"""
+        Adopting these children may, of course, cause self to have (or self may
+        already have) too many child nodes: in which case, if tidy is true, self
+        should return a tuple of child nodes from self's opposite end, so that
+        caller, __relocate, can duly forward them to some other node for
+        adoption.  When tidy is false, this function may leave self untidy by
+        adopting all kids and returning (); otherwise, it should make self tidy
+        and return a tuple of at least six (and ideally at least eight) nodes,
+        either from kids or from self's prior children, from the same end of
+        self as the given kids abut (this is also the end of the range of self's
+        ancestors all the way back to root, where it is the end of a contiguous
+        range).\n"""
 
         # NB: self may be a freshly-created empty node with no real directory yet.
-        assert kids, 'Pointless !'
+        assert self.parent is not None
+        assert kids or len(self.listing) > 12, 'Pointless !'
         assert not self.span or not filter(lambda x, d=self.depth-1: x.depth != d, kids)
 
         for it in kids:
             n = cmp(self.listing[0].span.start, it.span.start)
             if n:
-                before = n * self.span.sign > 0
+                before = n * self.sign > 0
                 break
         else:
-            # all kids start at the same place as self !
-            before = not self.listing[0].span
+            # All kids start at the same place as self (e.g. if self is empty),
+            # or there are none: either way, we want to keep .listing[:12].
+            before = tidy
 
         # kids should either all be before listing[0] or all be after listing[-1]:
         if before:
-            assert not filter(lambda k, b=self.listing[0].span.start, s=self.span.sign: (b - k.span.stop) * s < 0, kids)
+            assert not filter(lambda k, b=self.listing[0].span.start, s=self.sign: (b - k.span.stop) * s < 0, kids)
         else:
-            assert not filter(lambda k, e=self.listing[-1].span.stop, s=self.span.sign: (k.span.start - e) * s < 0, kids)
+            assert not filter(lambda k, e=self.listing[-1].span.stop, s=self.sign: (k.span.start - e) * s < 0, kids)
 
         all = seq(self.listing)
         for kid in kids: all.append(kid)
@@ -1674,6 +1765,7 @@ class WriteDir (WriteNode, CacheDir):
         else: # Arrange to keep all and live with the untidiness:
             if before: cut = 0
             else: cut = len(all)
+            self._onchange_()
 
         lo, hi = all[:cut], all[cut:]
         if before == tidy: keep, ans = lo, hi
@@ -1687,9 +1779,8 @@ class WriteDir (WriteNode, CacheDir):
         # NB: relocate *after* _update_name_, to ensure directory exists !
         for kid in kids: kid.relocate(peer)
         # Now forget anything computed based on out-of-date file-system state:
-        self.clear_attrstore_cache()
-        peer.clear_attrstore_cache()
-        del self.depth, peer.depth
+        self._ontidy_()
+        peer._ontidy_()
 
         return ans # so someone else takes them off our hands !
 
@@ -1765,17 +1856,65 @@ class WriteRoot (WriteDir, CacheRoot):
         return klaz(self.child_name(span, True, types),
                     self, types, sign, start, len(span))
 
+    @property
+    def contigua(self, ig=None):
+        """Iterator over contiguous chunks of self's children.
+
+        Each yield is a maximal tuple of contiguous top-level children, sorted
+        with the ones near zero first.\n"""
+
+        i = 0
+        # Initial loop over reversed chunks:
+        while i < len(self.listing):
+            at = self.listing[i]
+            if at.front is not at: break
+            j = at.rear.index + 1
+            chunk = list(self.listing[i:j])
+            chunk.reverse()
+            yield tuple(chunk)
+            i = j
+
+        # Loop over forward chunks:
+        while i < len(self.listing):
+            at = self.listing[i]
+            assert at.rear is at
+            j = at.front.index + 1
+            yield tuple(self.listing[i:j])
+            i = j
+
 class CacheSubDir (CacheSubNode, CacheDir):
     _contrary = 0
 
 class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
+    __upinit = WriteSubNode.__init__
+    def __init__(self, name, parent, types, start, span, sign=None, replaces=None):
+        """Initialize a modifiable directory.
+
+        Arguments are as for SubNode, to which they are forwarded.  The only
+        extra complication is that, when replaces is given, the new object needs
+        to flag itself as changed if the front of its contiguous block isn't the
+        same as that of the node it replaces.  This ensures it gets a chance at
+        a tidy() to deal with any over-populated children.\n"""
+
+        if replaces is not None:
+            assert isinstance(replaces, WriteSubDir):
+            prior = replaces.front
+
+        self.__upinit(name, parent, types, start, span, sign, replaces)
+
+        if replaces is not None and self.front is not prior:
+            self._onchange_()
+            # If we're an ancestor of prior, it may have surplus children, which
+            # it can now relocate; so make sure it gets a chance to do so:
+            run = prior.parent
+            while run is not None:
+                if run is replaces or run is self:
+                    prior._onchange_()
+                    break
+                run = run.parent
+
     _contrary = 0
     _child_class_ = WriteDir._child_class_
-
-    __onchange = WriteDir._onchange_
-    def _onchange_(self):
-        self.__onchange()
-        self.parent._onchange_()
 
     def _update_name_(self, span=None, types=None,
                       rename=os.rename, mkdir=os.mkdir, listdir=os.listdir,
