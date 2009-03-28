@@ -10,7 +10,7 @@ See also:
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
 
-$Id: asteroid.py,v 1.12 2007-07-08 10:52:07 eddy Exp $
+$Id: asteroid.py,v 1.13 2009-03-28 12:50:43 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, year, km, kg
@@ -57,8 +57,8 @@ quite a few that inhabit Jupiter's Lagrange points.\n""")
 
 # Some asteroids:
 def IArock(name, when, period, maxdiam, mass, miss,
-           blur=(1+.01*Sample.tophat), Tton=tera*ton.US, Mmile=mega*mile,
-           Q=Quantity, bar=Sample.tophat, yr=year, ml=mile,
+           blur=Sample.flat(.995, 1.005), Tton=tera*ton.US, Mmile=mega*mile,
+           Q=Quantity, bar=Sample.flat(-.5, +.5), yr=year, ml=mile,
            find=Discovery, rock=Asteroid, sol=Sun):
     """Asteroids described by Asimov in From Earth to Heaven.
 
@@ -115,7 +115,7 @@ No.  Name     Distance/Mm Radius/Mm Mass/kg  Discoverer   Date
 3554 Amun         145710       ?     ?      Shoemaker   1986
 """
 
-Albert = IArock('Albert', 1911, 4 + Sample.tophat, 3, 300, 20)
+Albert = IArock('Albert', 1911, Sample.flat(3.5, 4.5), 3, 300, 20)
 Eros = IArock('Eros', Discovery("C.G. Witt", 1898, location="Berlin",
                                 date="1898, August 13",
                                 etymology="Greek: Eros - god of love"), 1.76, 15, 15000, 14)
