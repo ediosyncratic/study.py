@@ -3,7 +3,7 @@
 
 See also:
 http://space.newscientist.com/article/dn13029-voyager-2-probe-reaches-solar-system-boundary.html
-$Id: Kuiper.py,v 1.15 2008-09-24 07:29:19 eddy Exp $
+$Id: Kuiper.py,v 1.16 2009-03-28 12:45:05 eddy Exp $
 """
 
 from study.value.units import Sample, Quantity, tophat, upward, \
@@ -273,7 +273,8 @@ http://antwrp.gsfc.nasa.gov/apod/ap020313.html
 """)
 
 # Notional boundary of the solar system (after Asimov):
-Terminus = Shell("Our Solar System's Edge", Sun, Quantity(2 + .2 * Sample.tophat, year.light),
+Terminus = Shell("Our Solar System's Edge", Sun,
+                 Quantity(Sample.flat(1.9, 2.1, 2), year.light),
                  # Roughly Bode index 20.7
                  __doc__ = """Nominal outer boundary of the Solar system.
 
