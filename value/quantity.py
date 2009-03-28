@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.53 2008-09-26 08:09:39 eddy Exp $
+$Id: quantity.py,v 1.54 2009-03-28 17:13:58 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -821,6 +821,26 @@ class Quantity (Object):
         estimate value in the interval, or None if no best estimate is
         available.  Subsequent optional arguments units, doc, nom, fullname and
         sample are as for Quantity's constructor (q.v.).\n"""
+
+        if isinstance(lo, Quantity):
+            un, lo = lo.__units, lo.__scale
+            units *= un
+        else: un = {}
+
+        if un:
+            assert isinstance(hi, Quantity) and hi.__units == un
+            hi = hi.__scale
+            if best is not None:
+                assert isinstance(best, Quantity) and best.__units == un
+                best = best.__scale
+        else:
+            if isinstance(hi, Quantity):
+                assert not hi.__units
+                hi = hi.__scale
+            if isinstance(best, Quantity):
+                assert not best.__units
+                best = best.__scale
+
         return Quantity(Sample.flat(lo, hi, best),
                         units, doc, nom, fullname, sample, *args, **what)
 
