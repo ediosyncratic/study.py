@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.25 2008-09-15 07:15:42 eddy Exp $
+$Id: body.py,v 1.26 2009-03-28 16:36:06 eddy Exp $
 """
 
 class Satellites:
@@ -245,11 +245,31 @@ class Body (Object):
 
         row = [] # in which to collect up the contributions
 
-        try: ambient = self.orbit.centre.tidal
-        except AttributeError: ambient = zero
+        ambient = zero
+        try: mid = self.orbit.centre
+        except AttributeError: pass
         else:
-            # but ignore the satellite contribution to this ...
-            ambient = ambient.orbital + ambient.ambient
+            try: ambient = mid.tidal
+            except AttributeError: pass
+            # but separate out the satellite contribution to this ...
+            else: ambient = ambient.orbital + ambient.ambient
+            try: r = self.orbit.radius
+            except AttributeError: pass
+            else:
+                assert ambient.high >= ambient.best >= ambient.low, (mid, ambient)
+                peer = zero
+                for p in mid.satellites:
+                    if p is self: continue
+                    try: gm, s = p.GM, p.orbit.radius
+                    except AttributeError: pass
+                    else:
+                        best, hi, lo = (s ** 2 + r **2)**-1.5, abs(s - r)**-3, (s + r)**-3
+                        assert hi > best > lo
+                        peer += 2 * gm * Q(best, sample = (lo, hi))
+                        assert peer.high >= peer.best >= peer.low, (p, peer)
+                if peer is not zero: ambient += peer
+                ambient.peer = peer
+                assert ambient.high >= ambient.best >= ambient.low, ambient
             row.append(ambient)
 
         try: orbital = self.orbit.tidal
@@ -267,10 +287,9 @@ class Body (Object):
             row, big = row[:-1], row[-1]
         else: big = zero
 
-        for it in row:
-            big = big + Q(zero, sample = (it, -it))
-
-        return Q(big, ambient = ambient, orbital = orbital)
+        tot = sum(row, zero)
+        return Q(big + Q(zero, sample = (tot, -tot)),
+                 ambient = ambient, orbital = orbital)
 
     def _lazy_get_tide_(self, ignored):
         """Returns strength of tidal forces across self.
