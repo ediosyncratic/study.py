@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.46 2008-10-19 21:49:58 eddy Exp $
+$Id: sample.py,v 1.47 2009-03-28 16:18:47 eddy Exp $
 """
 
 class _baseWeighted:
@@ -497,7 +497,19 @@ class curveWeighted (Lazy, _baseWeighted):
                 last, zero, one, two = c, zero + w, one + w*(c +last)/2, two + w*(c*c +last*c +last*last)/3
 
             mean = one/zero
-            return mean, sqrt(two/zero - mean**2)
+            # If difference > 10%, assume the real difference drowned rounding errors:
+            if mean**2 < .9 * two / zero:
+                return mean, sqrt(two/zero - mean**2)
+
+            # oops - too much rounding error;
+            # recompute two as sum(: (x-mean)**2 * p(x) &larr;x :)
+            siz, two = self.size, 0.
+            last = cut[0] - mean
+            for c in cut[1:]:
+                c, w, siz = c - mean, siz[0], siz[1:]
+                last, two = c, two + w*(c*c +last*c +last*last)/3
+
+            return mean, sqrt(two / zero)
 
     # end of inner class _lazy_get_interpolator_
     # Odd little fripperies that fascinate me, connected to entropoid, above:
