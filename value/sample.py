@@ -25,7 +25,7 @@ Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
 
-$Id: sample.py,v 1.47 2009-03-28 16:18:47 eddy Exp $
+$Id: sample.py,v 1.48 2009-03-29 11:15:25 eddy Exp $
 """
 
 class _baseWeighted:
@@ -882,18 +882,19 @@ class joinWeighted (curveWeighted):
         Arguments:
 
           weights -- a mapping (e.g. dictionary), for each key of which we'll be
-          performing self[key] = self.get(key, 0) + weights[key], save that
-          weights[key] may be scaled by scale and key may have been replaced
-          with func(key) - see below.  If a sequence is given, it is read as a
-          mapping with the sequence as .keys() and all values equal to 1; if
-          anything other than a sequence or mapping is given, it is read as a
-          single key with value 1.
+                     performing self[key] = self.get(key, 0) + weights[key],
+                     save that weights[key] may be scaled by scale and key may
+                     have been replaced with func(key) - see below.  If a
+                     sequence is given, it is read as a mapping with the
+                     sequence as .keys() and all values equal to 1; if anything
+                     other than a sequence or mapping is given, it is read as a
+                     single key with value 1.
 
           [scale=1] -- a scaling to apply to all values in weights
 
           [func=None] -- a callable which accepts keys of weights and returns
-          keys for self.  Used to transform any keys of weights which aren't
-          joinWeighted instances.
+                         keys for self.  Used to transform any keys of weights
+                         which aren't joinWeighted instances.
 
         If a key to be given to self (either a key of weights or func's output
         from such) is itself a joinWeighted, self.add recurses with
@@ -946,12 +947,12 @@ class joinWeighted (curveWeighted):
         if run:
             load = self.interpolator.weigh(map(mean, run[:-1], run[1:]))
             for k in run: result[k], load = load[0], load[1:]
-        # I'm not convinced (2002/Feb) interpolator is the right solution here;
-        # this method is used when self is a messy hodge-podge, so the weight
-        # which straddles the mid-point between entries in new is haphazardly
-        # weighted.  I may have been better off lumping each weight to nearest
-        # in new or sharing each weight between the nearest entries in new in
-        # proportion to how close each is.
+        # TODO: I'm not convinced (2002/Feb) interpolator is the right solution
+        # here; this method is used when self is a messy hodge-podge, so the
+        # weight which straddles the mid-point between entries in new is
+        # haphazardly weighted.  I may have been better off lumping each weight
+        # to nearest in new or sharing each weight between the nearest entries
+        # in new in proportion to how close each is.
 
         # Build a new distribution with this weighting:
         return self._weighted_(result, detail=len(result))
@@ -966,7 +967,7 @@ class joinWeighted (curveWeighted):
         Returns a self._weighted_() whose keys are: the highest and lowest of
         self, and; count-1 points in between, roughly evenly-spaced as to self's
         weight between them.  The weight of each of these points is based on
-        carving up self's weights according to who's nearest. """
+        carving up self's weights according to who's nearest.\n"""
 
         if count is None: count = self.__detail
         if len(self) <= count: return self
@@ -1801,9 +1802,31 @@ class Sample (Object):
         return self.__weigh.niles(n, mid)
 
     @staticmethod
-    def flat(lo, hi, best=None, **what):
-        if best is not None: what['best'] = best
-        return Sample({(2*lo + hi)/3.: 1, (lo + 2 * hi)/3.: 1}, **what)
+    def flat(lo, hi, best=None, *args, **what):
+
+        if isinstance(hi, Sample):
+            args = (hi,) + args
+            weights = hi.__weigh.normalise()
+            hi = what['high'] = hi.high
+        else: weights = None
+
+        if isinstance(lo, Sample):
+            args = (lo,) + args
+            if weights: weights.add(lo.__weigh.normalise())
+            else: weights = lo.__weigh.normalise()
+            lo = what['low'] = lo.low
+
+        if isinstance(best, Sample):
+            args = (best,) + args
+            if weights: weights.add(best.__weigh.normalise())
+            else: weights = best.__weigh.normalise()
+            what['best'] = best.best
+        elif best is not None: what['best'] = best
+
+        if not weights:
+            weights = {(2*lo + hi)/3.: 1, (lo + 2 * hi)/3.: 1}
+
+        return Sample(weights, *args, **what)
 
 del _power, _multiply, _divide
 _surprise = """\
