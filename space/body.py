@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.27 2009-03-29 11:16:35 eddy Exp $
+$Id: body.py,v 1.28 2009-03-29 11:26:24 eddy Exp $
 """
 
 class Satellites:
@@ -244,6 +244,7 @@ class Body (Object):
         the remaining terms'. """
 
         row = [] # in which to collect up the contributions
+        bok = {} # in which to name contributions per body
 
         ambient = zero
         try: mid = self.orbit.centre
@@ -256,7 +257,6 @@ class Body (Object):
             try: r = self.orbit.radius
             except AttributeError: pass
             else:
-                assert ambient.high >= ambient.best >= ambient.low, (mid, ambient)
                 peer = zero
                 for p in mid.satellites:
                     if p is self: continue
@@ -264,19 +264,19 @@ class Body (Object):
                     except AttributeError: pass
                     else:
                         best, hi, lo = (s ** 2 + r **2)**-1.5, abs(s - r)**-3, (s + r)**-3
-                        peer += 2 * gm * Q.flat(lo, hi, best)
-                        assert peer.high >= peer.best >= peer.low, (p, peer)
+                        q = bok[p.name] = 2 * gm * Q.flat(lo, hi, best)
+                        peer += q
+
                 if peer is not zero: ambient += peer
                 ambient.peer = peer
-                assert ambient.high >= ambient.best >= ambient.low, ambient
             row.append(ambient)
 
-        try: orbital = self.orbit.tidal
+        try: orbital = bok[mid.name] = self.orbit.tidal
         except AttributeError: orbital = zero
         else: row.append(orbital)
 
         for moon in self.satellites:
-            try: mine = moon.orbit.tidal * moon.mass / self.mass
+            try: mine = bok[moon.name] = moon.orbit.tidal * moon.mass / self.mass
             except AttributeError: pass
             else: row.append(mine)
 
@@ -288,7 +288,7 @@ class Body (Object):
 
         tot = sum(row, zero)
         return Q(big + Q.flat(-tot, tot),
-                 ambient = ambient, orbital = orbital)
+                 ambient = ambient, orbital = orbital, **bok)
 
     def _lazy_get_tide_(self, ignored):
         """Returns strength of tidal forces across self.
