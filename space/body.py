@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
 
-$Id: body.py,v 1.26 2009-03-28 16:36:06 eddy Exp $
+$Id: body.py,v 1.27 2009-03-29 11:16:35 eddy Exp $
 """
 
 class Satellites:
@@ -264,8 +264,7 @@ class Body (Object):
                     except AttributeError: pass
                     else:
                         best, hi, lo = (s ** 2 + r **2)**-1.5, abs(s - r)**-3, (s + r)**-3
-                        assert hi > best > lo
-                        peer += 2 * gm * Q(best, sample = (lo, hi))
+                        peer += 2 * gm * Q.flat(lo, hi, best)
                         assert peer.high >= peer.best >= peer.low, (p, peer)
                 if peer is not zero: ambient += peer
                 ambient.peer = peer
@@ -288,7 +287,7 @@ class Body (Object):
         else: big = zero
 
         tot = sum(row, zero)
-        return Q(big + Q(zero, sample = (tot, -tot)),
+        return Q(big + Q.flat(-tot, tot),
                  ambient = ambient, orbital = orbital)
 
     def _lazy_get_tide_(self, ignored):
