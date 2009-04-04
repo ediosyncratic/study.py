@@ -8,7 +8,7 @@ alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
 mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
 
-$Id: substance.py,v 1.10 2007-05-17 14:49:11 eddy Exp $
+$Id: substance.py,v 1.11 2009-04-04 15:52:43 eddy Exp $
 """
 from element import * # q.v.
 from particle import Nucleon
@@ -54,9 +54,11 @@ air = Gas(RMM = 1.6 * Nitrogen.A + .4 * Oxygen.A, # close enough ...
           sound = Object(speed = Quantity(mach)))
 air.sound.speed.observe(331.36 * metre / second) # duno where I got this one ...
 
-kerosene = Substance(density = 8 * pound / gallon)
-alcohol = Substance(density = 8 * pound / gallon)
-petrol = Substance(density = 7.5 * pound / gallon)
+methanol = Substance(density = .7918  * kilogramme / litre)
+kerosene = Substance(density = .81715 * kilogramme / litre) # at Fahrenheith(60)
+alcohol = ethanol = Substance(density = .789 * kilogramme / litre)
+petrol = Substance(density = .73722 * kilogramme / litre)
+# liquid hydrogen, at 20K: 70.99 gram / litre
 
 mixture_doc = """Modeling chemical mixtures.
 
