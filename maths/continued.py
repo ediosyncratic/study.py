@@ -8,7 +8,7 @@ See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
 
-$Id: continued.py,v 1.6 2009-03-17 08:10:27 eddy Exp $
+$Id: continued.py,v 1.7 2009-05-30 09:57:01 eddy Exp $
 """
 
 def real_continued(val):
@@ -77,6 +77,7 @@ def rationalize(x, tol=1e-7, depth=5):
     # x == seq[0] + 1/(seq[1] + 1/(...))
     n, d = seq.pop(), 1
     while seq: n, d = d + n * seq.pop(), n
+    if d < 0: return -n, -d
     return n, d
 
 class Token (object):
