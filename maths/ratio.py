@@ -7,7 +7,7 @@ Exports:
 
 See also: study.maths.continued, compared to which this is crude and ugly.
 
-$Id: ratio.py,v 1.12 2009-03-09 05:01:45 eddy Exp $
+$Id: ratio.py,v 1.13 2009-05-31 22:03:04 eddy Exp $
 """
 
 def intsplitfrac(val):
@@ -53,10 +53,12 @@ class Rational (Cached):
 	return n/i, d/i
 
     del asint, hcf
-    from continued import rationalize
+    from continued import rationalize, real_continued
+    __continue = rationalize, real_continued
+    del rationalize, real_continued
 
-    @staticmethod
-    def from_float(val, tol=1e-9, depth=12, rat=rationalize):
+    @classmethod
+    def from_float(mode, val, tol=1e-9, depth=12):
 	"""Approximates a real number.
 
 	Required argument, val, is the real number to be approximated. Optional
@@ -66,10 +68,29 @@ class Rational (Cached):
 	approximation; otherwise, returns a Rational object approximating
 	val.\n"""
 
-	n, d = rat(val, tol, depth)
-	return Rational(n, d)
+	n, d = mode.__continue[0](val, tol, depth)
+	return mode(n, d)
 
-    del rationalize
+    @classmethod
+    def approach(mode, val):
+        """Returns an interator over Rational approximations to val.
+
+        Single argument, val, is a number, presumed real.  At each point in its
+        continued fraction, the remainder is discarded and the truncated form is
+        used to produce a Rational approximation to val.  The error in this
+        approximation is saved as a .error attribute on each value yielded.\n"""
+
+        seq, ctd = [], mode.__continue[1](val)
+        while True:
+            seq.append(ctd.next()) # We're done if it raises StopIteration :-)
+            i, n, d = len(seq), 1, 0
+            while i > 0:
+                i -= 1
+                # replace n/d with seq[i] + d / n = (n*seq[i] + d) / n
+                n, d = n * seq[i] + d, n
+            ans = mode(n, d)
+            ans.error = float(ans) - val
+            yield ans
 
     @property
     def denominator(self, ig=None): return self.__ratio[1]
