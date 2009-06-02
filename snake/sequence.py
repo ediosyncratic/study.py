@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.32 2009-03-21 11:12:12 eddy Exp $
+$Id: sequence.py,v 1.33 2009-06-02 10:51:26 eddy Exp $
 """
 
 class Iterable (object):
@@ -435,11 +435,11 @@ class Ordered (List):
         All arguments are optional:
           val -- sequence of (or iterator over) initial entries or (default) None
           reverse -- sort in reverse order (default: False)
-          key -- function to apply to each entry to get sort value or (default)
-                 None to use the value as is
+          key -- function to apply to each entry (or its attr attribute) to get
+                 sort value or (default) None to use the value as is
           cmp -- comparison function or (default) None to use the built-in cmp
           attr -- name of attribute on which to compare or (default) None to use
-                  values directly
+                  values directly (or via key)
           unique -- ignore duplicate entries (default: False) or, if None, raise
                     ValueError on any attempted duplication.
 
