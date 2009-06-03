@@ -2,7 +2,7 @@
 
 See http://www.chaos.org/~eddy/math/music.xhtml
 
-$Id: music.py,v 1.1 2009-06-03 01:16:01 eddy Exp $
+$Id: music.py,v 1.2 2009-06-03 01:22:05 eddy Exp $
 """
 import math
 def log2(val, ln=math.log, ln2=math.log(2)): return ln(val) / ln2
@@ -58,7 +58,7 @@ class ArithList (Ordered):
     def __init__(self, vals, attr=None):
         if attr is None:
             return self.__upinit(vals, unique=True)
-        return self.__upinit(vals, attr=attr)
+        self.__upinit(vals, attr=attr)
 
     def __mulit(self, other):
         for a in self:
@@ -97,7 +97,7 @@ class MultiIter (object):
     def next(self):
         i = len(self.__srcs)
         while i > 0:
-            i -= 0
+            i -= 1
             try: self.__vals[i] = self.__its[i].next()
             except StopIteration:
                 self.__its[i] = iter(self.__srcs[i])
@@ -144,7 +144,7 @@ class Scale (object):
         def mess(seq, bad=limit+1):
             if seq: return seq[0].complexity
             return bad
-        i, seq = count + 1, Seq(val=mess)
+        i, seq = count + 1, Seq(key=mess)
         while i > 0:
             i -= 1
             good = Row(self.__rough[i].filter(lambda x, h=limit: x.complexity <= h),
@@ -180,8 +180,9 @@ class Scale (object):
 
             if not nice: break
 
+        if work: return False
         del self.best
-        return not work
+        return True
 
     @lazyattr
     def best(self, ig=None, unlack=(None,)):
