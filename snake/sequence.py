@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.33 2009-06-02 10:51:26 eddy Exp $
+$Id: sequence.py,v 1.34 2009-06-04 11:57:58 eddy Exp $
 """
 
 class Iterable (object):
@@ -284,7 +284,8 @@ class Tuple (ReadSeq, tuple):
     the newly created object (obtained by calling base-class's __new__(), of
     course), instead of (or as well as) __init__().\n"""
 
-    def __tuple__(self, val):
+    @classmethod
+    def __tuple__(mode, val):
         """Pseudo-constructor.
 
         Takes a sequence and returns an instance of Tuple.  If a derived class
@@ -293,7 +294,7 @@ class Tuple (ReadSeq, tuple):
         and slicing, it should over-ride this with something that raises an
         error.  Otherwise, this uses the class of self to construct a new Tuple
         of suitable type.\n"""
-        return self.__class__(val)
+        return mode(val)
 
     __upmul = tuple.__mul__
     def __mul__(self, other): return self.__tuple__(self.__upmul(other))
@@ -404,14 +405,15 @@ class List (ReadSeq, list): # list as base => can't use __slots__
     __mapwith = ReadSeq.mapwith
     def mapwith(self, *what): return self.__list__(self.__mapwith(*what))
 
-    def __list__(self, *what):
+    @classmethod
+    def __list__(mode, *what):
         """Create a new object like self, but with other init args.
 
         Takes the same args as list.__init__ (q.v.) but builds a new object
         of the same kind as self - derived classes should over-ride this if they
         change the signature of __init__.  Should normally be invoked indirectly
         via slicing, e.g., self[:0] or self[:].\n"""
-        return self.__class__(*what)
+        return mode(*what)
 
 class Ordered (List):
     """An ordered set.
@@ -479,14 +481,15 @@ class Ordered (List):
                                 not self.__rev, self.__key, self.__cmp,
                                 self.__attr, self.__unique)
 
-    def __ordered__(self, *what):
+    @classmethod
+    def __ordered__(mode, *what):
         """Create a new object like self, but with other init args.
 
         Takes the same args as Ordered.__init__ (q.v.) but builds a new object
         of the same kind as self - derived classes should over-ride this if they
         change the signature of __init__.  Should normally be invoked indirectly
         via slicing, e.g., self[:0] or self[:].\n"""
-        return self.__class__(*what)
+        return mode(*what)
 
     # Take this from list, not List:
     try: __upsets = list.__setslice__ # used by multiplications
@@ -549,14 +552,18 @@ class Ordered (List):
         but each defaults to self's corresponding sort property.  If given, cmp
         replaces self's prior comparison function, if any (you can restore the
         effect of no custom comparison by passing the built-in cmp function). If
-        key is omitted, self's existing key is preserved; if it is any other
-        false value, any prior key is discarded and self uses values as they
-        are, subject to any attribute name look-up; otherwise, key replaces
+        key is omitted or None, self's existing key is preserved; if it is any
+        other false value, any prior key is discarded and self uses values as
+        they are, subject to any attribute name look-up; otherwise, key replaces
         self's prior key.  If reverse is true, it is combined with self's prior
         reversal using xor (so reverse-sorting a reverse-sorted list yields a
         normally sorted list, for example).  Since no list.sort() parameter
         matches attribute look-up (for all that key may be used to do this),
-        nothing can change self's choice of delegating attribute.\n"""
+        nothing can change self's choice of delegating attribute.
+
+        When no parameters are passed, this should normally be an expensive
+        no-op; however, if entries in the list have changed in ways that affect
+        their position, this should restore proper sorting.\n"""
 
         if cmp is None: cmp = self.__cmp
         else: self.__cmp = cmp
