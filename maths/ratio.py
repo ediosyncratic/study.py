@@ -7,7 +7,7 @@ Exports:
 
 See also: study.maths.continued, compared to which this is crude and ugly.
 
-$Id: ratio.py,v 1.13 2009-05-31 22:03:04 eddy Exp $
+$Id: ratio.py,v 1.14 2009-06-04 11:47:19 eddy Exp $
 """
 
 def intsplitfrac(val):
@@ -34,11 +34,15 @@ from study.cache.property import Cached, lazyattr
 
 class Rational (Cached):
     def __init__(self, numer, denom=1):
+        if isinstance(numer, Rational):
+            numer, denom = numer.numerator, denom * numer.denominator
+        if isinstance(denom, Rational):
+            numer, denom = numer * denom.denominator, denom.numerator
 	self.__ratio = self.__coprime(numer, denom)
 	assert self.__ratio[1] > 0
 
     from natural import hcf
-    def asint(v, isf=intsplitfrac):
+    def asint(v, isf=intsplitfrac): # tool function, not method
 	try: a = isf(v)[0]
 	except TypeError: pass
 	else:
@@ -132,14 +136,18 @@ class Rational (Cached):
 	num, den = self.__ratio
 	return float(num) / den
 
+    @classmethod
+    def __rational__(mode, num, den):
+        return mode(num, den)
+
     def __nonzero__(self): return self.__ratio[0] != 0
     def __pos__(self): return self
     def __neg__(self):
 	num, den = self.__ratio
-	return Rational(-num, den)
+	return self.__rational__(-num, den)
     def __abs__(self):
 	num, den = self.__ratio
-	return Rational(abs(num), den)
+	return self.__rational__(abs(num), den)
 
     def __long__(self):    return long(self.truncate)
     def __int__(self):     return self.truncate
@@ -150,7 +158,7 @@ class Rational (Cached):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(num * q + p * den, den * q)
+	return self.__rational__(num * q + p * den, den * q)
 
     __radd__ = __add__
 
@@ -158,19 +166,19 @@ class Rational (Cached):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(num * q - p * den, den * q)
+	return self.__rational__(num * q - p * den, den * q)
 
     def __rsub__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(den * p - q * num, q * den)
+	return self.__rational__(den * p - q * num, q * den)
 
     def __mul__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(num * p, den * q)
+	return self.__rational__(num * p, den * q)
 
     __rmul__ = __mul__
 
@@ -178,14 +186,14 @@ class Rational (Cached):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(num * q, den * p)
+	return self.__rational__(num * q, den * p)
     __div__ = __truediv__
 
     def __rtruediv__(self, other):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
-	return Rational(p * den, q * num)
+	return self.__rational__(p * den, q * num)
     __rdiv__ = __rtruediv__
 
     def __floordiv__(self, other): return self.__truediv(other).floor
@@ -196,7 +204,7 @@ class Rational (Cached):
 
     def __pow__(self, count, mod=None):
 	num, den = self.__ratio
-        ans = Rational(num**count, den**count)
+        ans = self.__rational__(num**count, den**count)
 	if mod is None: return ans
 	return ans % mod
 
@@ -204,6 +212,7 @@ class Rational (Cached):
 	num, den = self.__ratio
 	try: p, q = other.__ratio
 	except AttributeError: p, q = other, 1
+        assert den > 0 and q > 0, 'else sort order messed up'
 	return cmp(num * q, den * p)
 
     def __hash__(self):
