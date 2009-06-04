@@ -2,7 +2,7 @@
 
 See http://www.chaos.org/~eddy/math/music.xhtml
 
-$Id: music.py,v 1.2 2009-06-03 01:22:05 eddy Exp $
+$Id: music.py,v 1.3 2009-06-04 11:50:00 eddy Exp $
 """
 import math
 def log2(val, ln=math.log, ln2=math.log(2)): return ln(val) / ln2
@@ -18,24 +18,46 @@ class Rational (Rational):
     def log(self, ig=None, log2=log2):
         return log2(self.real)
 
+    __ps = (2,)
+    def prefer(self, ps):
+        self.__ps = ps
+        del self.clean, self.complexity
+
     from primes import factorise
     @lazyattr
-    def complexity(self, ig=None, crack=factorise):
-        bok = crack(self.denominator, crack(abs(self.numerator)))
-        return sum(bok.keys()) + sum(bok.values()) - len(bok)
-
+    def __factors(self, ig=None, crack=factorise):
+        return crack(self.numerator, crack(self.denominator))
     del factorise
+
+    @lazyattr
+    def complexity(self, ig=None):
+        bok = self.__factors
+        ans = sum(bok.keys()) + sum(bok.values()) - len(bok)
+        if self.clean: return ans
+        return ans * (self.numerator + self.denominator)
+
+    @lazyattr
+    def clean(self, ig=None):
+        return not filter(lambda k, fs=self.__ps: k not in fs, self.__factors.keys())
 
 from study.snake.sequence import Ordered
 class LeastBad (Ordered):
     __upinit = Ordered.__init__
     def __init__(self, target, scale):
-        self.__upinit(attr='bad')
+        self.__upinit(attr='bad', unique=True)
         self.__scale, self.__target = scale, target
+
+    def prefer(self, ps):
+        self.__ps = ps
+        all = tuple(self)
+        del self[:]
+        for it in all: self.append(it)
 
     __upapp = Ordered.append
     def append(self, ind, value=None):
         if value is None: value = ind
+        try: value.prefer(self.__ps)
+        except AttributeError: pass
         value.error = value.real - self.__target
         value.bad = value.complexity * abs(value.error)
         if value in self: return False
@@ -47,18 +69,18 @@ class LeastBad (Ordered):
                 while i < len(self):
                     if self[i].bad < cut: i += 1
                     else: del self[i:]
-
             return True
         return False
 
     insert = append
 
 class ArithList (Ordered):
-    __upinit = Ordered
+    __upinit = Ordered.__init__
     def __init__(self, vals, attr=None):
         if attr is None:
-            return self.__upinit(vals, unique=True)
-        self.__upinit(vals, attr=attr)
+            self.__upinit(vals, unique=True)
+        else:
+            self.__upinit(vals, attr=attr)
 
     def __mulit(self, other):
         for a in self:
@@ -138,7 +160,8 @@ class Scale (object):
 
         return seq
 
-    def __refine(self, limit, Row=ArithList, Seq=Ordered, Multi=MultiIter):
+    def __refine(self, limit,
+                 Row=ArithList, Seq=Ordered, Multi=MultiIter, one=Rational(1, 1)):
         assert limit > 0, "don't be ridiculous !"
         count = self.__count
         def mess(seq, bad=limit+1):
@@ -147,32 +170,31 @@ class Scale (object):
         i, seq = count + 1, Seq(key=mess)
         while i > 0:
             i -= 1
-            good = Row(self.__rough[i].filter(lambda x, h=limit: x.complexity <= h),
+            good = Row(self.__rough[i].filter(
+                    lambda x, h=limit: x.clean and x.complexity <= h),
                        attr='complexity')
             good.index = i
             seq.append(good)
 
         gaps = map(lambda r: r.index, seq.filter(lambda r: len(r) < 1))
-        work, mode = len(gaps) > 0, 0
+        work, take, neg = len(gaps) > 0, 1, 0
+        seq = seq.filter(None)
         while work:
-            mode += 1
-            bits, i, nice = 0, mode, False
-            while i: i, bits = i >> 1, bits + 1
-            assert mode & (1 << (bits-1))
-            for rs in Multi(bits * (seq,)):
-                b, n, vs = bits - 1, rs[-1].index, rs[-1]
+            neg += 1
+            if neg > take: take, neg = take + 1, 0
+            nice = False
+            for rs in Multi(take * (seq,)):
+                b, n, vs = take, 0, Row((one,))
                 while b > 0:
                     b -= 1
-                    p, r = count & (1 << b), rs[b]
-                    if p: n, vs = n + r.index, vs * r
-                    else: n, vs = n - r.index, vs / r
-                if mode is 1: n = -n # special case
+                    r = rs[b]
+                    if b < neg: n, vs = n - r.index, vs / r
+                    else: n, vs = n + r.index, vs * r
                 q, n = divmod(n, count)
                 assert 0 <= n < count
+                if q: vs /= Row((one * 2**q,))
                 tgt = self.__rough[n]
                 for v in vs:
-                    if mode is 1: v = 1/v # special case
-                    v /= 2**q
                     if abs(v.log * count - n) > .5: continue
                     if v.complexity <= limit: nice = True
                     elif len(tgt) > 0 and v.complexity > self.__complex: continue
@@ -188,7 +210,18 @@ class Scale (object):
     def best(self, ig=None, unlack=(None,)):
         return map(lambda s, u=unlack: (s or u)[0], self.__rough)
 
+    def prefer(self, *primes):
+        for it in self.__rough: it.prefer(primes)
+        del self.best
+
     def refine(self, limit):
         return self.__refine(limit)
+
+    def taste(self, ind, num, den, Frac=Rational):
+        rat = Frac(num, den)
+        if abs(rat.log * self.__count - ind) > .5: return False
+        tgt = self.__rough[ind]
+        if len(tgt) > 0 and rat.complexity > self.__complex: return False
+        return tgt.append(rat)
 
 del LeastBad, ArithList, Ordered, Rational
