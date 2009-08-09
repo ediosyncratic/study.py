@@ -5,7 +5,7 @@ frequencies of tokens.  Instances are, after running methods appropriately,
 suitable for use as the symbol-frequency argument required by the constructor of
 the Huffman class (q.v.) provided by Huffman.py in this directory.
 
-$Id: characters.py,v 1.2 2009-08-09 13:52:10 eddy Exp $
+$Id: characters.py,v 1.3 2009-08-09 14:32:44 eddy Exp $
 """
 
 class Counter (dict):
@@ -37,18 +37,18 @@ class Counter (dict):
 
         Single argument is a string (or sequence of characters), whose entries
         are to be included in self's distribution, save that each sequence of
-        characters matching /&\S+/; is to be treated as a single
-        'character'.
+        characters matching /&\S*?;/ is to be treated as a single
+        'character'.  (This regular expression - an arbitrary sequence of
+        non-space characters, enclosed in '&' on the left and ';' on the right -
+        is more general than the actual lexical form of character entities, so
+        may match some texts that are not character entities.)
 
-        Note that this regular expression (an arbitrary sequence of non-space
-        characters, enclosed in '&' on the left and ';' on the right) is more
-        general than the actual lexical form of character entities, so may match
-        some texts that are not character entities; also, no attempt is made to
-        identify when two such texts happen to indicate the same character
-        (formally: unicode code-point), e.g. '&otimes;' and '&#8855;' are
-        treated as distinct characters.  Likewise, if unicode strings are either
-        .ingest()ed or .engest()ed, literal unicode characters are not
-        identified with character entities that happen to encode them.\n"""
+        Note that no attempt is made to identify when two such texts happen to
+        indicate the same character (formally: unicode code-point),
+        e.g. '&otimes;' and '&#8855;' are treated as distinct
+        characters.  Likewise, if unicode strings are either .ingest()ed or
+        .engest()ed, literal unicode characters are not identified with
+        character entities that happen to encode them.\n"""
 
         tmp = ''
         for ch in text:
