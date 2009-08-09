@@ -2,6 +2,7 @@
 
 Fragments available:
  base -- representing numbers as strings in various bases
+ characters -- counting letter (and other token) frequencies
  dequote -- undoing the 'quoted-printable' encoding used in e-mails
  Huffman -- text-compressor using the Huffman coding
  morse -- using dots and dashes to represent text
@@ -13,7 +14,7 @@ Attribute:
 See also:
  urllib -- standard python module, provides {un,}quote{,_plus} for %xx {en,de}coding.
 
-$Id: __init__.py,v 1.3 2008-06-19 07:53:09 eddy Exp $
+$Id: __init__.py,v 1.4 2009-08-09 13:53:11 eddy Exp $
 """
 
 # Taken from Information Theory, Inference, and Learning Algorithms (D.J.C. MacKay) p.100:
