@@ -4,7 +4,7 @@ Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
 
-$Id: Huffman.py,v 1.17 2008-06-22 21:46:26 eddy Exp $
+$Id: Huffman.py,v 1.18 2009-08-09 22:30:27 eddy Exp $
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
@@ -37,7 +37,8 @@ class Huffman (Lazy):
     def __init__(self, P, symbols=alphabet, N=1, blank=None, tail=None):
         """Initialize a Huffman encoder.
 
-        First argument, P, is a mapping from symbols to their relative
+        First argument, P, is a mapping (e.g. a Counter object from this
+        directory's characters.py, q.v.) from symbols to their relative
         frequencies; if a sequence is supplied instead, it is interpreted as a
         mapping from its indices to its entries.  If every key of P is a
         character (i.e. a single-character string, whether 8-bit or unicode),
@@ -87,7 +88,7 @@ class Huffman (Lazy):
         encoded strings can be saved to file as python strings and robustly
         transmitted over channels which use parity checks; they can also be
         split into lines of some convenient length by the insertion of '\n'
-        characters without danger of being chnaged by any software that strips
+        characters without danger of being changed by any software that strips
         or reformats spaces (since it contains no spaces); when the '\n' breaks
         are subsequently removed, the result should decode safely.  These
         constraints allow us 92 symbols, yielding a symbol set a bit over 8%
@@ -140,7 +141,7 @@ class Huffman (Lazy):
             self.__blank = blank
 
     def encode(self, message):
-        """Encode (compresses) a message.
+        """Encode (compress) a message.
 
         Single parameter is the message; this is either a string or a sequence
         of tokens, see constructor documentation.  Returns a string.\n"""
@@ -167,7 +168,7 @@ class Huffman (Lazy):
         return txt
 
     def decode(self, txt):
-        """Decodes (uncompresses) a message.
+        """Decode (uncompress) a message.
 
         Single parameter is a string, the encoded message.  Return value is a
         string or tuple of tokens; see constructor documentation.\n"""
