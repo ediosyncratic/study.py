@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.11 2008-11-06 19:07:04 eddy Exp $
+$Id: ticker.py,v 1.12 2009-08-29 15:07:28 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -28,6 +28,10 @@ class StockPageParser (HTMLParser):
                 while True:
                     line = fd.readline()
                     if not line: break
+                    # <bodge> work round broken attributes in generated page ...
+                    ind = line.find('"colspan=') + 1
+                    if ind > 0: line = line[:ind] + ' ' + line[ind:]
+                    # </bodge>
                     self.feed(line)
             except:
                 try: del self.__cell
