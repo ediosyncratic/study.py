@@ -4,7 +4,7 @@ See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
 
-$Id: physics.py,v 1.12 2009-08-30 11:16:05 eddy Exp $
+$Id: physics.py,v 1.13 2009-08-30 11:23:56 eddy Exp $
 """
 from study.value.units import *
 
@@ -178,6 +178,7 @@ See http://www.astro.ubc.ca/people/scott/faq_email.html for further details.
 """))
 
 Cosmos.Hubble.also(length = Vacuum.c / Cosmos.Hubble,
+                   # volume = length **3, optionally times 4*pi/3
                    time = 1 / Cosmos.Hubble)
 
 Cosmos.also(kappa = Quantity(8 * pi, Cosmos.G / Vacuum.c**3,
