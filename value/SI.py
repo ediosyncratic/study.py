@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.18 2009-08-30 22:13:50 eddy Exp $
+$Id: SI.py,v 1.19 2009-08-30 22:56:43 eddy Exp $
 """
 from quantity import *
 
@@ -147,7 +147,7 @@ atoms); multiply this by cm**3 to get the orthodox number.\n"""),
     Faraday = mol.charge)
 # See also ../chemy/physics.py, which adds the gas constant, R.
 
-def bykind(value, bok,
+def bykind(value, bok, alias={},
            naming={ 's': 'time', 'm': 'length', 'kg': 'mass', 'A': 'current',
                     'mol': 'amount', 'K': 'temperature', 'rad': 'angle',
                     stere._unit_str: 'volume', are._unit_str: 'area',
@@ -161,23 +161,33 @@ def bykind(value, bok,
                     (N*s)._unit_str: 'momentum', (N*s*m)._unit_str: 'action' }):
     """Add value to bok using value's kind as key.
 
-    Requires exactly two arguments:
+    Requires two arguments:
       value -- a Quantity of a kind with a standard name
       bok -- a mapping from names to values
 
-    This is a helper function for classes, based on Object, with attributes
-    named by the kind of their value; their constructors can iterate over
-    positional parameters, passing each to this function along with their
-    keyword parameter dictionary so as to give each value its kind as name.
-    Useful, for example, for black holes and photons, any one of several
-    attributes may be specified to the constructor and implies diverse others
-    via lazy lookups: this saves having to overtly name the parameter.
+    Accepts at most one further argument, alias, which should (if given) be a
+    mapping from strings to strings: each key should be the canonical name of a
+    kind, mapped to the attribute name that should be used for a parameter of
+    this kind.  For example, { 'length': 'radius', 'impedance': 'resistance' }
+    would cause value to get the name radius if it were a length and the name
+    resistance if it were an impedance.  Values of all other kinds simply get
+    the canonical name of their kind.
+
+    This is a helper function for classes, e.g. those based on Object, with
+    attributes named by the kind of their value; their constructors can iterate
+    over positional parameters that are instances of Quantity, passing each to
+    this function along with their keyword parameter dictionary so as to give
+    each value its kind as name.  Useful, for example, for black holes and
+    photons: any one of several attributes may be specified to the constructor
+    and implies diverse others via lazy lookups - this saves having to overtly
+    name the parameter.
 
     Raises KeyError on unsupported value type: callers can catch that and work
-    out what to do with the exceptions; or pre-filter anyway, e.g. so as to bind
-    lengths to some more apt name than 'length' (e.g. wavelength, radius) or
-    resistances to 'resistance' instead of 'impedance'.\n"""
+    out what to do with the exceptions.  On success, returns the actual
+    attribute name used.\n"""
 
     kind = naming[value._unit_str] # shall KeyError on unsupported type
-    bok[kind] = value
-    return bok
+    try: key = alias[kind]
+    except KeyError: bok[kind] = value
+    else: bok[key], kind = value, key
+    return kind
