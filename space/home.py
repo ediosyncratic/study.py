@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.32 2008-09-26 08:07:20 eddy Exp $
+$Id: home.py,v 1.33 2009-08-30 18:39:09 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -52,12 +52,28 @@ See also: http://antwrp.gsfc.nasa.gov/apod/ap030209.html
 """,
                                   l = (273 + 6 * tophat) * arc.degree,
                                   b = (30 + 6 * tophat) * arc.degree),
-                        # Guess based on: Andromeda being a bit bigger than the
-                        # Milky Way; and the rest of the group not adding up to
-                        # much by comparison:
-                        mass = (4+tophat) * 1e41 * kg)
+                        mass = Quantity(2 + tophat, 1e43 * kg,
+                                        """Estimated mass of the Local Group
+
+The mass inwards from radius R within each galaxy grows in proportion to R,
+which might suggest that galactic masses vary in proportion to radii; a simple
+uniform area density model in each galactic disk would predict masses
+proportional to squares of radii; and a simple spherical model at fixed density
+would use the cubes.  When I summed R**P for radii R and power P, dividing the
+total by the Milky Way's contribution, the ratio has a minimum of about 4.16 at
+about P = 1.9, falling from just under 6 at P = 1 and rising to just over 5 at P
+= 3 (however, these results are quite sensitive to variations in the value used
+for the radius of the Milky Way, shifting significantly even between 90 and 100
+M ly).  It thus seems reasonable to estimate that the mass of the local group is
+between four and six times that of the Milky Way.
+"""))
+
+# NB: MilkyWay.mass figure used is *not* the temporary one given immediately
+# below; see later correction once Sun has been successfully added as a
+# satelite.
 
 MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
+                       # NB: actual mass is O(1e42) - but see below !
                        orbit = Orbit(LocalGroup,
                                      # guess radius: over half way to Andromeda
                                      Quantity(1.5 + tophat, mega * year.light),
@@ -74,8 +90,9 @@ def load_rubble(): # lazy satellite loader for Sun
 Sun = body.Star(
     'Sun', load_rubble, type='G2 V',
     orbit = Orbit(MilkyWay,
-		  Quantity(27 + 4 * tophat, kilo * year.light),
+		  Quantity(26 + 2.8 * tophat, kilo * year.light),
                   # I've seen figures of 28 k ly, 8 k parsec; I used to quote 3e4 ly
+                  # and Wikipedia gives both 26 +/- 1.4 and 25 +/- 1 k ly
 		  Spin(Quantity(230 + 20 * tophat, mega * year)),
                   # I've seen period figures from 220 to 240 My.
                   None, # I don't know eccentricity, let Orbit guess for us ...
@@ -83,7 +100,6 @@ Sun = body.Star(
 		  speed=Quantity(218 + 4 * tophat, km / second)),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
-
     velocity = Quantity(371 + tophat, kilo * metre / second,
                         """Speed of Solar System.
 
@@ -443,11 +459,14 @@ Sun.also(
                         flattening = 0.0,
                         radiation = 63.3 * mega * Watt / metre**2,
                         temperature = 5800 * Kelvin))
+Sun.orbit.altitude = Quantity.flat(5, 30, None, parsec,
+                                   "Distance from galactic disk-plane")
 Sun.surface.radius.observe(6.96e8 * metre)
 Sun.mass.observe(1.9891e30 * kg) # over 700 times the sum of all the planets' masses
 # </bootstrap>
 
 # Milky way: reprise
+# http://en.wikipedia.org/wiki/Milky_Way among other sources
 MilkyWay.also(
     __doc__="""Our home Galaxy.
 
@@ -461,25 +480,53 @@ large radii than would be suggested by the visible stars and clouds.
 """,
     # Span given as 1e21 metre by Nuffield, 100,000 light years by
     # /apod/ap030103.html and assorted other sources; but it's blurry.
-    radius=(51.5 + 5 * tophat) * kilo * year.light,
+    radius=Quantity(51.5 + 5 * tophat, kilo * year.light,
+                    "Radius of the Milky Way's visible thin disk",
+                    # bulge = ... ?
+                    bar = Quantity(13.5 + tophat, kilo * year.light,
+                                   "Radius of the Milky Way's central bar"),
+                    halo = Quantity(100 + 30 * tophat, kilo * year.light,
+                                    "Radius of the Milky Way's spherical stellar halo")),
     # same apod gave "200 billion"; David Darling (see URL below) gives 200 to
     # 400 billion, not counting brown dwarves.
     starcount=(3 + 2*tophat) * 100 * giga,
-    # and from an article in el Reg:
-    age=(13.6 + 0.8 * tophat) * giga * year,
-    # http://www.daviddarling.info/encyclopedia/G/Galaxy.html offers:
-    density=Quantity(0.1, Sun.mass / parsec**3,
-                     """Mean density of our Galaxy.
+    age=Quantity(8.3 + 3.8 * tophat, giga * year,
+                 "Age of the Milky Way's galactic thin disk",
+                 # and from an article in el Reg:
+                 oldest=Quantity(13.6 + 0.8 * tophat, giga * year,
+                                 "Age of the oldest stars in the Mikly Way")),
+    spin=Spin(Quantity(50 + 10 * tophat, mega * year),
+              "Rotation rate of the Milky Way's Spiral pattern",
+              bar=Spin(Quantity(17.5 + 3 * tophat, mega * year),
+                       "Rotation rate of the Milky Way's central bar"),
+              speed=Quantity(225 + 15 * tophat, kilo * metre / second,
+                         """Typical stellar orbital speed.
 
-About 5 to 10 % of the Galaxy's mass is in gas and dust; its total mass is
-between .2 and .4 tera Sun.mass (the figure given above is its mass closer in
-than the Sun, so that adding the Sun as a satellite goes smoothly).
-"""),
-    mass=Quantity(.3 + .2 * tophat, tera * Sun.mass),
+Stars outside the central bulge of the Milky Way but not so far out as the outer
+rim all move at roughly the same speed (instead of exhibiting a Keplerian
+drop-off of speed with distance from the centre.  This implies that the total
+mass closer to the galactic centre than any given radius R is proportional to R,
+for R larger than the radius of the central bulge but smaller than the
+rim-radius.  The discrepancy between this and the visible matter density is
+evidence for dark matter.\n""")),
+    # Correct mass value (previous figure served to make adding Sun go smoothly):
+    mass=Quantity(1 + tophat, 2 * tera * Sun.mass,
+                  """Mass of our Galaxy
+
+About 5 to 10 % of the Galaxy's mass is in gas and dust; its total mass, in tera
+Sun.mass, has been given as 1 to 2 (revised upwards from around a fifth of that
+since the 1990s) but estimates of around 3 are becoming (2009) more usual.  This
+puts the Milky Way on a par with (rather than smaller than, as previously
+supposed) Andromeda.\n"""),
+    # http://www.daviddarling.info/encyclopedia/G/Galaxy.html
+    density=Quantity(0.1, Sun.mass / parsec**3,
+                     "Mean density of our Galaxy."),
     thick=Quantity(2.45 + .3 * tophat, kilo * year.light,
-                   "Thickness of the Galactic disk"),
-    bulge=Quantity(16, kilo * year.light,
-                   "Thickness of our Galaxy's central bulge"),
+                   "Thickness of the stellar disk of the Milky Way",
+                   bulge=Quantity(16, kilo * year.light,
+                                  "Thickness of our Galaxy's central bulge"),
+                   gas=Quantity(12, kilo * year.light,
+                                "Thickness of gas disk enclosing the Milky Way's disk")),
     luminosity=Quantity(1 + tophat, 10e36 * Watt),
     magnetic=Quantity(4 + 2 * tophat, micro * Gauss,
                       """Background magnetic field strength of our Galaxy.
