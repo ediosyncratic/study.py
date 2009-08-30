@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.9 2008-07-12 18:01:16 eddy Exp $
+$Id: archaea.py,v 1.10 2009-08-30 23:04:49 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -97,6 +97,7 @@ http://www.gnu.org/software/units/units.html
 http://www.unc.edu/~rowlett/units/
 http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
 http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
+http://en.wikipedia.org/wiki/Category:Units_of_measure
 
 Nautical mile and its kin
 http://www.gwydir.demon.co.uk/jo/units/sea.htm
@@ -352,7 +353,22 @@ cental = 100 * pound # cental is a UK name for the US cwt
 quintal = 76 * pound # standard (iron) "flask" of Mercury (originally a Spanish unit)
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
-TNT = Quantity(4.184 + .001 * tophat, giga * Joule) / ton.US # (2.15 km/s)**2
+TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
+               """The conventional unit of power of explosions
+
+The energy released by each gram of TNT (trinitrotoluene) upon detonation is
+between 4.1 and 4.6 kJ; however, for the purposes of standardized definition, a
+value of 4184 Joule is used.  It is worth noting that food carbohydrate has
+energy content per unit mass roughly four times as high as this.
+
+c.f.: http://en.wikipedia.org/wiki/TNT_equivalent
+""")
+
+Magnitude = Object(
+    # Seismographic energy scales
+    moment = lambda n: 10 ** (1.5 * n + 9.1) * Joule,
+    energy = lambda n: 10 ** (1.5 * n + 2.9) * Joule,
+    Richter = lambda n: 10 ** (1.5 * n + 6) * 4.2 * Joule)
 
 # Anglophone units of energy:
 CHU = calorie * pound / gram # whatever CHU is ! (KDWB)
