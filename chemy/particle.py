@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.32 2008-09-21 20:05:10 eddy Exp $
+$Id: particle.py,v 1.33 2009-08-30 22:59:40 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -286,6 +286,9 @@ class Particle (Object):
         except KeyError: pass
         else: return m.energy
 
+        try: t = self.__dict__['period']
+        except KeyError: pass
+        else: return h / t
         try: f = self.__dict__['frequency']
         except KeyError: pass
         else: return h * f
@@ -293,7 +296,7 @@ class Particle (Object):
         except KeyError: pass
         else: return Planck * f
 
-        raise AttributeError('energy', 'mass', 'frequency', 'nu')
+        raise AttributeError('energy', 'mass', 'period', 'frequency', 'nu')
 
     def _lazy_get_mass_(self, ignored):
         return self.energy.mass
@@ -379,15 +382,14 @@ from the second of which I took the extra-visible spectral data below.
     __upinit = Boson.__init__
     def __init__(self, *args, **what):
         for val in args:
-            if val._unit_str == 'm': what['wavelength'] = val
-            else: bykind(val, what)
+            bykind(val, what, { 'length' : 'wavelength', 'time': 'period' })
 
         try: what['name']
         except KeyError: what['name'] = 'photon'
 
         self.__upinit(**what)
 
-    def __repr__(self):
+    def __repr__(self, J=Joule):
         # Use name if it has a personal one:
         try: nom = self.name
         except AttributeError: pass
@@ -399,7 +401,7 @@ from the second of which I took the extra-visible spectral data below.
         try: e = self.energy / eV
         except AttributeError: return 'light'
         if e > 1e11: # assert: e should be scalar (dimensionless)
-            return 'Photon(energy=%s * Joule)' % `self.energy / Joule`
+            return 'Photon(energy=%s * Joule)' % `self.energy / J`
         return 'Photon(energy=%s * eV)' % `e`
 
     def __str__(self):
@@ -445,7 +447,9 @@ from the second of which I took the extra-visible spectral data below.
         except AttributeError: pass
         else: return abs(p) * c
 
-        raise AttributeError('energy', 'mass', 'momentum', 'nu', 'wavelength', 'wavevector')
+        raise AttributeError('energy', 'mass', 'momentum',
+                             'period', 'frequency', 'nu',
+                             'wavelength', 'wavevector')
 
     def _lazy_get_momentum_(self, ignored, c=Vacuum.c):
         try: return self.__momentum(ignored)
