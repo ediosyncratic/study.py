@@ -10,7 +10,7 @@ time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
-$Id: SI.py,v 1.17 2008-09-21 20:03:43 eddy Exp $
+$Id: SI.py,v 1.18 2009-08-30 22:13:50 eddy Exp $
 """
 from quantity import *
 
@@ -59,7 +59,7 @@ mol = base_unit('mol', 'Mole',
 The amount of substance which contains as many elementary units as there are
 atoms in 12e-3 kilogrammes (exactly) of pure carbon-12.  The elementary unit
 must be specified and may be atom, molecule, ion, radical, electron, photon
-<I>etc</I>. or collection of elementary units.
+etc. or collection of elementary units.
 """)
 
 cd = candela = base_unit('cd', 'Candela',
@@ -130,8 +130,8 @@ electrolysis liberates some univalent electrolyte, per mole liberated.\n"""),
     volume = Quantity(sample(22.4136, .003), milli * stere / mol, # .54781 firkin / mol
                       """Molar volume of an ideal gas at STP.
 
-At standard temperature (zero Centigrade, 273.15 Kelvin) and pressure (one
-atomosphere), one mole of any ideal gas will have a volume of 22.4136 litres.
+At standard temperature T and pressure P (see mol.STP, set in units.py), one
+mole of any ideal gas will have a volume of R*T/P = 22.4136 litres.
 Compare particle.Nucleon.amuk and mol.Loschmidt.\n"""))
 
 # (mol.volume / mol.Avogadro)**(1./3) = 3.33879 * nano * metre
@@ -143,7 +143,7 @@ Loschmidt's name is normally associated with the number of molecules (or atoms,
 as appropriate) in one cubic centimetre of ideal gas under standard conditions;
 however, since that makes it really a number per unit volume, I've gently
 abridged the standard definition to give the number density of molecules (or
-atoms); multiply this by cm**3 to get the orthodox number. """),
+atoms); multiply this by cm**3 to get the orthodox number.\n"""),
     Faraday = mol.charge)
 # See also ../chemy/physics.py, which adds the gas constant, R.
 
