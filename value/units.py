@@ -3,7 +3,7 @@
 
 See SI.py for base units and archaea.py for more arcane units (and references).
 
-$Id: units.py,v 1.32 2008-06-29 00:14:23 eddy Exp $
+$Id: units.py,v 1.33 2009-08-30 23:00:57 eddy Exp $
 """
 from SI import *
 
@@ -172,6 +172,19 @@ atm = Atmosphere = Quantity(101325, Pascal,
                             'atm', 'Atmoshpere',
                             technical = kg.weight / cm**2)
 
+# Standard temperature and pressure:
+mol.STP = Quantity(Centigrade(0) / atm, {},
+                   """Standard temperature / pressure
+
+Various thermodynamic quantities are defined in terms a standard temperature of
+zero Celsius and pressure of one (standard) atmosphere; these are supplied as
+.temperature and .pressure attributes of mol.STP.  In many cases, notably
+whenever the ideal gas law is involved, it is actually only the ratio of these
+two that matters, so mol.STP is in fact the .temperature / .pressure ratio.
+""",
+                   temperature=Centigrade(0),
+                   pressure=atm)
+
 torr = mmHg = Quantity(133.322, Pascal,
                        """Torr, the common laboratory unit of pressure.
 
@@ -185,7 +198,7 @@ mercury's thermal expansion.""")
 
 mach = Quantity(331.46, metre / second,
                 doc = """The speed of sound in dry air.
-\n(at standard temperature and pressure).\n""")
+\n(at standard temperature and pressure; see mol.STP).\n""")
 
 Rankine = Kelvin / 1.8
 degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
