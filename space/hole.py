@@ -1,6 +1,6 @@
 """Description of black holes.
 
-$Id: hole.py,v 1.6 2008-09-21 20:06:33 eddy Exp $
+$Id: hole.py,v 1.7 2009-08-30 22:58:08 eddy Exp $
 """
 
 from study.chemy.physics import Vacuum, Quantum, Cosmos, Thermal, pi
@@ -29,10 +29,11 @@ class BlackHole (Object): # should be based on chemy.thermal.Radiator
         row = []
         for arg in args:
             if not isinstance(arg, Quantity): row.append(arg)
-            elif arg._unit_str == 'm': what['radius'] = arg
-            else: bykind(arg, what)
+            else: bykind(arg, what, { 'length': 'radius' })
 
         self.__upinit(*row, **what)
+
+    def __repr__(self): return 'BlackHole(mass=%s)' % `self.mass`
 
     def _lazy_get_mass_(self, ig, tm=Thermal.Hawking):
         return tm / self.temperature
