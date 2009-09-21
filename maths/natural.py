@@ -23,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.23 2009-03-11 04:49:41 eddy Exp $
+$Id: natural.py,v 1.24 2009-09-21 22:48:40 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -150,6 +150,38 @@ def Euclid(a, b):
     i, j = Euclid(b, r)
     # hcf == i * b + j * (a - q * b) == j * a + (i - q * j) * b
     return j, i - q * j
+
+def bitcount(i, eff=0xffffffff, seven=0x77777777, three=0x33333333, one=0x11111111):
+    """Count the number of bits set to 1 in an integer.
+
+    Supply just one input: the integer (which may be long) whose bit-count is
+    desired.
+
+    The sign bit is treated as a 1, for these purposes; a negative integer
+    scores one higher than the corresponding positive integer - this need not
+    actually be faithful to how negative numbers are represented by the
+    machine.  For the algorithm used on each word, see fortune -m BITCOUNT\n"""
+    if i < 0: count, i = 1, -i # treat sign as one bit
+    else: count = 0
+
+    while i:
+        # Chomp off a word:
+        x, i = int(i & eff), i >> 32
+        # Each term is x shifted right but without the bits, from the bottom of
+        # each half-byte, that shifted into the next half-byte down.  Subtracting
+        # the sum of these terms reduces each half-byte to its bitcount.
+        x -= ((x >> 1) & seven) + ((x >> 2) & three) + ((x >> 3) & one)
+        # Each half-byte now holds a bit-count; we want to sum them. Each is at
+        # most 4, so summing adjacent half-byte will never over-flow any
+        # half-byte; we can then discard alternate half-bytes so that the sum of
+        # half-bytes is unchanged; and equal to the sum of bytes since each byte
+        # has clear top half.  Bytes are digits base 256; so summing bytes of a
+        # word gives a value equal, mod 256-1, to the word itself; as long as we
+        # have less than 32 bytes in our word, the byte sum is less than 255, so
+        # equal to the word reduced mod 255.
+        count += ((x + (x >> 4)) & 0x0f0f0f0f) % 255
+
+    return count
 
 theorem = """Any rational whose square is an integer is, itself, an integer.
 
