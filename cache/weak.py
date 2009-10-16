@@ -9,10 +9,10 @@ weak reference is usually the answer.
 Provides:
   WeakTuple -- behaves like a tuple, cacheing returns from a function mapping
                index to entries.
-  weakattr -- recurseprop using attrstore to cache weakrefs to attribute values
-  weakprop -- combines weakattr and dictprop
+  weakprop -- recurseprop using propstore to cache weakrefs to attribute values
+  weakattr -- combines weakprop and dictattr
 
-$Id: weak.py,v 1.4 2008-10-19 20:54:28 eddy Exp $
+$Id: weak.py,v 1.5 2009-10-16 06:25:28 eddy Exp $
 """
 
 from study.snake.sequence import ReadSeq
@@ -51,12 +51,12 @@ del ReadSeq
 
 # TODO: WeakMapping
 
-from study.snake.property import recurseprop, dictprop
-from property import attrstore
-class weakattr (attrstore, recurseprop):
+from study.snake.property import recurseprop, dictattr
+from property import propstore
+class weakprop (propstore, recurseprop):
     """Weakly-referenced attribute look-up.
 
-    Sub-classes recurseprop and attrstore and uses the latters cache to store a
+    Sub-classes recurseprop and propstore and uses the latters cache to store a
     weakref to each attribute value.  This ensures that the attribute is always
     available, as if it were never garbabe-collected, while allowing for it to
     be garbage-collected when not actively in use.  The referenced value is
@@ -78,13 +78,13 @@ class weakattr (attrstore, recurseprop):
         return ans
     del weakref
 
-class weakprop (dictprop, weakattr):
+class weakattr (dictattr, weakprop):
     # TODO: is this right ?  Shall the weak prop be saved in __dict__ ?  Shall
     # values set (in __dict__) be weakly held ?  Should either answer be Yes ?
-    __wget = weakattr.__get__
-    __dget = dictprop.__get__
+    __wget = weakprop.__get__
+    __dget = dictattr.__get__
     def __get__(self, obj, mode=None):
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__wget(obj, mode)
 
-del recurseprop, attrstore, dictprop
+del recurseprop, propstore, dictattr
