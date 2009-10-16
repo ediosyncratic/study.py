@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.14 2009-01-24 11:48:47 eddy Exp $
+$Id: lockdir.py,v 1.15 2009-10-16 06:14:26 eddy Exp $
 """
 
 class LockableDir (object):
@@ -111,12 +111,12 @@ class LockableDir (object):
         return True
 
     # The rest of this class is private and doesn't mess with __read, __write.
-    from property import lazyattr
+    from property import lazyprop
 
-    @lazyattr
+    @lazyprop
     def __file(self, ig=None): return self.path('.lock')
 
-    del lazyattr
+    del lazyprop
     import fcntl, errno
 
     def __lock(self, read=False, write=False,

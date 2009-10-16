@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.12 2009-08-29 15:07:28 eddy Exp $
+$Id: ticker.py,v 1.13 2009-10-16 06:18:31 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -125,7 +125,7 @@ def report(ticker, parser=StockPageParser()):
 del StockPageParser
 
 # Managing an SVG graph of results
-from study.cache.property import Cached, lazyattr
+from study.cache.property import Cached, lazyprop
 class StockSVG (Cached):
     from xml.dom.minidom import parse
     def __init__(self, path, ingest=parse):
@@ -211,7 +211,7 @@ class StockSVG (Cached):
 
     del text_by_100
 
-    @lazyattr.group(2)
+    @lazyprop.group(2)
     def __price_axis(self, mode=None):
         price = date = None
         for node, nom in self.__id_by_tag('line'):
@@ -221,7 +221,7 @@ class StockSVG (Cached):
         return price, date
     __price_axis, __date_axis = __price_axis
 
-    @lazyattr.group(3)
+    @lazyprop.group(3)
     def __price_labels(self, mode=None):
         price = date = shunt = None
         for node, nom in self.__id_by_tag('g'):
@@ -284,7 +284,7 @@ class StockSVG (Cached):
         return when
     del datetime, time
 
-    @lazyattr
+    @lazyprop
     def startdate(self, mode=None, getdate=readdate):
         assert mode is None
         for node, nom in self.__id_by_tag('text'):
@@ -320,5 +320,5 @@ class StockSVG (Cached):
         self.__rescale_price(top, view)
 
     del readdate
-del Cached, lazyattr
+del Cached, lazyprop
 

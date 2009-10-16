@@ -7,7 +7,7 @@ Exports:
 
 See also: study.maths.continued, compared to which this is crude and ugly.
 
-$Id: ratio.py,v 1.14 2009-06-04 11:47:19 eddy Exp $
+$Id: ratio.py,v 1.15 2009-10-16 06:14:45 eddy Exp $
 """
 
 def intsplitfrac(val):
@@ -30,7 +30,7 @@ def intsplitfrac(val):
 
     return res, val - res
 
-from study.cache.property import Cached, lazyattr
+from study.cache.property import Cached, lazyprop
 
 class Rational (Cached):
     def __init__(self, numer, denom=1):
@@ -101,21 +101,21 @@ class Rational (Cached):
     @property
     def numerator(self, ig=None): return self.__ratio[0]
 
-    @lazyattr
+    @lazyprop
     def floor(self, ig=None): # round down (towards -infinity)
 	num, den = self.__ratio
 	rat = int(num // den)
 	assert num >= rat * den
 	return rat
 
-    @lazyattr
+    @lazyprop
     def ceil(self, ig=None): # round up (towards +infinity)
 	num, den = self.__ratio
 	rat = int(num / den)
 	if num > rat * den: return rat + 1
 	return rat
 
-    @lazyattr
+    @lazyprop
     def nearint(self, ig=None): # round to nearest int, preferring even when ambiguous
 	num, den = self.__ratio
 	q = int(divmod(2 * num + den, 2 * den)[0])
@@ -125,13 +125,13 @@ class Rational (Cached):
 	if q % 2 and 2 * r in (den, -den): q += cmp(r, 0)
 	return q
 
-    @lazyattr
+    @lazyprop
     def truncate(self, ig=None): # round towards zero
 	num, den = self.__ratio
 	if num > 0: return int(num / den)
 	return -int(-num / den)
 
-    @lazyattr
+    @lazyprop
     def real(self, ig=None):
 	num, den = self.__ratio
 	return float(num) / den
@@ -234,7 +234,7 @@ class Rational (Cached):
         elif den[-1].upper() != 'L': return num + ' / ' + den + '.'
         else: return num + ' * 1. / ' + den
 
-del Cached, lazyattr
+del Cached, lazyprop
 
 # TODO: re-work the following to exploit continued.rationalize().
 prior = {}

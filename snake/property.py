@@ -8,7 +8,7 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.16 2009-10-16 05:57:10 eddy Exp $
+$Id: property.py,v 1.17 2009-10-16 06:18:18 eddy Exp $
 """
 
 class docprop (property):
@@ -52,10 +52,10 @@ class docprop (property):
         the same order.  This tuple is managed internally as a property of the
         class whose .group() is used (i.e. group is a class method).
 
-        For example, using study.cache.property.lazyattr (q.v., based on
+        For example, using study.cache.property.lazyprop (q.v., based on
         docprop), in an imagined sequence-of-numeric class:
 
-            @lazyattr.group(2)
+            @lazyprop.group(2)
             def variance(self, kind=None):
                 tot = totsq = 0.
                 for it in self:
@@ -67,7 +67,7 @@ class docprop (property):
 
         Instances of the sequence class are then equipped with independently
         accessible properties mean and variance, lazily computed together the
-        first time either is accessed (since that's how lazyattr manages the
+        first time either is accessed (since that's how lazyprop manages the
         tuple returned).\n"""
 
         def deco(get, k=klaz, n=count, e=hvert):
