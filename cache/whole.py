@@ -231,7 +231,7 @@ as if the nearer-zero node were simply having nodes added to it after the manner
 of simple growth - albeit these additions may be done in bulk, rather than one
 at a time.
 
-$Id: whole.py,v 1.38 2009-10-16 06:13:53 eddy Exp $
+$Id: whole.py,v 1.39 2009-10-16 06:23:16 eddy Exp $
 """
 
 Adaptation = """
@@ -295,7 +295,7 @@ class WriteRoot (WriteDir, whole.WriteRoot):
 
 from study.snake.regular import Interval
 from property import Cached, lazyprop, lazyattr
-from weak import weakattr
+from weak import weakprop
 from errno import EWOULDBLOCK
 import os
 
@@ -311,7 +311,7 @@ class Node (Cached):
     all integers; otherwise, it should be an Interval or the result of negating
     an Interval (a Span with stride -1).\n"""
 
-    @weakattr
+    @weakprop
     def content(self, ig=None): return self._load_()
 
     class Bok (dict): pass # for weakref's sake
@@ -415,7 +415,7 @@ class WriteNode (Node):
 
     __BLOCKED = EWOULDBLOCK
 
-del EWOULDBLOCK, Cached, weakattr
+del EWOULDBLOCK, Cached, weakprop
 
 class SubNode (Node):
     def __init__(self, parent, types, start, reach, sign=None,
