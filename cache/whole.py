@@ -231,7 +231,7 @@ as if the nearer-zero node were simply having nodes added to it after the manner
 of simple growth - albeit these additions may be done in bulk, rather than one
 at a time.
 
-$Id: whole.py,v 1.37 2009-03-26 08:38:07 eddy Exp $
+$Id: whole.py,v 1.38 2009-10-16 06:13:53 eddy Exp $
 """
 
 Adaptation = """
@@ -294,7 +294,7 @@ class WriteRoot (WriteDir, whole.WriteRoot):
 # http://code.google.com/apis/protocolbuffers/docs/proto.html
 
 from study.snake.regular import Interval
-from property import Cached, lazyattr, lazyprop
+from property import Cached, lazyprop, lazyattr
 from weak import weakattr
 from errno import EWOULDBLOCK
 import os
@@ -476,7 +476,7 @@ class SubNode (Node):
         try: return cmp(self.__sign, s)
         except AttributeError: return cmp(None, s)
 
-    @lazyattr
+    @lazyprop
     def span(self, ig=None):
         ans = self.__span
         if self.sign < 0: ans = -ans
@@ -535,7 +535,7 @@ class CacheSubNode (SubNode):
     def name(self, ig=None): return self.__name
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
-    @lazyattr
+    @lazyprop
     def straddles0(self, ig=None):
         """CacheSubnodes do not straddle zero.
 
@@ -594,7 +594,7 @@ class WriteSubNode (CacheSubNode, WriteNode):
         return self.parent.contiguous(self, -1)
 
 class CacheFile (CacheSubNode):
-    @lazyattr
+    @lazyprop
     def _cache_file(self, ig=None): return self.path()
 
     @property
@@ -618,12 +618,12 @@ class CacheFile (CacheSubNode):
         if isinstance(ans, CacheFile): return ans
         return None # no such data available under my root
 
-    @lazyattr
+    @lazyprop
     def next(self, ig=None):
         """Successor node to this one, if in this cache; else None."""
         return self.__spanner(self.span.stop)
 
-    @lazyattr
+    @lazyprop
     def prev(self, ig=None):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(self.span.start - 1)
@@ -693,7 +693,7 @@ from weak import WeakTuple
 from study.snake.sequence import Ordered
 
 class CacheDir (Node, LockDir):
-    @lazyattr
+    @lazyprop
     def _cache_file(self, ig=None):
         return self.path('__init__.py')
 
@@ -718,7 +718,7 @@ class CacheDir (Node, LockDir):
             return self.start / (self.sign * sign)
 
     import re
-    @lazyattr
+    @lazyprop
     def __listing(self, ig=None, get=os.listdir, seq=Ordered, row=NameFragments,
                   pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
                   signmap={ 'N': -1, 'P': +1, '': None }):
@@ -744,7 +744,7 @@ class CacheDir (Node, LockDir):
 
     del re, NameFragments
 
-    @lazyprop
+    @lazyattr
     def depth(self, ig=None): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
 
@@ -863,7 +863,7 @@ class CacheDir (Node, LockDir):
         assert not first
         return ts, lo, hi, skip
 
-    @lazyattr
+    @lazyprop
     def _contrary(self):
         """How many of self's children are reverse-oriented ?
 
@@ -901,7 +901,7 @@ class CacheDir (Node, LockDir):
 
         Where possible, attributes that depend on directory contents should be
         lazy.  All lazy attributes (notably including every @weaklisting) can
-        simply be deleted, since lazyattr doesn't raise any error when the
+        simply be deleted, since lazyprop doesn't raise any error when the
         attribute is absent; so deletion shall remove the attribute if present,
         ready to be recomputed next time it's needed.  Any non-lazy attributes,
         however, need to be updated.
@@ -910,7 +910,7 @@ class CacheDir (Node, LockDir):
         version and deleting any attributes they add, that are computed from
         those of children.\n"""
 
-        self.clear_attrstore_cache()
+        self.clear_propstore_cache()
         del self.depth
 
     @staticmethod
@@ -948,7 +948,7 @@ class CacheDir (Node, LockDir):
 
         def __len__(self): return len(self.__att(self.__who))
 
-    @lazyattr
+    @lazyprop
     def listing(self, ig=None, W=WeakSeq):
         return W(self, lambda s: s.__listing)
 
@@ -994,7 +994,7 @@ class CacheDir (Node, LockDir):
         def __len__(self): return len(filter(self.__test, self.__att(self.__who)))
 
     @staticmethod
-    def weaklisting(picker, W=WeakSubSeq, L=lazyattr):
+    def weaklisting(picker, W=WeakSubSeq, L=lazyprop):
         """Lazy WeakTuple decorator for a filter on types.
 
         The [A-Z]+ portion of each cache file or directory name describes the
@@ -1253,13 +1253,13 @@ class CacheDir (Node, LockDir):
 
         return row
 
-del WeakTuple, LockDir, lazyprop
+del WeakTuple, LockDir, lazyattr
 
 class CacheRoot (CacheDir):
     def __init__(self, path): self.__dir = path
     parent = span = None
     sign = +1
-    @lazyattr
+    @lazyprop
     def straddles0(self, ig=None):
         return self.span is None or (-1 in self.span and +1 in self.span)
     @property
@@ -1567,14 +1567,27 @@ class WriteDir (WriteNode, CacheDir):
             chunks = tuple(self.contigua)
             # Some chunks may have more mixed depth than we like, e.g. due to
             # two previously disjoint ones of different depths colliding.
+            split = []
+            for chunk in chunks:
+                ds = map(lambda x: x.depth, chunk)
+                hi, lo = max(ds), min(ds)
+                early = min(filter(lambda x, h=hi: x.depth  < h, chunk))
+                late  = max(filter(lambda x, h=hi: x.depth >= h, chunk))
+                if hi - lo > 1 or early < late:
+                    hi, lo = self.__consolidate(chunk, hi-1)
+
+                if hi != lo: split.append(chunk)
+
             # Some chunks may be long enough to collapse; some of mixed depth
             # may be ready to collapse their shallow ones.
+            big = max(6, 12 - len(chunks))
+
             # There may be too many chunks (we can't always fix that).
             raise NotImplementedError # TODO: implement
 
         elif len(self.listing) > 19:
             # adopting none should sort out our surplus:
-            spare = self.__adopt(False, ())
+            self, spare = self.__adopt(False, ())
             if spare:
                 self.__relocate(spare)
 
@@ -1582,6 +1595,90 @@ class WriteDir (WriteNode, CacheDir):
         # to avoid having that situation arise in the first place.
         self._ontidy_() # (again)
         return True
+
+    def __bundle(self, kids, step=+1):
+        """Packages a bundle of peers of self's kids as a peer of self.
+
+        Required argument, kids, is a sequence of nodes with depth one less than
+        self's; their combined span should abut that of self.  Optional
+        argument, step, is +1 (the default) if they abut self at its
+        away-from-zero end or -1 to indicate its near-zero end.  Returns a
+        twople (peer, ks) in which peer is a new peer of self, which is now the
+        parent of at least some of kids, and ks is a (possibly empty) tuple of
+        remaining kids that aren't its children.\n"""
+
+        up = self.parent
+        ts = up.__child_types(kids)
+        klaz = up._child_class_(False, ts)
+        assert issubclass(klaz, WriteDir)
+        if step < 0: lo = self.span.start, kids[-1]
+        else: lo = self.span.stop, kids[0]
+        lo -= up.span.start
+        lo *= up.sign
+        down = klaz(up.child_name(Range(lo, 0), False, ts), up, ts, None, lo, 0)
+        down, kids = down.__adopt(False, kids)
+        # kids should now be empty, unless it was really long before ...
+        return down, kids
+
+    def __consolidate(self, kids, hi):
+        """Turn shallow nodes into children of deeper ones.
+
+        First argument, kids, is a contiguous chunk of top-level nodes in our
+        directory hierarchy (as a tuple); second is one less than the greatest
+        depth in this chunk.  All kids with lesser depth shall be relocated into
+        suitable neighbour nodes of greater depth.  All kids with depth hi that
+        appear before one of depth hi+1 shall likewise be relocated into that
+        node.  Returns new max and min depth of surviving top-level nodes in
+        this chunk.\n"""
+
+        i, start, stop = 0, kids[0].range.start, kids[-1].range.stop
+        back = False    # is kids[i-1] eager to adopt kids ?
+        clear = False   #
+        while i < len(kids):
+            assert not back or i > 0
+            if back and kids[i].depth == kids[i-1].depth:
+                kid, out = kids[i-1].__adopt(True, kids[i].listing)
+                if out: # push back to kids[i]'s end
+                    kid, out = kid.__adopt(True, out)
+                kids = kids[:i-1] + (kid,) + kids[i:]
+                kids[i]._ontidy_()
+                if out:
+                    kid, out = kids[i].__adopt(False, out)
+                    kids = kids[:i] + (kid,) + out + kids[i+1:]
+                    if out:
+                        back = False
+                        i += 1
+                        continue
+                    assert kids[i].depth > hi or (clear and kids[i].depth == hi)
+                else:
+                    assert len(kids[i].listing) == 0, 'It just gave away all its kids !'
+                    kids = kids[:i] + kids[i+1:]
+                    back = len(kids[i-1]) < 12
+                    continue
+
+            if kids[i].depth > hi or (clear and kids[i].depth == hi):
+                back = len(kids[i]) < 12
+                i += 1
+                continue
+
+            if back: # easy case
+                up = kids[i-1]
+                assert i > 0 and up.depth > kids[i].depth
+                while up.depth > kids[i].depth + 1:
+                    up = up.listing[-1]
+                j = i+1
+                while j < len(kids) and kids[j].depth == kids[i].depth:
+                    j += 1
+
+                out, kids = kids[i:j], kids[:i] + kids[j:]
+                up, out = up.__adopt(False, out)
+                while out:
+                    up, out = up.__bundle(out)
+                continue
+
+            raise NotImplementedError # TODO
+
+        return lo, hi # range of values of survivors
 
     @staticmethod
     def __child_types(kids, ts=None, lo=None, hi=None, set=TypeSet):
@@ -1624,21 +1721,12 @@ class WriteDir (WriteNode, CacheDir):
                 else: down = node.listing[-1]
 
                 if filter(lambda x, d=down.depth-1: x.depth >= d, kids):
-                    kids = down.__adopt(tidy, kids)
+                    down, kids = down.__adopt(tidy, kids)
                     if not tidy:
                         while kids:
-                            ts = self.__child_types(kids)
-                            klaz = self._child_class_(False, ts)
-                            assert issubclass(klaz, WriteDir)
-                            if step < 0: lo = down.span.start - self.span.start
-                            else: lo = down.span.stop - self.span.start
-                            lo *= self.sign
-                            down = klaz(self.child_name(Range(lo, 0), False, ts),
-                                        self, ts, None, lo, 0)
-                            kids = down.__adopt(tidy, kids)
-                            # kids should now be empty, unless it was really long before ...
+                            down, kids = down.__bundle(kids, step)
                 else:
-                    node.__revise_span(kids)
+                    node.__revise_span(kids) # kids being added
                     node = down
                     if (step < 0) == tidy:
                         i = len(node.listing) - 1
@@ -1648,7 +1736,7 @@ class WriteDir (WriteNode, CacheDir):
             elif node.parent is None: tidy = False # root can't delegate
             else:
                 # Onwards and upwards !
-                node = node.__revise_span(kids) # these are being removed, not added
+                node = node.__revise_span(kids) # kids being removed
                 i = node.index
                 node = node.parent
 
@@ -1690,14 +1778,13 @@ class WriteDir (WriteNode, CacheDir):
         Adopting these children may, of course, cause self to have (or self may
         already have) too many child nodes: in which case, if tidy is true, self
         should return a tuple of child nodes from self's opposite end, so that
-        caller, __relocate, can duly forward them to some other node for
-        adoption.  When tidy is false, this function may leave self untidy by
-        adopting all kids and returning (); otherwise, it should make self tidy
-        and return a tuple of at least six (and ideally at least eight) nodes,
-        either from kids or from self's prior children, from the same end of
-        self as the given kids abut (this is also the end of the range of self's
-        ancestors all the way back to root, where it is the end of a contiguous
-        range).\n"""
+        caller can duly forward them to some other node for adoption.  When tidy
+        is false, this function may leave self untidy by adopting all kids and
+        returning (); otherwise, it should make self tidy and return a tuple of
+        at least six (and ideally at least eight) nodes, either from kids or
+        from self's prior children, from the same end of self as the given kids
+        abut (this is also the end of the range of self's ancestors all the way
+        back to root, where it is the end of a contiguous range).\n"""
 
         # NB: self may be a freshly-created empty node with no real directory yet.
         assert self.parent is not None
@@ -1734,12 +1821,20 @@ class WriteDir (WriteNode, CacheDir):
 
         # Where do we want to cut all ?
         n = len(all)
-        if before == tidy: # we want to keep all[:12]
+        if before == tidy: # We'll keep all[:cut]
             cut, lo, hi = 12, 6, min(n, 24)
-        else: # we want to keep all[-12:]
-            cut, hi, lo = n - 12, n - 5, max(0, n - 24)
+        else: # We'll keep all[cut:]
+            cut, lo, hi = n - 12, max(1, n - 24), n - 6
+
         # Where can we cut all ?
-        cs = filter(lambda i, k=all, a=after: a(k[i], k[i-1]), range(lo, hi))
+        cs = filter(lambda i, k=all, a=after: a(k[i], k[i-1]), range(lo, hi+1))
+        # For c in cs, all[c] is fully after all[c-1]; but a clean cut also
+        # needs all i < c-1 to have all[i] before all[c] and all i > c to have
+        # all[c-1] before all[i]; so refine initial pass at cs:
+        cs = filter(lambda c, k=all, a=after: not(
+                filter(lambda p, m=k[c], a=after: not a(m, p), k[:c]) +
+                filter(lambda p, m=k[c-1], a=after: not a(p, m), k[c:])),
+                    cs)
 
         if cut in cs: pass
         elif cs: # Make do with the closest cs[i] to cut:
@@ -1782,14 +1877,14 @@ class WriteDir (WriteNode, CacheDir):
         self._ontidy_()
         peer._ontidy_()
 
-        return ans # so someone else takes them off our hands !
+        return peer, ans # so someone else takes them off our hands !
 
     @staticmethod
     def _child_class_(isfile, mode): # configure __listing
         if isfile: return WriteFile
         return WriteSubDir
 
-    @lazyattr
+    @lazyprop
     def __namelen(self, ig=None, fmt=nameber.encode):
         if not self.straddles0:
             # len(self.span) is an upper bound on the .span.start of children
@@ -1897,7 +1992,7 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         a tidy() to deal with any over-populated children.\n"""
 
         if replaces is not None:
-            assert isinstance(replaces, WriteSubDir):
+            assert isinstance(replaces, WriteSubDir)
             prior = replaces.front
 
         self.__upinit(name, parent, types, start, span, sign, replaces)
@@ -2001,4 +2096,4 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
                     self, types, None,
                     span.start - self.span.start, len(span))
 
-del lazyattr, os, TypeSet
+del lazyprop, os, TypeSet
