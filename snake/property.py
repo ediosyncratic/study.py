@@ -3,21 +3,24 @@
 This module should eventually replace lazy.Lazy; it provides:
   docprop -- extend property by borrowing getter's doc-string and name
   recurseprop -- extend docprop to manage recursion in getters
-  dictprop -- extend recurseprop by implementing set/del via object's __dict__
+  dictattr -- extend recurseprop by implementing set/del via object's __dict__
 
 See individual classes for details.
 See also study.cache for related classes.
 
-$Id: property.py,v 1.15 2009-03-22 13:19:02 eddy Exp $
+$Id: property.py,v 1.16 2009-10-16 05:57:10 eddy Exp $
 """
 
 class docprop (property):
     """Mix-in base-class to use getter doc-string as property documentation.
 
-    Extends property merely by using the doc-string of the getter function as
-    fall-back for the doc-string of the property; this makes it (and classes
-    derived from it) nicer to use as a decorator.  Also borrows .__name__ from
-    the getter.\n"""
+    Extends property merely by using the doc-string (as fall-back) and .__name__
+    of the getter function for those of the property; this makes it (and classes
+    derived from it) nicer to use as a decorator.
+
+    Also provides .group(n) class method (designed to work for derived classes),
+    which turns a function, that should return an n-tuple of values, into an
+    n-tuple of properties.\n"""
 
     __upinit = property.__init__
     def __init__(self, getit, setit=None, delit=None, doc=None):
@@ -29,12 +32,12 @@ class docprop (property):
         self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
 
-    class each (property):
+    class each (property): # tool used by group
         def __init__(self, group, index):
             self.__all = group
             self.__ind = index
-        def __get__(self, obj, mode=None):
-            return self.__all.__get__(obj, mode)[self.__ind]
+        def __get__(self, obj, kind=None):
+            return self.__all.__get__(obj, kind)[self.__ind]
 
     @classmethod
     def group(klaz, count, hvert=each):
@@ -50,10 +53,10 @@ class docprop (property):
         class whose .group() is used (i.e. group is a class method).
 
         For example, using study.cache.property.lazyattr (q.v., based on
-        docprop), in an imagined sequence class:
+        docprop), in an imagined sequence-of-numeric class:
 
             @lazyattr.group(2)
-            def variance(self, mode=None):
+            def variance(self, kind=None):
                 tot = totsq = 0.
                 for it in self:
                     tot += it
@@ -68,7 +71,7 @@ class docprop (property):
         tuple returned).\n"""
 
         def deco(get, k=klaz, n=count, e=hvert):
-            all = klaz(get)
+            all = k(get) # apply underlying decorator to "method"
             return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
         return deco
     del each
@@ -119,7 +122,7 @@ class recurseprop (docprop):
     be initiated by such an attempt.\n"""
 
     __upget = docprop.__get__
-    def __get__(self, obj, mode=None):
+    def __get__(self, obj, kind=None):
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse_
         except AttributeError:
@@ -134,7 +137,7 @@ class recurseprop (docprop):
         finally: del check[self]
         return ans
 
-class dictprop (recurseprop):
+class dictattr (recurseprop):
     """Provides support for set/del in an object's __dict__
 
     This is a convenience class intended for mixing with other classes derived
@@ -145,10 +148,12 @@ class dictprop (recurseprop):
     own choice).  The attribute's name is the __name__ of the getter passed
     to the constructor (as for docprop).
 
-    After the usual doc parameter it can take, its constructor also accepts a
-    callable, check, which shall be called on any value set for the value,
-    before storing in __dict__; this callable can raise an error on
-    inappropriate setting.
+    After the usual getter and optional doc parameters, its constructor also
+    accepts a callable, wrap (default, None, is equivalent to lambda x: x).  If
+    supplied, each value set for the property is passed through this callable,
+    which can thus serve both to check validity of the value and to wrap (or
+    adjust) it in any needed way.  If it raises any exception, the attribute
+    will not be set; otherwise, its return value is stored in __dict__.
 
     Because this class is intended as a mix-in for other property classes, so
     that its attribute may be available even if not in __dict__, the deleter
@@ -156,24 +161,24 @@ class dictprop (recurseprop):
     the deletion is deemed fatuously successful in this case.\n"""
 
     __upinit = recurseprop.__init__
-    def __init__(self, getit, doc=None, check=None):
+    def __init__(self, getit, doc=None, wrap=None):
         if doc is not None:
             assert isinstance(doc, basestring), 'Pass me no setter'
         self.__upinit(getit, self.__set, self.__del, doc)
-        self.__check = check
+        self.__wrap = wrap
 
     def __del(self, obj):
         try: del obj.__dict__[self.__name__]
         except KeyError: pass
 
     def __set(self, obj, val):
-        if self.__check is not None: self.__check(val)
+        if self.__wrap is not None: val = self.__wrap(val)
         obj.__dict__[self.__name__] = val
 
     __upget = recurseprop.__get__
-    def __get__(self, obj, mode=None):
+    def __get__(self, obj, kind=None):
         try:
-            if obj is None: return mode.__dict__[self.__name__]
+            if obj is None: return kind.__dict__[self.__name__]
             else: return obj.__dict__[self.__name__]
         except KeyError: pass
-        return self.__upget(obj, mode)
+        return self.__upget(obj, kind)
