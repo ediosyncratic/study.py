@@ -6,19 +6,15 @@ object shall, too.
 
 Caches:
 
- * Built on top of the study.cache.whole infrastructure, using types 'F', 'G',
-   'P' and 'Q' in its data-type naming scheme.
-
- * There are two primary kinds of cache file: a factor file (of type 'F')
-   remembers the least proper factor, or None for a prime, of each natural in
-   its range; a primes file (of type 'P') only records which numbers in the
-   range are primes (it can thus be more compact).  Each type of file may also
-   know the range of primes that fall in its interval.
+ * Built on top of the study.cache.whole infrastructure, using types 'F'
+   (factor) and 'P' (prime) in its data-type naming scheme.  Internal data
+   indicate format and whether complete (rather than a partial sieve).  Each
+   type of file may also know, when complete, the range of prime indices that
+   fall in its interval.
 
  * Cache files describing incompletely sieved chunks of the naturals may also
    exist; these are apt (but not sure) to know their index start-point and
-   perhaps even an upper bound on their number of primes.  Incomplete prime
-   sieves are of type 'Q' while incomplete factor sieves are of type 'G'.
+   perhaps even an upper bound on their number of primes.
 
  * Custom compression of the data in cache files is managed by the client.
    However the cache shall base64-encode long strings whose repr would thereby
@@ -40,19 +36,19 @@ Caches:
    The .interval attribute provides .span times this modulus, for the actual
    range of naturals described.
 
- * Cache root directories may also remember sporadics, in so far as we've
-   discovered any; that is, a list of primes beyond the end of the covered range
-   and, in a factor cache, a mapping from integers to one proper factor each.
-   The latter is not worth recording, however, if the factor is one of the
-   primes used for the octet type of this cache.  It may make some sense to
-   record these sporadics relative to the top of the number range covered by the
-   cache.
+ * Some cache files may record sporadics, in so far as we've discovered any;
+   that is, a list of primes beyond the end of the completed range and, in a
+   factor cache, a mapping from integers to one proper factor each.  The latter
+   is not worth recording, however, if the factor is one of the primes used for
+   the octet type of this cache.  The client, when traversing its caches in
+   search of data, should check the object it gets back and be ready to continue
+   its search if the first match it finds is of this type.
 
  * The cache root __init__.py may eventually record a cache format version, for
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
 
-$Id: cache.py,v 1.51 2008-10-24 05:23:53 eddy Exp $
+$Id: cache.py,v 1.52 2009-10-16 06:09:01 eddy Exp $
 """
 
 from study.cache import whole
@@ -62,7 +58,7 @@ from base64 import standard_b64encode, standard_b64decode
 from bz2 import decompress
 
 class Node (whole.Node):
-    @lazyprop
+    @lazyattr
     def indices(self, ig=None):
         """Range of prime indices"""
         try: ind = self.__indices
@@ -76,16 +72,16 @@ class Node (whole.Node):
 
         return ind
 
-    @lazyattr
+    @lazyprop
     def prime(self, ig=None):
         if self.parent is None: return len(self.primes) > 0
         return 'P' in self.types or 'Q' in self.types
-    @lazyattr
+    @lazyprop
     def factor(self, ig=None):
         if self.parent is None: return len(self.factors) > 0
         return 'F' in self.types or 'G' in self.types
 
-    @lazyattr
+    @lazyprop
     def interval(self, ig=None, Range=Interval):
         lo, sz, mo = self.span.start, len(self.span), self.root.octet.modulus
         lo *= mo
