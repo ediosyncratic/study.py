@@ -2,19 +2,19 @@
 
 See http://www.chaos.org/~eddy/math/music.xhtml
 
-$Id: music.py,v 1.3 2009-06-04 11:50:00 eddy Exp $
+$Id: music.py,v 1.4 2009-10-16 06:17:58 eddy Exp $
 """
 import math
 def log2(val, ln=math.log, ln2=math.log(2)): return ln(val) / ln2
 del math
 from ratio import Rational
-from study.cache.property import lazyattr
+from study.cache.property import lazyprop
 
 class Rational (Rational):
     """Extended rationals.
     """
 
-    @lazyattr
+    @lazyprop
     def log(self, ig=None, log2=log2):
         return log2(self.real)
 
@@ -24,19 +24,22 @@ class Rational (Rational):
         del self.clean, self.complexity
 
     from primes import factorise
-    @lazyattr
+    @lazyprop
     def __factors(self, ig=None, crack=factorise):
         return crack(self.numerator, crack(self.denominator))
     del factorise
 
-    @lazyattr
+    @property
+    def factors(self, ig=None): return self.__factors.keys()
+
+    @lazyprop
     def complexity(self, ig=None):
         bok = self.__factors
         ans = sum(bok.keys()) + sum(bok.values()) - len(bok)
         if self.clean: return ans
-        return ans * (self.numerator + self.denominator)
+        return ans * self.numerator * self.denominator
 
-    @lazyattr
+    @lazyprop
     def clean(self, ig=None):
         return not filter(lambda k, fs=self.__ps: k not in fs, self.__factors.keys())
 
@@ -53,6 +56,8 @@ class LeastBad (Ordered):
         del self[:]
         for it in all: self.append(it)
 
+    chatty = False
+
     __upapp = Ordered.append
     def append(self, ind, value=None):
         if value is None: value = ind
@@ -60,7 +65,9 @@ class LeastBad (Ordered):
         except AttributeError: pass
         value.error = value.real - self.__target
         value.bad = value.complexity * abs(value.error)
-        if value in self: return False
+        if value in self:
+            if self.chatty: print 'I already have', value
+            return False
         if len(self) < 1 or value.bad < self.__scale * self[0].bad:
             self.__upapp(value)
             if value is self[0]:
@@ -70,6 +77,7 @@ class LeastBad (Ordered):
                     if self[i].bad < cut: i += 1
                     else: del self[i:]
             return True
+        if chatty: print value, "isn't good enough:", value.bad, '=', value.error, '*', value.complexity
         return False
 
     insert = append
@@ -139,12 +147,12 @@ class Scale (object):
         self.__count = count
 
     from study.maths.natural import sqrt
-    @lazyattr
+    @lazyprop
     def __complex(self, ig=None, root=sqrt):
-        return self.__count * root(self.__count) * 2
+        return self.__count # * root(self.__count)
     del sqrt
 
-    @lazyattr
+    @lazyprop
     def __rough(self, ig=None, Row=LeastBad, Frac=Rational):
         seq, count, big = (), self.__count, self.__complex
         i, step = count + 1, 1. / count
@@ -177,12 +185,15 @@ class Scale (object):
             seq.append(good)
 
         gaps = map(lambda r: r.index, seq.filter(lambda r: len(r) < 1))
-        work, take, neg = len(gaps) > 0, 1, 0
+        work, nice, take, neg = len(gaps) > 0, False, 1, 0
         seq = seq.filter(None)
         while work:
             neg += 1
-            if neg > take: take, neg = take + 1, 0
-            nice = False
+            if neg > take:
+                if nice: take, neg, nice = take + 1, 0, False
+                else:
+                    print "Nothing nice @", take
+                    break
             for rs in Multi(take * (seq,)):
                 b, n, vs = take, 0, Row((one,))
                 while b > 0:
@@ -196,21 +207,22 @@ class Scale (object):
                 tgt = self.__rough[n]
                 for v in vs:
                     if abs(v.log * count - n) > .5: continue
+                    try: v.prefer(self.__ps)
+                    except AttributeError: pass
                     if v.complexity <= limit: nice = True
                     elif len(tgt) > 0 and v.complexity > self.__complex: continue
                     if tgt.append(v): work = False
-
-            if not nice: break
 
         if work: return False
         del self.best
         return True
 
-    @lazyattr
+    @lazyprop
     def best(self, ig=None, unlack=(None,)):
         return map(lambda s, u=unlack: (s or u)[0], self.__rough)
 
     def prefer(self, *primes):
+        self.__ps = primes
         for it in self.__rough: it.prefer(primes)
         del self.best
 
@@ -220,8 +232,15 @@ class Scale (object):
     def taste(self, ind, num, den, Frac=Rational):
         rat = Frac(num, den)
         if abs(rat.log * self.__count - ind) > .5: return False
-        tgt = self.__rough[ind]
-        if len(tgt) > 0 and rat.complexity > self.__complex: return False
-        return tgt.append(rat)
+        try: rat.prefer(self.__ps)
+        except AttributeError: pass
 
-del LeastBad, ArithList, Ordered, Rational
+        tgt = self.__rough[ind]
+        if len(tgt) > 0 and rat.complexity > self.__complex: pass
+        elif tgt.append(rat):
+            del self.best
+            return True
+
+        return False
+
+del LeastBad, ArithList, Ordered, Rational, lazyprop
