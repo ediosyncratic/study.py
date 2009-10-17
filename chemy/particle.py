@@ -17,7 +17,7 @@ proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
 
-$Id: particle.py,v 1.33 2009-08-30 22:59:40 eddy Exp $
+$Id: particle.py,v 1.34 2009-10-17 05:54:50 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
@@ -687,14 +687,15 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, un
       lepton mass -- in MeV
       lepton decay rate -- fraction of the given lepton species which decay per second
 
-      -ve quark name -- name of the quark of charge with -ve charge e/3
+      -ve quark name -- name of the quark with -ve charge e/3
       -ve quark mass -- mass estimate, in GeV, for the -ve quark
 
-      +ve quark name -- name of the quark of charge with +ve charge 2*e/3
+      +ve quark name -- name of the quark with +ve charge 2*e/3
       +ve quark mass -- mass estimate, in GeV, for the +ve quark\n"""
 
     return Family(Neutrino(lnom, mass=Quantity(under(nm), mev)),
-                  Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym, decay=Quantity(lrate, Hertz)),
+                  Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym,
+                         decay=Quantity(lrate, Hertz)),
                   dQuark(mnom, mass=mm*kilo*mev),
                   uQuark(pnom, mass=pm*kilo*mev))
 
@@ -716,7 +717,7 @@ electron.also(magneticmoment = 928.476362e-26 * Joule / Tesla)
 # the muon's magnetic moment is approximately equal; 2e-6 fractional difference ...
 
 class Hadron (Particle):
-    """Particles composed of quarks. """
+    """Particles composed of quarks."""
 class Meson (Boson, Hadron):
     """Quark anti-quark combinations."""
     # http://hyperphysics.phy-astr.gsu.edu/hbase/particles/meson.html
