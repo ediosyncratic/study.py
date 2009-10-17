@@ -8,10 +8,9 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.11 2009-10-16 06:11:20 eddy Exp $
+$Id: property.py,v 1.12 2009-10-17 08:40:21 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictattr
-# TODO: wrapper for a function that needs to do some set-up the first time it's called.
 
 class Cached (object):
     """Mix-in convenience class for use with cached attributes.
