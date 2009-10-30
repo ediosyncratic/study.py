@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.37 2009-03-09 04:56:26 eddy Exp $
+$Id: polynomial.py,v 1.38 2009-10-30 01:08:57 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -1007,7 +1007,8 @@ class Polynomial (Lazy):
 	Polynomial.Chose(gap)(Polynomial((gap, 1)))
 
         Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
-        Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html\n"""
+        Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html -
+        this is exploited by the implementation of PowerSum (q.v.).\n"""
 
         num, den, x = Polynomial((1,)), 1, Polynomial((0, 1))
         while gap > 0:
