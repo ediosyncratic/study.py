@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.35 2009-11-02 05:50:05 eddy Exp $
+$Id: sequence.py,v 1.36 2009-11-02 06:11:20 eddy Exp $
 """
 
 class Iterable (object):
@@ -76,9 +76,18 @@ class Iterable (object):
                 yield p
 
 class WrapIterable (Iterable):
+    # For when you aren't defining a class to mix in with:
     def __init__(self, seq): self.__seq = seq
     def __iter__(self): return iter(self.__seq)
     def __getattr__(self, key): return getattr(self.__seq, key)
+
+class book (dict):
+    __iter = dict.__iter__
+    __itit, __itke, __itva = dict.iteritems, dict.iterkeys, dict.itervalues
+    def __iter__(self,   Wrap=WrapIterable): return Wrap(self.__iter())
+    def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
+    def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
+    def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
