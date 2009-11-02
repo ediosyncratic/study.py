@@ -1,6 +1,6 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.34 2009-06-04 11:57:58 eddy Exp $
+$Id: sequence.py,v 1.35 2009-11-02 05:50:05 eddy Exp $
 """
 
 class Iterable (object):
@@ -26,8 +26,6 @@ class Iterable (object):
                 if f is not None: p = f(p)
             yield p
 
-        raise StopIteration
-
     @staticmethod
     def __endless(seq):
         for it in seq: yield it
@@ -51,15 +49,14 @@ class Iterable (object):
         for val in self:
             yield func(val, *map(lambda x: x.next(), others))
 
-        raise StopIteration
-
-    def reduce(self, func, init=0):
-        for p in self:
-            init = func(init, p)
+    def reduce(self, func, init=None):
+        it = iter(self)
+        if init is None: init = it.next()
+        for p in it: init = func(init, p)
         return init
 
-    def sum(self): return self.reduce(lambda x, y: x + y)
-    def product(self): return self.reduce(lambda x, y: x * y, 1)
+    def sum(self, add=lambda x, y: x + y): return self.reduce(add, 0)
+    def product(self, mul=lambda x, y: x * y): return self.reduce(mul, 1)
 
     def filter(self, *tests):
         """Filter self with test functions.
@@ -77,8 +74,6 @@ class Iterable (object):
                 elif not t(p): break
             else:
                 yield p
-
-        raise StopIteration
 
 class WrapIterable (Iterable):
     def __init__(self, seq): self.__seq = seq
@@ -118,7 +113,6 @@ class ReadSeq (Iterable):
 	for i in ind:
 	    try: yield self[i]
 	    except IndexError: pass
-        raise StopIteration
 
     def __repr__(self):
         row = []
@@ -245,20 +239,14 @@ class ReadSeq (Iterable):
             other -= 1
             for it in self: yield it
 
-        raise StopIteration
-
     __rmul__ = __mul__
     def __add__(self, other):
         for it in self: yield it
         for it in other: yield it
 
-        raise StopIteration
-
     def __radd__(self, other):
         for it in other: yield it
         for it in self: yield it
-
-        raise StopIteration
 
     def index(self, val):
         i = 0
