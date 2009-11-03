@@ -1,11 +1,31 @@
 """Generic decorators.
 
 Provides a set of tools (inspired by Michele Simionato's decorator module [0])
-for making decorators work better, plus some decorators that deploy these.
+for making decorators work better, plus some decorators that deploy these.  The
+decorators provided here should suffice to do everything you might need with the
+low-level tools; however, use of the low-level tools, particularly in the
+implementations of other decorators, may be more efficient.
+
+Low-level tools:
+  wrapas(func, proto) -- wrap func with proto's signature
+  labelas(func, orig) -- transcribe superficial attributes of orig onto func
+  mimic(func, orig [, proto]) -- combine the above; proto defaults to orig
+
+Decorators:
+  @accepting(proto) -- makes decorated function have proto's signature
+  @aliasing -- makes a decorator preserve superficial attributes
+  @mimicing -- as aliasing, but also preserve signature
+
+Note that the last two are decorator-decorators; they act on decorators, to
+produce decorators that preserve properties of the functions they
+decorate.  Naturally, the decorators produced preserve the superficial
+attributes (name, doc string, module and anything in __dict__) of the decorators
+they enhance; and have the lambda func: None signature of a simple decorator.
 
 [0] http://www.phyast.pitt.edu/~micheles/python/decorator.zip
 """
 
+# Note: all of these are wrapped, below, to hide their tunnelled args !
 import inspect
 def wrapas(func, proto,
            fetch=inspect.getargspec, format=inspect.formatargspec, isfunc=inspect.isroutine,
