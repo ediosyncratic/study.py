@@ -23,6 +23,9 @@ attributes (name, doc string, module and anything in __dict__) of the decorators
 they enhance; and have the lambda func: None signature of a simple decorator.
 
 [0] http://www.phyast.pitt.edu/~micheles/python/decorator.zip
+See also:
+ * http://wiki.python.org/moin/PythonDecoratorLibrary
+ * the functools module's wraps() decorator.
 """
 
 # Note: all of these are wrapped, below, to hide their tunnelled args !
