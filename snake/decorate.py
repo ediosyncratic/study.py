@@ -2,16 +2,16 @@
 
 Provides a set of tools (inspired by Michele Simionato's decorator module [0])
 for making decorators work better, plus some decorators that deploy these.  The
-decorators provided here should suffice to do everything you might need with the
-low-level tools; however, use of the low-level tools, particularly in the
-implementations of other decorators, may be more efficient.
+primary decorators provided here should suffice to do everything you might need
+with the low-level tools; however, use of the low-level tools, particularly in
+the implementations of other decorators, may be more efficient.
 
 Low-level tools:
   wrapas(func, proto) -- wrap func with proto's signature
   labelas(func, orig) -- transcribe superficial attributes of orig onto func
   mimic(func, orig [, proto]) -- combine the above; proto defaults to orig
 
-Decorators:
+Primary Decorators:
   @accepting(proto) -- makes decorated function have proto's signature
   @aliasing -- makes a decorator preserve superficial attributes
   @mimicking -- as aliasing, but also preserve signature
@@ -21,6 +21,9 @@ produce decorators that preserve properties of the functions they
 decorate.  Naturally, the decorators produced preserve the superficial
 attributes (name, doc string, module and anything in __dict__) of the decorators
 they enhance; and have the lambda func: None signature of a simple decorator.
+
+Further Decorators:
+  @postcompose(post [, ...]) -- compose post after decorated function
 
 [0] http://www.phyast.pitt.edu/~micheles/python/decorator.zip
 See also:
@@ -115,6 +118,29 @@ def mimicking(orig, mime=mimic):
     def decor(func, base=orig, fake=mime):
         return fake(base(func), func)
     return mime(decor, orig, lambda func: None)
+
+def postcompose(post, *more):
+    """Apply some post-processing to every output of a function.
+
+    Each argument must be a function.  Returns a decorator which, given a
+    function f, turns it into a function that is called exactly as f is but the
+    return from f is passed through each function from the decorator in turn.
+    Thus, following:
+        @postcompose(a, b, c)
+        def f(x): return x**2
+    a call to f(n) shall return c(b(a(n**2))).
+
+    For example, @postcompose(tuple) will turn a function that returns a list
+    (e.g. because that's the easiest way to compute the sequence it wants to
+    return) into one that returns a tuple that freezes that list.\n"""
+    @mimicking
+    def decor(func, after=(post, *more)):
+        def ans(*args, **kw):
+            ret = func(*args, **kw)
+            for f in after: ret = f(ret)
+            return ret
+        return ans
+    return decor
 
 # Hide tunnelled args:
 wrapas = mimic(wrapas, wrapas, lambda func, proto: None)
