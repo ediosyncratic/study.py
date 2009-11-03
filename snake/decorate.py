@@ -14,7 +14,7 @@ Low-level tools:
 Decorators:
   @accepting(proto) -- makes decorated function have proto's signature
   @aliasing -- makes a decorator preserve superficial attributes
-  @mimicing -- as aliasing, but also preserve signature
+  @mimicking -- as aliasing, but also preserve signature
 
 Note that the last two are decorator-decorators; they act on decorators, to
 produce decorators that preserve properties of the functions they
@@ -108,7 +108,7 @@ def aliasing(orig, mime=mimic):
         return label(base(func), func)
     return mimic(decor, orig, lambda func: None)
 
-def mimicing(orig, mime=mimic):
+def mimicking(orig, mime=mimic):
     """Decorator to make a wrapper look like what it wraps.
     """
 
@@ -120,5 +120,5 @@ def mimicing(orig, mime=mimic):
 wrapas = mimic(wrapas, wrapas, lambda func, proto: None)
 accepting = mimic(accepting, accepting, lambda proto: None)
 aliasing = mimic(aliasing, aliasing, lambda orig: None)
-mimicing = mimic(mimicing, mimicing, lambda orig: None)
+mimicking = mimic(mimicking, mimicking, lambda orig: None)
 mimic = mimic(mimic, mimic, lambda func, orig: None)
