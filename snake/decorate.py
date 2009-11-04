@@ -44,10 +44,10 @@ def wrapas(func, proto,
     must, in fact, accept being called in any way in which proto supports being
     called.  See accepting, below, for a decorator deploying this.\n"""
     assert isfunc(func)
-    n, a, k, d = fetch(func)
+    n, a, k, d = fetch(proto)
     glob, i = { fname: func }, 0
     # default values might not repr nicely, so tunnel them via glob:
-    for v in d:
+    for v in d or ():
         glob[valfmt % i] = v
         i += 1
     # OK, now make a function that packages all that:
@@ -112,8 +112,11 @@ def aliasing(orig, mime=mimic):
     return mimic(decor, orig, lambda func: None)
 
 def mimicking(orig, mime=mimic):
-    """Decorator to make a wrapper look like what it wraps.
-    """
+    """Decorator-decorator to make original's wrappers look like what they wrap.
+
+    Takes one argument, a decorator; returns a replacement decorator that
+    preserves the signature, name, doc string, module and anything in __dict__
+    of each function decorated.\n"""
 
     def decor(func, base=orig, fake=mime):
         return fake(base(func), func)
@@ -134,7 +137,7 @@ def postcompose(post, *more):
     (e.g. because that's the easiest way to compute the sequence it wants to
     return) into one that returns a tuple that freezes that list.\n"""
     @mimicking
-    def decor(func, after=(post, *more)):
+    def decor(func, after=(post,) + more):
         def ans(*args, **kw):
             ret = func(*args, **kw)
             for f in after: ret = f(ret)
