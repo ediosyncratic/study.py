@@ -1,8 +1,14 @@
 """Assorted classes relating to sequences.
 
-$Id: sequence.py,v 1.36 2009-11-02 06:11:20 eddy Exp $
+$Id: sequence.py,v 1.37 2009-11-04 05:23:14 eddy Exp $
 """
+from study.snake.decorate import mimicking
 
+# Decorator deploying WrapIterable (q.v., at end of this page):
+@mimicking
+def iterable(func): return lambda *args, **kw: WrapIterable(func(*args, **kw))
+del mimicking
+
 class Iterable (object):
     """Mix-in class to extend iterables in some handy ways.
 
@@ -14,6 +20,8 @@ class Iterable (object):
     too).\n"""
 
     __slots__ = ()
+
+    @iterable
     def map(self, *funcs):
         """Map self through a sequence of functions.
 
@@ -31,6 +39,7 @@ class Iterable (object):
         for it in seq: yield it
         while True: yield None
 
+    @iterable
     def mapwith(self, func, *others):
         """Map self and some other iterables through a function.
 
@@ -58,6 +67,7 @@ class Iterable (object):
     def sum(self, add=lambda x, y: x + y): return self.reduce(add, 0)
     def product(self, mul=lambda x, y: x * y): return self.reduce(mul, 1)
 
+    @iterable
     def filter(self, *tests):
         """Filter self with test functions.
 
@@ -118,6 +128,7 @@ class ReadSeq (Iterable):
         raise IndexError(ind)
     del Slice
 
+    @iterable
     def __get(self, ind):
 	for i in ind:
 	    try: yield self[i]
@@ -243,16 +254,19 @@ class ReadSeq (Iterable):
         except StopIteration: return True # it ran out first
         return False # equality, but other may be longer
 
+    @iterable
     def __mul__(self, other):
         while other > 0:
             other -= 1
             for it in self: yield it
 
     __rmul__ = __mul__
+    @iterable
     def __add__(self, other):
         for it in self: yield it
         for it in other: yield it
 
+    @iterable
     def __radd__(self, other):
         for it in other: yield it
         for it in self: yield it
