@@ -1,12 +1,38 @@
-"""Assorted classes relating to sequences.
+"""Assorted tools relating to sequences.
 
-$Id: sequence.py,v 1.37 2009-11-04 05:23:14 eddy Exp $
+Classes:
+  Iterable -- mix-in to enrich iterable classes with functional tools
+  WrapIterable -- simple wrapper to add Iterable's methods to an iterable
+  Dict -- dict with its iterators wrapped in WrapIterable
+  ReadSeq -- mix-in extending Iterable to support most tuple methods
+  Tuple -- mixes ReadSeq and tuple suitably
+  List -- mixes ReadSeq and list suitably
+  Ordered -- a List that maintains ordering of its entries
+
+Decorator:
+  iterable -- apply WrapIterable to iterators returned by a function
+
+$Id: sequence.py,v 1.38 2009-11-04 05:40:31 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
 # Decorator deploying WrapIterable (q.v., at end of this page):
 @mimicking
-def iterable(func): return lambda *args, **kw: WrapIterable(func(*args, **kw))
+def iterable(func):
+    """Decorator to wrap the iterables returned by a function in WrapIterable.
+
+    Takes a single function argument, func, and returns a function which is
+    called as if it were func but the return from func is passed to WrapIterable
+    (q.v., below) and the return from *that* is the replacement function's
+    return.  When used to decorate a function that returns an iterable, this
+    just ensures that the iterable has the methods of Iterable (q.v., below).
+
+    In particular, this can be used to wrap a generator (i.e. a function that
+    uses yield, instead of return; this implicitly returns an iterator over the
+    values its body yields) so that the resulting iterator supports the methods
+    of Iterable.  Naturally, it is used to decorate the generator methods of
+    Iterable itself.\n"""
+    return lambda *args, **kw: WrapIterable(func(*args, **kw))
 del mimicking
 
 class Iterable (object):
@@ -91,13 +117,11 @@ class WrapIterable (Iterable):
     def __iter__(self): return iter(self.__seq)
     def __getattr__(self, key): return getattr(self.__seq, key)
 
-class book (dict):
-    __iter = dict.__iter__
-    __itit, __itke, __itva = dict.iteritems, dict.iterkeys, dict.itervalues
-    def __iter__(self,   Wrap=WrapIterable): return Wrap(self.__iter())
-    def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
-    def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
-    def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
+class Dict (dict):
+    __iter__ = iterable(dict.__iter__)
+    iterkeys = iterable(dict.iterkeys)
+    iteritems = iterable(dict.iteritems)
+    itervalues = iterable(dict.itervalues)
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
