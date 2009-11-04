@@ -35,7 +35,7 @@ See also:
 import inspect
 def wrapas(func, proto,
            fetch=inspect.getargspec, format=inspect.formatargspec, isfunc=inspect.isroutine,
-           valfmt='__default_arg_%x', fname='__implementation',
+           valfmt='=__default_arg_%x', fname='__implementation',
            skip=lambda x: ''):
     """Masks the signature of a function.
 
@@ -48,15 +48,16 @@ def wrapas(func, proto,
     glob, i = { fname: func }, 0
     # default values might not repr nicely, so tunnel them via glob:
     for v in d or ():
-        glob[valfmt % i] = v
+        glob[valfmt[1:] % i] = v
         i += 1
     # OK, now make a function that packages all that:
-    return eval('lambda %s: %s%s' % (
-            format(n, a, k, tuple(range(i)),
-                   formatvalue=lambda i, f=valfmt: f % i)[1:-1],
-            fname,
-            format(n, a, k, d, formatvalue=skip)),
-                glob)
+    text = 'lambda %s: %s%s' % (
+        format(n, a, k, tuple(range(i)),
+               formatvalue=lambda i, f=valfmt: f % i)[1:-1],
+        fname,
+        format(n, a, k, d, formatvalue=skip))
+    # print 'Wrapping %s as "%s" using globals' % (func.__name__, text), glob.keys()
+    return eval(text, glob)
 del inspect
 
 def labelas(func, orig):
