@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.38 2009-11-04 05:40:31 eddy Exp $
+$Id: sequence.py,v 1.39 2009-11-04 05:59:32 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -118,10 +118,14 @@ class WrapIterable (Iterable):
     def __getattr__(self, key): return getattr(self.__seq, key)
 
 class Dict (dict):
-    __iter__ = iterable(dict.__iter__)
-    iterkeys = iterable(dict.iterkeys)
-    iteritems = iterable(dict.iteritems)
-    itervalues = iterable(dict.itervalues)
+    __iter = dict.__iter__
+    __itit, __itke, __itva = dict.iteritems, dict.iterkeys, dict.itervalues
+    # Can't use iterable: slot wrappers and method descriptors don't play nicely
+    # with mimicking, to let it know their signatures.
+    def __iter__(self,   Wrap=WrapIterable): return Wrap(self.__iter())
+    def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
+    def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
+    def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
