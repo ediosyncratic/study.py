@@ -1,6 +1,7 @@
 """General pythonic helper infrastructure.
 
 Modules:
+ decorate -- generic decorators and related tools
  error -- finding out about exceptions
  infinite -- diverse representations of infinite values
  lazy -- support for lazy attribute look-up
@@ -13,8 +14,9 @@ Modules:
 Sub-package:
  endless -- implementing infinite lists, optionally with cacheing
 
- $Id: __init__.py,v 1.4 2008-10-25 09:38:43 eddy Exp $
+ $Id: __init__.py,v 1.5 2009-11-04 05:06:05 eddy Exp $
 """
+import decorate
 import error
 import infinite
 import lazy
