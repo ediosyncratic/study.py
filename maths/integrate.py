@@ -8,7 +8,7 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
 
-$Id: integrate.py,v 1.8 2009-11-08 23:29:29 eddy Exp $
+$Id: integrate.py,v 1.9 2009-11-08 23:41:56 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -70,7 +70,7 @@ class Integrator:
         e.g., if func is the density of a random variate, 5 standard deviations
         would be prudent.\n"""
 
-	self.integrand = func
+	self.__integrand = func
         if lower is not None:
             if upper is not None: assert upper > lower
             self.__lo = lower
