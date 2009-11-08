@@ -2,13 +2,13 @@
 
 Potentially useful formula (from the method of exhaustion):
 
-integral(: f(x).dx &larr;x; a &le;x&leb :)
+integral(: f(x).dx &larr;x; a &le;x&le;b :)
 = sum(: 2**(1+n) * sum(: (-1)**m f(a +(b-a)*(m+1)/2**(1+n)) &larr;m :2**(1+n) -2)
         &larr;n :{naturals})*(b-a)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
 
-$Id: integrate.py,v 1.6 2007-12-02 21:06:46 eddy Exp $
+$Id: integrate.py,v 1.7 2009-11-08 15:37:48 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -142,11 +142,8 @@ class Integrator:
 
         return microclose
 
-    # __sum is also del'd imminently
-    def __sum(row, plus=lambda a, b: a+b): return reduce(plus, row)
-
     def __between(self, start, gap, edge, test, offset,
-                  blur=__blur, gettest=__gettest, sum=__sum):
+                  blur=__blur, gettest=__gettest):
 
         now = edge * gap # first crude estimate
 
@@ -167,8 +164,6 @@ class Integrator:
 
             dif = now - was
             if test(dif, now + offset): return blur(now, dif)
-
-    del __sum
 
     def __outwards(self, bound, step, test, offset,
                    blur=__blur, gettest=__gettest):
