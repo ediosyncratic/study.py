@@ -8,7 +8,7 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
 
-$Id: integrate.py,v 1.7 2009-11-08 15:37:48 eddy Exp $
+$Id: integrate.py,v 1.8 2009-11-08 23:29:29 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -32,68 +32,134 @@ class Integrator:
     that.  These are used in deciding when the integral has been determined
     accurately enough: after each iteration, the integrator calls test with the
     change in its estimate of the integral as first argument and, as second
-    argument, the new estimate, optionally with offset added to it.  If the
+    argument, the new estimate, with offset (if supplied) added to it.  If the
     change is small enough that further refinement is a waste of time, test
     should return true.  The integrator will then return the given estimate
     added to an error bar whose width is the last change.
 
     By default, the code is geared up to deal with values of class Quantity (see
-    basEddy.quantity) and, indeed, the integrators return Quantity()s.  If the
-    first estimate at the integral (plus optional offset) has a positive .width
-    attribute, it is presumed to be a Quantity() and the default test simply
-    compares the change in estimate with the .width of the new estimate; if the
-    change is within this existing error bar, it is taken to be small enough.
-    In the absence of .width, or if the .width is not positive, the default test
-    simply looks to see whether the change in estimate is smaller than 1e-6
-    times the estimate (plus optional offset); in the absence of an offset, this
-    last test will work poorly if the integral should yield zero. """
+    basEddy.quantity) and, in that case, the integrators return Quantity()s.  If
+    the first estimate at the integral (plus optional offset) has a positive
+    .width attribute, it is presumed to be a Quantity() and the default test
+    simply compares the change in estimate with the .width of the new estimate;
+    if the change is within this existing error bar, it is taken to be small
+    enough. In the absence of .width, or if the .width is not positive, the
+    default test simply looks to see whether the change in estimate is smaller
+    than 1e-6 times the estimate (plus optional offset); in the absence of an
+    offset, this last test will work poorly if the integral should yield
+    zero.\n"""
 
-    def __init__(self, func, width=None):
+    def __init__(self, func, lower=None, upper=None, width=None):
 	"""Initialises an integrator.
 
-	Required first argument is the function to be integrated.
-	This will be stored as self.integrand.
+	Required first argument is the function to be integrated.  This will be
+	exposed as self.integrand(), subject to any clipping (see optional
+	arguments).
 
-	Optional second argument, width - only needed if .beyond() or .before()
-	is liable to be called with bound zero - is a `unit' change in input.
-	It should ideally be approximately the difference between highest and
-	lowest inputs for which the integrand differs significantly from 0;
-	e.g. if func describes a Gaussian distribution with variance 1, a width
-	of about 5 would be prudent. """
+        Optional arguments:
+           lower -- a strict lower bound on func's domain
+           upper -- a strict upper bound on func's domain
+           width -- indicates scale of func's domain
+
+        Each defaults to None, in which case it is ignored.  If both lower and
+        upper are supplied (and not None), width should normally be None; if it
+        is, in this case, it shall be inferred from lower and upper.  It is only
+        needed if .beyond() or .before() is liable to be called with bound
+        zero. It should ideally be approximately the difference between highest
+        and lowest inputs for which the integrand differs significantly from 0;
+        e.g., if func is the density of a random variate, 5 standard deviations
+        would be prudent.\n"""
 
 	self.integrand = func
-	if width is not None: self.__unit = abs(width)
+        if lower is not None:
+            if upper is not None: assert upper > lower
+            self.__lo = lower
+        if upper is not None: self.__hi = upper
+	if width is not None: self.__unit = abs(width) * 1.
 
-    def measure(self, func, width=None):
+    def integrand(self, val):
+        lo, hi = self.__span(val, val)
+        if lo is not val or hi is not val: scale = 0 # clipped
+        else: scale = 1
+        return self.__integrand(val) * scale
+
+    @staticmethod
+    def _integrator_(func, lower=None, upper=None, width=None):
+        """Indirection for instantiating derived integrators.
+
+        Takes the same parameters as Integrator.  Derived classes should
+        over-ride this method if they want measure() to return something other
+        than a plain Integrator.\n"""
+        return Integrator(func, lower, upper, width)
+
+    def measure(self, func, lower=None, upper=None, width=None):
         """New integrator scaling self.integrand pointwise by a given function.
 
         Required argument, func, is a function accepting the same inputs as
-        self.integrand().  Optional argument, width, is as for the Integrator
-        constructor; if omitted, the value used when self was constructed (if
-        any) is used.
+        self.integrand().  Optional arguments - lower, upper and width - are as
+        for the Integrator constructor; if omitted, the values used when self
+        was constructed (if any) are used.  For lower and upper, if supplied,
+        the intersection of the implied range with that of self is used to infer
+        bounds.
 
         Returns an Integrator whose integrand is (: func(x) * self.integrand(x)
         &larr;x :) which can be construed as integrating func using self as
         measure; or as integrating self using func as measure.  If self is a
         probability distribution, its moments can be computed using func()s of
-        form (: x**i &larr;x :) for i = 1, 2, 3 ..."""
+        form (: x**i &larr;x :) for i = 1, 2, 3 ...
 
-        if width is None:
-            try: width = self.__unit
-            except AttributeError: pass
-        return Integrator(lambda x, f=func, i=self.integrand: f(x) * i(x), width)
+        Derived classes should over-ride this if their constructors don't have
+        the same signature as Integrator.\n"""
+
+        lower, upper, wide = self.__clip(lower, upper)
+        if width is None: width = wide
+        return self._integrator_(lambda x, f=func, i=self.integrand: f(x) * i(x),
+                                 lower, upper, width)
+
+    def total(self, cut=None, test=None, offset=None):
+        """Total integral, from minus infinity to plus infinity.
+
+        Semi-optional argument, cut, is a valid input to self.integrand at which
+        to split the integral; if the constructor was given any of lower, upper
+        and width, this is not needed (but supplying it is
+        permitted).  Otherwise, if it is not supplied, 1 is used (which may be
+        wildly inappropriate for some integrands).  Also accepts the usual
+        optional tolerance specifiers, test and offset: see class doc for
+        details.\n"""
+        lo, hi = self.__span(cut, cut)
+        if lo is None or hi is None:
+            try: wide = self.__unit
+            except AttributeError:
+                if lo is None:
+                    if hi is None: hi = 1 # ouch
+                    lo = hi
+                elif hi is None:
+                    hi = lo
+            else:
+                if lo is None:
+                    if hi is None: hi = wide
+                    lo = hi - wide
+                elif hi is None:
+                    hi = lo + wide
+
+        if lo == hi: lo, hi = .5 * hi, 1.5 * hi
+        if lo > hi: hi, lo = lo, hi
+        mid = self.between(lo, hi, test, offset)
+        if offset is None: offset = mid
+        return self.before(lo, test, offset) + mid + self.beyond(hi, test, offset)
 
     def between(self, start, stop, test=None, offset=None):
 	"""Integral over a range.
 
-	Two required arguments, start and stop, give the bounds of the range.
-        Also accepts the usual optional tolerance specifiers, test and offset:
-        see class doc for details. """
+	Two required arguments, start and stop, give the bounds of the
+        range. Also accepts the usual optional tolerance specifiers, test and
+        offset: see class doc for details.  If start > stop, they are reversed
+        and the resulting integral is negated.\n"""
 
-        return self.__between(start,
-                              (stop - start) * 1., # avoid integral type gotchas ...
-                              (self.integrand(start) + self.integrand(stop)) * .5,
-                              test, offset)
+        if start > stop: sign, start, stop = -1, stop, start
+        else: sign = 1
+        lo, hi, wide = self.__clip(start, stop)
+        return self.__interval(lo, hi, wide, test, offset) * sign
 
     def before(self, stop, test=None, offset=None):
         """Integration from minus infinity.
@@ -101,17 +167,24 @@ class Integrator:
         Equivalent to between() with start set to a value less than any at which
         self's distribution is distinguishable from zero.  Required argument is
         the upper bound of the integral; also accepts the usual optional
-        tolerance specifiers, test and offset: see class doc for details. """
+        tolerance specifiers, test and offset: see class doc for details.\n"""
 
-	return -self.__outwards(stop, -self.__step(stop), test, offset)
+        lo, hi, wide = self.__clip(None, stop)
+        assert hi is not None
+        if lo is None: return -self.__outwards(lo, -wide, test, offset)
+        return self.__interval(lo, hi, wide, test, offset)
 
     def beyond(self, start, test=None, offset=None):
         """Integration to plus infinity.
 
         As before() but required argument is the lower bound of integration, the
         upper bound being greater than any value at which self's distribution is
-        distinguishable from zero. """
-	return self.__outwards(start, self.__step(start), test, offset)
+        distinguishable from zero.\n"""
+
+        lo, hi, wide = self.__clip(start, None)
+        assert lo is not None
+        if hi is None: return self.__outwards(start, wide, test, offset)
+        return self.__interval(lo, hi, wide, test, offset)
 
     # hairy implementation follows: no further exports.
 
@@ -126,7 +199,7 @@ class Integrator:
 
         Where between, below and beyond are not given a tolerance test function,
         this determines one given an example value kindred to the final output
-        (plus optional offset) relative to which the tolerance is computed. """
+        (plus optional offset) relative to which the tolerance is computed.\n"""
 
         try:
             w = eg.width
@@ -141,6 +214,11 @@ class Integrator:
         except AttributeError: pass
 
         return microclose
+
+    def __interval(self, lo, hi, wide, test, offset):
+        return self.__between(lo, wide,
+                              (self.integrand(lo) + self.integrand(hi)) * .5,
+                              test, offset)
 
     def __between(self, start, gap, edge, test, offset,
                   blur=__blur, gettest=__gettest):
@@ -159,7 +237,7 @@ class Integrator:
 	while 1:
 	    n, was = 3 * n, now
 	    h = gap / n
-	    now = (sum(map(lambda i, b=start, s=h, f=self.integrand: f(b+i*s),
+	    now = (sum(map(lambda i, b=start, s=h, f=self.__integrand: f(b+i*s),
 			   range(1, n))) + edge) * h
 
             dif = now - was
@@ -167,13 +245,13 @@ class Integrator:
 
     def __outwards(self, bound, step, test, offset,
                    blur=__blur, gettest=__gettest):
-	small = abs(self.integrand(bound)) / 1e3
+	small = abs(self.__integrand(bound)) / 1e3
 	while self.__probe(bound, step) < small: step = step / 7.
 	while self.__probe(bound, step) > small: step = step * 7
         if test is None: test = gettest(small * step)
 
         next = bound + step
-	total, bound = self.between(bound, next, test, offset=offset), next
+	total, bound = self.__interval(bound, next, step, test, offset), next
         if offset is None:
             try: offset = total - total.best
             except AttributeError: offset = 0 * total
@@ -181,18 +259,40 @@ class Integrator:
 	while 1:
 	    step = step * 3
             next = bound + step
-	    more = self.between(bound, next, test, offset=total + offset)
+	    more = self.__interval(bound, next, step, test, total + offset)
 	    total, bound = total + more, next
             if test(more, total + offset): return blur(total, more)
 
     del __blur, __gettest
 
+    def __span(self, start, stop):
+        try: lo = self.__lo
+        except AttributeError: pass
+        else:
+            if start is None or start < lo: start = lo
+
+        try: hi = self.__hi
+        except AttributeError: pass
+        else:
+            if stop is None or hi < stop: stop = hi
+
+        return start, stop
+
+    def __clip(self, start, stop):
+        assert not (start is None and stop is None)
+        start, stop = self.__span(start, stop)
+
+        if start is None: wide = self.__step(stop)
+        elif stop is None: wide = self.__step(start)
+        else: wide = stop - start
+        return start, stop, wide * 1. # avoid whole-number gotchas ...
+
     # need better initial step than abs(bound) ... bound could be zero.
     def __step(self, bound):
 	try: return self.__unit
 	except AttributeError: pass
-	try: ans = abs(bound.copy(lambda x: 1)) # for Quantity()s
-	except (AttributeError, TypeError): ans = abs(bound)
+	try: ans = abs(bound.copy(lambda x: 1.)) # for Quantity()s
+	except (AttributeError, TypeError): ans = abs(bound) * 1.
 	if ans: self.__unit = ans
 	else: raise ValueError, \
 	      'Integrator needs a width parameter for .before(0) or .beyond(0)'
@@ -201,6 +301,6 @@ class Integrator:
     import math
     def __probe(self, base, scale,
 		samples=[1, math.exp(1/math.pi), math.sqrt(2.0), 2, math.e, 3, math.pi]):
-	"""Scale of integrand's values for inputs base + of order scale. """
+	"""Scale of integrand's values for inputs base + of order scale."""
 	return max(map(lambda x, f=self.integrand, s=scale, b=base: abs(f(b + x*s)), samples))
     del math
