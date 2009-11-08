@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.54 2009-03-28 17:13:58 eddy Exp $
+$Id: quantity.py,v 1.55 2009-11-08 17:52:25 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -600,7 +600,7 @@ class Quantity (Object):
     def unpack(other):
         if isinstance(other, Quantity):
             return other.__scale, other.__units
-        return other, {}
+        return other, Prodict()
 
     def __mul__(self, other, grab=unpack):
         ot, her = grab(other)
@@ -622,11 +622,19 @@ class Quantity (Object):
     __rtruediv__ = __rdiv__
 
     def __pow__(self, what, mod=None, grab=unpack):
-        assert mod is None
+        if mod is not None:
+            return NotSupportedError('modular power not supported for Quantity()s', mod)
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
         return self._quantity(pow(self.__scale, wh), self.__units ** wh)
+
+    def __rpow__(self, what, mod=None, grab=unpack):
+        assert mod is None, "Ternary pow isn't meant to call __rpow__ !"
+        if self.__units: raise TypeError('raising to a dimensioned power', self)
+
+        wh, at = grab(what)
+        return self._quantity(pow(wh, self.__scale), at ** self.__scale)
 
     del unpack
 
@@ -809,7 +817,7 @@ class Quantity (Object):
 
     @staticmethod
     def flat(lo, hi, best=None,
-             units={}, doc=None, nom=None, fullname=None, sample=None,
+             units=Prodict(), doc=None, nom=None, fullname=None, sample=None,
              *args, **what):
         """Describe a value with a flat distribution.
 
@@ -824,7 +832,7 @@ class Quantity (Object):
 
         if isinstance(lo, Quantity):
             un, lo = lo.__units, lo.__scale
-            units *= un
+            units = units * un
         else: un = {}
 
         if un:
