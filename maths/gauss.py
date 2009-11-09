@@ -39,8 +39,6 @@ From HAKMEM, http://www.inwap.com/pdp10/hbaker/hakmem/random.html:
   PROBLEM: Generate random unit vectors in N-space uniform on the unit
   sphere. SOLUTION: Generate N Gaussian random numbers and normalize
   to unit length.
-
-$Id: gauss.py,v 1.2 2005-01-04 23:49:44 eddy Exp $
 """
 
 import math
@@ -56,14 +54,14 @@ class Normal (Variate):
 	Takes two arguments; mean and stddev, the mean and standard deviation
 	of the normal distribution. """
 
-	scalar = 1
+	scalar = True
 	try:
 	    mean.width, mean.best
-	    if callable(mean.evaluate): scalar = None
+	    if callable(mean.evaluate): scalar = False
 	except AttributeError: pass
 	try:
 	    stddev.width, stddev.best
-	    if callable(stddev.evaluate): scalar = None
+	    if callable(stddev.evaluate): scalar = False
 	except AttributeError: pass
 
 	if scalar:
@@ -75,7 +73,7 @@ class Normal (Variate):
 	    def func(val, m=mean, s=stddev, g=gauss):
 		return ((val-m)/s).evaluate(g)/s
 
-	self.__upinit(func, stddev)
+	self.__upinit(func, width = 5 * stddev)
         self.mean, self.sigma = mean, stddev
 
     import random
@@ -99,16 +97,6 @@ class logNormal (Variate):
 
     __upinit = Variate.__init__
     def __init__(self, mean, vary):
-        pass
+        raise NotImplementedError # TODO
 
 del Variate
-
-_rcs_log = """
- $Log: gauss.py,v $
- Revision 1.2  2005-01-04 23:49:44  eddy
- Added notes from HAKMEM.
-
- Revision 1.1  2002/10/08 21:35:02  eddy
- Initial revision
-
-"""
