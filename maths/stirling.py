@@ -39,11 +39,19 @@ For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
   = (n+m+.5)*log(n+m) -(n+.5)*log(n) -(m+.5)*log(m) -.5*log(2*pi) +(1/n +1/m -1/(n+m))/12
   = .5 * log((1/n +1/m)/2/pi) +n*log(1+m/n) +m*log(1+n/m) +(1+n/m+m/n)/(n+m)/12
 
-$Id: stirling.py,v 1.6 2008-01-27 23:14:57 eddy Exp $
+$Id: stirling.py,v 1.7 2009-11-09 00:49:17 eddy Exp $
 """
 
 import math, cmath
 roottwopi = math.sqrt(2 * math.pi) # I del this later
+from study.snake.decorate import postcompose
+@postcompose
+def asreal(val):
+    try:
+        if val.imag == 0: return val.real
+    except AttributeError: pass
+    return val
+del postcompose
 
 def factorial(n):
     result = 1
@@ -71,6 +79,7 @@ def Stirling(n, __s=roottwopi, exp=math.exp):
     return pow(n, .5 + n) * __s
 
 # Lanczos's approximation (with 6 coefficients and an offset of 5)
+@asreal
 def lngamma(x,
 	    coefficients=[76.18009172947146, -86.50532032941677,
 			  24.01409824083091, -1.231739572450155,
@@ -102,9 +111,9 @@ def lngamma(x,
     base = (x -.5) * log(base) - base
 
     for c in coefficients: sum, x = sum + c/x, 1+x
-
     return base + log(scale * sum)
 
+@asreal
 def gamma(x, exp=cmath.exp, special=math.sqrt(math.pi/4)):
     result = 1
 
@@ -122,11 +131,7 @@ def gamma(x, exp=cmath.exp, special=math.sqrt(math.pi/4)):
 
     if x in (1, 2): return result
     if x == 1.5: return result * special
-    ans = result * exp(lngamma(x))
-    try:
-        if ans.imag == 0: return ans.real
-    except AttributeError: pass
-    return ans
+    return result * exp(lngamma(x))
 
 def gactorial(x):
     try: return gamma(x+1)
@@ -168,6 +173,7 @@ def chose(n, m):
     assert 0 > n >= m and n == long(n)
     return (-1)**(n-m) * chose(-m-1, -n-1)
 
+@asreal
 def expterm(x, n, scale=1, exp=cmath.exp): # returns pow(x,n)/n!
     while n >= 1: scale, n = scale * x * 1. / n, n-1
     while n < 0:
@@ -181,7 +187,7 @@ def expterm(x, n, scale=1, exp=cmath.exp): # returns pow(x,n)/n!
 def sphere(dim, radius=1., pi=math.pi):
     return expterm(pi * radius**2, dim / 2.)
 
-del roottwopi, math, cmath
+del roottwopi, math, cmath, asreal
 
 # test code
 def error(x):
