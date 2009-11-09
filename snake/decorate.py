@@ -136,7 +136,11 @@ def postcompose(post, *more):
 
     For example, @postcompose(tuple) will turn a function that returns a list
     (e.g. because that's the easiest way to compute the sequence it wants to
-    return) into one that returns a tuple that freezes that list.\n"""
+    return) into one that returns a tuple that freezes that list.
+
+    Equally, one can use postcompose itself as a decorator: it turns the
+    decorated function into a decorator which post-processes the returns of
+    functions to which *it* is applied.\n"""
     @mimicking
     def decor(func, after=(post,) + more):
         def ans(*args, **kw):
