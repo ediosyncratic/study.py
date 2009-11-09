@@ -8,7 +8,7 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
 
-$Id: integrate.py,v 1.9 2009-11-08 23:41:56 eddy Exp $
+$Id: integrate.py,v 1.10 2009-11-09 00:03:52 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -111,8 +111,10 @@ class Integrator:
         Derived classes should over-ride this if their constructors don't have
         the same signature as Integrator.\n"""
 
-        lower, upper, wide = self.__clip(lower, upper)
-        if width is None: width = wide
+        try: lower, upper, wide = self.__clip(lower, upper)
+        except AttributeError: pass # no helpful hints on anything !
+        else:
+            if width is None: width = wide
         return self._integrator_(lambda x, f=func, i=self.integrand: f(x) * i(x),
                                  lower, upper, width)
 
@@ -279,10 +281,11 @@ class Integrator:
         return start, stop
 
     def __clip(self, start, stop):
-        assert not (start is None and stop is None)
         start, stop = self.__span(start, stop)
 
-        if start is None: wide = self.__step(stop)
+        if start is None:
+            if stop is None: wide = self.__unit # may AttributeError
+            else: wide = self.__step(stop)
         elif stop is None: wide = self.__step(start)
         else: wide = stop - start
         return start, stop, wide * 1. # avoid whole-number gotchas ...
