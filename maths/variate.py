@@ -5,8 +5,6 @@ A random variate's model needs to be able to generate `unpredictably'
 to be able to perform the integration needed to determine moments (e.g. the
 mean) and the probability of the variate falling in any given range of its
 permitted values.
-
-$Id: variate.py,v 1.4 2007-06-03 16:42:54 eddy Exp $
 """
 
 from integrate import Integrator
@@ -14,26 +12,30 @@ from study.snake.lazy import Lazy
 
 class Variate (Integrator, Lazy):
     __upinit = Integrator.__init__
-    # Integrator provides between(), beyond() and before().
-    def __init__(self, func, width=None):
-        self.__upinit(func, width)
-        self.__moments = []
+    # Integrator provides total(), between(), beyond() and before().
+    def __init__(self, func, lower=None, upper=None, width=None):
+        self.__upinit(func, lower, upper, width)
+        if lower is None and upper is None and width is None:
+            # Give .total() some idea where to cut:
+            self.__cut = self.sample()
+        else: self.__cut = None
+        self.__moments, self.__total = (), self.total(self.__cut)
 
-    def __moment(self, i, s):
-        g = self.measure(lambda x, j=i: x**j)
-        return g.before(s) + g.between(s,s) + g.beyond(s)
+    def __moment(self, i):
+        return self.measure(lambda x, j=i: x**j).total(self.__cut)
 
     def moments(self, n):
         """Returns expected values of various powers of the variate.
 
         Single argument, n, will be the length of the tuple returned: its
         entry[i] is the expected value of self.sample()**(1+i).  Thus the first
-        entry is the mean, the second is the `mean square' and so on. """
+        entry is the mean, the second is the `mean square' and so on; the last
+        entry is the expected value of the n-th power of the variate.\n"""
 
-        seed = self.sample()
-        total = self.before(seed) + self.beyond(seed) # self.__moment(0, s)
-        return tuple(map(lambda i, s=seed, t=total, m=self.__moment: m(i,s)/t,
-                         range(1, 1+n)))
+        if n > len(self.__moments):
+            self.__moments += tuple(map(lambda i, t=self.__total, m=self.__moment: m(i)/t,
+                                        range(1+len(self.__moments), 1+n)))
+        return self.__moments[:n]
 
     def _lazy_get_mean_(self, ignored):
         return self.moments(1)[0]
@@ -42,6 +44,22 @@ class Variate (Integrator, Lazy):
         self.mean, two = self.moments(2)
         return two - self.mean**2
 
+    def _lazy_get_median_(self, ignored):
+        lo = hi = self.sample()
+        while lo == hi: lo = self.sample()
+        if lo > hi: lo, hi = hi, lo
+        wlo, whi, tgt = self.before(lo), self.before(hi), self.__total / 2
+        while lo < hi:
+            mid = ((tgt - wlo) * hi + (whi - tgt) * lo) / (whi - wlo)
+            wmid = self.before(mid)
+            if mid > hi: lo, hi, wlo, whi = hi, mid, whi, wmid
+            elif mid < lo: lo, hi, wlo, whi = mid, lo, wmid, wlo
+            elif wmid < tgt: lo, wlo = mid, wmid
+            elif wmid > tgt: hi, whi = mid, wmid
+            else: return mid
+        return lo
+
+    # TODO: make Variate an endless iterator (over sample values) instead.
     def sample(self):
         """Returns a sample value from this distribution.
 
@@ -55,18 +73,15 @@ from random import random # 0 <= uniform < 1
 class Uniform (Variate):
     __upinit = Variate.__init__
     def __init__(self, lo=1, hi=None):
-        if hi is None: lo, hi = 0, lo # i.e. lo has default 0, really hi was supplied ...
-        self.min, self.max, self.width = lo, hi, hi - lo
-        self.__height = 1./self.width
-        self.__upinit(self.__p, self.width)
-
-    def __p(self, x):
-        if self.min < x < self.max: return self.__height
-        return 0 * self.__height # may have units of measurement ...
+        if hi is None: lo, hi = 0 * lo, lo # i.e. lo has default 0, really hi was supplied ...
+        self.min, self.max = lo, hi
+        self.__height = 1./(hi - lo)
+        self.__upinit(lambda x, h=self.__height: h, lo, hi)
 
     def sample(self):
-        return random() * self.width + self.min
+        return random() / self.__height + self.min
 
+# TODO: turn into a class method (generator) of Variate
 class RatioGenerator:
     """Illustration of a technique.
 
