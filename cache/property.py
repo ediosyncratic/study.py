@@ -8,7 +8,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
 
 See also weak.py for weak variants.
 
-$Id: property.py,v 1.12 2009-10-17 08:40:21 eddy Exp $
+$Id: property.py,v 1.13 2009-11-11 21:31:34 eddy Exp $
 """
 from study.snake.property import docprop, recurseprop, dictattr
 
@@ -102,8 +102,8 @@ class lazyattr (dictattr, lazyprop):
     Sub-classes dictattr and lazyprop, consulting the former (i.e. __dict__) in
     preference to the latter, thereby ensuring that any explicitly set value
     over-rides the lazily-computed one.  Note that clear_propstore_cache() on
-    the object only clears the lazily-computed values; to also clear any
-    lazyattr, you need to do so explicitly.\n"""
+    the object only clears the lazily-computed values; to also clear any entry
+    in __dict__, you need to del the attribute explicitly.\n"""
 
     __lget = lazyprop.__get__
     __dget = dictattr.__get__
