@@ -41,18 +41,18 @@ class Spread (Dict):
 
     @classmethod
     def die(k, n, step=1):
-        "Represents an n-sided die with faces labelled 1 through n"
+        "Represents an n-sided fair die with faces labelled 1 through n"
         return k.uniform(range(1, 1+n, step))
 
     def __len__(self): return self.itervalues().sum()
     from ratio import Rational as __rat
     def p(self, key): return self.__rat(self[key], len(self))
-    def E(self, func=lambda x, w: x * w, add=lambda x, y: x + y):
+    def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
 
-        First argument, func, is a callable that takes two inputs: a key of self
-        and a rational representing that key's probability.  Its default just
-        multiplies the two together (assuming this to be possible).  Second
+        First argument, func, is a callable that takes a two-ple as input: a key
+        of self and a rational representing that key's probability.  Its default
+        just multiplies the two together (assuming this to be possible).  Second
         argument is a function that reduces a list of outputs of func to a
         single value; its default is the builtin sum.\n"""
         return self.iteritems().map(func).reduce(add) * self.__rat(1, len(self))
@@ -93,7 +93,7 @@ class Spread (Dict):
     def vector(self, n):
         return self.join(None, * (self,) * n)
 
-    def munge(self, func):
+    def map(self, func):
         return self.join(func, self)
 
     @classmethod
