@@ -41,31 +41,22 @@ our integral of p up to X pretty close to
 
  (beta*X)**alpha / alpha / gamma(alpha)
 
-$Id: gamma.py,v 1.7 2008-05-11 16:23:31 eddy Exp $
+$Id: gamma.py,v 1.8 2009-11-12 02:23:10 eddy Exp $
 """
-
-from integrate import Integrator
-from study.snake.lazy import Lazy
+from variate import Variate
+from study.cache.property import lazyattr
 import math, stirling
-
-class Gamma (Integrator, Lazy):
-    __upinit = Integrator.__init__
+
+class Gamma (Variate):
+    __upinit = Variate.__init__
     def __init__(self, alpha, beta):
         try: alpha + 1 # test we can do arithmetic between alpha and scalars
         except TypeError:
             raise TypeError(alpha,
-                            "Gamma distribution's order parameter should be dimensionless")
+                            "Order parameter should be a (dimensionless) number")
 
-	self.alpha, self.beta = alpha, beta
-	if alpha > 1: self.__atzero = 0
-	elif alpha == 1: self.__atzero = 1
-	elif alpha <= 0:
-	    raise ValueError(alpha, 'Gamma function cannot be normalised for this alpha')
-	# else, 0 < alpha < 1; don't set __atzero, it's infinite.
-
-	self.__upinit(self.__p, 1/beta)
 	self.__setup(alpha, beta)
-        self.__zero = 0 / beta # zero input to __p
+	self.__upinit(self.__p, lower=0./beta, width=5./beta)
 
     import random
     # gammavariate requires alpha > -1, beta > 0; so its alpha is offset by 1 from mine.
@@ -90,13 +81,22 @@ class Gamma (Integrator, Lazy):
         need a scalar to apply .evaluate() to).
 
         Note that self.__ep() should not be used directly, only via self.__p(),
-        which performs necessary checks against invalid input. """
+        which performs necessary checks against invalid input.\n"""
+        # TODO: gamma is available, now - not just lngamma !
 
-	scalar = 1
+	self.alpha, self.beta = alpha, beta
+
 	# alpha is dimensionless ...
+	if alpha > 1: self.__atzero = 0 * beta
+	elif alpha == 1: self.__atzero = 1 * beta
+	elif alpha <= 0:
+	    raise ValueError('Gamma function cannot be normalised for this alpha', alpha)
+	# else, 0 < alpha < 1; don't set __atzero, it's infinite.
+
+	scalar = True
 	try: lognorm = alpha.evaluate(lngam)
 	except AttributeError: lognorm = lngam(alpha)
-	else: scalar = None
+	else: scalar = False
 
 	# ... but beta might not be
 	try:
@@ -107,7 +107,7 @@ class Gamma (Integrator, Lazy):
 		bx = b * x
 		return a * ln(bx) -bx -n
 	else:
-	    scalar = None
+	    scalar = False
 	    def logp(x, b=beta, a=alpha-1, ln=log, n=lognorm):
 		bx = b * x
 		return a * bx.evaluate(ln) -bx -n
@@ -117,12 +117,13 @@ class Gamma (Integrator, Lazy):
 
     def __p(self, x, exp=math.exp):
 	"""The probability distribution"""
-	if x == self.__zero:
+	if x * self.beta < 0:
+            return 0 * self.beta
+
+	if x * self.beta == 0:
 	    try: return self.__atzero
 	    except AttributeError:
-		raise OverflowError, 'Gamma, with alpha < 1, is infinite at zero'
-	if x < self.__zero:
-            raise ValueError(x, 'Gamma distribution only defined on positives.')
+		raise OverflowError('Gamma, with alpha < 1, is infinite at zero', self.alpha)
 
 	return self.__ep(x)
 
@@ -136,34 +137,30 @@ class Gamma (Integrator, Lazy):
 
 	as estimate of the integral.  Returns a twople, (eps, X). """
 
-	if end * self.beta > 1: end = 1./self.beta
-	end = end * 1e-6
+	if end * self.beta > 1: end = 1. / self.beta
+	end /= 1e6
 	try: end = end.best # throw away any error bars; not needed.
 	except AttributeError: pass
 	return (self.beta * end)**self.alpha / self.alpha / gam(self.alpha), end
-	# hmm - implies Quantity needs an __rpow__, for alpha.
 
-    __between = Integrator.between
+    __between = Variate.between
     def between(self, start, stop, *args, **what):
-	# distribution is undefined before 0
-	# but should be treated as zero on negatives, for purposes of integration.
-	if start < -start: start = 0 * start
-	if stop < -stop: stop = 0 * stop
-	if start == stop: return 0 * self.beta # need correct dimensions
-	if stop < start: return -self.between(stop, start, *args, **what)
+        if stop < start: sign, start, stop = -1, stop, start
+        else: sign = 1
+	if start == stop or stop * self.beta <= 0: return 0 * self.beta
 
-	if self.alpha < 1 and start == 0:
+	if self.alpha < 1 and start * self.beta <= 0:
 	    # bodge round initial pole
-	    assert stop > 0
 	    eps, cut = self.__sliver(stop)
 	    try: off = what['offset']
 	    except KeyError: what['offset'] = eps
 	    else: what['offset'] = eps + off
-	    return eps + self.__between(start + cut, stop, *args, **what)
+	    return (eps + self.__between(cut, stop, *args, **what)) * sign
 
-	return self.__between(start, stop, *args, *what)
+	return self.__between(start, stop, *args, **what) * sign
 
-    def _lazy_get_mean_(self, ignored):
+    @lazyattr
+    def mean(self, cls=None):
         """Mean of the gamma distribution.
 
         This is
@@ -179,7 +176,8 @@ class Gamma (Integrator, Lazy):
 
         return self.alpha / self.beta
 
-    def _lazy_get_variance_(self, ignored):
+    @lazyattr
+    def variance(self, clas=None):
         """Variance of the gamma distribution.
 
         This is the expected value of the variate's square, minus the square of
@@ -200,15 +198,12 @@ class Gamma (Integrator, Lazy):
 
         return self.alpha / self.beta ** 2
 
-del Integrator, Lazy, math, stirling
-
-class GammaByMeanVar (Gamma):
-    __upinit = Gamma.__init__
-    def __init__(self, mean, variance):
+    @staticmethod
+    def fromMeanVary(mean, variance):
         """Initialises a Gamma using mean and variance as inputs.
 
         This simply infers alpha and beta from the formulae used, above, to
-        compute mean and variance lazily from alpha and beta. """
+        compute mean and variance lazily from alpha and beta.\n"""
 
         try: mean**2 + variance # expected value of square of variate
         except TypeError:
@@ -216,6 +211,9 @@ class GammaByMeanVar (Gamma):
                             "Incompatible quantities for mean and variance of a distribution")
         except (OverflowError, OverflowWarning): pass
 
-        self.mean, self.variance = mean, variance
         beta = mean / variance
-        self.__upinit(mean * beta, beta)
+        ans = Gamma(mean * beta, beta)
+        ans.mean, ans.variance = mean, variance
+        return ans
+
+del Variate, math, stirling, lazyattr
