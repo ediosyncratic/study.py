@@ -81,8 +81,13 @@ class Normal (Variate):
         return g(self.mean, self.sigma)
     del random
 
-def Gaussian(mean, variance):
-    return Normal(mean, variance**.5)
+    @staticmethod
+    def fromMeanVary(mean, variance):
+        ans = Normal(mean, variance**.5)
+        ans.variance = variance
+        return ans
+
+Gaussian = Normal.fromMeanVary
 
 class logNormal (Variate):
     """Distribution of a variate whose logarithm is normally distributed.
