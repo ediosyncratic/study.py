@@ -7,22 +7,17 @@ mean) and the probability of the variate falling in any given range of its
 permitted values.
 """
 
-from integrate import Integrator
-from study.snake.lazy import Lazy
+from study.maths.integrate import Integrator
+from study.cache.property import lazyprop, lazyattr, Cached
 
-class Variate (Integrator, Lazy):
+class Variate (Integrator, Cached):
     __upinit = Integrator.__init__
     # Integrator provides total(), between(), beyond() and before().
     def __init__(self, func, lower=None, upper=None, width=None):
         self.__upinit(func, lower, upper, width)
-        if lower is None and upper is None and width is None:
-            # Give .total() some idea where to cut:
-            self.__cut = self.sample()
-        else: self.__cut = None
-        self.__moments, self.__total = (), self.total(self.__cut)
-
-    def __moment(self, i):
-        return self.measure(lambda x, j=i: x**j).total(self.__cut)
+        self.__moments = ()
+        if not (lower is None and upper is None and width is None):
+            self.__cut = None
 
     def moments(self, n):
         """Returns expected values of various powers of the variate.
@@ -37,14 +32,24 @@ class Variate (Integrator, Lazy):
                                         range(1+len(self.__moments), 1+n)))
         return self.__moments[:n]
 
-    def _lazy_get_mean_(self, ignored):
+    def __moment(self, i):
+        return self.measure(lambda x, j=i: x**j).total(self.__cut)
+    @lazyprop
+    def __total(self, cls=None): return self.total(self.__cut)
+    @lazyattr
+    def __cut(self, cls=None): return self.sample()
+
+    @lazyprop
+    def mean(self, cls=None):
         return self.moments(1)[0]
 
-    def _lazy_get_variance_(self, ignored):
+    @lazyprop
+    def variance(self, cls=None):
         self.mean, two = self.moments(2)
         return two - self.mean**2
 
-    def _lazy_get_median_(self, ignored):
+    @lazyprop
+    def median(self, cls=None):
         lo = hi = self.sample()
         while lo == hi: lo = self.sample()
         if lo > hi: lo, hi = hi, lo
@@ -68,6 +73,8 @@ class Variate (Integrator, Lazy):
         See RatioGenerator for a generic algorithm for implementing samples.
         """
         raise NotImplementedError
+
+del lazyprop, lazyattr, Integrator, Cached
 
 from random import random # 0 <= uniform < 1
 class Uniform (Variate):
