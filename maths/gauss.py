@@ -8,8 +8,9 @@ with suitable scalings.
 Some day I may add support for multi-dimensional gaussian distributions.  I'll
 use Gaussian(mean, variance) as its interface; mean will be a vector quantity,
 variance will be a tensor quantity of the same rank as mean*mean.  For the
-present, a function Gaussian(mean, variance) is defined, working only for
-one-dimensional data, implemented using Normal.
+present, a function Gaussian(mean, variance) is defined (actually an alias for
+static method Normal.fromMeanVary), working only for one-dimensional data,
+implemented using Normal.
 
 See also gamma.py for Gamma distributions.
 
@@ -22,7 +23,8 @@ necessary, by some suitable unit) to obtain a variate which may be negative or
 positive, so may be well modelled by a normal distribution.  From this we can
 then infer a distribution for the original variate, the `lognormal'
 distribution, which does guarantee positive values, yet has roughly the form of
-the normal distribution.
+the normal distribution (i.e. thin at one end, thick in the middle and then thin
+again at the other end).
 
 From HAKMEM, http://www.inwap.com/pdp10/hbaker/hakmem/random.html:
 
