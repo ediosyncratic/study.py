@@ -8,7 +8,7 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
 
-$Id: integrate.py,v 1.10 2009-11-09 00:03:52 eddy Exp $
+$Id: integrate.py,v 1.11 2009-11-12 02:11:27 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -194,9 +194,14 @@ class Integrator:
     def __blur(mid, spread, H=tophat): return mid + H * spread
     del tophat
     # __blur and __gettest will be del'd shortly ... they're *not* methods
+
+    def bywidth(d, n):
+        try: d = d.best
+        except AttributeError: pass
+        return abs(d) <= n.width
     def __gettest(eg,
-                  microclose = lambda d, n: abs(d) <= 1e-6 * abs(n),
-                  bywidth = lambda d, n: abs(d.best) <= n.width):
+                  microclose=lambda d, n: abs(d) <= 1e-6 * abs(n),
+                  bywidth=bywidth):
         """Returns a sensible tolerance test.
 
         Where between, below and beyond are not given a tolerance test function,
@@ -216,6 +221,7 @@ class Integrator:
         except AttributeError: pass
 
         return microclose
+    del bywidth
 
     def __interval(self, lo, hi, wide, test, offset):
         return self.__between(lo, wide,
