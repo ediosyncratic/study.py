@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.33 2009-08-30 18:39:09 eddy Exp $
+$Id: home.py,v 1.34 2009-11-19 19:01:45 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -424,7 +424,11 @@ century at present, though its average over the last 2500 years is more like
     density = 5.518 * kg / litre,
     age = 1e17 * second, # Nuffield, approx
     Atmosphere = Object(mass = 5.27e18 * kg, pressure = bar,
-                        composition = { "N2": .78, "O2": .21 }),
+                        composition = { "N2": .7809, "O2": .2095, 'Ar': .0093,
+                                        # partial volumes of constituent gasses in dry air
+                                        # there's also usually some 'H2O' in it !
+                                        'CO2': 3e-4, 'Ne': 1.8e-5, 'He': 5e-6,
+                                        'CH4': 2e-6, 'Kr': 1e-6, 'Xe': 1e-7 }),
 
     Core = Object(name = "Earth's core",
                   surface = Object(radius = 3.488e6 * metre,
