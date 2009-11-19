@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
 
-$Id: home.py,v 1.34 2009-11-19 19:01:45 eddy Exp $
+$Id: home.py,v 1.35 2009-11-19 19:08:14 eddy Exp $
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, tophat, \
@@ -308,6 +308,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
 
             # Land
             SurfacePart(IAcontinent('Africa', 11.5),
+                        # arguably Africa is part of the same land-mass as Eurasia !
                         LandMass(IAcontinent('Asia', 16.5),
                                  IAcontinent('Europe', 3.8),
                                  name = 'Eurasia'),
@@ -315,32 +316,33 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                                  IAcontinent('North America', 9.385),
                                  name = 'America'),
                         IAcontinent('Antarctica', 5.1),
-                                   IAcontinent('Australia', 2.971021),
-                                   IAcontinent('Greenland', .84),
-                                   IAisland('islands', 2.5,
-                                            IAisland('New Guinea', .312329),
-                                            IAisland('Borneo', .290285),
-                                            IAisland('Sumatra', .163145),
-                                            # The above are mostly in Indonesia ...
-                                            IAisland('Madagascar', .230035), # aka Malagasy
-                                            IAisland('Baffin', .2016),
-                                            IAisland('Japan', .142726,
-                                                     IAisland('Honshu', .091278),
-                                                     IAisland('Kyushu', .014791)),
-                                            IAisland('Java', .048504),
-                                            IAisland('Britain', .09422,
-                                                     IAisland('Great Britain', .088133)),
-                                            IAisland('Ireland', .027135),
-                                            IAisland('Philipines', .115707),
-                                            IAisland('Cuba', .044218),
-                                            IAisland('Ceylon', .025332),
-                                            IAisland('New Zealand', .103736),
-                                            IAisland('Iceland', .039768),
-                                            IAisland('Formosa', .013855)),
-                                   name = 'Land',
-                                   height = Quantity(qSample({}, mean = 840,
-                                                             low = 0, high = 8840),
-                                                     metre)),
+                        IAcontinent('Australia', 2.971021),
+                        IAcontinent('Greenland', .84),
+                        # TODO: split between their respective continents:
+                        IAisland('islands', 2.5,
+                                 IAisland('New Guinea', .312329),
+                                 IAisland('Borneo', .290285),
+                                 IAisland('Sumatra', .163145),
+                                 # The above are mostly in Indonesia ...
+                                 IAisland('Madagascar', .230035), # aka Malagasy
+                                 IAisland('Baffin', .2016),
+                                 IAisland('Japan', .142726,
+                                          IAisland('Honshu', .091278),
+                                          IAisland('Kyushu', .014791)),
+                                 IAisland('Java', .048504),
+                                 IAisland('Britain', .09422,
+                                          IAisland('Great Britain', .088133)),
+                                 IAisland('Ireland', .027135),
+                                 IAisland('Philipines', .115707),
+                                 IAisland('Cuba', .044218),
+                                 IAisland('Ceylon', .025332),
+                                 IAisland('New Zealand', .103736),
+                                 IAisland('Iceland', .039768),
+                                 IAisland('Formosa', .013855)),
+                        name = 'Land',
+                        height = Quantity(qSample({}, mean = 840,
+                                                  low = 0, high = 8840),
+                                          metre)),
 
             # misc other data:
             rainfall = .125e18 * kg / year,
@@ -349,7 +351,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
             # but total solar power available at surface is 1/8 of that in space:
             # http://www.physorg.com/news117649731.html
             # This may be about which frequencies solar panels can use.
-            nature = { 'Land': .292, 'Ocean': .708 },
+            nature = { 'Land': .292, 'Ocean': .708 }, # TODO: merge into SurfacePart data !
             material = "basalt, granite, water",
             magnetism = Object(
     sampled = 'London, 1960',
