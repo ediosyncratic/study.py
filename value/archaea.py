@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.10 2009-08-30 23:04:49 eddy Exp $
+$Id: archaea.py,v 1.11 2009-11-20 01:09:25 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -147,7 +147,7 @@ pair, half, quarter = 2, .5, .25
 # few, some, several (.best=7), many ? Mainly of value for different-shaped distributions.
 percent = .01
 prial = nest = 3
-dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks'
+dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `dicks' !
 score, shock, gross = 20, 60, 144 # c.f. Danish.{snes, skok, gros}
 timer = flock = 40
 greatgross = gross * dozen
@@ -253,9 +253,9 @@ pace = Quantity(5, foot, US = 30 * inch)
 rope = 4 * pace
 fathom = Quantity(2, yard, """The Fathom.
 
-The fathom is cognate with the Swedish famn and Danish favn (q.v.) and has
-principally survived in use as a maritime measure of vertical distances -
-notably the depths of bodies of water.\n""")
+The fathom (also called 'mark') is cognate with the Swedish famn and Danish favn
+(q.v.) and has principally survived in use as a maritime measure of vertical
+distances - notably the depths of bodies of water.\n""")
 
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
 chain.engineer = 100 * foot # rather than 100 links; c.f. Swedish.ref
@@ -353,6 +353,8 @@ cental = 100 * pound # cental is a UK name for the US cwt
 quintal = 76 * pound # standard (iron) "flask" of Mercury (originally a Spanish unit)
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
+
+# Miscellaneous units
 TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
                """The conventional unit of power of explosions
 
@@ -369,6 +371,10 @@ Magnitude = Object(
     moment = lambda n: 10 ** (1.5 * n + 9.1) * Joule,
     energy = lambda n: 10 ** (1.5 * n + 2.9) * Joule,
     Richter = lambda n: 10 ** (1.5 * n + 6) * 4.2 * Joule)
+
+# Speed of sound in dry air at 0 centigrade
+sound = 331.3 * metre / second # * (temperature / 273.15 / K)**.5
+# so km / 3 / sec at 3.35 centigrade; 343 m/s at 20 centigrade
 
 # Anglophone units of energy:
 CHU = calorie * pound / gram # whatever CHU is ! (KDWB)
@@ -401,9 +407,11 @@ Cologne = Object(mark = Quantity(233.856, gram,
 
 Introduced by King Hans of Denmark in the late 1400s as a standard of weight,
 later used in the definition of various (mainly Germanic) currency standards,
-notably including (in 1754) the Holy Roman Empire's conventionsthaler, on tench
+notably including (in 1754) the Holy Roman Empire's conventionsthaler, one tenth
 of a Cologne mark of silver, superseded in the early 1800s by the (Prussian)
 Thaler, containing one fourteenth of a Cologne mark of silver.
+
+See: http://en.wikipedia.org/wiki/Cologne_Mark
 """))
 pound.Cologne = 2 * Cologne.mark
 ounce.Cologne = Cologne.mark / 8
