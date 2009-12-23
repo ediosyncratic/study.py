@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.45 2009-12-23 22:12:38 eddy Exp $
+$Id: sequence.py,v 1.46 2009-12-23 23:31:27 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -311,7 +311,7 @@ class ReadSeq (Iterable):
         raise ValueError('not in sequence', val)
 
     # Throw in something suitable in place of sort:
-    def order(self, are=cmp):
+    def order(self, par=cmp):
         """Return self's indices in increasing order of matching entries.
 
         Takes one optional argument, defaulting to the built-in cmp: a function
@@ -320,7 +320,7 @@ class ReadSeq (Iterable):
         this range, if cmp(self[i], self[j]) < 0, i appears before j in the
         result list; if > 0, i appears after j; else, the order of i and j is
         unspecified.\n"""
-        return self.__order(are)
+        return self.__order(par)
 
     def __order(self, par):
         # boot-strap round the fact that permute.Permute inherits from Tuple
@@ -330,20 +330,23 @@ class ReadSeq (Iterable):
         return permute.order(self[:], par)
 
     @iterable
-    def best(self, n, are=cmp):
+    def sorted(self, par=cmp):
+        return self.order(par)(self)
+
+    def best(self, n, par=cmp):
         """Selects the best n entries in self, preserving self's order.
 
         Required first argument, n, is the number of entries of self to retain,
         if positive; else -n is the number of entries of self to
-        discard.  Optional second argument is a comparison function, are; its
+        discard.  Optional second argument is a comparison function, par; its
         default is the built-in cmp; entries of self whose indices lie in
-        self.order(are)[-n:] are kept.  The returned Iterable preserves the
+        self.order(par)[-n:] are kept.  The returned Iterable preserves the
         order of the entries within self; if you want them sorted, use
-        self.order(are)(self)[-n:] instead.\n"""
+        self.sorted(par)[-n:] instead.\n"""
 
         
         return self.enumerate().filter(lambda (k, v),
-                                       ks=self.order(are)[-n:]: k in ks).map(lambda (k, v): v)
+                                       ks=self.order(par)[-n:]: k in ks).map(lambda (k, v): v)
 
 class Tuple (ReadSeq, tuple):
     """Pretend to be a tuple.
