@@ -72,6 +72,38 @@ def labelas(func, orig):
     func.__dict__.update(orig.__dict__)
     return func
 
+def inherit(func, orig, join='\n'.join, wrap=wrapas):
+    """Makes a re-implementation of a function look like its original.
+
+    Similar to mimic (q.v.) but intended for use by a derived class, where it
+    has a method that over-rides one on a base-class, or in other situations
+    where a given API is implemented.
+
+    Takes two required arguments: func is the new implementation, orig is the
+    canonical form of the API.  Accepts an optional third argument, join, which
+    should accept a (possibly empty) list of strings and return a string; it
+    defaults to '\n'.join.  The returned function has the prototype of orig, the
+    name of func and composite doc string and __dict__.  For __dict__, the
+    result prefers func over orig (i.e. it updates first from orig, then from
+    func).
+
+    Any documentation from orig is presumed to be definitive; any documentation
+    provided by func is presumed to just elaborate on how it implements the
+    API.  Thus the composite puts the doc string of orig before that of func. If
+    either is empty or None, it is discarded; the list of what remains is passed
+    to join, whose return is used as __doc__, unless it is empty (in which case
+    None is used).  Since the result's signature shall match orig's, authors
+    should write func using the same argument names as orig, so that they'll
+    match references in func's immediate doc string, if any.\n"""
+    ans = wrap(func, orig)
+    assert func.__name__ == orig.__name__
+    ans.__name__ = func.__name__
+    # TODO: match up base indentation of docs
+    ans.__doc__ = join(filter(None, (orig.__doc__, func.__doc__))) or None
+    ans.__dict__.update(orig.__dict__)
+    ans.__dict__.update(func.__dict__)
+    return ans
+
 def mimic(func, orig, proto=None, wrap=wrapas):
     """Makes one function look like another.
 
@@ -83,7 +115,21 @@ def mimic(func, orig, proto=None, wrap=wrapas):
     if proto is None: proto = orig
     return labelas(wrap(func, proto), orig)
 
-def accepting(proto, wrapping=wrapas):
+def funcorator(func):
+    """A decorator that repackages a function.
+
+    Takes a single input, func: this should be a callable - typically a
+    function.  Returns a repackaging of this function.\n"""
+    raise NotImplementedError
+def decodeco(decorator):
+    """A decorator-decorator.
+
+    Takes a single input, decorator, and repackages it; decorator itself should
+    be a callable that takes a callable and returns a repackaging of *that*; the
+    result of decorating decorator itself is a similar callable.\n"""
+    raise NotImplementedError
+
+def accepting(proto, wrapping=wrapas, heir=inherit, rator=funcorator):
     """Decorator to fake function signature.
 
     Takes one parameter, proto: only its signature (argument names, defaults and
@@ -100,7 +146,12 @@ def accepting(proto, wrapping=wrapas):
     surplus arguments that displace these defaults.\n"""
     def decor(func, form=proto, wrap=wrapping):
         return labelas(wrap(func, form), func)
-    return wrapping(decor, lambda func: None)
+    return heir(decor, rator)
+
+def overriding(base, heir=inherit, wrap=wrapas, rator=funcorator):
+    def decor(func, form=base, mime=heir):
+        return mime(func, form)
+    return heir(decor, rator)
 
 def aliasing(orig, mime=mimic):
     """Decorator-decorator to make original preserve superficial details.
