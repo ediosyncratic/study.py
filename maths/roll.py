@@ -47,16 +47,16 @@ class Spread (Dict):
         except KeyError: return 0
 
     @classmethod
-    def uniform(k, seq):
+    def uniform(cls, seq):
         "Represents a uniform distribution on the given sequence of values"
-        ans = k()
+        ans = cls()
         for i in seq: ans[i] += 1
         return ans
 
     @classmethod
-    def die(k, n, step=1):
+    def die(cls, n, step=1):
         "Represents an n-sided fair die with faces labelled 1 through n"
-        return k.uniform(range(1, 1+n, step))
+        return cls.uniform(range(1, 1+n, step))
 
     def __len__(self): return self.itervalues().sum()
     from ratio import Rational as __rat
@@ -125,10 +125,10 @@ class Spread (Dict):
 
     from study.maths.vector import Vector as __vec
     @classmethod
-    def __tor(k, *vs): return k.__vec(vs)
+    def __tor(cls, *vs): return cls.__vec(vs)
 
     @classmethod
-    def join(k, func=None, *what):
+    def join(cls, func=None, *what):
         """Build a new Spread object out of some existing ones.
 
         Generally, other methods of this class package this one more usably (see
@@ -152,10 +152,10 @@ class Spread (Dict):
         it shall be handled as if each use of it was a separate copy of the
         object.\n"""
 
-        if func is None: func = k.__tor
+        if func is None: func = cls.__tor
         assert what
-        ans = k()
-        for t, n in k.__renee(*what):
+        ans = cls()
+        for t, n in cls.__renee(*what):
             if n: ans[func(*t)] += n
         return ans
 
@@ -170,20 +170,20 @@ class Spread (Dict):
                     yield (i,) + s, n * m
 
     @classmethod
-    def __renee(k, one, *rest):
+    def __renee(cls, one, *rest):
         """Cartesian iterator.
 
         All arguments should normally be Spread objects (but they can,
         alternatively, be dict objects whose values are numeric); takes at least
         one, plus arbitrarily many more.  Returns an iterator, each yield of
         which is a pair of a tuple and a count; the tuple's length is equal to
-        the number of dict objects passed as arguments to k.__renee().  Each
+        the number of dict objects passed as arguments to cls.__renee().  Each
         entry in the tuple is a key of the corresponding dict object; the count
         is the product, over entries in the tuple, of their values in their
         corresponding dict objects.  The iterator traverses every possible tuple
         and count conforming to this spec.\n"""
 
-        if rest: return k.__product(one, k.__renee(*rest))
-        return k.__product(one)
+        if rest: return cls.__product(one, cls.__renee(*rest))
+        return cls.__product(one)
 
 del Dict
