@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.39 2009-11-04 05:59:32 eddy Exp $
+$Id: sequence.py,v 1.40 2009-12-23 19:28:17 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -178,19 +178,19 @@ class ReadSeq (Iterable):
         try: src = iter(other)
         except TypeError:
             for it in self:
-                if it == other: pass
-                else: return False
+                if not(it == other): return False
             return True # No entry in self isn't other.
 
         try:
             for it in self:
-                if it == src.next(): pass
-                else: return False
-        except StopIteration: return False
+                if not(it == src.next()): return False
+        except StopIteration: return False # it ran out first
 
         try: src.next()
         except StopIteration: return True
         return False
+
+    # NB difference between "not(x == y)" above, vs "x != y" below !
 
     def __ne__(self, other):
         try: src = iter(other)
@@ -202,7 +202,7 @@ class ReadSeq (Iterable):
         try:
             for it in self:
                 if it != src.next(): return True
-        except StopIteration: return False # it ran out first
+        except StopIteration: return True # it ran out first
 
         try: src.next()
         except StopIteration: return False # we're equal
@@ -212,8 +212,7 @@ class ReadSeq (Iterable):
         try: src = iter(other)
         except TypeError:
             for it in self:
-                if it >= other: pass
-                else: return False
+                if not(it >= other): return False
             return True
 
         try:
@@ -232,8 +231,7 @@ class ReadSeq (Iterable):
         try: src = iter(other)
         except TypeError:
             for it in self:
-                if it <= other: pass
-                else: return False
+                if not(it <= other): return False
             return True
 
         try:
@@ -243,14 +241,13 @@ class ReadSeq (Iterable):
                 elif it == val: pass
                 else: return False
         except StopIteration: return False # it ran out first
-        return True # equality, but other maybe longer
+        return True # equality, but other may be longer
 
     def __lt__(self, other):
         try: src = iter(other)
         except TypeError:
             for it in self:
-                if it < other: pass
-                else: return False
+                if not(it < other): return False
             return True
 
         try:
@@ -269,8 +266,7 @@ class ReadSeq (Iterable):
         try: src = iter(other)
         except TypeError:
             for it in self:
-                if it > other: pass
-                else: return False
+                if not(it > other): return False
             return True
 
         try:
@@ -308,7 +304,17 @@ class ReadSeq (Iterable):
         raise ValueError('not in sequence', val)
 
     # Throw in something suitable in place of sort:
-    def order(self, are=cmp): return self.__order(are)
+    def order(self, are=cmp):
+        """Return self's indices in increasing order of matching entries.
+
+        Takes one optional argument, defaulting to the built-in cmp: a function
+        to be used for comparison. The return from this method is a Permutation
+        (see study.maths.permute) of range(len(self)) in which, for each i, j in
+        this range, if cmp(self[i], self[j]) < 0, i appears before j in the
+        result list; if > 0, i appears after j; else, the order of i and j is
+        unspecified.\n"""
+        return self.__order(are)
+
     def __order(self, par):
         # boot-strap round the fact that permute.Permute inherits from Tuple
         from study.maths import permute
