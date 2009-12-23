@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.40 2009-12-23 19:28:17 eddy Exp $
+$Id: sequence.py,v 1.41 2009-12-23 19:50:28 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -321,6 +321,23 @@ class ReadSeq (Iterable):
         def order(who, p=permute.order, are=cmp): return p(who[:], are)
         ReadSeq.__order = order # over-writing this boot-strap implementation
         return permute.order(self[:], par)
+
+    @iterable
+    def best(self, n, are=cmp):
+        """Selects the best n entries in self, preserving self's order.
+
+        Required first argument, n, is the number of entries of self to retain;
+        or, if negative, -n is the number of entries of self to
+        discard.  Optional second argument is a comparison function, are; its
+        default is the built-in cmp; entries of self whose indices lie in
+        self.order(are)[-n:] are kept.  The returned Iterable preserves the
+        order of the entries within self; if you want them sorted, use
+        self.order(are)(self)[-n:] instead.\n"""
+
+        ks, i = self.order(are)[-n:], 0
+        while i < len(self):
+            if i in ks: yield self[i]
+            i += 1
 
 class Tuple (ReadSeq, tuple):
     """Pretend to be a tuple.
