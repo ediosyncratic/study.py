@@ -67,7 +67,7 @@ class Permutation (Tuple, Lazy):
     `one-to-one' neatly.\n"""
 
     __upnew = Tuple.__new__
-    def __new__(klaz, perm):
+    def __new__(cls, perm):
         """Construct a permutation.
 
         Single argument is either a natural number, in which case the identity
@@ -76,8 +76,8 @@ class Permutation (Tuple, Lazy):
         entry is present in the sequence.  (This constraint is not checked
         unless you evaluate the .inverse attribute.)\n"""
         try: perm[:]
-        except TypeError: return klaz.__upnew(klaz, range(perm))
-        else: return klaz.__upnew(klaz, perm)
+        except TypeError: return cls.__upnew(cls, range(perm))
+        else: return cls.__upnew(cls, perm)
 
     def __init__(self, perm): pass # Suppress misguided call to Lazy.__init__().
 
@@ -182,6 +182,7 @@ class Permutation (Tuple, Lazy):
     def cycle(self, by=1):
         return Permutation(cycle(self, by))
 
+    # TODO: add random permutation class method
 del Lazy
 
 def Iterator(size, P=Permutation):
