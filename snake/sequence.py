@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.42 2009-12-23 19:55:01 eddy Exp $
+$Id: sequence.py,v 1.43 2009-12-23 20:02:49 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -110,6 +110,13 @@ class Iterable (object):
                 elif not t(p): break
             else:
                 yield p
+
+    @iterable
+    def enumerate(self):
+        i = 0
+        for it in self:
+            yield i, it
+            i += 1
 
 class WrapIterable (Iterable):
     # For when you aren't defining a class to mix in with:
@@ -334,9 +341,9 @@ class ReadSeq (Iterable):
         order of the entries within self; if you want them sorted, use
         self.order(are)(self)[-n:] instead.\n"""
 
-        ks = self.order(are)[-n:]
-        for k, v in enumerate(self):
-            if k in ks: yield v
+        
+        return self.enumerate().filter(lambda (k, v),
+                                       ks=self.order(are)[-n:]: k in ks).map(lambda (k, v): v)
 
 class Tuple (ReadSeq, tuple):
     """Pretend to be a tuple.
