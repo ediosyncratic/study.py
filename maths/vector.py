@@ -107,7 +107,7 @@ class Vector (ReadSeq, tuple):
             assert not filter(lambda x: not isinstance(x, Vector), self)
             tail = self[0]. dimension
             assert not filter(lambda x, t=tail: x.dimension != t, self[1:])
-            return (len(self), *tail)
+            return (len(self),) + tail
 
         return (len(self),)
 
