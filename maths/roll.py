@@ -1,31 +1,45 @@
 """Exact Analysis of discrete random processes.
+
+Exported classes:
+  Spread -- description of discrete distributions
+  Vector -- extends tuple with simple arithmetic
+The latter is used as a key-type by the former in places.
 """
-
-class Vector (tuple):
-    def __add__(self, other, add=lambda x, y: x+y):
-        assert len(other) == len(self)
-        return self.__class__(map(add, self, other))
-
-    def __sub__(self, other, sub=lambda x, y: x-y):
-        assert len(other) == len(self)
-        return self.__class__(map(sub, self, other))
-
-    def __mul__(self, other):
-        try: other[:]
-        except TypeError:
-            return self.__class__(map(lambda x, o=other: x * o, self))
-
-        return self.__class__(map(lambda o, s=self: s * o, other))
-
-    def __rmul__(self, other):
-        try: other[:]
-        except TypeError:
-            return self.__class__(map(lambda x, o=other: o * x, self))
-
-        return self.__class__(map(lambda o, s=self: o * s, other))
-
 from study.snake.sequence import Dict
+
 class Spread (Dict):
+    """Describe a discrete distribution.
+
+    An instance of this class is a mapping from possible values to relative
+    frequency of each.  Lookup on a non-key never raises KeyError: instead, it
+    returns 0.  Typically, the keys shall be possible outcomes of some discrete
+    random variate with rationally commensurate probabilities, such as arises
+    from looking at the outcomes of fair die rolls.  When considered as a
+    distribution, the relative frequencies are divided by their sum to get a
+    probability distribution.
+
+    Default constructor behaves as dict (q.v.), accepting arbitrary keys and
+    values.  Class methods provided for specific cases:
+      uniform(seq) -- map each entry in seq to 1
+      die(n [,step=1]) -- out-come of an n-sided (or n/step sided) die-roll
+
+    Existing Spread objects may be combined to produce more, most generally by
+    the class method join(f, [spreads...]), q.v.  In particular, this is used to
+    support arithmetic between spread objects, combining keys using the given
+    arithmetic operators and giving relative frequencies obtained by multiplying
+    the relative frequencies associated, by operands, with the keys
+    combined.  Thus die(6)+die(6) shall give the distribution for the sum of two
+    fair six-sided die rolls.  Further transformations of existing Spread
+    objects are provided by:
+      vector(n) -- outcomes of n instances of self
+      map(func) -- apply func to each key of self
+
+    The len() of a Spread is the sum of its values (not the more usual number of
+    key value pairs).  A Spread object also supports methods:
+      p(key) -- actual frequency, relative frequency divided by total
+      E([func, add]) -- expected values, see its own documentation
+    each of which uses study.maths.ratio.Rational objects to represent
+    fractions, when they arise.\n"""
     __upget = Dict.__getitem__
     def __getitem__(self, key):
         # Make all missing keys appear to exist with value 0:
@@ -91,37 +105,58 @@ class Spread (Dict):
     __rmul__ = __mul__
 
     def vector(self, n):
+        """Multiplex a distribution.
+
+        Single argument, n, must be a natural number.  Each key of the result is
+        a Vector of n keys of self; its value is the result of multiplying
+        self's values for the entries in the Vector.  When self represents some
+        random process, self.vector(n) represents the outcome of n independent
+        samples from that random process.\n"""
         return self.join(None, * (self,) * n)
 
     def map(self, func):
+        """Transform a distribution.
+
+        Single argument, func, is a function that accepts self's keys as inputs;
+        its outputs shall be used as keys of the result distribution, each with
+        the value of the key of self that produced it (or the sum of all such
+        values, if func maps several of self's keys to the same output).\n"""
         return self.join(func, self)
+
+    from study.maths.vector import Vector as __vec
+    @classmethod
+    def __tor(k, *vs): return k.__vec(vs)
 
     @classmethod
     def join(k, func=None, *what):
         """Build a new Spread object out of some existing ones.
 
-        Generally, other methods of this class package this one more usably; but
-        this is the sledgehammer that should be able to crack every nut ...
+        Generally, other methods of this class package this one more usably (see
+        map(func) and vector(n); also arithmetic operations); but this is the
+        sledgehammer that should be able to crack every nut ...
 
         First argument, func, is None (the default) or a function whose outputs
-        shall be used as keys of the new object; if func is None, lambda *a: a
-        is used.  All subsequent arguments (there must be some) should be Spread
-        objects (but may be dict objects whose values are all numeric).  Each
-        call to func receives, as parameters, one key from each of these
+        shall be used as keys of the new object; if func is None, lambda *a:
+        Vector(a) is used (Vector extends tuple with entry-wise
+        arithmetic).  All subsequent arguments (there must be some) should be
+        Spread objects (but may be dict objects whose values are all
+        numeric).
+
+        Each call to func receives, as parameters, one key from each of these
         objects, in the same order as the objects are passed to join().  The
         return from func is used as a key of the new object, whose value is the
-        product of the value each of join()'s argument objects associates to the
-        one of its keys that was used as parameter.
+        product of the values each of join()'s argument objects associates to
+        the one of its keys that was used as parameter.
 
         A given Spread object may be used repeatedly as an argument to join();
         it shall be handled as if each use of it was a separate copy of the
         object.\n"""
 
-        if func is None: func = lambda *a: Vector(a)
+        if func is None: func = k.__tor
         assert what
         ans = k()
         for t, n in k.__renee(*what):
-            ans[func(*t)] += n
+            if n: ans[func(*t)] += n
         return ans
 
     @staticmethod
