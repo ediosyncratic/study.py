@@ -17,33 +17,46 @@ class Vector (ReadSeq, tuple):
     with numeric entries, has rank 1; multiplying two tensors of ranks n and m
     yields a tensor of rank n+m.\n"""
 
+    @classmethod
+    def __vector__(cls, seq):
+        """Pseudo-constructor derived classes can over-ride.
+
+        By default, various methods of this class create objects of the same
+        class as the instance whose method was called; this is achieved simply
+        by passing this method the sequence of values to be used as entries in
+        the new object.  If a derived class has a new/constructor with a
+        different signature, it should over-ride this method to do something
+        sensible; it is always called as self.__vector__(seq) with self an
+        instance of this class.\n"""
+        return cls(seq)
+
     def __add__(self, other, add=lambda x, y: x+y):
         assert len(other) == len(self)
-        return self.__class__(map(add, self, other))
+        return self.__vector__(map(add, self, other))
 
     __radd__ = __add__
 
     def __sub__(self, other, sub=lambda x, y: x-y):
         assert len(other) == len(self)
-        return self.__class__(map(sub, self, other))
+        return self.__vector__(map(sub, self, other))
 
     def __rsub__(self, other, sub=lambda x, y: x-y):
         assert len(other) == len(self)
-        return self.__class__(map(sub, other, self))
+        return self.__vector__(map(sub, other, self))
 
     def __mul__(self, other):
         try: other[:]
         except TypeError:
-            return self.__class__(map(lambda x, o=other: x * o, self))
+            return self.__vector__(map(lambda x, o=other: x * o, self))
 
-        return self.__class__(map(lambda o, s=self: s * o, other))
+        return self.__vector__(map(lambda o, s=self: s * o, other))
 
     def __rmul__(self, other):
         try: other[:]
         except TypeError:
-            return self.__class__(map(lambda x, o=other: o * x, self))
+            return self.__vector__(map(lambda x, o=other: o * x, self))
 
-        return self.__class__(map(lambda o, s=self: o * s, other))
+        return self.__vector__(map(lambda o, s=self: o * s, other))
 
     __upget = tuple.__getitem__
     def __getitem__(self, key):
@@ -107,10 +120,10 @@ class Vector (ReadSeq, tuple):
         if n < 1 or n != int(n): raise ValueError("Should be a natural number", n)
         elif n >= self.rank: raise ValueError("Should be less than rank", n, self.rank)
         elif n == 1:
-            return self.__class__(self[0].mapwith(
-                    lambda *args: args, *self[1:]).map(self.__class__))
+            return self.__vector__(self[0].mapwith(
+                    lambda *args: args, *self[1:]).map(self.__vector__))
         elif n == 0: return self
 
-        return self.__class__(self.transpose().map(lambda v: v.transpose(n-1))).transpose()
+        return self.__vector__(self.transpose().map(lambda v: v.transpose(n-1))).transpose()
 
 del lazyprop, ReadSeq
