@@ -16,6 +16,7 @@ class Vector (ReadSeq, tuple):
     Vector within Vector is known as the 'rank' of the tensor; a plain Vector,
     with numeric entries, has rank 1; multiplying two tensors of ranks n and m
     yields a tensor of rank n+m.\n"""
+
     def __add__(self, other, add=lambda x, y: x+y):
         assert len(other) == len(self)
         return self.__class__(map(add, self, other))
@@ -103,8 +104,13 @@ class Vector (ReadSeq, tuple):
         Optional argument, n, defaults to 1; it must be a natural number less
         than self.rank (and passing 0 is fatuous; you get self).\n"""
 
-        if n == 0: return self
-        elif n < 1 or n != int(n): raise ValueError("Should be a natural number", n)
+        if n < 1 or n != int(n): raise ValueError("Should be a natural number", n)
         elif n >= self.rank: raise ValueError("Should be less than rank", n, self.rank)
+        elif n == 1:
+            return self.__class__(self[0].mapwith(
+                    lambda *args: args, *self[1:]).map(self.__class__))
+        elif n == 0: return self
+
+        return self.__class__(self.transpose().map(lambda v: v.transpose(n-1))).transpose()
 
 del lazyprop, ReadSeq
