@@ -7,12 +7,19 @@ with the low-level tools; however, use of the low-level tools, particularly in
 the implementations of other decorators, may be more efficient.
 
 Low-level tools:
-  wrapas(func, proto) -- wrap func with proto's signature
-  labelas(func, orig) -- transcribe superficial attributes of orig onto func
-  mimic(func, orig [, proto]) -- combine the above; proto defaults to orig
+  wrapas(function, prototype) -- wrap function with prototype's signature
+  labelas(function, original) -- transcribe superficial attributes of original onto function
+  mimic(function, original [, prototype]) -- combine the above; prototype defaults to original
+  inherit(function, base [, join]) -- function implements an API defined by base
+
+Prototypes (for use with wrapas, accepting):
+  funcorator(function) -- signature of the simplest kind of decorator
+  decodeco(decorator) -- signature of a decorator-decorator
+You can equally use lambda expressions as prototypes, as needed.
 
 Primary Decorators:
-  @accepting(proto) -- makes decorated function have proto's signature
+  @accepting(prototype) -- makes decorated function have prototype's signature
+  @overriding(base) -- decorated function implements API defined by base
   @aliasing -- makes a decorator preserve superficial attributes
   @mimicking -- as aliasing, but also preserve signature
 
@@ -20,7 +27,8 @@ Note that the last two are decorator-decorators; they act on decorators, to
 produce decorators that preserve properties of the functions they
 decorate.  Naturally, the decorators produced preserve the superficial
 attributes (name, doc string, module and anything in __dict__) of the decorators
-they enhance; and have the lambda func: None signature of a simple decorator.
+they enhance; and have the lambda function: None signature of a simple
+decorator.
 
 Further Decorators:
   @postcompose(post [, ...]) -- compose post after decorated function
@@ -33,94 +41,101 @@ See also:
 
 # Note: all of these are wrapped, below, to hide their tunnelled args !
 import inspect
-def wrapas(func, proto,
+def wrapas(function, prototype,
            fetch=inspect.getargspec, format=inspect.formatargspec, isfunc=inspect.isroutine,
            valfmt='=__default_arg_%x', fname='__implementation',
            skip=lambda x: ''):
     """Masks the signature of a function.
 
-    Takes exactly two functions as arguments, func and proto.  Returns a
-    function which acts as func but has the signature of proto.  Note that func
-    must, in fact, accept being called in any way in which proto supports being
-    called.  See accepting, below, for a decorator deploying this.\n"""
-    assert isfunc(func)
-    n, a, k, d = fetch(proto)
-    glob, i = { fname: func }, 0
+    Takes exactly two callables as arguments, function and prototype.  Returns a
+    callable which acts as function but has the signature of prototype.  Note
+    that function must, in fact, accept being called in any way in which
+    prototype supports being called.  See accepting, below, for a decorator
+    deploying this.\n"""
+    assert isfunc(function)
+    n, a, k, d = fetch(prototype)
+    glob, i = { fname: function }, 0
     # default values might not repr nicely, so tunnel them via glob:
     for v in d or ():
         glob[valfmt[1:] % i] = v
         i += 1
-    # OK, now make a function that packages all that:
+    # OK, now make a callable that packages all that:
     text = 'lambda %s: %s%s' % (
         format(n, a, k, tuple(range(i)),
                formatvalue=lambda i, f=valfmt: f % i)[1:-1],
         fname,
         format(n, a, k, d, formatvalue=skip))
-    # print 'Wrapping %s as "%s" using globals' % (func.__name__, text), glob.keys()
+    # print 'Wrapping %s as "%s" using globals' % (function.__name__, text), glob.keys()
     return eval(text, glob)
 del inspect
 
-def labelas(func, orig):
-    """Transcribe superficial details from orig to func.
+def labelas(function, original):
+    """Transcribe superficial details from original to function.
 
-    Takes exactly two functions as arguments, func and orig.  Transcribes name,
-    documentation string, module and anything in __dict__ from orig to func and
-    returns func.\n"""
-    func.__doc__ = orig.__doc__
-    func.__name__ = orig.__name__
-    func.__module__ = orig.__module__
-    func.__dict__.update(orig.__dict__)
-    return func
+    Takes exactly two callabless as arguments, function and
+    original.  Transcribes name, documentation string, module and anything in
+    __dict__ from original to function and returns function.\n"""
+    function.__doc__ = original.__doc__
+    function.__name__ = original.__name__
+    function.__module__ = original.__module__
+    function.__dict__.update(original.__dict__)
+    return function
 
-def inherit(func, orig, join='\n'.join, wrap=wrapas):
+joinlines = '\n'.join
+def inherit(function, base, join=joinlines, wrap=wrapas):
     """Makes a re-implementation of a function look like its original.
 
     Similar to mimic (q.v.) but intended for use by a derived class, where it
     has a method that over-rides one on a base-class, or in other situations
-    where a given API is implemented.
+    where one callable implements an API defined by another.
 
-    Takes two required arguments: func is the new implementation, orig is the
-    canonical form of the API.  Accepts an optional third argument, join, which
-    should accept a (possibly empty) list of strings and return a string; it
-    defaults to '\n'.join.  The returned function has the prototype of orig, the
-    name of func and composite doc string and __dict__.  For __dict__, the
-    result prefers func over orig (i.e. it updates first from orig, then from
-    func).
+    Takes two required arguments: function is the new implementation, base is
+    the canonical form of the API.  Accepts an optional third argument, join,
+    which should accept a (possibly empty) list of strings and return a string;
+    it defaults to '\n'.join.  The returned callable has the signature of base,
+    the name of function and composite doc string and __dict__.  For __dict__,
+    the result prefers function over base (i.e. it updates first from base, then
+    from function).
 
-    Any documentation from orig is presumed to be definitive; any documentation
-    provided by func is presumed to just elaborate on how it implements the
-    API.  Thus the composite puts the doc string of orig before that of func. If
-    either is empty or None, it is discarded; the list of what remains is passed
-    to join, whose return is used as __doc__, unless it is empty (in which case
-    None is used).  Since the result's signature shall match orig's, authors
-    should write func using the same argument names as orig, so that they'll
-    match references in func's immediate doc string, if any.\n"""
-    ans = wrap(func, orig)
-    assert func.__name__ == orig.__name__
-    ans.__name__ = func.__name__
+    Any documentation from base is presumed to be definitive; any documentation
+    provided by function is presumed to just elaborate on how it implements the
+    API.  Thus the composite puts the doc string of base before that of
+    function. If either is empty or None, it is discarded; the list of what
+    remains is passed to join, whose return is used as __doc__, unless it is
+    empty (in which case None is used).
+
+    Since the result's signature shall match base's, authors should write
+    function using the same argument names as base, so that they'll match
+    references in function's immediate doc string, if any.\n"""
+    ans = wrap(function, base)
+    assert function.__name__ == base.__name__
+    ans.__name__ = function.__name__
     # TODO: match up base indentation of docs
-    ans.__doc__ = join(filter(None, (orig.__doc__, func.__doc__))) or None
-    ans.__dict__.update(orig.__dict__)
-    ans.__dict__.update(func.__dict__)
+    # TODO: add "over-rides base-class blah blah" language
+    ans.__doc__ = join(filter(None, (base.__doc__, function.__doc__))) or None
+    ans.__dict__.update(base.__dict__)
+    ans.__dict__.update(function.__dict__)
     return ans
 
-def mimic(func, orig, proto=None, wrap=wrapas):
+def mimic(function, original, prototype=None, wrap=wrapas):
     """Makes one function look like another.
 
-    Requires two functions as arguments, func and orig.  Accepts one optional
-    third, proto; if omitted (or None, the default) orig is used as
-    proto.  Returns a function that performs the computation of func but has the
-    signature of proto and orig's name, doc string, module and any attributes
-    stored in __dict__.\n"""
-    if proto is None: proto = orig
-    return labelas(wrap(func, proto), orig)
+    Requires two callables as arguments, function and original.  Accepts an
+    optional third argument, prototype; if omitted (or None, the default)
+    original is used as prototype.  Returns a callable that performs the
+    computation of function but has the signature of prototype and original's
+    name, doc string, module and any attributes stored in __dict__.\n"""
+    if prototype is None: prototype = original
+    return labelas(wrap(function, prototype), original)
 
-def funcorator(func):
+# Templates for use as prototypes.
+def funcorator(function):
     """A decorator that repackages a function.
 
-    Takes a single input, func: this should be a callable - typically a
-    function.  Returns a repackaging of this function.\n"""
+    Takes a single input, function: this should be a callable.  Returns a
+    repackaging of it.\n"""
     raise NotImplementedError
+
 def decodeco(decorator):
     """A decorator-decorator.
 
@@ -129,13 +144,13 @@ def decodeco(decorator):
     result of decorating decorator itself is a similar callable.\n"""
     raise NotImplementedError
 
-def accepting(proto, wrapping=wrapas, heir=inherit, rator=funcorator):
+def accepting(prototype, wrapping=wrapas, heir=inherit, rator=funcorator):
     """Decorator to fake function signature.
 
-    Takes one parameter, proto: only its signature (argument names, defaults and
-    whether *more and **keywords are included) matters, so a simple lambda
+    Takes one parameter, prototype: only its signature (argument names, defaults
+    and whether *more and **keywords are included) matters, so a simple lambda
     expression is sufficient.  Returns a decorator which wraps a function so
-    that it can only be called in the ways that proto supports.  The wrapped
+    that it can only be called in the ways that prototype supports.  The wrapped
     function preserves the name, doc string, module and any attributes stored in
     __dict__ of the function it wraps.
 
@@ -144,35 +159,42 @@ def accepting(proto, wrapping=wrapas, heir=inherit, rator=funcorator):
     equally be used to hide any optional arguments that were intended to serve
     only as tunnels, so as to prevent callers from inadvertently supplying
     surplus arguments that displace these defaults.\n"""
-    def decor(func, form=proto, wrap=wrapping):
-        return labelas(wrap(func, form), func)
+    def decor(function, form=prototype, wrap=wrapping):
+        return labelas(wrap(function, form), function)
     return heir(decor, rator)
 
 def overriding(base, heir=inherit, wrap=wrapas, rator=funcorator):
-    def decor(func, form=base, mime=heir):
-        return mime(func, form)
+    """Decorator for a method that over-rides one on a base-class.
+
+    Single argument, base, is the base-class (unbound) method; returns a
+    decorator which, given the derived class's implementation of the method,
+    ensures the latter behaves as the former and the latter's documentation
+    string incorporates the former's; see inherit() for details.\n"""
+
+    def decor(function, form=base, mime=heir):
+        return mime(function, form)
     return heir(decor, rator)
 
-def aliasing(orig, mime=mimic):
+def aliasing(decorator, mime=mimic, rator=funcorator):
     """Decorator-decorator to make original preserve superficial details.
 
-    Single argument, orig, is a decorator; return is a replacement decorator
-    with the same behaviour except that the results of its decoration retain the
-    name and doc-string of the functions they package.\n"""
-    def decor(func, base=orig, label=labelas):
-        return label(base(func), func)
-    return mimic(decor, orig, lambda func: None)
+    Single argument, decorator, is a decorator; return is a replacement
+    decorator with the same behaviour except that the results of its decoration
+    retain the name and doc-string of the functions they package.\n"""
+    def decor(function, base=decorator, label=labelas):
+        return label(base(function), function)
+    return mimic(decor, decorator, rator)
 
-def mimicking(orig, mime=mimic):
+def mimicking(decorator, mime=mimic, rator=funcorator):
     """Decorator-decorator to make original's wrappers look like what they wrap.
 
     Takes one argument, a decorator; returns a replacement decorator that
     preserves the signature, name, doc string, module and anything in __dict__
     of each function decorated.\n"""
 
-    def decor(func, base=orig, fake=mime):
-        return fake(base(func), func)
-    return mime(decor, orig, lambda func: None)
+    def decor(function, base=decorator, fake=mime):
+        return fake(base(function), function)
+    return mime(decor, decorator, rator)
 
 def postcompose(post, *more):
     """Apply some post-processing to every output of a function.
@@ -193,17 +215,20 @@ def postcompose(post, *more):
     decorated function into a decorator which post-processes the returns of
     functions to which *it* is applied.\n"""
     @mimicking
-    def decor(func, after=(post,) + more):
+    def decor(decorator, after=(post,) + more):
         def ans(*args, **kw):
-            ret = func(*args, **kw)
+            ret = decorator(*args, **kw)
             for f in after: ret = f(ret)
             return ret
         return ans
     return decor
 
 # Hide tunnelled args:
-wrapas = mimic(wrapas, wrapas, lambda func, proto: None)
-accepting = mimic(accepting, accepting, lambda proto: None)
-aliasing = mimic(aliasing, aliasing, lambda orig: None)
-mimicking = mimic(mimicking, mimicking, lambda orig: None)
-mimic = mimic(mimic, mimic, lambda func, orig: None)
+accepting = mimic(accepting, accepting, lambda prototype: None)
+overriding = mimic(overriding, overriding, lambda base: None)
+aliasing = mimic(aliasing, aliasing, decodeco)
+mimicking = mimic(mimicking, mimicking, decodeco)
+wrapas = mimic(wrapas, wrapas, lambda function, prototype: None)
+inherit = mimic(inherit, inherit, lambda function, base, join=joinlines)
+mimic = mimic(mimic, mimic, lambda function, original: None)
+del joinlines
