@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.44 2009-12-23 20:07:23 eddy Exp $
+$Id: sequence.py,v 1.45 2009-12-23 22:12:38 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -325,8 +325,8 @@ class ReadSeq (Iterable):
     def __order(self, par):
         # boot-strap round the fact that permute.Permute inherits from Tuple
         from study.maths import permute
-        def order(who, p=permute.order, are=cmp): return p(who[:], are)
-        ReadSeq.__order = order # over-writing this boot-strap implementation
+        # over-write this boot-strap implementation
+        ReadSeq.__order = lambda who, are=cmp, p=permute.order: p(who[:], are)
         return permute.order(self[:], par)
 
     @iterable
