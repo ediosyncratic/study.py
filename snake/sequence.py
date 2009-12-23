@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.43 2009-12-23 20:02:49 eddy Exp $
+$Id: sequence.py,v 1.44 2009-12-23 20:07:23 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -90,8 +90,8 @@ class Iterable (object):
         for p in it: init = func(init, p)
         return init
 
-    def sum(self, add=lambda x, y: x + y): return self.reduce(add, 0)
-    def product(self, mul=lambda x, y: x * y): return self.reduce(mul, 1)
+    def sum(self, zero=0, add=lambda x, y: x + y): return self.reduce(add, zero)
+    def product(self, one=1, mul=lambda x, y: x * y): return self.reduce(mul, one)
 
     @iterable
     def filter(self, *tests):
