@@ -34,22 +34,8 @@ Miscellaneous:
   pythagorean -- integer-sided right-angle triangles
   ratio -- representing exact fractions and approximating numbers with them
 
-$Id: __init__.py,v 1.2 2007-03-24 22:42:21 eddy Exp $
+$Id: __init__.py,v 1.3 2009-12-24 12:28:10 eddy Exp $
 """
-from study.value.quantity import Quantity
-
-goldenratio = Quantity((1 + 5.**.5) / 2,
-                       doc = """The golden ratio.
-
-This is the positive solution to the quadratic equation x*x = x+1; divide -1 by
-it to get the negative solution.  One can re-write the equation as (2*x-1)**2 =
-4*x*x -4*x +1 = 4*(x*x-x) + 1 = 5, whence the solutions are (1 +/- 5**.5)/2.
-""")
-
-assert goldenratio**2 == goldenratio+1
-
-del Quantity
-
 # in memoriam:
 Ramanujan = 7 * 13 * 19
 assert 12**3 + 1**3 == Ramanujan == 10**3 + 9**3

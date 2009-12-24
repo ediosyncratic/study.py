@@ -7,7 +7,7 @@ Exports:
 
 See also: study.maths.continued, compared to which this is crude and ugly.
 
-$Id: ratio.py,v 1.15 2009-10-16 06:14:45 eddy Exp $
+$Id: ratio.py,v 1.16 2009-12-24 12:27:54 eddy Exp $
 """
 
 def intsplitfrac(val):
@@ -334,3 +334,17 @@ def refine(val, best=None, old=prior, isf=intsplitfrac):
     print 'Not as good: %g error from' % gap, new
 
 del prior, intsplitfrac
+
+from study.value.quantity import Quantity
+
+golden = Quantity((1 + 5.**.5) / 2,
+                  doc = """The golden ratio.
+
+This is the positive solution to the quadratic equation x*x = x+1; divide -1 by
+it to get the negative solution.  One can re-write the equation as (2*x-1)**2 =
+4*x*x -4*x +1 = 4*(x*x-x) + 1 = 5, whence the solutions are (1 +/- 5**.5)/2.
+""")
+
+assert golden**2 == golden+1
+
+del Quantity
