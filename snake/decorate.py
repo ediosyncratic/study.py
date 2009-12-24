@@ -144,7 +144,7 @@ def decodeco(decorator):
     result of decorating decorator itself is a similar callable.\n"""
     raise NotImplementedError
 
-def accepting(prototype, wrapping=wrapas, heir=inherit, rator=funcorator):
+def accepting(prototype, wrapping=wrapas, mime=mimic, rator=funcorator):
     """Decorator to fake function signature.
 
     Takes one parameter, prototype: only its signature (argument names, defaults
@@ -161,9 +161,9 @@ def accepting(prototype, wrapping=wrapas, heir=inherit, rator=funcorator):
     surplus arguments that displace these defaults.\n"""
     def decor(function, form=prototype, wrap=wrapping):
         return labelas(wrap(function, form), function)
-    return heir(decor, rator)
+    return mime(decor, rator)
 
-def overriding(base, heir=inherit, wrap=wrapas, rator=funcorator):
+def overriding(base, heir=inherit, mime=mimic, wrap=wrapas, rator=funcorator):
     """Decorator for a method that over-rides one on a base-class.
 
     Single argument, base, is the base-class (unbound) method; returns a
@@ -173,7 +173,7 @@ def overriding(base, heir=inherit, wrap=wrapas, rator=funcorator):
 
     def decor(function, form=base, mime=heir):
         return mime(function, form)
-    return heir(decor, rator)
+    return mime(decor, rator)
 
 def aliasing(decorator, mime=mimic, rator=funcorator):
     """Decorator-decorator to make original preserve superficial details.
