@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.13 2009-10-16 06:18:31 eddy Exp $
+$Id: ticker.py,v 1.14 2009-12-24 23:00:04 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -127,7 +127,7 @@ del StockPageParser
 # Managing an SVG graph of results
 from study.cache.property import Cached, lazyprop
 class StockSVG (Cached):
-    from xml.dom.minidom import parse
+    from xml.dom.expatbuilder import parse
     def __init__(self, path, ingest=parse):
         self.__path = path
         self.__dom = ingest(path)
@@ -263,26 +263,34 @@ class StockSVG (Cached):
             # TODO: Adjust date labels
             self.__date_labels
 
-    import datetime, time
-    def readdate(what, date=datetime.date, parse=time.strptime):
-        try: when = parse(what, '%d %b %Y') # issue: %b depends on locale
+    import datetime, time, locale
+    from study.snake.localise import withlocale
+    def readdate(what, now=None, date=datetime.date, parse=time.strptime):
+        try: when = parse(what, '%d %b %Y')
         except ValueError: pass
         else: return date(when.tm_year, when.tm_mon, when.tm_mday)
 
-        now = date.today()
-        try: when = parse(what, '%d %b') # issue: %b depends on locale
-        except ValueError:
-            parse(what, '%H:%M') # daytime format
-            # That may raise ValueError again - try other formats ?
-            return now
-        else:
-            when = date(now.year, when.tm_mon, when.tm_mday)
-            if when > now: # year rolled round since page generated ?
-                then = date(now.year - 1, when.month, when.day)
-                if (now - then) < (when - now):
-                    return then
+        if now is None: now = date.today()
+        if what.endswith('.'): when = what
+        else: when = what + '.'
+        when = parse(when, '%d %b')
+        when = date(now.year, when.tm_mon, when.tm_mday)
+        if when > now: # year rolled round since page generated ?
+            then = date(now.year - 1, when.month, when.day)
+            if (now - then) < (when - now):
+                return then
         return when
-    del datetime, time
+
+    def readtime(what, getdate=withlocale(locale.LC_TIME, "nb_NO")(readdate),
+                 today=datetime.date.today, parse=time.strptime):
+        now = today()
+        try: return getdate(what, now)
+        except ValueError: pass
+        parse(what, '%H:%M') # daytime format
+        # That may raise ValueError again - try other formats ?
+        return now
+
+    del datetime, time, locale, withlocale
 
     @lazyprop
     def startdate(self, mode=None, getdate=readdate):
@@ -295,7 +303,7 @@ class StockSVG (Cached):
         raise AttributeError('No id="date-origin" text node found in SVG',
                              self.__path)
 
-    def update(self, data, getdate=readdate):
+    def update(self, data, getdate=readtime):
         """Update an svg graph of stock ticker data from report().
 
         Sole argument, data, is a dictionary mapping headings to data, as
@@ -319,6 +327,6 @@ class StockSVG (Cached):
         top = self.__revise_paths(dayval, data)
         self.__rescale_price(top, view)
 
-    del readdate
+    del readdate, readtime
 del Cached, lazyprop
 
