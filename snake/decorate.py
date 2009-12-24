@@ -229,6 +229,6 @@ overriding = mimic(overriding, overriding, lambda base: None)
 aliasing = mimic(aliasing, aliasing, decodeco)
 mimicking = mimic(mimicking, mimicking, decodeco)
 wrapas = mimic(wrapas, wrapas, lambda function, prototype: None)
-inherit = mimic(inherit, inherit, lambda function, base, join=joinlines)
+inherit = mimic(inherit, inherit, lambda function, base, join=joinlines: None)
 mimic = mimic(mimic, mimic, lambda function, original: None)
 del joinlines
