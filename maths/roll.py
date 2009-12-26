@@ -6,6 +6,7 @@ Exported classes:
 The latter is used as a key-type by the former in places.
 """
 from study.snake.sequence import Dict
+from study.cache.property import lazyprop
 
 class Spread (Dict):
     """Describe a discrete distribution.
@@ -70,6 +71,16 @@ class Spread (Dict):
         argument is a function that reduces a list of outputs of func to a
         single value; its default is the builtin sum.\n"""
         return self.iteritems().map(func).reduce(add) * self.__rat(1, len(self))
+
+    @lazyprop
+    def mean(self, cls=None):
+        assert cls is None
+        return self.E()
+
+    @lazyprop
+    def variance(self, cls=None):
+        assert cls is None
+        return self.E(lambda (x, w), m=self.mean: (x - m)**2 * w)
 
     def __add__(self, other):
         if isinstance(other, Spread):
@@ -186,4 +197,4 @@ class Spread (Dict):
         if rest: return cls.__product(one, cls.__renee(*rest))
         return cls.__product(one)
 
-del Dict
+del Dict, lazyprop
