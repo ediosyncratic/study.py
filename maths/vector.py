@@ -58,6 +58,17 @@ class Vector (ReadSeq, tuple):
 
         return self.__vector__(map(lambda o, s=self: o * s, other))
 
+    def __pow__(self, other, base=None):
+        assert base is None
+        # TODO: can this be optimised ?
+        result = 1
+        while other > 0:
+            other, r = divmod(other, 2)
+            if r: result = self * result
+            self = self * self
+
+        return result
+
     __upget = tuple.__getitem__
     def __getitem__(self, key):
         """Extend indexing to accept list of indices at successive ranks.
