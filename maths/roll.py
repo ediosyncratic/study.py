@@ -68,8 +68,9 @@ class Spread (Dict):
         First argument, func, is a callable that takes a two-ple as input: a key
         of self and a rational representing that key's probability.  Its default
         just multiplies the two together (assuming this to be possible).  Second
-        argument is a function that reduces a list of outputs of func to a
-        single value; its default is the builtin sum.\n"""
+        argument is a function that adds either two outputs of func or one
+        output of func and an output of an earlier call to itself; its default
+        is simple addition.\n"""
         return self.iteritems().map(func).reduce(add) * self.__rat(1, len(self))
 
     @lazyprop
