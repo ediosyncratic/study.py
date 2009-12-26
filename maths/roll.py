@@ -135,10 +135,6 @@ class Spread (Dict):
         values, if func maps several of self's keys to the same output).\n"""
         return self.join(func, self)
 
-    from study.maths.vector import Vector as __vec
-    @classmethod
-    def __tor(cls, *vs): return cls.__vec(vs)
-
     @classmethod
     def join(cls, func=None, *what):
         """Build a new Spread object out of some existing ones.
@@ -170,6 +166,12 @@ class Spread (Dict):
         for t, n in cls.__renee(*what):
             if n: ans[func(*t)] += n
         return ans
+
+    # Implementation details:
+
+    from study.maths.vector import Vector as __vec
+    @classmethod
+    def __tor(cls, *vs): return cls.__vec(vs)
 
     @staticmethod
     def __product(o, r=None):
