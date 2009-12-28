@@ -59,6 +59,18 @@ class Spread (Dict):
         "Represents an n-sided fair die with faces labelled 1 through n"
         return cls.uniform(range(1, 1+n, step))
 
+    @classmethod
+    def dice(cls, *ns):
+        """Vector with each component a separate die-roll.
+
+        Each argument should be a positive integer; if all are equal to some n,
+        die(n).vector() will produce the same result.  Otherwise, each is used
+        as if with die (q.v.) to produce one component of a vector, as for
+        vector (q.v.).  Thus dice(4, 6, 8) shall describe a variate whose first
+        component is uniformly distributed on 1 through 4 and so on.\n"""
+
+        return cls.join(None, *map(cls.die, ns))
+
     def __len__(self): return self.itervalues().sum()
     from ratio import Rational as __rat
     def p(self, key): return self.__rat(self[key], len(self))
