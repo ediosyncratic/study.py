@@ -81,8 +81,17 @@ class Vector (ReadSeq, tuple):
           self[(i, j, ..., n)] = self[i][j][...][n].
         Such dereferencing is apt to lead to IndexError unless 0 <= key[i] <
         self.dimension[i] for 0 <= i < len(key).\n"""
+
+        try: ks = key.to_slice() # See study.snake.regular
+        except AttributeError: pass
+        else: key = ks
+        if isinstance(key, slice):
+            return self.__vector__(self.__upget(key))
+
         try: key[:]
-        except TypeError: return self.__upget(key)
+        except TypeError:
+            return self.__upget(key)
+
         for k in key: self = self[k]
         return self
 
