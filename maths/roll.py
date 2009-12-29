@@ -1,9 +1,8 @@
 """Exact Analysis of discrete random processes.
 
-Exported classes:
+Exported class:
   Spread -- description of discrete distributions
-  Vector -- extends tuple with simple arithmetic
-The latter is used as a key-type by the former in places.
+This uses study.maths.vector.Vector as a key-type, in places.
 """
 from study.snake.sequence import Dict
 from study.cache.property import lazyprop
@@ -22,7 +21,8 @@ class Spread (Dict):
     Default constructor behaves as dict (q.v.), accepting arbitrary keys and
     values.  Class methods provided for specific cases:
       uniform(seq) -- map each entry in seq to 1
-      die(n [,step=1]) -- out-come of an n-sided (or n/step sided) die-roll
+      die(n [,step=1]) -- outcome of an n-sided (or n/step sided) die-roll
+      dice(i [, j, ...]) -- outcome of a roll of diverse dice
 
     Existing Spread objects may be combined to produce more, most generally by
     the class method join(f, [spreads...]), q.v.  In particular, this is used to
@@ -32,15 +32,23 @@ class Spread (Dict):
     combined.  Thus die(6)+die(6) shall give the distribution for the sum of two
     fair six-sided die rolls.  Further transformations of existing Spread
     objects are provided by:
+      filter(test) -- self restricted to its keys k for which test(k) is true
       vector(n) -- outcomes of n instances of self
       map(func) -- apply func to each key of self
 
     The len() of a Spread is the sum of its values (not the more usual number of
-    key value pairs).  A Spread object also supports methods:
+    key-value pairs; use len(.keys()) for that).  A Spread object also supports
+    methods:
+      split(n) -- (n-1)-tuple of split-points for n-iles
       p(key) -- actual frequency, relative frequency divided by total
       E([func, add]) -- expected values, see its own documentation
-    each of which uses study.maths.ratio.Rational objects to represent
-    fractions, when they arise.\n"""
+    the last two of which uses study.maths.ratio.Rational objects to represent
+    fractions, when they arise.  Various statistical attributes:
+      mean -- E(lambda (x,w): x*w)
+      variance -- E(lambda (x,w), m=mean: (x-m)**2 * w)
+      median -- split(2)[0]
+    are also supported lazily, provided self's keys support addition (for mean,
+    variance) and/or ordering (for median).\n"""
     __upget = Dict.__getitem__
     def __getitem__(self, key):
         # Make all missing keys appear to exist with value 0:
@@ -72,7 +80,6 @@ class Spread (Dict):
         return cls.join(None, *map(cls.die, ns))
 
     def __len__(self): return self.itervalues().sum()
-    from ratio import Rational as __rat
     def p(self, key): return self.__rat(self[key], len(self))
     def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
@@ -94,6 +101,58 @@ class Spread (Dict):
     def variance(self, cls=None):
         assert cls is None
         return self.E(lambda (x, w), m=self.mean: (x - m)**2 * w)
+
+    @lazyprop
+    def median(self, cls=None):
+        assert cls is None
+        return self.split(2)
+
+    def split(self, n, par=cmp, mid=None):
+        """Tuple of split-points between n-iles of distribution.
+
+        Single required parameter, n, is the number of sub-divisions into which
+        to split the range of self.keys(), such that each subdivision has (as
+        nearly as possible) equal sum of values.
+
+        Optional arguments are:
+          par -- a comparison operator to use when deciding the order of
+                 self.keys(); it defaults to cmp, which will only work if the
+                 keys have a defined ordering.
+          mid -- a function taking two keys of self and returning the mid-point
+                 between them; or None (the default) to use study.maths.ratio's
+                 Rational class, unless self's keys are vectors, in which case
+                 Rational is used on each co-ordinate, to halve the sum of the
+                 two keys.
+
+        Returns an (n-1)-tuple, each entry in which is either a key of self or
+        an output of mid() given two keys; for each integer i with 0 < i < n,
+        this tuple's [i-1] entry is the i-th n-ile split-point, s, of the
+        distribution, for which:
+          sum([self.p(k) for k in self.keys() with k < s])*n <= i and
+          sum([self.p(k) for k in self.keys() with k > s])*n <= n-i
+        with equality in either both cases or neither case; if both, s is the
+        mid() of two keys of self, if neither s is a key of self.\n"""
+
+        assert n > 0
+        if mid is None: mid = self.__mid
+        ans, m, ks, all = (), n, self.keys(), len(self)
+        ks.sort(par)
+
+        i = len(ks) - 1
+        tot = self[ks[i]]
+        while m > 1:
+            m -= 1
+            while tot * n < all * m and i > 0:
+                i -= 1
+                tot += self[ks[i]]
+            if tot * n > all * m or i == 0: ans = (ks[i],) + ans
+            else:
+                assert tot * n == all * m
+                ans = (mid(ks[i-1], ks[i]),) + ans
+
+        assert sum(map(self.p, ks[:i])) * n <= 1
+        assert len(ans) + 1 == n
+        return ans
 
     def __add__(self, other):
         if isinstance(other, Spread):
@@ -128,14 +187,20 @@ class Spread (Dict):
 
     __rmul__ = __mul__
 
+    def filter(self, test):
+        ans = self.__class__()
+        for k, v in self.iteritems():
+            if test(k): ans[k] = v
+        return ans
+
     def vector(self, n):
         """Multiplex a distribution.
 
         Single argument, n, must be a natural number.  Each key of the result is
-        a Vector of n keys of self; its value is the result of multiplying
-        self's values for the entries in the Vector.  When self represents some
-        random process, self.vector(n) represents the outcome of n independent
-        samples from that random process.\n"""
+        a study.maths.vector.Vector of n keys of self; its value is the result
+        of multiplying self's values for the entries in the Vector.  When self
+        represents some random process, self.vector(n) represents the outcome of
+        n independent samples from that random process.\n"""
         return self.join(None, * (self,) * n)
 
     def map(self, func):
@@ -157,9 +222,9 @@ class Spread (Dict):
 
         First argument, func, is None (the default) or a function whose outputs
         shall be used as keys of the new object; if func is None, lambda *a:
-        Vector(a) is used (Vector extends tuple with entry-wise
-        arithmetic).  All subsequent arguments (there must be some) should be
-        Spread objects (but may be dict objects whose values are all
+        Vector(a) is used (study.maths.vector.Vector extends tuple with
+        entry-wise arithmetic).  All subsequent arguments (there must be some)
+        should be Spread objects (but may be dict objects whose values are all
         numeric).
 
         Each call to func receives, as parameters, one key from each of these
@@ -180,13 +245,33 @@ class Spread (Dict):
         return ans
 
     # Implementation details:
-
     from study.maths.vector import Vector as __vec
     @classmethod
     def __tor(cls, *vs): return cls.__vec(vs)
 
+    from ratio import Rational as __rat
+    @classmethod
+    def __mid(cls, lo, hi):
+        """Mid-point between two keys of a Spread"""
+        try: lo[:0]
+        except TypeError: return cls.__rat(lo + hi, 2)
+        hi[:0] # shouldn't raise TypeError
+        try: return lo.map(cls.__mid, hi)
+        except AttributeError:
+            return tuple(map(cls.__mid, lo, hi))
+
     @staticmethod
     def __product(o, r=None):
+        """Iterate over key-tuple, weight pairs of o's product with r.
+
+        Required argument, o, is a Spread object (or a mapping with numeric
+        values).  Optional argument, r, is an iterator, each yield of which is a
+        pair of a tuple and a weight; if omitted, the result is as if r yielded
+        one pair, ((), 1).  The result yields, for each tuple, weight from r and
+        each key and value of o, a pair of: a tuple that prepends o's key to r's
+        tuple; a weight that's the product of r's weight and o's value.  This is
+        used by __renee (q.v.) to build a cartesian product of keys, with
+        numeric products for values.\n"""
         if r is None:
             for i, n in o.iteritems():
                 yield (i,), n
