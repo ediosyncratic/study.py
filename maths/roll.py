@@ -32,9 +32,9 @@ class Spread (Dict):
     combined.  Thus die(6)+die(6) shall give the distribution for the sum of two
     fair six-sided die rolls.  Further transformations of existing Spread
     objects are provided by:
-      filter(test) -- self restricted to its keys k for which test(k) is true
+      filter(test) -- restrict self to keys k for which test(k) is true
       vector(n) -- outcomes of n instances of self
-      map(func) -- apply func to each key of self
+      map(func) -- apply func to each key of self, preserving value
 
     The len() of a Spread is the sum of its values (not the more usual number of
     key-value pairs; use len(.keys()) for that).  A Spread object also supports
