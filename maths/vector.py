@@ -309,16 +309,17 @@ class Vector (ReadSeq, tuple):
         if ns: j = max(ns) + 1
         else: j = 0
 
-        # Pad shuffle so that every pair's indices have None in it:
-        ns = reduce(lambda x, y: x+y, pairs)
-        n, i = max(ns), len(shuffle)
-        shuffle = list(shuffle)
-        while i <= n:
-            if i in ns: shuffle.append(None)
-            else:
-                shuffle.append(j)
-                j += 1
-            i += 1
+        if pairs:
+            # Pad shuffle so that every pair's indices have None in it:
+            ns = reduce(lambda x, y: x+y, pairs)
+            n, i = max(ns), len(shuffle)
+            shuffle = list(shuffle)
+            while i <= n:
+                if i in ns: shuffle.append(None)
+                else:
+                    shuffle.append(j)
+                    j += 1
+                i += 1
 
         # Construct reverse-lookup for shuffle:
         rev = [ None ] * j
