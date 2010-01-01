@@ -134,6 +134,30 @@ class Vector (ReadSeq, tuple):
 
         return (len(self),)
 
+    def symmetrise(self, ranks=None):
+        """Return symmetric part of a tensor.
+
+        Single optional argument, ranks, is either None or an iterable
+        yielding some sub-set of range(0, self.rank); if None, the whole
+        range is presumed.  All members, i, of the set indicated by
+        ranks must have self.dimension[i] equal.  The result is obtained
+        by averaging self.tau(s) over all permutations s of range(0,
+        self.rank) that preserve the indices not in ranks.\n"""
+
+        return self.__perm_average(ranks, self.tau)
+
+    def antisymmetrise(self, ranks=None):
+        """Return antisymmetric part of a tensor.
+
+        Single optional argument, ranks, is either None or an iterable
+        yielding some sub-set of range(0, self.rank); if None, the whole
+        range is presumed.  All members, i, of the set indicated by
+        ranks must have self.dimension[i] equal.  The result is obtained
+        by averaging self.tau(s) * s.sign over all permutations s of
+        range(0, self.rank) that preserve the indices not in ranks.\n"""
+
+        return self.__perm_average(ranks, lambda e, t=self.tau: t(e) * e.sign)
+
     def transpose(self, n=1):
         """Transpose a tensor; only applicable if self.rank > 1.
 
@@ -377,5 +401,29 @@ class Vector (ReadSeq, tuple):
             for e in es: grid = grid + self[e]
 
         return grid
+
+    # Further implementation details
+    def __perm_average(self, ranks, func):
+        if ranks is None: ranks = tuple(range(self.rank))
+        else: ranks = tuple(ranks)
+        if len(set(map(lambda i, d=self.dimension: d[i], ranks))) != 1:
+            raise ValueError('Can only antisymmetrise over ranks of equal dimension',
+                             ranks, self.dimension)
+
+        es = self.__perms(ranks)
+        ans, n = func(es.next()), 1
+        for e in es: ans, n = ans + func(e), n + 1
+        return ans * self.__rat(1, n)
+
+    from study.maths.ratio import Rational as __rat
+    from study.maths.permute import Permutation
+    @staticmethod
+    def __perms(ranks, gen=Permutation.fixed):
+        if ranks: n = max(ranks) + 1
+        else: n = 0
+        pat = range(n)
+        for i in ranks: pat[i] = None
+        return gen(n, pat)
+    del Permutation
 
 del lazyprop, ReadSeq
