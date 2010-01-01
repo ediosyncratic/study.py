@@ -20,9 +20,9 @@ factorial(), chose() and other combinatoric toys.
 Note that Numeric python's numarray infrastructure provides for quite a lot of
 the same things as the following.\n"""
 
-from study.snake.lazy import Lazy
+from study.cache.property import Cached, lazyprop, lazyattr
 from study.snake.sequence import Tuple
-class Permutation (Tuple, Lazy):
+class Permutation (Tuple, Cached):
     """Immutable sequence type representing a permutation.
 
     Theory
@@ -79,8 +79,6 @@ class Permutation (Tuple, Lazy):
         except TypeError: return cls.__upnew(cls, range(perm))
         else: return cls.__upnew(cls, perm)
 
-    def __init__(self, perm): pass # Suppress misguided call to Lazy.__init__().
-
     def __call__(self, *seqs):
         """Apply permutation.
 
@@ -95,7 +93,18 @@ class Permutation (Tuple, Lazy):
 
     permute = __call__
 
-    def _lazy_get_inverse_(self, ig):
+    @classmethod
+    def __permutation__(cls, what):
+        """Pseudo-constructor for derived classes to over-ride if needed.
+
+        Used by instance methods of this class to build new instances of this
+        class; may be called with the same arguments as __new__ (q.v.).  Any
+        derived class whose __init__ or __new__ doesn't accept the same
+        signature should over-ride this with something suitable that does.\n"""
+        return cls(what)
+
+    @lazyattr
+    def inverse(self, cls=None):
         """Inverts the permutation.
 
         Computes the inverse of self: that is, if p is a permutation and q =
@@ -147,6 +156,7 @@ class Permutation (Tuple, Lazy):
         would, on permutations, serve as inversion.  However, the implementation
         here is more efficient than calling order.\n"""
 
+        assert cls is None
         n = len(self)
         ans = [ None ] * n
 
@@ -160,13 +170,42 @@ class Permutation (Tuple, Lazy):
         except IndexError:
             raise ValueError, ('sequence is not a permutation', self)
 
-        ans = Permutation(ans)
+        ans = self.__permutation__(ans)
         assert ans(self) == range(len(self)) == self(ans)
         assert ans == order(self)
+        assert ans.sign == self.sign
         ans.inverse = self
         return ans
 
-    def _lazy_get_period_(self, ig):
+    @lazyprop
+    def sign(self, cls=None):
+        """The signature of the permutation.
+
+        The signature homomorphism is the unique non-fatuous mapping from
+        permutations to the multiplicative group {+1, -1} which respects the
+        group structure (that is, sign(s*t) = sign(s)*sign(t) for all
+        permutations s, t; and at least some permutations have sign -1).  Its
+        value is entirely determined by the fact that every transposition
+        (i.e. a permutation that simply swaps two elements) has sign -1.
+        """
+        assert cls is None
+        mess, sign, i = list(self), +1, len(self)
+        try:
+            while i > 1:
+                i -= 1
+
+                if i != mess[i]:
+                    sign, j = -sign, mess.index(i)
+                    mess[i], mess[j] = mess[j], mess[i]
+
+            assert mess == range(len(self))
+        except ValueError:
+            raise ValueError('Not actually a permutation', i, self)
+
+        return sign
+
+    @lazyprop
+    def period(self, cls=None):
         """Computes the period of the permutation.
 
         See http://www.research.att.com/~njas/sequences/A000793 and
@@ -174,92 +213,124 @@ class Permutation (Tuple, Lazy):
         which gives the maximal period among permutations of each length.  This
         is equally the maximum, over partitions of the length, of the lowest
         common multiple of the lengths of the parts.\n"""
+        assert cls is None
         q, i = compose(self, self), 1
         while q != self:
             q, i = compose(q, self), 1+i
         return i
 
     def cycle(self, by=1):
-        return Permutation(cycle(self, by))
+        return self.__permutation__(cycle(self, by))
 
-    # TODO: add random permutation class method
-del Lazy
-
-def Iterator(size, P=Permutation):
+    @classmethod
+    def fixed(cls, size, fix):
+        """Iterator over permutations of a given length with certain fixed entries.
+
+        Required arguments:
+          size -- length of the permutations
+          fix -- sequence whose non-None entries all permutations should match
+
+        Returns an iterator over all permutations of the given size that can be
+        obtained by filling in the None entries of fix and, if its length is
+        less than size, extending it to the requested length.\n"""
+
+        fix = tuple(fix)
+        js = filter(lambda j: j is not None, fix)
+        if js and (max(js) >= size or min(js) < 0):
+            raise ValueError('Bad fixed entry in permutation template',
+                             filter(lambda i, m=size: i >= m or i < 0, js), fix, size)
+        if len(fix) < size: fix += ( None, ) * (size - len(fix))
+
+        # numbers we can use to fill the gaps:
+        vs = filter(lambda i, js=js: i not in js, range(size))
+        # indices at which the gaps appear:
+        ns = map(lambda (n, v): n, filter(lambda (n, v): v is None, enumerate(fix)))
+
+        for perm in cls.all(len(vs)):
+            ans = list(fix)
+            for n, v in map(lambda *x: x, ns, perm(vs)): ans[n] = v
+            assert None not in ans
+            yield cls(ans)
+
     # for a rather elegant application, see queens.py's derived iterator
-    """Iterator over permutations of given length.
+    @classmethod
+    def all(cls, size):
+        """Iterator over permutations of given length.
 
-    Required first argument is the length of the permutations.  Optional second
-    argument is a callable taking a list (which the callable must not modify)
-    which represents the permutation; what the callable returns is what this
-    Iterator yields; default is Permutation.
+        Single required argument is the length of the permutations.
+        Illustrative usage::
 
-    Illustrative usage::
+            for it in study.maths.permute.Permute.all(len(word)):
+                anagram = ''.join(it(word))
+                if dictionary.has_key(anagram): print anagram
 
-        for it in permute.Iterator(len(word)):
-            anagram = ''.join(it(word))
-            if dictionary.has_key(anagram): print anagram
+        Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
+        some n; does so in lexicographic order: that is, a permutation p shall
+        be yielded sooner than a permutation q precisely if, in the first
+        position at which they differ, p[i] is less than q[i].
 
-    Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
-    some n; does so in lexicographic order: that is, a permutation p shall be
-    yielded sooner than a permutation q precisely if, in the first position at
-    which they differ, p[i] is less than q[i].
+        Theory
+        ======
 
-    Theory
-    ======
+        To iterate over permutations it suffices to specify a well-ordering of
+        permutations - i.e. a choice of one of them as `first', combined with a
+        `next' opertion which will, starting from the first, iterate over all
+        candidates.  An obvious well-ordering to use is the one obtained from
+        `lexicographic order', in which one compares two sequences by finding
+        the first entry in which they differ and comparing those.
 
-    To iterate over permutations it suffices to specify a well-ordering of
-    permutations - i.e. a choice of one of them as `first', combined with a
-    `next' opertion which will, starting from the first, iterate over all
-    candidates.  An obvious well-ordering to use is the one obtained from
-    `lexicographic order', in which one compares two sequences by finding the
-    first entry in which they differ and comparing those.
+        Among permutations of any given length, this makes the identity `less
+        than' all others, so it's our `first' permutation.  Note that a
+        reverse-sorted (big values before little ones) sequence is later than
+        any other sequence with the same entries.  To find the `next'
+        permutation, in the lexicographic order, one must change as late a chunk
+        of the permutation as possible.  To this end, find the longest
+        reverse-sorted tail of the permutation: no shuffling of only that can
+        yield a later permutation, so our next permutation must bring in at
+        least the previous entry; since the previous entry (by construction) is
+        less than the first entry in the reverse-sorted tail, shuffling it into
+        the tail can produce a later entry.  A little thought will then reveal
+        that we should swap it with the smallest entry in the tail bigger than
+        it, then reverse (i.e. forward-sort) the thus-amended tail.  This is the
+        step used by this iterator.\n"""
 
-    Among permutations of any given length, this makes the identity `less than'
-    all others, so it's our `first' permutation.  Note that a reverse-sorted
-    (big values before little ones) sequence is later than any other sequence
-    with the same entries.  To find the `next' permutation, in the lexicographic
-    order, one must change as late a chunk of the permutation as possible.  To
-    this end, find the longest reverse-sorted tail of the permutation: no
-    shuffling of only that can yield a later permutation, so our next
-    permutation must bring in at least the previous entry; since the previous
-    entry (by construction) is less than the first entry in the reverse-sorted
-    tail, shuffling it into the tail can produce a later entry.  A little
-    thought will then reveal that we should swap it with the smallest entry in
-    the tail bigger than it, then reverse (i.e. forward-sort) the thus-amended
-    tail.  This is the step used by this iterator.\n"""
-
-    if size < 0:
-        raise StopIteration
-
-    row = range(size)
-    while True:
-        yield P(row)
-
-        i = size -1
-        while i > 0 and row[i-1] > row[i]: i -= 1
-        if i < 1: # row is entirely in decreasing order: that's our last permutation.
+        if size < 0:
             raise StopIteration
 
-        i, j = i-1, size -1
+        row = range(size)
+        while True:
+            yield cls(row)
 
-        # row[i+1:] is in decreasing order but row[i] < row[i+1]
-        # Find smallest row[j] > row[i] with j > i:
-        while row[j] < row[i]: j = j-1
-        # swap i <-> j:
-        row[j], row[i] = row[i], row[j]
+            i = size -1
+            while i > 0 and row[i-1] > row[i]: i -= 1
+            if i < 1: # row is entirely in decreasing order: that's our last permutation.
+                raise StopIteration
 
-        # row[i+1:] is still in decreasing order: reverse it
-        i, j = 1+i, size -1
-        while i < j:
+            i, j = i-1, size -1
+
+            # row[i+1:] is in decreasing order but row[i] < row[i+1]
+            # Find smallest row[j] > row[i] with j > i:
+            while row[j] < row[i]: j = j-1
+            # swap i <-> j:
             row[j], row[i] = row[i], row[j]
-            i, j = 1+i, j-1
 
-# TODO: devise an alternate-order iterator which ensures each index appears in
-# each position roughly once per n steps.  Useful, e.g., for a "taking turns to
-# chose which chores to do" rota,
-# c.f. http://www.chaos.org.uk/~eddy/when/2009/squalor.html
+            # row[i+1:] is still in decreasing order: reverse it
+            i, j = 1+i, size -1
+            while i < j:
+                row[j], row[i] = row[i], row[j]
+                i, j = 1+i, j-1
+
+    # TODO: devise an alternate-order iterator which ensures each index appears
+    # in each position roughly once per n steps.  Useful, e.g., for a "taking
+    # turns to chose which chores to do" rota,
+    # c.f. http://www.chaos.org.uk/~eddy/when/2009/squalor.html
+
+    # TODO: add random permutation class method
+del Cached, lazyprop, lazyattr
 
+def Iterator(size, P=Permutation):
+    return P.all(size)
+
 def permute(*indices):
     """Returns row permuted by a sequence of indices.
 
@@ -323,8 +394,8 @@ def order(row, cmp=cmp):
 
     The sequence order(row).permute(row) is sorted, contains each entry of row
     exactly as often as it appears in row and has the same length as row.  See
-    Permutation._lazy_get_inverse_(), above, for discussion of what this implies
-    when row is a permutation.
+    Permutation.inverse, above, for discussion of what this implies when row is
+    a permutation.
 
     If row has been obtained as r@q, then p = order(row) is a permutation with
     the same length as q and makes r@q@p a sorted list with this same length,
