@@ -235,13 +235,14 @@ class Vector (ReadSeq, tuple):
 
         bok = set()
         for i in reduce(lambda x, y: x+y, pairs, ()):
-            if i < 0 or (i < len(shuffle) and shuffle[i] is not None) or bok.has_key(i):
+            if i < 0 or (i < len(shuffle) and shuffle[i] is not None) or i in bok:
                 bad.append(i)
             bok.add(i)
         if bad:
             raise ValueError("Bad or repeat index in tracing pairs", bad, tuple(bok), shuffle)
 
-        n = range(1 + max(filter(lambda x: x is not None, shuffle)))
+        n = filter(lambda x: x is not None, shuffle)
+        if n: n = range(1 + max(n))
         for i, a in enumerate(shuffle):
             if a is None:
                 if i not in bok:
@@ -251,7 +252,7 @@ class Vector (ReadSeq, tuple):
                 n[a] = None
         if bad:
             raise ValueError("Not a permutation", bad, shuffle)
-        bad = filter(lambda i: is is not None, n)
+        bad = filter(lambda i: i is not None, n)
         if bad:
             raise ValueError("Incomplete permutation", bad, shuffle)
 
@@ -285,7 +286,7 @@ class Vector (ReadSeq, tuple):
 
     def __indices(self, tmpl, pairs):
         if pairs:
-            (i, j), pairs = pairs
+            (i, j), pairs = pairs[0], pairs[1:]
             assert self.dimension[i] == self.dimension[j]
             assert tmpl[i] is None is tmpl[j]
             if i > j: i, j = j, i
