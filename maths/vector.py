@@ -197,6 +197,9 @@ class Vector (ReadSeq, tuple):
                     bok[a] = None
                     if j is None:
                         raise ValueError('Trace marker appears more than twice', a, pattern)
+                    if self.dimension[i] != self.dimension[j]:
+                        raise ValueError('Can only trace between ranks of equal dimension',
+                                         (j, i), self.dimension, a, pattern)
                     pairs.append((j, i))
             else:
                 stub[i] = a
@@ -233,6 +236,10 @@ class Vector (ReadSeq, tuple):
         bad = filter(lambda x: len(x) != 2, pairs)
         if bad:
             raise ValueError("Each index pair's length should be two", bad)
+
+        bad = filter(lambda (i, j), d=self.dimension: d[i] != d[j], pairs)
+        if bad:
+            raise ValueError("Traced ranks must have equal dimension", bad, self.dimension)
 
         bok = set()
         for i in reduce(lambda x, y: x+y, pairs, ()):
@@ -305,21 +312,21 @@ class Vector (ReadSeq, tuple):
         Takes two arguments, a permutation optionally padded with None
         entries and a sequence of pairs of indices to trace.\n"""
 
-        ns = filter(lambda x: x is not None, shuffle)
+        ns, i = filter(lambda x: x is not None, shuffle), len(shuffle)
         if ns: j = max(ns) + 1
         else: j = 0
 
         if pairs:
             # Pad shuffle so that every pair's indices have None in it:
             ns = reduce(lambda x, y: x+y, pairs)
-            n, i = max(ns), len(shuffle)
-            shuffle = list(shuffle)
+            n, shuffle = max(ns), list(shuffle)
             while i <= n:
                 if i in ns: shuffle.append(None)
                 else:
                     shuffle.append(j)
                     j += 1
                 i += 1
+        shuffle = tuple(shuffle) # we're done modifying it
 
         # Construct reverse-lookup for shuffle:
         rev = [ None ] * j
