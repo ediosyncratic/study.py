@@ -49,7 +49,9 @@ class Vector (ReadSeq, tuple):
         except TypeError:
             return self.__vector__(map(lambda x, o=other: x * o, self))
 
-        return self.__vector__(map(lambda o, s=self: s * o, other))
+        if not isinstance(other, Vector):
+            other = self.__vector__(other)
+        return self.__vector__(map(lambda s, o=other: s * o, self))
 
     def __rmul__(self, other):
         try: other[:]
