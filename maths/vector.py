@@ -46,17 +46,17 @@ class Vector (ReadSeq, tuple):
 
     def __mul__(self, other):
         try: other[:]
-        except TypeError:
-            return self.__vector__(map(lambda x, o=other: x * o, self))
+        except TypeError: pass
+        else:
+            if not isinstance(other, Vector):
+                other = self.__vector__(other)
 
-        if not isinstance(other, Vector):
-            other = self.__vector__(other)
         return self.__vector__(map(lambda s, o=other: s * o, self))
 
     def __rmul__(self, other):
         try: other[:]
         except TypeError:
-            return self.__vector__(map(lambda x, o=other: o * x, self))
+            return self.__vector__(map(lambda s, o=other: o * s, self))
 
         return self.__vector__(map(lambda o, s=self: o * s, other))
 
