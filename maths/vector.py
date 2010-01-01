@@ -199,16 +199,15 @@ class Vector (ReadSeq, tuple):
                         raise ValueError('Trace marker appears more than twice', a, pattern)
                     pairs.append((j, i))
             else:
-                stub[a] = i
-                if i+1 > len(n): n += range(len(n), i+1)
-                if n[i] is None:
-                    raise ValueError('Permutation index repeated', i, pattern)
-                assert n[i] == i
-                n[i] = None
+                stub[i] = a
+                if a+1 > len(n): n += range(len(n), a+1)
+                if n[a] is None:
+                    raise ValueError('Permutation index repeated', a, pattern)
+                assert n[a] == a
+                n[a] = None
 
-        miss = filter(lambda x: x is not None, n)
-        if miss:
-            raise ValueError('Incomplete permutation', len(n), tuple(miss), pattern)
+        if filter(lambda a: a is not None, n):
+            raise ValueError('Incomplete permutation', tuple(n), pattern)
 
         return self.__trace_permute(stub, pairs)
 
