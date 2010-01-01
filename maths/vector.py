@@ -92,6 +92,7 @@ class Vector (ReadSeq, tuple):
         except TypeError:
             return self.__upget(key)
 
+        assert not None in key
         for k in key: self = self[k]
         return self
 
@@ -145,5 +146,215 @@ class Vector (ReadSeq, tuple):
         elif n == 0: return self
 
         return self.__vector__(self.transpose().map(lambda v: v.transpose(n-1))).transpose()
+
+    def tau(self, pattern):
+        """Generalised trace-permutation operator.
+
+        Single operand, pattern, is a sequence of length at most
+        self.rank whose entries are of two kinds: for some natural n,
+        the whole numbers 0 through n-1 appear once each in pattern; all
+        other entries in pattern must be strings, each of which must
+        appear exactly twice in pattern, at indices whose matching
+        entries in self.dimension are equal.
+
+        For each pair of indices in pattern that share the same string,
+        we trace out the ranks of self having those indices.  The
+        remaining ranks of self we permute according to the integer
+        indices; if pattern[a] is an integer i, then the result's i-th
+        rank shall correspond to self's a-th rank.
+
+        The result is the tensor that would be obtained by taking the
+        following steps, with dim = self.dimension:
+
+          * whenever pattern[a] == pattern[b], b > a, we require dim[a]
+            == dim[b] and replace self with a tensor having two fewer
+            ranks; this has dimension = dim[:a] +dim[a+1:b] +dim[b+1:];
+            for each valid index-tuple s into it, with len(s) == b-1,
+            its [s] entry is the sum over i in range(dim[b]) of
+            self[s[:a] + (i,) + s[b:] + (i,)].
+
+            After replacing self with the thus-contracted tensor, we use
+            pattern[:a] +pattern[a+1:b] +pattern[b+1:] in place of
+            pattern.
+
+          * once all strings are thus eliminated, we are left with a
+            permutation as pattern; we re-organise self to produce a
+            result: whose dimension[pattern[a]] is dim[a], for each a;
+            and, for each valid index-tuple s into it, its [s] entry is
+            self[t] where t[a] = s[pattern[a]].
+
+        The final result is not, however, computed as inefficiently as
+        this would imply.\n"""
+
+        stub, pairs, bok, n = [ None ] * len(pattern), [], {}, []
+        for i, a in enumerate(pattern):
+            if isinstance(a, basestring):
+                try: j = bok[a]
+                except KeyError: bok[a] = i
+                else:
+                    bok[a] = None
+                    if j is None:
+                        raise ValueError('Trace marker appears more than twice', a, pattern)
+                    pairs.append((j, i))
+            else:
+                stub[a] = i
+                if i+1 > len(n): n += range(len(n), i+1)
+                if n[i] is None:
+                    raise ValueError('Permutation index repeated', i, pattern)
+                assert n[i] == i
+                n[i] = None
+
+        miss = filter(lambda x: x is not None, n)
+        if miss:
+            raise ValueError('Incomplete permutation', len(n), tuple(miss), pattern)
+
+        return self.__trace_permute(stub, pairs)
+
+    def permutrace(self, shuffle, *pairs):
+        """Alternate trace-permute operation.
+
+        First argument, shuffle, is a permutation optionally padded with
+        None entries; its length must not exceed self.rank and the
+        non-None entries in it should be the integers 0 through n-1,
+        each appearing exactly once, for some natural n.
+
+        Each subsequent argument, if any, must be a pair (i, j) of
+        naturals less than self.rank; if either is less than
+        len(shuffle) the entry in shuffle at this index must be
+        None.  No two pairs may have an entry in common.  Each None
+        entry in suffle must appear in exactly one pair.
+
+        Has the same effect as tau (q.v.) but with a string, unique for
+        each pair (i, j), used in place of suffle[i] and suffle[j], to
+        make a suitable pattern.  Each pair indicates two ranks to trace
+        out, the remaining ranks are permuted according to shuffle.\n"""
+
+        bad = filter(lambda x: len(x) != 2, pairs)
+        if bad:
+            raise ValueError("Each index pair's length should be two", bad)
+
+        bok = set()
+        for i in reduce(lambda x, y: x+y, pairs, ()):
+            if i < 0 or (i < len(shuffle) and shuffle[i] is not None) or bok.has_key(i):
+                bad.append(i)
+            bok.add(i)
+        if bad:
+            raise ValueError("Bad or repeat index in tracing pairs", bad, tuple(bok), shuffle)
+
+        n = range(1 + max(filter(lambda x: x is not None, shuffle)))
+        for i, a in enumerate(shuffle):
+            if a is None:
+                if i not in bok:
+                    raise ValueError("Rank neither traced nor permuted", i, shuffle, pairs)
+            else:
+                if n[a] is None: bad.append[a]
+                n[a] = None
+        if bad:
+            raise ValueError("Not a permutation", bad, shuffle)
+        bad = filter(lambda i: is is not None, n)
+        if bad:
+            raise ValueError("Incomplete permutation", bad, shuffle)
+
+        return self.__trace_permute(shuffle, pairs)
+
+    # Implementation of __trace_permute:
+    def __listify(self):
+        if self.rank < 2: return list(self)
+        return map(lambda x: x.__listify(), self)
+
+    def __vectorise(self, grid):
+        try: grid[0][:]
+        except TypeError: return self.__vector__(grid)
+        return self.__vector__(map(self.__vectorise, grid))
+
+    @classmethod
+    def __ranger(cls, ms):
+        """Iterator over index tuples.
+
+        Single argument, ms, is a dimension tuple.  Yields every tuple
+        s, of the same length as ms, for which, for every 0 <= i <
+        len(ms), 0 <= s[i] < ms[i].\n"""
+
+        if len(ms) < 1: yield ()
+        else:
+            for s in cls.__ranger(ms[1:]):
+                i = ms[0]
+                while i > 0:
+                    i -= 1
+                    yield (i,) + s
+
+    def __indices(self, tmpl, pairs):
+        if pairs:
+            (i, j), pairs = pairs
+            assert self.dimension[i] == self.dimension[j]
+            assert tmpl[i] is None is tmpl[j]
+            if i > j: i, j = j, i
+            for s in self.__indices(tmpl, pairs):
+                m = self.dimension[i]
+                while m > 0:
+                    m -= 1
+                    yield s[:i] + (m,) + s[i+1:j] + (m,) + s[j+1:]
+        else:
+            yield tuple(tmpl)
+
+    def __trace_permute(self, shuffle, pairs):
+        """Implementation of tau and permutrace, q.v.
+
+        Takes two arguments, a permutation optionally padded with None
+        entries and a sequence of pairs of indices to trace.\n"""
+
+        # Pad shuffle so that every pair's indices have None in it:
+        js = reduce(lambda x, y: x+y, pairs)
+        n, i = max(js), len(shuffle)
+        shuffle = list(shuffle)
+        while i <= n:
+            if i in js: shuffle.append(None)
+            else: shuffle.append(i)
+            i += 1
+
+        # Construct reverse-lookup for shuffle:
+        js = filter(lambda x: x is not None, shuffle)
+        if js: n = max(js) + 1
+        else: n = 0
+        rev = [ None ] * n
+        while i > 0:
+            i -= 1
+            if shuffle[i] is not None:
+                assert rev[shuffle[i]] is None
+                rev[shuffle[i]] = i
+        assert None not in rev
+
+        def plate(s, r=rev, n=len(shuffle)):
+            ans = [None] * n
+            for i, a in enumerate(r):
+                ans[a] = s[i]
+            return tuple(ans)
+
+        # Construct answer collector:
+        grid, i = 0, len(rev)
+        while i > 0:
+            i -= 1
+            grid = Vector([0] * self.dimension[rev[i]]) * grid
+
+        if rev:
+            dim = grid.dimension
+            grid = grid.__listify()
+
+            for s in self.__ranger(dim):
+                es = self.__indices(plate(s), pairs)
+                cell = self[es.next()]
+                for e in es: cell = cell + self[e]
+                g = grid
+                for i in s[:-1]: g = g[i]
+                g[s[-1]] = cell
+
+            grid = self.__vectorise(grid)
+
+        else:
+            es = self.__indices(plate(()), pairs)
+            grid = self[es.next()]
+            for e in es: grid = grid + self[e]
+
+        return grid
 
 del lazyprop, ReadSeq
