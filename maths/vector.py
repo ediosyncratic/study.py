@@ -173,7 +173,7 @@ class Vector (ReadSeq, tuple):
             ranks; this has dimension = dim[:a] +dim[a+1:b] +dim[b+1:];
             for each valid index-tuple s into it, with len(s) == b-1,
             its [s] entry is the sum over i in range(dim[b]) of
-            self[s[:a] + (i,) + s[b:] + (i,)].
+            self[s[:a] + (i,) + s[a:] + (i,)].
 
             After replacing self with the thus-contracted tensor, we use
             pattern[:a] +pattern[a+1:b] +pattern[b+1:] in place of
@@ -228,6 +228,12 @@ class Vector (ReadSeq, tuple):
         None.  No two pairs may have an entry in common.  Each None
         entry in suffle must appear in exactly one pair.
 
+        If any pair includes an index greater than or equal to shuffle's
+        length, shuffle is implicitly padded with None entries for each
+        such index in a pair and an order-preserving continuation of its
+        permutation.  Thus permutrace((None, 1, 0), (0, 5), (3, 7)) uses
+        (None, 1, 0, None, 2, None, 3, None) as its extended shuffle.
+
         Has the same effect as tau (q.v.) but with a string, unique for
         each pair (i, j), used in place of suffle[i] and suffle[j], to
         make a suitable pattern.  Each pair indicates two ranks to trace
@@ -272,6 +278,8 @@ class Vector (ReadSeq, tuple):
         return map(lambda x: x.__listify(), self)
 
     def __vectorise(self, grid):
+        # *not* a classmethod, as derived classes might make __vector__
+        # an instance method
         try: grid[0][:]
         except TypeError: return self.__vector__(grid)
         return self.__vector__(map(self.__vectorise, grid))
