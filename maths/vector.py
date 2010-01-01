@@ -304,26 +304,29 @@ class Vector (ReadSeq, tuple):
         Takes two arguments, a permutation optionally padded with None
         entries and a sequence of pairs of indices to trace.\n"""
 
+        ns = filter(lambda x: x is not None, shuffle)
+        if ns: j = max(ns) + 1
+        else: j = 0
+
         # Pad shuffle so that every pair's indices have None in it:
-        js = reduce(lambda x, y: x+y, pairs)
-        n, i = max(js), len(shuffle)
+        ns = reduce(lambda x, y: x+y, pairs)
+        n, i = max(ns), len(shuffle)
         shuffle = list(shuffle)
         while i <= n:
-            if i in js: shuffle.append(None)
-            else: shuffle.append(i)
+            if i in ns: shuffle.append(None)
+            else:
+                shuffle.append(j)
+                j += 1
             i += 1
 
         # Construct reverse-lookup for shuffle:
-        js = filter(lambda x: x is not None, shuffle)
-        if js: n = max(js) + 1
-        else: n = 0
-        rev = [ None ] * n
+        rev = [ None ] * j
         while i > 0:
             i -= 1
             if shuffle[i] is not None:
                 assert rev[shuffle[i]] is None
                 rev[shuffle[i]] = i
-        assert None not in rev
+        assert None not in rev, (rev, shuffle)
 
         def plate(s, r=rev, n=len(shuffle)):
             ans = [None] * n
