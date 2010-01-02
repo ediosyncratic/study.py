@@ -144,7 +144,7 @@ class Vector (ReadSeq, tuple):
         by averaging self.tau(s) over all permutations s of range(0,
         self.rank) that preserve the indices not in ranks.\n"""
 
-        return self.__perm_average(ranks, self.tau)
+        return self.__perm_average(self.dimension, ranks, self.tau)
 
     def antisymmetrise(self, ranks=None):
         """Return antisymmetric part of a tensor.
@@ -156,7 +156,8 @@ class Vector (ReadSeq, tuple):
         by averaging self.tau(s) * s.sign over all permutations s of
         range(0, self.rank) that preserve the indices not in ranks.\n"""
 
-        return self.__perm_average(ranks, lambda e, t=self.tau: t(e) * e.sign)
+        return self.__perm_average(self.dimension, ranks,
+                                   lambda e, t=self.tau: t(e) * e.sign)
 
     def transpose(self, n=1):
         """Transpose a tensor; only applicable if self.rank > 1.
@@ -404,12 +405,14 @@ class Vector (ReadSeq, tuple):
 
     # Further implementation details
     from study.maths.permute import Permutation
-    def __perm_average(self, ranks, func, gen=Permutation.fixed):
-        if ranks is None: ranks = tuple(range(self.rank))
+    from study.maths.ratio import Rational
+    @staticmethod
+    def __perm_average(dims, ranks, func, gen=Permutation.fixed, rat=Rational):
+        if ranks is None: ranks = tuple(range(len(dims)))
         else: ranks = tuple(ranks)
-        if len(set(map(lambda i, d=self.dimension: d[i], ranks))) != 1:
+        if len(set(map(lambda i, d=dims: d[i], ranks))) != 1:
             raise ValueError('Can only average over permutations of ranks of equal dimension',
-                             ranks, self.dimension)
+                             ranks, dims)
 
         if ranks: n = max(ranks) + 1
         else: n = 0
@@ -419,9 +422,8 @@ class Vector (ReadSeq, tuple):
 
         ans, n = func(es.next()), 1
         for e in es: ans, n = ans + func(e), n + 1
-        return ans * self.__rat(1, n)
+        return ans * rat(1, n)
 
-    del Permutation
-    from study.maths.ratio import Rational as __rat
+    del Permutation, Rational
 
 del lazyprop, ReadSeq
