@@ -404,27 +404,24 @@ class Vector (ReadSeq, tuple):
 
     # Further implementation details
     from study.maths.permute import Permutation
-    def perms(ranks, gen=Permutation.fixed): # tool used by __perm_average
-        if ranks: n = max(ranks) + 1
-        else: n = 0
-        pat = range(n)
-        for i in ranks: pat[i] = None
-        return gen(n, pat)
-    del Permutation
-
-    def __perm_average(self, ranks, func, each=perms):
+    def __perm_average(self, ranks, func, gen=Permutation.fixed):
         if ranks is None: ranks = tuple(range(self.rank))
         else: ranks = tuple(ranks)
         if len(set(map(lambda i, d=self.dimension: d[i], ranks))) != 1:
             raise ValueError('Can only average over permutations of ranks of equal dimension',
                              ranks, self.dimension)
 
-        es = each(ranks)
+        if ranks: n = max(ranks) + 1
+        else: n = 0
+        pat = range(n)
+        for i in ranks: pat[i] = None
+        es = gen(n, pat)
+
         ans, n = func(es.next()), 1
         for e in es: ans, n = ans + func(e), n + 1
         return ans * self.__rat(1, n)
 
-    del perms
+    del Permutation
     from study.maths.ratio import Rational as __rat
 
 del lazyprop, ReadSeq
