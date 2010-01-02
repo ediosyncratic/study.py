@@ -403,27 +403,28 @@ class Vector (ReadSeq, tuple):
         return grid
 
     # Further implementation details
-    def __perm_average(self, ranks, func):
-        if ranks is None: ranks = tuple(range(self.rank))
-        else: ranks = tuple(ranks)
-        if len(set(map(lambda i, d=self.dimension: d[i], ranks))) != 1:
-            raise ValueError('Can only antisymmetrise over ranks of equal dimension',
-                             ranks, self.dimension)
-
-        es = self.__perms(ranks)
-        ans, n = func(es.next()), 1
-        for e in es: ans, n = ans + func(e), n + 1
-        return ans * self.__rat(1, n)
-
-    from study.maths.ratio import Rational as __rat
     from study.maths.permute import Permutation
-    @staticmethod
-    def __perms(ranks, gen=Permutation.fixed):
+    def perms(ranks, gen=Permutation.fixed): # tool used by __perm_average
         if ranks: n = max(ranks) + 1
         else: n = 0
         pat = range(n)
         for i in ranks: pat[i] = None
         return gen(n, pat)
     del Permutation
+
+    def __perm_average(self, ranks, func, each=perms):
+        if ranks is None: ranks = tuple(range(self.rank))
+        else: ranks = tuple(ranks)
+        if len(set(map(lambda i, d=self.dimension: d[i], ranks))) != 1:
+            raise ValueError('Can only average over permutations of ranks of equal dimension',
+                             ranks, self.dimension)
+
+        es = each(ranks)
+        ans, n = func(es.next()), 1
+        for e in es: ans, n = ans + func(e), n + 1
+        return ans * self.__rat(1, n)
+
+    del perms
+    from study.maths.ratio import Rational as __rat
 
 del lazyprop, ReadSeq
