@@ -2,7 +2,6 @@
 
 Provides:
    Permutation(seq) -- class encapsulating a tuple as a permutation
-   Iterator(n) -- iterator over all n! permutations of a list of length n.
 
    permute(seq, ind, ..., dex) -- composes permutations and applies them to seq.
    compose(ind, ..., dex) -- composes permutations (tolerates abbreviation).
@@ -25,12 +24,25 @@ from study.snake.sequence import Tuple
 class Permutation (Tuple, Cached):
     """Immutable sequence type representing a permutation.
 
+    Provides lazy attributes:
+      .inverse -- the inverse of the permutation
+      .sign -- the signature, +1 for an even permutation, -1 for an odd one
+      .period -- number of times you must repeat self to get back where you started
+
+    Provides methods:
+      cycle([by=1]) -- cycle self by the given number of steps
+      permute(seq [, seq...]) -- a.k.a. __call__, compose permutations
+
+    Provides (class method) iterators:
+      all(size) -- iterate over all permutations of range(size)
+      fixed(size, fix) -- all(size) limited to those matching fix in its non-None entries
+
     Theory
     ======
 
     In what follows, I'll (orthodoxly treat any natural number as synonymous
     with the collection of smaller ones, effectively n = range(n), and) write
-    r@p for permute(row, p):
+    r@p for permute(r, p):
         r@p = (: r[p[i]] <- i |len(p))
 
     Theorem (associativity):
@@ -74,7 +86,7 @@ class Permutation (Tuple, Cached):
         permutation of the given length is constructed, or a sequence of natural
         numbers in which no number is repeated and every natural less than each
         entry is present in the sequence.  (This constraint is not checked
-        unless you evaluate the .inverse attribute.)\n"""
+        unless you evaluate the .inverse or .sign attribute.)\n"""
         try: perm[:]
         except TypeError: return cls.__upnew(cls, range(perm))
         else: return cls.__upnew(cls, perm)
@@ -165,10 +177,12 @@ class Permutation (Tuple, Cached):
                 n = n - 1
                 ans[self[n]] = n
 
-            if None in ans: raise IndexError
+            if None in ans:
+                n = ans.index(None)
+                raise IndexError
 
         except IndexError:
-            raise ValueError, ('sequence is not a permutation', self)
+            raise ValueError, ('Sequence is not a permutation', n, self)
 
         ans = self.__permutation__(ans)
         assert ans(self) == range(len(self)) == self(ans)
@@ -198,7 +212,7 @@ class Permutation (Tuple, Cached):
                     sign, j = -sign, mess.index(i)
                     mess[i], mess[j] = mess[j], mess[i]
 
-            assert mess == range(len(self))
+            if mess != range(len(self)): raise ValueError
         except ValueError:
             raise ValueError('Not actually a permutation', i, self)
 
@@ -328,7 +342,8 @@ class Permutation (Tuple, Cached):
     # TODO: add random permutation class method
 del Cached, lazyprop, lazyattr
 
-def Iterator(size, P=Permutation):
+def Iterator(size, P=Permutation): # backward compatibility
+    """Redundant alias for Permutation.all"""
     return P.all(size)
 
 def permute(*indices):
