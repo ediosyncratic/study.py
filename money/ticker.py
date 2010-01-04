@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.14 2009-12-24 23:00:04 eddy Exp $
+$Id: ticker.py,v 1.15 2010-01-04 23:39:16 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -157,12 +157,21 @@ class StockSVG (Cached):
         move(name, self.__path)
     del os
 
-    def toxml(self):
+    import re
+    def toxml(self,
+              find=re.compile(r'(\n\s+)([^"\n]+="[^"\n]+\d)\b   +\b'),
+              mend=lambda m: m.expand(r'\1\2\1')):
         out = self.__dom.toxml('utf-8')
         # gnn ... puts mode-line comment after first newline :-(
         ind = out.find('\n')
         cut = out.find('-->', ind) + 3
-        return out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
+        out = out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
+        # ... and turns in-data line-breaks into strings of spaces :-(
+        while True:
+            out, n = find.subn(mend, out)
+            if n < 1: break
+        return out
+    del re
 
     def text_by_100(value):
             # Multiply value by 100, without converting from text:
