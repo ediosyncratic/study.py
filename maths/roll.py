@@ -154,25 +154,23 @@ class Spread (Dict):
         assert len(ans) + 1 == n
         return ans
 
-    def __add__(self, other):
+    def __binop(self, other, binop):
         if isinstance(other, Spread):
-            return self.join(lambda x, y: x + y, self, other)
+            return self.join(binop, self, other)
 
-        return self.__class__(self.iteritems().map(lambda (k, v), o=other: (k+o, v)))
+        return self.__class__(self.iteritems().map(
+                lambda (k, v), o=other, b=binop: (b(k, o), v)))
 
+    def __eq__(self, other): return self.__binop(other, lambda x, y: x == y)
+    def __ne__(self, other): return self.__binop(other, lambda x, y: x != y)
+    def __gt__(self, other): return self.__binop(other, lambda x, y: x > y)
+    def __ge__(self, other): return self.__binop(other, lambda x, y: x >= y)
+    def __lt__(self, other): return self.__binop(other, lambda x, y: x < y)
+    def __le__(self, other): return self.__binop(other, lambda x, y: x <= y)
+    def __add__(self, other): return self.__binop(other, lambda x, y: x + y)
     __radd__ = __add__
-
-    def __sub__(self, other):
-        if isinstance(other, Spread):
-            return self.join(lambda x, y: x - y, self, other)
-
-        return self.__class__(self.iteritems().map(lambda (k, v), o=other: (k-o, v)))
-
-    def __rsub__(self, other):
-        if isinstance(other, Spread):
-            return self.join(lambda x, y: y - x, self, other)
-
-        return self.__class__(self.iteritems().map(lambda (k, v), o=other: (o-k, v)))
+    def __sub__(self, other): return self.__binop(other, lambda x, y: x - y)
+    def __rsub__(self, other): return self.__binop(other, lambda x, y: y - x)
 
     def __mul__(self, other):
         if isinstance(other, Spread):
