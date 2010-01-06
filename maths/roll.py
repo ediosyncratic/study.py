@@ -177,7 +177,8 @@ class Spread (Dict):
             return self.join(lambda x, y: x * y, self, other)
 
         if isinstance(other, (int, long)):
-            if other > 0:
+            if other == 0: return self.map(lambda k: 0)
+            elif other > 0:
                 return self.join(lambda *a: sum(a), * (self,) * other)
 
             raise ValueError('Should be positive', other)
