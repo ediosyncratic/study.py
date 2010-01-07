@@ -9,7 +9,7 @@ The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
 
-$Id: ticker.py,v 1.15 2010-01-04 23:39:16 eddy Exp $
+$Id: ticker.py,v 1.16 2010-01-07 21:35:46 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -170,6 +170,7 @@ class StockSVG (Cached):
         while True:
             out, n = find.subn(mend, out)
             if n < 1: break
+        if out[-1] != '\n': return out + '\n'
         return out
     del re
 
