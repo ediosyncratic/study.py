@@ -23,7 +23,7 @@ Example linear spaces over the positive integers:
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
 
-$Id: natural.py,v 1.24 2009-09-21 22:48:40 eddy Exp $
+$Id: natural.py,v 1.25 2010-01-09 15:15:40 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -109,7 +109,7 @@ def hcf(*args):
 	# Any negative factor's matching positive is also a factor, and is
 	# greater than any negative.
 	if n < 0: n = -n
-	# Euclid's algorithm (see also its extension, below):
+	# Euclid's algorithm (see also its extension, Euclid(), below):
 	while n:
 	    n, this = this % n, n
     return this
@@ -131,7 +131,7 @@ def lcm(*others):
     this = 1
     for other in others:
 	if not other: return other # in case it's an object whose class views it as zero
-	c = gcd(this, other)	# > 0, as other != 0.
+	c = hcf(this, other)	# > 0, as other != 0.
 	this = other * this / c
 
     # this's sign is currently the product of the signs of the arguments.
