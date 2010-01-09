@@ -12,7 +12,7 @@ Classes:
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
 
-$Id: sequence.py,v 1.46 2009-12-23 23:31:27 eddy Exp $
+$Id: sequence.py,v 1.47 2010-01-09 16:16:43 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
@@ -117,12 +117,14 @@ class Iterable (object):
         for it in self:
             yield i, it
             i += 1
-
+
 class WrapIterable (Iterable):
     # For when you aren't defining a class to mix in with:
-    def __init__(self, seq): self.__seq = seq
-    def __iter__(self): return iter(self.__seq)
-    def __getattr__(self, key): return getattr(self.__seq, key)
+    def __iter__(self): return self
+    def __init__(self, seq):
+        self.__getattr__ = lambda k, s=seq: getattr(s, k)
+        self.__seq = iter(seq)
+    def next(self): return self.__seq.next()
 
 class Dict (dict):
     __iter = dict.__iter__
@@ -133,6 +135,24 @@ class Dict (dict):
     def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
     def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
     def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
+
+    @classmethod
+    def __iterdict__(cls, what=()):
+        """Pseudo-constructor for derived classes to over-ride.
+
+        Where this class's methods need a new instance, they use this
+        method to create it; thus, by default, any derived class's use
+        of those methods will return instances of the derived
+        class.  Derived classes are encouraged to use this method
+        likewise, when then need to construct new instances, for the
+        sake of classes derived from *them*.  If a derived class has a
+        different constructor signature, or is for some other reason
+        unsuitable for use as the source of new instances, it can
+        over-ride this method with something suitable.\n"""
+        return cls(what)
+
+    __upcopy = dict.copy # returns a dict, even when exercised via a derived class
+    def copy(self): return self.__iterdict__(self.__upcopy())
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
@@ -348,7 +368,21 @@ class ReadSeq (Iterable):
         return self.enumerate().filter(lambda (k, v),
                                        ks=self.order(par)[-n:]: k in ks).map(lambda (k, v): v)
 
-class Tuple (ReadSeq, tuple):
+from study.cache.property import lazyprop
+class ReadOnlySeq (ReadSeq):
+    @lazyprop
+    def min(self, cls=None):
+        assert cls is None
+        return min(self)
+
+    @lazyprop
+    def max(self, cls=None):
+        assert cls is None
+        return max(self)
+
+del lazyprop    
+
+class Tuple (ReadOnlySeq, tuple):
     """Pretend to be a tuple.
 
     Note that classes based on this need to over-ride __new__(), which *returns*
