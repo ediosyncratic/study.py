@@ -5,9 +5,9 @@ Exported class:
 This uses study.maths.vector.Vector as a key-type, in places.
 """
 from study.snake.sequence import Dict
-from study.cache.property import lazyprop
+from study.cache.property import lazyprop, Cached
 
-class Spread (Dict):
+class Spread (Dict, Cached):
     """Describe a discrete distribution.
 
     An instance of this class is a mapping from possible values to relative
@@ -36,13 +36,12 @@ class Spread (Dict):
       vector(n) -- outcomes of n instances of self
       map(func) -- apply func to each key of self, preserving value
 
-    The len() of a Spread is the sum of its values (not the more usual number of
-    key-value pairs; use len(.keys()) for that).  A Spread object also supports
-    methods:
+    A Spread object also supports methods:
+      sum() -- sum of self's values
       split(n) -- (n-1)-tuple of split-points for n-iles
       p(key) -- actual frequency, relative frequency divided by total
       E([func, add]) -- expected values, see its own documentation
-    the last two of which uses study.maths.ratio.Rational objects to represent
+    the last two of which use study.maths.ratio.Rational objects to represent
     fractions, when they arise.  Various statistical attributes:
       mean -- E(lambda (x,w): x*w)
       variance -- E(lambda (x,w), m=mean: (x-m)**2 * w)
@@ -58,14 +57,14 @@ class Spread (Dict):
     @classmethod
     def uniform(cls, seq):
         "Represents a uniform distribution on the given sequence of values"
-        ans = cls()
+        ans = cls.__iterdict__()
         for i in seq: ans[i] += 1
-        return ans
+        return ans.freeze()
 
     @classmethod
     def die(cls, n, step=1):
         "Represents an n-sided fair die with faces labelled 1 through n"
-        return cls.uniform(range(1, 1+n, step))
+        return cls.uniform(range(1, 1+n, step)).freeze()
 
     @classmethod
     def dice(cls, *ns):
@@ -77,10 +76,10 @@ class Spread (Dict):
         vector (q.v.).  Thus dice(4, 6, 8) shall describe a variate whose first
         component is uniformly distributed on 1 through 4 and so on.\n"""
 
-        return cls.join(None, *map(cls.die, ns))
+        return cls.join(None, *map(cls.die, ns)).freeze()
 
-    def __len__(self): return self.itervalues().sum()
-    def p(self, key): return self.__rat(self[key], len(self))
+    def sum(self): return self.itervalues().sum()
+    def p(self, key): return self.__rat(self[key], self.sum())
     def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
 
@@ -90,7 +89,61 @@ class Spread (Dict):
         argument is a function that adds either two outputs of func or one
         output of func and an output of an earlier call to itself; its default
         is simple addition.\n"""
-        return self.iteritems().map(func).reduce(add) * self.__rat(1, len(self))
+        return self.iteritems().map(func).reduce(add) * self.__rat(1, self.sum())
+
+    def __rescale(self, num, den):
+        for k in self.keys():
+            self[k], r = divmod(self[k] * num, den)
+            assert r == 0
+
+    from study.maths.natural import hcf
+    def simplify(self, gcd=hcf):
+        """Eliminate any common factor from self's values."""
+        f = gcd(*self.values())
+        if f > 1: f = self.__rescale(1, f)
+        return self.sum()
+
+    def rescale(self, num=1, den=1, gcd=hcf):
+        """Rescale values by ratio q*num/den and return q.
+
+        Takes two arguments, num and den; finds the least positive
+        integer q for which, for every value v of self, v * num * q is a
+        multiple of den; changes each value v to v * num * q / den and
+        returns q.  For example, before using x.update() to obtain its
+        union with y, y.rescale(x.rescale(y.sum(), x.sum())) will ensure
+        that x and y have equal total weight.\n"""
+        if num * den == 0:
+            raise ValueError("Rescaling will zero all values !", num, den)
+        q = den / gcd(num * gcd(*self.values()), den)
+        if q < 0: q = -q
+        assert not self.keys() or q != 0
+        self.__rescale(num * q, den)
+        return q
+    del hcf
+
+    def __readonly(self, *args, **kw):
+        raise ValueError('Is read-only', self)
+
+    def freeze(self):
+        """Lock self against further key/value modifications.
+
+        After this has been called, you can't modify self; in
+        particular, you can't use simplify() or rescale().  You can
+        obtain an unfrozen version from .copy() if you need it
+        subseqeuntly.\n"""
+        self.clear_propstore_cache()
+        self.__delitem__ = self.__setitem__ = self.update = self.__readonly
+        return self
+
+    @lazyprop
+    def max(self, cls=None):
+        assert cls is None
+        return max(self.keys())
+
+    @lazyprop
+    def min(self, cls=None):
+        assert cls is None
+        return min(self.keys())
 
     @lazyprop
     def mean(self, cls=None):
@@ -103,9 +156,23 @@ class Spread (Dict):
         return self.E(lambda (x, w), m=self.mean: (x - m)**2 * w)
 
     @lazyprop
+    def modes(self, cls=None):
+        assert cls is None
+        top = max(self.values())
+        return tuple(self.iteritems().filter(
+                lambda (k, v), m=top: v == m).map(
+                lambda (k, v): k))
+
+    @lazyprop
+    def mode(self, cls=None):
+        ms = self.modes
+        if len(ms) != 1: raise ValueError('Distribution is not unimodal', ms)
+        return ms[0]
+
+    @lazyprop
     def median(self, cls=None):
         assert cls is None
-        return self.split(2)
+        return self.split(2)[0]
 
     def split(self, n, par=cmp, mid=None):
         """Tuple of split-points between n-iles of distribution.
@@ -135,13 +202,12 @@ class Spread (Dict):
 
         assert n > 0
         if mid is None: mid = self.__mid
-        ans, m, ks, all = (), n, self.keys(), len(self)
+        ans, m, ks, all = (), 1, self.keys(), self.sum()
         ks.sort(par)
 
         i = len(ks) - 1
         tot = self[ks[i]]
-        while m > 1:
-            m -= 1
+        while m < n:
             while tot * n < all * m and i > 0:
                 i -= 1
                 tot += self[ks[i]]
@@ -149,6 +215,7 @@ class Spread (Dict):
             else:
                 assert tot * n == all * m
                 ans = (mid(ks[i-1], ks[i]),) + ans
+            m += 1
 
         assert sum(map(self.p, ks[:i])) * n <= 1
         assert len(ans) + 1 == n
@@ -158,8 +225,8 @@ class Spread (Dict):
         if isinstance(other, Spread):
             return self.join(binop, self, other)
 
-        return self.__class__(self.iteritems().map(
-                lambda (k, v), o=other, b=binop: (b(k, o), v)))
+        return self.__iterdict__(self.iteritems().map(
+                lambda (k, v), o=other, b=binop: (b(k, o), v))).freeze()
 
     def __eq__(self, other): return self.__binop(other, lambda x, y: x == y)
     def __ne__(self, other): return self.__binop(other, lambda x, y: x != y)
@@ -176,21 +243,25 @@ class Spread (Dict):
         if isinstance(other, Spread):
             return self.join(lambda x, y: x * y, self, other)
 
-        if isinstance(other, (int, long)):
-            if other == 0: return self.map(lambda k: 0)
-            elif other > 0:
-                return self.join(lambda *a: sum(a), * (self,) * other)
+        if not isinstance(other, (int, long)):
+            raise TypeError('Should be a Spread object or positive integer', other)
+        if other < 0:
+            self, other = self.map(lambda k: -k), -other
 
-            raise ValueError('Should be positive', other)
-        raise TypeError('Should be a Spread object or positive integer', other)
+        ans = self.map(lambda k: 0)
+        while other > 0:
+            other, r = divmod(other, 2)
+            if r: ans = ans + self
+            self = self + self
+        return ans.freeze()
 
     __rmul__ = __mul__
 
     def filter(self, test):
-        ans = self.__class__()
+        ans = self.__iterdict__()
         for k, v in self.iteritems():
             if test(k): ans[k] = v
-        return ans
+        return ans.freeze()
 
     def vector(self, n):
         """Multiplex a distribution.
@@ -238,10 +309,10 @@ class Spread (Dict):
 
         if func is None: func = cls.__tor
         assert what
-        ans = cls()
+        ans = cls.__iterdict__()
         for t, n in cls.__renee(*what):
             if n: ans[func(*t)] += n
-        return ans
+        return ans.freeze()
 
     # Implementation details:
     from study.maths.vector import Vector as __vec
