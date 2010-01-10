@@ -91,6 +91,24 @@ class Spread (Dict, Cached):
         is simple addition.\n"""
         return self.iteritems().map(func).reduce(add) * self.__rat(1, self.sum())
 
+    @staticmethod
+    def indicator(start=None, stop=None):
+        """Convenience method to return an indicator function.
+
+        Optional arguments start and stop define a range; for stop > x
+        >= start, x is in the range; if either start or stop is omitted
+        (or None, their default value) its constraint on x is
+        elided.  Returns a function which returns 1 for inputs in the
+        interval, 0 otherwise.  Note that start is in the interval but
+        stop is not.  Indicator functions can be useful with .E() to
+        obtain the probability of being in an interval.\n"""
+        def func(x):
+            if start is None or x >= start:
+                if stop is None or x < stop:
+                    return 1
+            return 0
+        return func
+
     def __rescale(self, num, den):
         for k in self.keys():
             self[k], r = divmod(self[k] * num, den)
@@ -121,8 +139,19 @@ class Spread (Dict, Cached):
         return q
     del hcf
 
-    def __readonly(self, *args, **kw):
-        raise ValueError('Is read-only', self)
+    __updel, __upset, __update = Dict.__delitem__, Dict.__setitem__, Dict.update
+    __readonly = False
+    def __delitem__(self, key):
+        if self.__readonly: raise ValueError("I'm read-only")
+        self.__updel(key)
+
+    def __setitem__(self, key, val):
+        if self.__readonly: raise ValueError("I'm read-only")
+        self.__upset(key, val)
+
+    def update(self, *args, **kw):
+        if self.__readonly: raise ValueError("I'm read-only")
+        self.__update(*args, **kw)
 
     def freeze(self):
         """Lock self against further key/value modifications.
@@ -132,7 +161,7 @@ class Spread (Dict, Cached):
         obtain an unfrozen version from .copy() if you need it
         subseqeuntly.\n"""
         self.clear_propstore_cache()
-        self.__delitem__ = self.__setitem__ = self.update = self.__readonly
+        self.__readonly = True
         return self
 
     @lazyprop
@@ -225,8 +254,12 @@ class Spread (Dict, Cached):
         if isinstance(other, Spread):
             return self.join(binop, self, other)
 
-        return self.__iterdict__(self.iteritems().map(
-                lambda (k, v), o=other, b=binop: (b(k, o), v))).freeze()
+        ans = self.__iterdict__()
+        for (k, v) in self.iteritems().map(
+            lambda (k, v), o=other, b=binop: (b(k, o), v)):
+            ans[k] += v
+        ans.simplify()
+        return ans.freeze()
 
     def __eq__(self, other): return self.__binop(other, lambda x, y: x == y)
     def __ne__(self, other): return self.__binop(other, lambda x, y: x != y)
