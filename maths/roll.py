@@ -290,6 +290,24 @@ class Spread (Dict, Cached):
 
     __rmul__ = __mul__
 
+    def clip(self, start=0, stop=None):
+        """Pull keys outside a range to its nearest end-point.
+
+        Optional arguments, start (default: 0) and stop (default: None)
+        take values None (for no limit) or a bound on the keys of
+        self.  If start is not None, all keys < start are mapped to
+        start; if stop is not None, all keys > stop are mapped to
+        stop.  Returns a new clip object with the duly-modified keys of
+        self, or self if no clipping happens.\n"""
+
+        if start is None or start <= min(self.keys()):
+            if stop is None or stop > max(self.keys()): return self
+            return self.map(lambda k, s=stop: min(k, s))
+        elif stop is None or stop > max(self.keys()):
+            return self.map(lambda k, s=start: max(k, s))
+
+        return self.map(lambda k, a=start, o=stop: max(min(k, o), a))
+
     def filter(self, test):
         ans = self.__iterdict__()
         for k, v in self.iteritems():
