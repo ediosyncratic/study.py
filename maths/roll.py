@@ -4,6 +4,7 @@ Exported class:
   Spread -- description of discrete distributions
 This uses study.maths.vector.Vector as a key-type, in places.
 """
+from study.snake.decorate import postcompose
 from study.snake.sequence import Dict
 from study.cache.property import lazyprop, Cached
 
@@ -290,6 +291,7 @@ class Spread (Dict, Cached):
 
     __rmul__ = __mul__
 
+    @postcompose(lambda x: x.freeze())
     def clip(self, start=0, stop=None):
         """Pull keys outside a range to its nearest end-point.
 
