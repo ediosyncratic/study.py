@@ -4,7 +4,7 @@
 Saturn has sixty moons:
 http://www.sciencedaily.com/releases/2007/07/070719194206.htm
 
-$Id: saturnalia.py,v 1.8 2007-10-24 22:58:08 eddy Exp $
+$Id: saturnalia.py,v 1.9 2010-02-22 22:13:39 eddy Exp $
 """
 
 from study.value.units import mega, metre, km, tophat
@@ -47,9 +47,9 @@ Epimetheus = NASAmoon("Epimetheus", Saturn, Discovery("Fountain et al.", 1980, s
                       151.42, 0.69, NASAshell(69, 55, 55), "ice?", .0055, .63)
 Helene = NASAtrojan("Helene", Discovery("Laques, Lecacheux", 1980, source="Voyager 1"),
                     Dione, '+', NASAshell(18, 16, 15), "ice?")
-# I had to guess which of these leads and which follows ...
-# http://antwrp.gsfc.nasa.gov/apod/ap020519.html
-# appears to indicate Telesto ahead, Calypso behind.
+# I originally had to guess which of these leads and which follows ...
+# http://apod.nasa.gov/apod/ap100217.html
+# clearly indicates Telesto ahead, Calypso behind.
 Telesto = NASAtrojan("Telesto", Discovery("Smith et al.", 1980, source="Voyager 1"),
                      Tethys, '+', NASAshell(15, 12.5, 7.5), "ice?")
 Calypso = NASAtrojan("Calypso", Discovery("Pascu et al.", 1980, source="Voyager 1"),
