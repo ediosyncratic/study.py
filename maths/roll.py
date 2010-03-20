@@ -55,6 +55,16 @@ class Spread (Dict, Cached):
         try: return self.__upget(key)
         except KeyError: return 0
 
+    def sampler(self):
+        """Returns an iterator yielding samples from self's distribution"""
+        from random import randint
+        while True:
+            i = randint(1, self.sum())
+            for k, v in self.iteritems():
+                if v < i: i -= v
+                else: break
+            yield k
+
     @classmethod
     def uniform(cls, seq):
         "Represents a uniform distribution on the given sequence of values"
