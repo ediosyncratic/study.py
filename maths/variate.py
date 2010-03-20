@@ -85,8 +85,10 @@ class Uniform (Variate):
         self.__height = 1./(hi - lo)
         self.__upinit(lambda x, h=self.__height: h, lo, hi)
 
+    def __w(self, r=random): r() / self.__height
+
     def sample(self):
-        return random() / self.__height + self.min
+        return self.__w() + self.min
 
 # TODO: turn into a class method (generator) of Variate
 class RatioGenerator:
@@ -100,9 +102,12 @@ class RatioGenerator:
     def __init__(self, source, ratio, bound):
         self.__source, self.__ratio, self.__bound = source, ratio, bound
 
-    def __call__(self):
+    def __b(self, r=random): return r() * self.__bound
+    def sample(self):
         """The ratio test algorithm."""
         while 1:
             ans = self.__source()
-            if self.__ratio(ans) > random() * bound:
+            if self.__ratio(ans) > self.__b():
                 return ans
+del random
+
