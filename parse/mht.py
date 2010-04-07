@@ -121,3 +121,10 @@ class MHT (Cached):
         cut = max(nom.rfind('/'), nom.rfind('\\'))
         if cut >= 0: nom = nom[cut:]
         return nom
+
+if __name__ == '__main__':
+    # usage: python study/money/mht.py blah.mht outdir/
+    # Be sure to not forget the trailing / !
+    import sys
+    box = MHT(sys.argv[1])
+    box.unpack(sys.argv[2], box.stem or None)
