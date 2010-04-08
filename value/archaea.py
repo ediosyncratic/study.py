@@ -73,7 +73,7 @@ Even when using the official SI unit, different ways of expressing a unit can
 change perceptions of its meaning - for example, (metre / second)**2 means the
 same as Joule / kilogramme, but expresses a different perspective on it.
 
-$Id: archaea.py,v 1.11 2009-11-20 01:09:25 eddy Exp $
+$Id: archaea.py,v 1.12 2010-04-08 17:19:09 eddy Exp $
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -98,6 +98,7 @@ http://www.unc.edu/~rowlett/units/
 http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
 http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
 http://en.wikipedia.org/wiki/Category:Units_of_measure
+http://www.easyunitconverter.com/
 
 Nautical mile and its kin
 http://www.gwydir.demon.co.uk/jo/units/sea.htm
@@ -285,7 +286,29 @@ league = Quantity(3, mile,
 
 A varying measure of road distance, usu. about three miles (poxy).
 """)
-marathon = 26 * mile + 385 * yard
+marathon = Quantity(1, 26 * mile + 385 * yard,
+                    """The length of a marathon race.
+
+At the first Olympic games, hosted by Athens in 1896, a race was run
+from the town of Marathon to Athens, following a 40 km route,
+commemorating a confused legend about a messenger bearing news of the
+end of the battle of Marathon in 490 BC.  (Prior to the battle,
+Pheidippides allegedly ran, in two days, from Athens to Sparta, a
+distance of over 140 miles, to request aid.  After the battle, the
+Athenian army marched home in a hurry, lest the Persians sail up the
+coast to attack Athens directly.  These two stories ended up getting
+conflated.)
+
+Since then, races over about 40 km have tended to be called
+marathons.  Until 1921, there was no standardised distance for the race;
+thereafter, a standard distance of 42.195 km was specified for Olympic
+marathons and has been widely adopted elsewhere.  The given distance is
+based on the 26 miles and 385 yards of the 1908 Olympic marathon, which
+had happened to have a particularly memorable ending; this course's
+length, in turn, had been arrived at by a (surprisingly well-documented)
+comedy of happenstances in the preparations for the race.
+""")
+
 point = pica / 12        # the printer's point
 point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller - a mass)
 point.arc = arc.point
