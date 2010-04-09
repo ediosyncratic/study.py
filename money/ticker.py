@@ -43,8 +43,6 @@ class StockPageParser (HTMLParser):
         self.close()
         data = self.data
         del self.__stack, self.__keys, self.data
-        for k, v in data.items():
-            if v == '-': del data[k]
         return data
 
     def handle_starttag(self, tag, attrs, T=Table,
@@ -110,7 +108,7 @@ class StockPageParser (HTMLParser):
                   ignore=lambda t: ''):
             heads, xfrm = [], []
             for det in headings:
-                f = lambda x: x
+                det, f = det.strip(), lambda x: x
                 try: it = notoeng[det]
                 except KeyError:
                     it = det
@@ -125,11 +123,11 @@ class StockPageParser (HTMLParser):
 
         def each(self, row):
             # Apply any needed text transformations:
-            return tuple(map(lambda f, e: f(e), self.__xfrm, row))
+            return tuple(map(lambda f, e: f(e.strip()), self.__xfrm, row))
 
         def package(self, all):
             assert len(all) == 1, all
-            return dict(filter(lambda (k, v): k and v,
+            return dict(filter(lambda (k, v): k and v and v != '-',
                                map(lambda *s: s, self.__keys, all[0])))
 
 del HTMLParser, urlopen, Request, Table
