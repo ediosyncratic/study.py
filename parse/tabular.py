@@ -15,14 +15,46 @@ class Table (Cached):
     def add_data(self, text): self.__text += text
 
     def __end_cell(self):
+        try:
+            if self.__cell is self.__caption: return
+        except AttributeError: return
+        assert self.__cell > 0
         try: self.__text
         except AttributeError: pass
         else: self.close_cell()
 
-    def close_cell(self):
-        self.__currow.append(self.__text)
-        assert self.__cell == len(self.__currow), (self.__cell, self.__currow)
+    def __tidy_text(self):
+        # Eliminate extraneous space from text:
+        lines = map(str.rstrip, self.__text.split('\n'))
         del self.__text
+        # Any common indentation (except possibly on first line):
+        indents = map(lambda txt: txt[:-len(txt.lstrip())],
+                      filter(None, lines[1:]))
+        if indents:
+            cut = min(map(len, indents))
+            while cut > 0:
+                seq = iter(indents)
+                dent = seq.next()[:cut]
+                for it in seq:
+                    if it[:cut] != dent: break
+                else: # they all agree :-)
+                    trim = lambda x, c=cut: x[c:]
+                    if lines[0] and lines[0][:cut] != dent:
+                        lines[1:] = map(trim, lines[1:])
+                    else: lines = map(trim, lines)
+                    break
+                cut -= 1
+
+        # Leading and trailing blank lines:
+        while not lines[0]:  lines = lines[1:]
+        while not lines[-1]: lines = lines[:-1]
+
+        # Re-assemble what remains:
+        return '\n'.join(lines)
+
+    def close_cell(self):
+        self.__currow.append(self.__tidy_text()))
+        assert self.__cell == len(self.__currow), (self.__cell, self.__currow)
 
     def close_row(self):
         self.__end_cell()
@@ -32,8 +64,8 @@ class Table (Cached):
 
     def close_caption(self):
         assert self.__cell is self.__caption
-        self.caption = self.__text
-        del self.__cell, self.__text
+        self.caption = self.__tidy_text()
+        del self.__cell
 
     @lazyprop
     def width(self, ignored=None):
@@ -147,8 +179,8 @@ class Table (Cached):
         except AttributeError: pass
         else: assert False, ('Rows should be explicitly closed', self.__currow)
 
-        seq = iter(self.rows)
         transform = factory(self.caption)
+        seq = iter(self.rows)
         all = transform.first(seq.next())
         for it in seq: all.append(transform.each(it))
         return transform.package(all)
