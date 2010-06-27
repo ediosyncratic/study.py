@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.40 2010-06-27 15:35:59 eddy Exp $
+$Id: polynomial.py,v 1.41 2010-06-27 16:02:06 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -947,7 +947,7 @@ class Polynomial (Lazy):
         lead = self.__coefs[self.rank]
         if self.__denom is not None: lead *= 1. / self.__denom
         if lead != 1: ans.append(lead)
-        return ans
+        return tuple(ans)
 
     def resultant(self, other):
         """See .Sylvester(other); this is its determinant.\n"""
