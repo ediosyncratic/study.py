@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.39 2010-06-27 12:52:07 eddy Exp $
+$Id: polynomial.py,v 1.40 2010-06-27 15:35:59 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -38,6 +38,23 @@ class Polynomial (Lazy):
     enough' cases.  Note that cmp() yields zero when the difference's sign is
     None or zero; but == is true only when sign is zero (actual equality).
 
+    Alternate constructors:
+    =======================
+
+    A few static methods are provided to return particular polynomials (rather
+    than complicate the constructor with hairy special cases):
+
+      power(n) -- x**n &larr;x
+      Chose(gap) -- x!/(x-gap)!/gap! &larr;x
+      PowerSum(k) -- sum(: i**k &larr;i |n) &larr;n
+      interpolate(data) -- fit a given mapping of inputs to outputs
+
+    See the doc-string of each for details (especially the last, for limitations
+    of the present implementation).  Various other modules in the study package
+    sub-class Polynomial to provide further special cases; see
+    study.chemy.atomic, study.maths.Legendre and study.maths.multiangle for
+    examples.
+
     Methods:
     ========
 
@@ -46,13 +63,9 @@ class Polynomial (Lazy):
       integral([start=0, base=0]) -- integration
       unafter(poly) -- input to poly yielding self as output
       Weierstrass([tol=1e-6]) -- finds roots
-      resultant(self, other) -- 
+      resultant(other) -- determinant of Sylvester(other)
       Sylvester(other) -- Sylvester matrix of self and another polynomial
       Bezout(other) -- B&eacute;zout matrix of self and another polynomial
-
-    An alternate constructor is also provided via the static method Chose(gap),
-    which returns the polynomial lambda x: x!/(x-gap)!/gap!, which has some
-    convenient properties under summation.
 
     See individual methods' docs for details.\n"""
 
@@ -985,6 +998,53 @@ class Polynomial (Lazy):
 
         # assert: determinant(ans) == self.resultant
         return tuple(ans)
+
+    @staticmethod
+    def power(n): return Polynomial({n: 1})
+
+    @staticmethod
+    def __solve(data, tool=[]):
+        # Package lazy access to System().obtain(), for interpolate().
+        try: System = tool[0]
+        except IndexError: # first time:
+            from study.maths.reduce import System
+            tool.append(System)
+
+        n = len(data)
+        return System(n, map(lambda k: map(lambda i, k=k: k**i,
+                                           range(n)),
+                             data.keys())).obtain(data.values())
+
+    @staticmethod
+    def interpolate(data):
+        """Construct a Polynomial through desired points.
+
+        Single argument, data, is a mapping from inputs to the polynomial to
+        their desired outputs.  Current implementation only supports integer
+        (including long) keys; I should ultimately make it more liberal, at
+        least as to outputs.  Returned polynomial's order is equal to the number
+        of entries in the supplied dictionary.
+
+        We're solving for a list c of coefficients given:
+            value = sum(: c[i] * power(i, key) &larr;i :)
+        for each key, value in our dictionary.  This is a simple matrix
+        problem :-)\n"""
+
+        ouch = filter(lambda x: not (isinstance(x, int) or
+                                     isinstance(x, long)),
+                      data.keys())
+        if ouch:
+            raise NotImplementedError(
+                'Only integral arguments supported for now - sorry', ouch)
+
+        coeffs, n = self.__solve(data), len(data)
+        if len(coeffs) > n:
+            assert len(coeffs) == n + 1
+            coeffs, scale = coeffs[:n], coeffs[n]
+            if scale != 1:
+                return Polynomial(coeffs, denominator=scale)
+
+        return Polynomial(coeffs)
 
     @staticmethod
     def Chose(gap):
