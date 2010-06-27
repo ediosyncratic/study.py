@@ -1,36 +1,47 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.8 2010-06-27 13:34:33 eddy Exp $
+$Id: atomic.py,v 1.9 2010-06-27 17:27:59 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
-def SHOpoly(n, P=Polynomial):
-    """Polynomial for quantum simple harmonic oscillators.
+class SHOpoly(Polynomial):
+    __upinit = Polynomial.__init__
+    def __init__(self, n):
+        """Polynomial for quantum simple harmonic oscillators.
 
-    Single argument is the order of the polynomial.  The constructed
-    polynomial has positive leading order term with integers for all
-    coefficients, sharing no common factor among them.
+        Single argument is the order of the polynomial.  The constructed
+        polynomial has positive leading order term with integers for all
+        coefficients, sharing no common factor among them.
 
-    See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml\n"""
+        See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml\n"""
 
-    bok, e = {n: 1}, n
-    while n > 1:
-        n -= 2
-        v = -(n + 1) * (n + 2) * bok[n + 2] // 2
-        a, b = v, e - n
-        # Nominally, we add bok[n] = a / b but then rescale all
-        # co-efficients to make that whole; really, scale all others by
-        # b/hcf(a,b) and set bok[n] = a/hcf(a,b).
-        assert b > 0
-        if a < 0: a = -a
-        if a < b: a, b = b, a
-        while b: a, b = b, a % b
-        assert a > 0 and (e - n) % a == 0 == v % a, 'Euclid failed !'
-        b = (e - n) // a
-        for k in bok.iterkeys(): bok[k] *= b
-        bok[n] = v // a
+        bok, e = {n: 1}, n
+        while n > 1:
+            n -= 2
+            v = -(n + 1) * (n + 2) * bok[n + 2] // 2
+            a, b = v, e - n
+            # Nominally, we add bok[n] = a / b but then rescale all
+            # co-efficients to make that whole; really, scale all others
+            # by b/hcf(a,b) and set bok[n] = a/hcf(a,b).
+            assert b > 0
+            if a < 0: a = -a
+            if a < b: a, b = b, a
+            while b: a, b = b, a % b
+            assert a > 0 and (e - n) % a == 0 == v % a, 'Euclid failed !'
+            b = (e - n) // a
+            for k in bok.iterkeys(): bok[k] *= b
+            bok[n] = v // a
 
-    return P(bok)
+        self.__upinit(bok)
+
+    def _lazy_get_scale_(self, ig, square=Polynomial((0,0,1))):
+        grand = (self * self).unafter(square)
+        n, ans = grand.rank, 0
+        while n > -1:
+            ans *= n + .5
+            ans += grand.coefficient(n)
+            n -= 1
+        return ans # * (h/k/m/2)**.5
 
 class Laguerre (Polynomial):
     """The Laguerre polynomials.
