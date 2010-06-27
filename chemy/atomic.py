@@ -1,18 +1,51 @@
 """Atomic energy levels.
 
-$Id: atomic.py,v 1.7 2009-03-05 07:16:32 eddy Exp $
+$Id: atomic.py,v 1.8 2010-06-27 13:34:33 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
 
-class Laguerre (Polynomial):
-    __upinit = Polynomial.__init__
-    from study.maths.natural import hcf
-    from study.maths.Pascal import factorial
+def SHOpoly(n, P=Polynomial):
+    """Polynomial for quantum simple harmonic oscillators.
 
-    def __init__(self, n, b, hcf=hcf, pling=factorial):
+    Single argument is the order of the polynomial.  The constructed
+    polynomial has positive leading order term with integers for all
+    coefficients, sharing no common factor among them.
+
+    See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml\n"""
+
+    bok, e = {n: 1}, n
+    while n > 1:
+        n -= 2
+        v = -(n + 1) * (n + 2) * bok[n + 2] // 2
+        a, b = v, e - n
+        # Nominally, we add bok[n] = a / b but then rescale all
+        # co-efficients to make that whole; really, scale all others by
+        # b/hcf(a,b) and set bok[n] = a/hcf(a,b).
+        assert b > 0
+        if a < 0: a = -a
+        if a < b: a, b = b, a
+        while b: a, b = b, a % b
+        assert a > 0 and (e - n) % a == 0 == v % a, 'Euclid failed !'
+        b = (e - n) // a
+        for k in bok.iterkeys(): bok[k] *= b
+        bok[n] = v // a
+
+    return P(bok)
+
+class Laguerre (Polynomial):
+    """The Laguerre polynomials.
+
+    See http://www.chaos.org.uk/~eddy/physics/atom.xhtml\n"""
+    __upinit = Polynomial.__init__
+    def __init__(self, n, b):
         if b < 0 or n <= b or b != int(b) or n != int(n):
             raise ValueError("Laguerre(n, b) is defined for natural n, b with n > b", n, b)
+        self.__upinit(self.__coefs(n, b))
 
+    from study.maths.natural import hcf
+    from study.maths.Pascal import factorial
+    @staticmethod
+    def __coefs(n, b, gcd=hcf, pling=factorial):
         f = [ 0 ] * n
         # (j*(j+1) -b*(b+1))*f[j] = f[j-1]*(j-n) for n > j >= b
         j, last, L = n, pling(n-1-b), b * (b+1)
@@ -22,8 +55,7 @@ class Laguerre (Polynomial):
             last = last * (j * (j+1) - L) / (j - n)
 
         assert last == 0
-        self.__upinit(map(lambda x, e=hcf(*f): x // e, f))
-
+        return map(lambda x, e=gcd(*f): x // e, f)
     del hcf, factorial
 
     def _lazy_get_scale_(self, ig, linear=Polynomial((0,1))):
@@ -54,20 +86,19 @@ from study.maths.Legendre import Spherical
 
 class Orbit (Lazy):
     def __init__(self, n, b, j, Z=1):
-
         """Initialize a dimensionless quantum orbit in a Coulomb field.
 
         Required parameters:
           n - shell number; natural
           b - total angular momentum number; natural < n
-          j - angular momentum component about coordinate axis; integer between
-              minus b and b.
+          j - angular momentum component about coordinate axis; integer
+              between minus b and b.
         Optional argument:
-          Z - atomic number of atom (number of protons in the nucleus); positive
-              integer.
+          Z - atomic number of atom (number of protons in the nucleus);
+              positive integer (default: 1).
 
-        Describes a potential orbit of a lone electron about a nucleus of atomic
-        number Z.\n"""
+        Describes a potential orbit of a lone electron about a nucleus
+        of atomic number Z.\n"""
 
         if Z <= 0 or Z != int(Z):
             raise ValueError("Atomic number should be a positive integer", Z)
@@ -84,16 +115,17 @@ class Orbit (Lazy):
     def __call__(self, r, phi, theta):
         """Returns dimensionless field probability at specified location.
 
-        The radial co-ordinate, r, should be a dimensionless Quantity() obtained
-        by dividing true radius by the Bohr radius, hbar / (mass * alpha * c)
-        where the mass should really be a reduced mass, given by 1/mass =
-        1/electron.mass + 1/nucleus.mass; but this is almost exactly the
-        electron mass anyway.  The returned field value should be divided by a
-        factor of this Bohr radius to the power 1.5 to get a quantity whose
-        squared modulus, when integrated over a volume, yields the probability
-        of finding the electron in that volume.  Alternatively, skip that
-        scaling and do your integration in co-ordinates which use the Bohr
-        radius as unit of length.\n"""
+        The radial co-ordinate, r, should be a dimensionless Quantity()
+        obtained by dividing true radius by the Bohr radius, hbar /
+        (mass * alpha * c) where the mass should really be a reduced
+        mass, given by 1/mass = 1/electron.mass + 1/nucleus.mass; but
+        this is almost exactly the electron mass anyway.  The returned
+        field value should be divided by a factor of this Bohr radius to
+        the power 1.5 to get a quantity whose squared modulus, when
+        integrated over a volume, yields the probability of finding the
+        electron in that volume.  Alternatively, skip that scaling and
+        do your integration in co-ordinates which use the Bohr radius as
+        unit of length.\n"""
 
         return self.__angular(phi, theta) * self.__radial(r)
 
