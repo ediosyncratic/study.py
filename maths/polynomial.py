@@ -1,6 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 
-$Id: polynomial.py,v 1.38 2009-10-30 01:08:57 eddy Exp $
+$Id: polynomial.py,v 1.39 2010-06-27 12:52:07 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -313,24 +313,24 @@ class Polynomial (Lazy):
         try: return val.real
         except AttributeError: return val
 
-    def _lazy_get_real_(self, ignored, as=toreal):
-        return self.__eachattr(as)
+    def _lazy_get_real_(self, ignored, fn=toreal):
+        return self.__eachattr(fn)
 
     del toreal
     def toimag(val):
         try: return val.imag
         except AttributeError: return 0
 
-    def _lazy_get_imag_(self, ignored, as=toimag):
-        return self.__eachattr(as)
+    def _lazy_get_imag_(self, ignored, fn=toimag):
+        return self.__eachattr(fn)
 
     del toimag
     def conjug8(val):
         try: return val.conjugate
         except AttributeError: return val
 
-    def _lazy_get_conjugate_(self, ignored, as=conjug8):
-        return self.__eachattr(as)
+    def _lazy_get_conjugate_(self, ignored, fn=conjug8):
+        return self.__eachattr(fn)
 
     del conjug8
 
