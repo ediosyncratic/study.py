@@ -4,13 +4,13 @@ See S and C for details, or
 http://www.chaos.org.uk/~eddy/math/multiangle.html
 for theory.
 
-$Id: multiangle.py,v 1.11 2007-03-24 22:42:21 eddy Exp $
+$Id: multiangle.py,v 1.12 2010-06-27 19:00:50 eddy Exp $
 """
 
 from polynomial import Polynomial
 
 class LazySeq:
-    def __init__(self, first=Polynomial(1)): self.__seq = [ first ]
+    def __init__(self, first=Polynomial.power(0)): self.__seq = [ first ]
 
     def __growto(self, key):
         val = self.growto(key)
@@ -54,7 +54,7 @@ class LazySeq:
 
         return ans
 
-z = Polynomial(0, 1)
+z = Polynomial.power(1)
 
 class Middle (LazySeq):
     def growto(self, key,
