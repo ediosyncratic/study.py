@@ -36,7 +36,7 @@ contains no integer <= q with B(0) empty and each B(1+i) obtained from B(i) as
 follows: let S(i) = s -sum(: 2**p &larr;p |B(i))**2 and select the highest
 integer n for which
 
-$Id: search.py,v 1.6 2008-05-11 19:49:43 eddy Exp $
+$Id: search.py,v 1.7 2010-07-08 20:50:49 eddy Exp $
 """
 
 # I'll use complex numbers as a handy model of two dimensions
@@ -103,13 +103,40 @@ def logrange(a, b=None, c=None):
     return result
 
 def median(seq, fn=None):
+    # Adapted from Wirth's "Data Structures + Algorithms = Programs"
     if not seq: raise IndexError, 'empty sequence has no median'
     row = list(seq) # always gets a copy
-    if fn: row.sort(fn)
-    else: row.sort()
+    def split(L, R, m, s=row, cmp=fn or cmp):
+        """Find the m-th highest entry in row.
+
+        This actually works for any m; it requires that we know the m-th
+        highest is actually no earlier than index L and no later than
+        index R, with m lying between L and R.  In O(R-L) steps, it
+        shuffles the m-th entry to position s[m], then returns.\n"""
+        print m, s[:L], s[L:R+1], s[R+1:]
+        while L < R:
+            x, i, j = s[m], L, R
+            while True:
+                while cmp(s[i], x) < 0: i += 1
+                while cmp(s[j], x) > 0: j -= 1
+                print i, j
+                if i > j: break
+                elif i < j:
+                    s[i], s[j] = s[j], s[i]
+                i += 1
+                j -= 1
+                if i > j: break
+            if j < m: L = i
+            if m < i: R = j
+            print s[:L], s[L:R+1], s[R+1:]
+
     mid, bit = divmod(len(row), 2)
+    split(0, len(row) - 1, mid)
     if bit: return row[mid]
-    return (row[mid] + row[mid-1]) * .5
+    split(0, mid, mid-1)
+    q, r = divmod(row[mid] + row[mid-1], 2)
+    if r: return (row[mid] + row[mid-1]) * .5
+    return q
 
 def gradients(fn, arg, *deltas):
     if len(deltas) == 1 and type(deltas[0]) in (type(()), type([])):
