@@ -1,6 +1,6 @@
 """Objects to describe real quantities (with units of measurement).
 
-$Id: quantity.py,v 1.55 2009-11-08 17:52:25 eddy Exp $
+$Id: quantity.py,v 1.56 2010-07-08 19:22:09 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -207,9 +207,9 @@ def scalar():
     def exp(val, xp=math.exp, px=cmath.exp, s=chose): return s(val, xp, px)
     def ln(val, lg=math.log, gl=cmath.log, s=chose): return s(val, lg, gl)
     def arccos(val, ac=math.acos, ca=cmath.acos, s=chose): return s(val, ac, ca)
-    def arcsin(val, as=math.asin, sa=cmath.asin, s=chose): return s(val, as, sa)
+    def arcsin(val, ar=math.asin, sa=cmath.asin, s=chose): return s(val, ar, sa)
     def arcsec(val, ac=arccos): return ac(1./val)
-    def arccosec(val, as=arcsin): return as(1./val)
+    def arccosec(val, ar=arcsin): return ar(1./val)
 
     def sinc(val, s=math.sin, x=cmath.sin, c=chose):
         try: return c(val, s, c) / val
@@ -228,7 +228,7 @@ def scalar():
         return val
 
     def arccosh(val, ac=cmath.acosh, s=simple): return s(ac(val))
-    def arcsinh(val, as=cmath.asinh, s=simple): return s(as(val))
+    def arcsinh(val, ar=cmath.asinh, s=simple): return s(ar(val))
     def arctanh(val, at=cmath.atanh, s=simple): return s(at(val))
 
     return { 'arcCos': lambda v, a=arccos, r=radian: r * v.evaluate(a),
