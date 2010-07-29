@@ -2,7 +2,7 @@
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
 
-$Id: zoom.py,v 1.12 2008-05-11 19:55:30 eddy Exp $
+$Id: zoom.py,v 1.13 2010-07-29 22:31:42 eddy Exp $
 """
 
 from study.value.units import Object, year, kg
@@ -20,9 +20,9 @@ class Zoom (Object):
     frame - the time, t, instantaneous velocity v and distance, x, travelled are
     given in terms of a hyperbolic angle b by:
 
+        b = a.s/c
         sinh(b) = a.t/c
         cosh(b) = 1 +a.x/c/c
-        sinh(2.b) +2.b = 4.a.s/c
         tanh(b) = v/c
 
     For derivation, see http://www.chaos.org.uk/~eddy/physics/Zoom.html\n"""
@@ -44,7 +44,7 @@ class Zoom (Object):
 	"""Returns (proper, external) time twople for given distance."""
 
         b = (1 +self.__rate * distance / self.__c).arccosh
-        return ((2*b).sinh +2*b) * .25 / self.__rate, b.sinh / self.__rate
+        return b / self.__rate, b.sinh / self.__rate
 
     def saturation(self, time):
 	"""Returns speed, as fraction of light, at given proper time."""
@@ -57,20 +57,6 @@ class Zoom (Object):
 
     def hyperbole(self, time):
         """Computes the hyperbolic angle b as a function of proper time."""
-
-        # First approximation: sinh(2.b) = 2.b = 2.a.s/c
-        b2 = 2 * time * self.__rate
-        # The value sinh(b2) +b2 nees to equal, and a dummy last change:
-        rough, last = 2 * b2, 0
-        # Now apply Newton-Raphson
-        while True:
-            err = b2.sinh +b2 - rough
-            if b2.width == 0:
-                if err * 1e6 < last: break
-                last = err
-            elif err.abs < b2.width: break
-            b2 = b2 - err / (b2.cosh +1)
-
-        return .5 * b2
+        return time * self.__rate
 
 del Object, year, kg
