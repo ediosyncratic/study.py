@@ -11,8 +11,6 @@ Provides:
                index to entries.
   weakprop -- recurseprop using propstore to cache weakrefs to attribute values
   weakattr -- combines weakprop and dictattr
-
-$Id: weak.py,v 1.5 2009-10-16 06:25:28 eddy Exp $
 """
 
 from study.snake.sequence import ReadSeq
@@ -52,7 +50,7 @@ del ReadSeq
 # TODO: WeakMapping
 
 from study.snake.property import recurseprop, dictattr
-from property import propstore
+from study.cache.property import propstore
 class weakprop (propstore, recurseprop):
     """Weakly-referenced attribute look-up.
 
@@ -82,41 +80,109 @@ class weakprop (propstore, recurseprop):
 
         return ans
 
+    assert propstore.__init__.im_func is recurseprop.__init__.im_func
     @classmethod
-    def mutual(cls, get, ref=weakref.ref):
-        """Weakly-referenced mutual attribute look-up.
+    def __back(cls, fer=weakref.ref):
+        """Lazily-evaluated class for mutual and reflex.
 
-        One of the important cases for weak references is where two objects
-        reference one another; this messes up garbage collection unless we use
-        weak references.  When lazily evaluating one of the objects, we want to
-        record on the other that it is the original's relevantly-named
-        attribute, to save computing *its* lazy attribute.\n"""
-
-        try: mutual = cls.__mutual
+        Each class based on weakprop hereby obtains, as a .__reflex
+        attribute, a sub-class that can be used for building mutually
+        referential lazily-computed properties.\n"""
+        try: reflex = cls.__reflex
         except AttributeError:
-            class mutual (cls):
+            class reflex (cls):
+                """A property class for mutual weak references."""
+                __upinit = cls.__init__
+                def __init__(self, getit, pair=None, ref=fer):
+                    self.__upinit(getit)
+                    if pair is not None:
+                        self.__partner = ref(pair)
+                        try: f = pair.__partner
+                        except AttributeErrror: back = None
+                        else: back = f()
+                        if back is None: # typically it is
+                            pair.__partner = ref(self)
+
                 __upget = cls.__get__
-                def __get__(self, obj, mode=None,
-                            fer=ref):
+                def __get__(self, obj, mode=None, ref=fer):
                     ans = self.__upget(obj)
                     bok = self.cache(ans)
-                    try: f = bok[self]
-                    except KeyError: back = None
-                    else: back = f()
+                    try: f = self.__partner
+                    except AttributeError: pair = self
+                    else: pair = f() # may be None (but unlikely)
 
-                    if back is None:
-                        bok[base] = fer(obj)
+                    if pair is not None:
+                        try: f = bok[pair]
+                        except KeyError: back = None
+                        else: back = f()
+
+                        if back is None:
+                            bok[base] = ref(obj)
 
                     return ans
 
-            mutual.__name__ = cls.__name__ + '.mutual'
-            cls.__mutual = mutual
-
-        return mutual(get)
-
-    # TODO: add a pair, based on .group(2), for mutually complementary links
-
+            reflex.__name__ = cls.__name__ + '.__reflex'
+            cls.__reflex = reflex
+        return reflex
     del weakref
+
+    @classmethod
+    def mutual(cls, get):
+        """Weakly-referenced mutual attribute look-up.
+
+        One of the important cases for weak references is where two
+        objects reference one another; this messes up garbage collection
+        unless we use weak references.  When lazily evaluating one of
+        the objects, we want to record on the other that it is the
+        original's relevantly-named attribute, to save computing *its*
+        lazy attribute.  Contrast .reflex(), where two attributes are
+        each the reverse of the other.
+
+        Returns a property computed using get, so can be used as a
+        decorator to turn a function (with the usual (self, cls=None)
+        signature for property getters) into a property.\n"""
+
+        return cls.__back()(get)
+
+    @classmethod
+    def reflex(cls, left, right):
+        """Takes two getters and makes them weak reflex attributes.
+
+        By reflex, I mean the left of an object has that object as its
+        right, and vice versa.  So each getter computes an attribute, to
+        be saved on an object, which should also be used as saved
+        value's attribute with the other getter's name.  Both attributes
+        are saved as weak refs, to avoid garbage-collection issues due
+        to the cyclic reference.  Contrast .mutual(), where an attribute
+        is its own reflex.
+
+        Returns a pair of properties, (L, R), with L computed using left
+        and R computed using right.  Can't be used as a decorator, but
+        works essentially similarly to one.\n"""
+
+        # Complication: the two properties have to know about each
+        # other, also creating potential problems with
+        # garbage-collection; so have them remember one another via
+        # weakrefs.  Fortunately, although a weakref to a raw property
+        # isn't supported, I seem to be able to get away with weakrefs
+        # to instances of weakprop, hence presumably of classes derived
+        # from it.
+
+        reflex = self.__back()
+        left = reflex(left)
+        right = reflex(right, left)
+        return left, right
+
+    # One could go further and deal with an arbitrarily long cycle of
+    # properties, looping back to the original object, as in:
+    # x is x.a.b.c.d is x.b.c.d.a is x.c.d.a.b is x.d.a.b.c;
+    # but I can't think of a concrete use-case !  It's also hard to see
+    # how this might be implemented - unless each has a reflex property,
+    # at which point use of reflex should suffice anyway - without
+    # evaluating the whole of the rest of the loop when evaluating any
+    # member (i.e. when asked for x.a, also compute and record x.a.b and
+    # x.a.b.c so as to mark the last's .d as being x), so as to be able
+    # to close the loop back to the object we started from.
 
 class weakattr (dictattr, weakprop):
     # TODO: is this right ?  Shall the weak prop be saved in __dict__ ?  Shall
