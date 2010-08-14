@@ -56,12 +56,17 @@ from property import propstore
 class weakprop (propstore, recurseprop):
     """Weakly-referenced attribute look-up.
 
-    Sub-classes recurseprop and propstore and uses the latters cache to store a
-    weakref to each attribute value.  This ensures that the attribute is always
-    available, as if it were never garbabe-collected, while allowing for it to
-    be garbage-collected when not actively in use.  The referenced value is
-    retrieved automatically from the weakref when available; else it is
-    recomputed (and a fresh weakref cached).\n"""
+    Sub-classes recurseprop and propstore; uses the latter's cache to
+    store a weakref to each attribute value.  This ensures that the
+    attribute is always available, as if it were never
+    garbabe-collected, while allowing for it to be garbage-collected
+    when not actively in use.  The referenced value is retrieved
+    automatically from the weakref when available; else it is recomputed
+    (and a fresh weakref cached).
+
+    Can only be used for attributes whose values are of types to which
+    weakrefs are permitted; in particular, the value cannot be a tuple
+    (or an instance of a class based on tuple).\n"""
 
     import weakref
     __upget = recurseprop.__get__
@@ -76,6 +81,41 @@ class weakprop (propstore, recurseprop):
             bok[self] = ref(ans)
 
         return ans
+
+    @classmethod
+    def mutual(cls, get, ref=weakref.ref):
+        """Weakly-referenced mutual attribute look-up.
+
+        One of the important cases for weak references is where two objects
+        reference one another; this messes up garbage collection unless we use
+        weak references.  When lazily evaluating one of the objects, we want to
+        record on the other that it is the original's relevantly-named
+        attribute, to save computing *its* lazy attribute.\n"""
+
+        try: mutual = cls.__mutual
+        except AttributeError:
+            class mutual (cls):
+                __upget = cls.__get__
+                def __get__(self, obj, mode=None,
+                            fer=ref):
+                    ans = self.__upget(obj)
+                    bok = self.cache(ans)
+                    try: f = bok[self]
+                    except KeyError: back = None
+                    else: back = f()
+
+                    if back is None:
+                        bok[base] = fer(obj)
+
+                    return ans
+
+            mutual.__name__ = cls.__name__ + '.mutual'
+            cls.__mutual = mutual
+
+        return mutual(get)
+
+    # TODO: add a pair, based on .group(2), for mutually complementary links
+
     del weakref
 
 class weakattr (dictattr, weakprop):
