@@ -122,8 +122,9 @@ class WrapIterable (Iterable):
     # For when you aren't defining a class to mix in with:
     def __iter__(self): return self
     def __init__(self, seq):
-        self.__getattr__ = lambda k, s=seq: getattr(s, k)
+        self.__get = lambda k, s=seq: getattr(s, k)
         self.__seq = iter(seq)
+    def __getattr__(self, key): return self.__get(key)
     def next(self): return self.__seq.next()
 
 class Dict (dict):
