@@ -4,8 +4,6 @@ Provides class Counter, which extends dict with some methods for counting
 frequencies of tokens.  Instances are, after running methods appropriately,
 suitable for use as the symbol-frequency argument required by the constructor of
 the Huffman class (q.v.) provided by Huffman.py in this directory.
-
-$Id: characters.py,v 1.3 2009-08-09 14:32:44 eddy Exp $
 """
 
 class Counter (dict):
@@ -103,12 +101,13 @@ class Counter (dict):
         Thus if pattern is re.compile('\.x?html$'), all .html and .xhtml files
         shall be processed.\n"""
 
+        if pattern is None: prune = lambda s: s
+        else: prune = lambda s, c=pattern.search: filter(c, s)
+
         for d, ss, fs in walk(dir):
             for x in ('CVS', '.git'): # any more ?
                 if x in ss: ss.remove(x) # skip version-control subdirs.
 
-            for name in fs:
-                nom = join(d, name)
-                if pattern is None or pattern.search(name):
-                    self.digest(nom, entities)
+            for name in prune(fs):
+                self.digest(join(d, name), entities)
     del os
