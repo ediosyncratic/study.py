@@ -79,7 +79,7 @@ class Counter (dict):
         finally: fd.close()
 
     import os
-    def scan(self, dir, entities=False, pattern=None,
+    def scan(self, dir, entities=False, checker=None,
              walk=os.walk, join=os.path.join):
         """Scan a directory tree for files to .digest()
 
@@ -91,18 +91,17 @@ class Counter (dict):
         Optional arguments (do *not* pass more than three arguments in all):
          entities -- as for .digest(), q.v.; is passed as second argument to
                      each call to .digest().
-         pattern -- None (default) to .digest() all files; else an object with a
-                    .search() method (e.g. a regular expression from the re
+         checker -- None (default) to .digest() all files; else a callable (such
+                    as the .search() method of a regular expression from the re
                     module); the name of each file (excluding directory path) is
-                    passed to this .search() method and the file is .digest()ed
-                    if the return value is true (as happens when re.search()
-                    succeeds).
+                    passed to this checker() and the file is .digest()ed if the
+                    return value is true (as happens when re.search() succeeds).
 
-        Thus if pattern is re.compile('\.x?html$'), all .html and .xhtml files
-        shall be processed.\n"""
+        Thus if checker is re.compile('\.x?html$').search, all .html and .xhtml
+        files shall be processed.\n"""
 
-        if pattern is None: prune = lambda s: s
-        else: prune = lambda s, c=pattern.search: filter(c, s)
+        if checker is None: prune = lambda s: s
+        else: prune = lambda s, c=checker: filter(c, s)
 
         for d, ss, fs in walk(dir):
             for x in ('CVS', '.git'): # any more ?
