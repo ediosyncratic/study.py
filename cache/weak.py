@@ -68,7 +68,7 @@ class weakprop (propstore, recurseprop):
 
     import weakref
     __upget = recurseprop.__get__
-    def __get__(self, obj, mode=None, ref=weakref.ref):
+    def __get__(self, obj, cls=None, ref=weakref.ref):
         bok = self.cache(obj)
         try: f = bok[self]
         except KeyError: ans = None
@@ -81,21 +81,34 @@ class weakprop (propstore, recurseprop):
         return ans
 
     assert propstore.__init__.im_func is recurseprop.__init__.im_func
+    class sentinel (object): pass
     @classmethod
-    def __back(cls, fer=weakref.ref):
+    def __back(cls, fer=weakref.ref, flag=sentinel):
         """Lazily-evaluated class for mutual and reflex.
 
-        Each class based on weakprop hereby obtains, as a .__reflex
+        Each class based on weakprop hereby obtains, as a .__mutual
         attribute, a sub-class that can be used for building mutually
         referential lazily-computed properties.\n"""
-        try: reflex = cls.__reflex
+        try: reflex = cls.__mutual
         except AttributeError:
-            class reflex (cls):
+            class reflex (cls, flag):
                 """A property class for mutual weak references."""
                 __upinit = cls.__init__
-                def __init__(self, getit, pair=None, ref=fer):
+                def __init__(self, getit, check=False, pair=None,
+                             ref=fer, sentinel=flag):
                     self.__upinit(getit)
-                    if pair is not None:
+
+                    if pair is None:
+                        if check: self.__check = getit
+                    else:
+                        assert isinstance(pair, sentinel), \
+                            "Paired properties must both be @.mutual()s"
+
+                        try: f = pair.__check
+                        except AttributeError: pass
+                        else: self.__check = f
+                        if check: pair.__check = getit
+
                         self.__partner = ref(pair)
                         try: f = pair.__partner
                         except AttributeErrror: back = None
@@ -104,7 +117,7 @@ class weakprop (propstore, recurseprop):
                             pair.__partner = ref(self)
 
                 __upget = cls.__get__
-                def __get__(self, obj, mode=None, ref=fer):
+                def __get__(self, obj, cls=None, ref=fer):
                     ans = self.__upget(obj)
                     bok = self.cache(ans)
                     try: f = self.__partner
@@ -119,77 +132,115 @@ class weakprop (propstore, recurseprop):
                         if back is None:
                             bok[base] = ref(obj)
 
+                    try: check = self.__check
+                    except AttributeError: pass
+                    else: assert check(ans) == obj
                     return ans
 
-            reflex.__name__ = cls.__name__ + '.__reflex'
-            cls.__reflex = reflex
+            reflex.__name__ = cls.__name__ + '.__mutual'
+            cls.__mutual = reflex
         return reflex
-    del weakref
-
-    @classmethod
-    def mutual(cls, get):
-        """Weakly-referenced mutual attribute look-up.
-
-        One of the important cases for weak references is where two
-        objects reference one another; this messes up garbage collection
-        unless we use weak references.  When lazily evaluating one of
-        the objects, we want to record on the other that it is the
-        original's relevantly-named attribute, to save computing *its*
-        lazy attribute.  Contrast .reflex(), where two attributes are
-        each the reverse of the other.
-
-        Returns a property computed using get, so can be used as a
-        decorator to turn a function (with the usual (self, cls=None)
-        signature for property getters) into a property.\n"""
-
-        return cls.__back()(get)
-
-    @classmethod
-    def reflex(cls, left, right):
-        """Takes two getters and makes them weak reflex attributes.
-
-        By reflex, I mean the left of an object has that object as its
-        right, and vice versa.  So each getter computes an attribute, to
-        be saved on an object, which should also be used as saved
-        value's attribute with the other getter's name.  Both attributes
-        are saved as weak refs, to avoid garbage-collection issues due
-        to the cyclic reference.  Contrast .mutual(), where an attribute
-        is its own reflex.
-
-        Returns a pair of properties, (L, R), with L computed using left
-        and R computed using right.  Can't be used as a decorator, but
-        works essentially similarly to one.\n"""
-
-        # Complication: the two properties have to know about each
-        # other, also creating potential problems with
-        # garbage-collection; so have them remember one another via
-        # weakrefs.  Fortunately, although a weakref to a raw property
-        # isn't supported, I seem to be able to get away with weakrefs
-        # to instances of weakprop, hence presumably of classes derived
-        # from it.
-
-        reflex = self.__back()
-        left = reflex(left)
-        right = reflex(right, left)
-        return left, right
+    del weakref, sentinel
 
     # One could go further and deal with an arbitrarily long cycle of
     # properties, looping back to the original object, as in:
     # x is x.a.b.c.d is x.b.c.d.a is x.c.d.a.b is x.d.a.b.c;
     # but I can't think of a concrete use-case !  It's also hard to see
-    # how this might be implemented - unless each has a reflex property,
-    # at which point use of reflex should suffice anyway - without
+    # how this might be implemented - unless each has a paired property,
+    # at which point use of pairs should suffice anyway - without
     # evaluating the whole of the rest of the loop when evaluating any
     # member (i.e. when asked for x.a, also compute and record x.a.b and
     # x.a.b.c so as to mark the last's .d as being x), so as to be able
     # to close the loop back to the object we started from.
 
+    from study.snake.decorate import aliasing
+    @classmethod
+    def mutual(cls, pair=None, check=False, wrap=aliasing):
+        """Weakly-referenced attribute look-up with link-back.
+
+        One of the important cases for weak references is where two
+        objects reference one another; this messes up garbage collection
+        unless we use weak references.  When lazily evaluating, on one
+        of the objects, the attribute whose value is the other object,
+        we want to record on the latter that its link-back attribute is
+        the former, to avoid computing this lazily (and getting a
+        different object, albeit presumably equal to the original) if it
+        ever gets referenced.  Thus if x.a.b is x, when evaluating x.a
+        we need to record that its .b is x (for whatever names in place
+        of a and b; they may be the same).
+
+        Arguments are optional:
+          pair -- the property paird with this one, if any.
+          check -- enables a consistency check, see below.
+
+        This method returns a decorator which can be applied to the
+        getter for a property (with the usual (self, cls=None)
+        signature).  The getter simply computes the value for the
+        property; the decorator sorts out the rest.
+
+        If pair is not None it should be a property built using a prior
+        call to mutual.  This need not have been on the same class
+        derived from weakprop as the present call to mutual; nor need it
+        be a property of the same class.  Values of the paired property
+        must be of the class in which .mutual() is being used and the
+        property being created must take values of the class to which
+        the paired property belongs (i.e. if class B uses
+        mutual(pair=A.a) to create a property B.b, then values of A.a
+        must be instances of B and values of B.b must be instances of
+        A).  The paired property should have been created by an earlier
+        call to .mutual() with no pair (or pair=None, the default); no
+        instance of the class (A in the case above) providing this
+        property should attempt to evaluate this property until after
+        this second .mutual() has completed the pairing.  The paired
+        property shall be modified by the decorator returned by
+        .mutual(), so as to link it up with the new property created by
+        the decorator.  No property created using .mutual() should ever
+        be passed as the pair to more than one other call to .mutual().
+
+        If pair is unspecified (or None, the default) and the resulting
+        property is nowhere passed as the pair to another call to
+        .mutual(), the property will set itself on the returned object,
+        to point back to the object from which it is created.  Values
+        computed by the getter must be instances of the class in which
+        this property is defined.  So if class A uses .mutual() with no
+        pair to construct property a, all values of .a must be instances
+        of A and, when x.a is computed. x.a.a is set to x.
+
+        If A.a is created without pair but later passed as pair when
+        defining property B.b (where B may be A), then any instance x of
+        A, when asked for x.a, will set x.a.b to x; and any instance y
+        of B, when asked for y.b, will set y.b.a to y.
+
+        If check is true, it enables an assertion that round-tripping
+        the computation of the properties does actually return a value
+        equal to the object whose property was requested.  In the simple
+        case where A.a points back at itself, when x.a is computed and
+        has x.a.a set to x, the raw getter is called on x.a and the
+        return is verified as being equal to x; this is, of course, only
+        meaningful if equality testing is defined for instances of A.
+
+        In the case of paired attributes A.a and B.b, if check was
+        passed true when creating A.a and y is an instance of B,
+        computation of y.b shall call A.a's raw getter on y.b's value to
+        verify that the result (the naive value for y.b.a) is in fact
+        equal to y, to which y.b.a shall be set; naturally, this only
+        makes sense if B defines equality comparison.  Conversely, if
+        B.b's creation set check true, then computation of A.a shall
+        verify that-tripping x.a.b would have been equal to x.\n"""
+
+        @wrap
+        def decor(get, reflex=cls.__back(), chk=check, par=pair):
+            return reflex(get, check, par)
+
+        return decor
+    del aliasing
+
 class weakattr (dictattr, weakprop):
     # TODO: is this right ?  Shall the weak prop be saved in __dict__ ?  Shall
     # values set (in __dict__) be weakly held ?  Should either answer be Yes ?
     __wget = weakprop.__get__
     __dget = dictattr.__get__
-    def __get__(self, obj, mode=None):
+    def __get__(self, obj, cls=None):
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__wget(obj, mode)
 
