@@ -81,77 +81,98 @@ class weakprop (propstore, recurseprop):
         return ans
 
     assert propstore.__init__.im_func is recurseprop.__init__.im_func
-    class sentinel (object): pass
+    class mutual (object):
+        """Mix-in base-class to handle mutual()'s fiddliness.
+
+        One could go further and deal with an arbitrarily long cycle of
+        properties, looping back to the original object, as in:
+            x is x.a.b.c.d is x.b.c.d.a is x.c.d.a.b is x.d.a.b.c;
+        but I can't think of a concrete use-case !
+
+        It's also hard to see how this might be implemented - unless
+        each has a paired property, at which point use of pairs should
+        suffice anyway - without evaluating the whole of the rest of the
+        loop when evaluating any member (i.e. when asked for x.a, also
+        compute and record x.a.b and x.a.b.c so as to mark the last's .d
+        as being x), so as to be able to close the loop back to the
+        object we started from.  However, even inlining the methods
+        below into __back()'s class, I failed to work out how
+        __get__/noteback can compute the onwards attributes round the
+        loop.  Perhaps it could overtly call __get__ with an extra
+        parameter on the successor properties.\n"""
+
+        def __init__(self, check, pair, ref=weakref.ref):
+            if pair is None:
+                if check is not None: self.__check = check
+            else:
+                try: f = pair.__check
+                except AttributeError: pass
+                else: self.__check = f
+                if check is not None: pair.__check = check
+
+                self.__partner = ref(pair)
+                try: f = pair.__partner
+                except AttributeErrror: back = None
+                else: back = f()
+                if back is None: # typically it is
+                    pair.__partner = ref(self)
+
+        def __get__(self, src, val, bok, ref=fer):
+            # Not usable as a getter; only named __get__ to limit
+            # namespace pollution.
+
+            try: f = self.__partner
+            except AttributeError: pair = self
+            else: pair = f() # may be None (but unlikely)
+
+            if pair is not None:
+                try: f = bok[pair]
+                except KeyError: back = None
+                else: back = f()
+
+                if back is None:
+                    bok[pair] = ref(src)
+
+            try: check = self.__check
+            except AttributeError: pass
+            else: assert check(val) == src
+    del weakref
+
     @classmethod
-    def __back(cls, fer=weakref.ref, flag=sentinel):
-        """Lazily-evaluated class for mutual and reflex.
+    def __back(cls, reflex=mutual):
+        """Lazily-evaluated class for mutual.
 
         Each class based on weakprop hereby obtains, as a .__mutual
         attribute, a sub-class that can be used for building mutually
         referential lazily-computed properties.\n"""
-        try: reflex = cls.__mutual
+
+        try: mutual = cls.__mutual
         except AttributeError:
-            class reflex (cls, flag):
+            class mutual (cls, reflex):
                 """A property class for mutual weak references."""
                 __upinit = cls.__init__
-                def __init__(self, getit, check=False, pair=None,
-                             ref=fer, sentinel=flag):
+                __reinit = reflex.__init__
+                def __init__(self, getit, check=False, pair=None, base=reflex):
                     self.__upinit(getit)
 
-                    if pair is None:
-                        if check: self.__check = getit
-                    else:
-                        assert isinstance(pair, sentinel), \
-                            "Paired properties must both be @.mutual()s"
+                    assert pair is None or isinstance(pair, base), \
+                        "Paired properties must both be @.mutual()s"
 
-                        try: f = pair.__check
-                        except AttributeError: pass
-                        else: self.__check = f
-                        if check: pair.__check = getit
-
-                        self.__partner = ref(pair)
-                        try: f = pair.__partner
-                        except AttributeErrror: back = None
-                        else: back = f()
-                        if back is None: # typically it is
-                            pair.__partner = ref(self)
+                    if check: check = getit
+                    else: check = None
+                    self.__reinit(check, pair)
 
                 __upget = cls.__get__
-                def __get__(self, obj, cls=None, ref=fer):
+                __reget = reflex.__get__
+                def __get__(self, obj, cls=None):
                     ans = self.__upget(obj)
-                    bok = self.cache(ans)
-                    try: f = self.__partner
-                    except AttributeError: pair = self
-                    else: pair = f() # may be None (but unlikely)
-
-                    if pair is not None:
-                        try: f = bok[pair]
-                        except KeyError: back = None
-                        else: back = f()
-
-                        if back is None:
-                            bok[base] = ref(obj)
-
-                    try: check = self.__check
-                    except AttributeError: pass
-                    else: assert check(ans) == obj
+                    self.__reget(obj, ans, self.cache(ans))
                     return ans
 
-            reflex.__name__ = cls.__name__ + '.__mutual'
-            cls.__mutual = reflex
-        return reflex
-    del weakref, sentinel
-
-    # One could go further and deal with an arbitrarily long cycle of
-    # properties, looping back to the original object, as in:
-    # x is x.a.b.c.d is x.b.c.d.a is x.c.d.a.b is x.d.a.b.c;
-    # but I can't think of a concrete use-case !  It's also hard to see
-    # how this might be implemented - unless each has a paired property,
-    # at which point use of pairs should suffice anyway - without
-    # evaluating the whole of the rest of the loop when evaluating any
-    # member (i.e. when asked for x.a, also compute and record x.a.b and
-    # x.a.b.c so as to mark the last's .d as being x), so as to be able
-    # to close the loop back to the object we started from.
+            mutual.__name__ = cls.__name__ + '.__mutual'
+            cls.__mutual = mutual
+        return mutual
+    del mutual
 
     from study.snake.decorate import aliasing
     @classmethod
@@ -229,8 +250,8 @@ class weakprop (propstore, recurseprop):
         verify that-tripping x.a.b would have been equal to x.\n"""
 
         @wrap
-        def decor(get, reflex=cls.__back(), chk=check, par=pair):
-            return reflex(get, check, par)
+        def decor(get, mutual=cls.__back(), chk=check, par=pair):
+            return mutual(get, check, par)
 
         return decor
     del aliasing
