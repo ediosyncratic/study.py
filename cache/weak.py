@@ -73,7 +73,6 @@ class weakprop (propstore, recurseprop):
     import weakref
     __upget = recurseprop.__get__
     @decorate.inherit(__upget)
-    @decorate.accepting(lambda self, obj, cls=None: None)
     def __get__(self, obj, cls=None, ref=weakref.ref):
         bok = self.cache(obj)
         try: f = bok[self]
