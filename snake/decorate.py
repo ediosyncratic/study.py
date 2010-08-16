@@ -1,10 +1,11 @@
 """Generic decorators.
 
 Provides a set of tools (inspired by Michele Simionato's decorator module [0])
-for making decorators work better, plus some decorators that deploy these.  The
-primary decorators provided here should suffice to do everything you might need
-with the low-level tools; however, use of the low-level tools, particularly in
-the implementations of other decorators, may be more efficient.
+for making decorators work better, plus some decorators that deploy
+these.  The primary decorators provided here should suffice to do everything
+you might need with the low-level tools; however, use of the low-level tools,
+particularly in the implementations of other decorators, may be more
+efficient.
 
 Low-level tools:
   wrapas(function, prototype) -- wrap function with prototype's signature
@@ -26,9 +27,9 @@ Primary Decorators:
 Note that the last two are decorator-decorators; they act on decorators, to
 produce decorators that preserve properties of the functions they
 decorate.  Naturally, the decorators produced preserve the superficial
-attributes (name, doc string, module and anything in __dict__) of the decorators
-they enhance; and have the lambda function: None signature of a simple
-decorator.
+attributes (name, doc string, module and anything in __dict__) of the
+decorators they enhance; and have the lambda function: None signature of a
+simple decorator.
 
 Further Decorators:
   @postcompose(post [, ...]) -- compose post after decorated function
@@ -47,11 +48,11 @@ def wrapas(function, prototype,
            skip=lambda x: ''):
     """Masks the signature of a function.
 
-    Takes exactly two callables as arguments, function and prototype.  Returns a
-    callable which acts as function but has the signature of prototype.  Note
-    that function must, in fact, accept being called in any way in which
-    prototype supports being called.  See accepting, below, for a decorator
-    deploying this.\n"""
+    Takes exactly two callables as arguments, function and prototype.  Returns
+    a callable which acts as function but has the signature of
+    prototype.  Note that function must, in fact, accept being called in any
+    way in which prototype supports being called.  See accepting, below, for a
+    decorator deploying this.\n"""
     assert isfunc(function)
     n, a, k, d = fetch(prototype)
     glob, i = { fname: function }, 0
@@ -91,22 +92,24 @@ def inherit(function, base, join=joinlines, wrap=wrapas):
 
     Takes two required arguments: function is the new implementation, base is
     the canonical form of the API.  Accepts an optional third argument, join,
-    which should accept a (possibly empty) list of strings and return a string;
-    it defaults to '\n'.join.  The returned callable has the signature of base,
-    the name of function and composite doc string and __dict__.  For __dict__,
-    the result prefers function over base (i.e. it updates first from base, then
-    from function).
+    which should accept a (possibly empty) list of strings and return a
+    string; it defaults to '\n'.join.  The returned callable has the signature
+    of base, the name of function and composite doc string and __dict__.  For
+    __dict__, the result prefers function over base (i.e. it updates first
+    from base, then from function).
 
-    Any documentation from base is presumed to be definitive; any documentation
-    provided by function is presumed to just elaborate on how it implements the
-    API.  Thus the composite puts the doc string of base before that of
-    function. If either is empty or None, it is discarded; the list of what
-    remains is passed to join, whose return is used as __doc__, unless it is
-    empty (in which case None is used).
+    Any documentation from base is presumed to be definitive; any
+    documentation provided by function is presumed to just elaborate on how it
+    implements the API.  Thus the composite puts the doc string of base before
+    that of function. If either is empty or None, it is discarded; the list of
+    what remains is passed to join, whose return is used as __doc__, unless it
+    is empty (in which case None is used).
 
     Since the result's signature shall match base's, authors should write
     function using the same argument names as base, so that they'll match
     references in function's immediate doc string, if any.\n"""
+
+    # TODO: make @inherit(x); @inherit(y)... work for several bases combined.
     ans = wrap(function, base)
     assert function.__name__ == base.__name__
     ans.__name__ = function.__name__
@@ -139,20 +142,20 @@ def funcorator(function):
 def decodeco(decorator):
     """A decorator-decorator.
 
-    Takes a single input, decorator, and repackages it; decorator itself should
-    be a callable that takes a callable and returns a repackaging of *that*; the
-    result of decorating decorator itself is a similar callable.\n"""
+    Takes a single input, decorator, and repackages it; decorator itself
+    should be a callable that takes a callable and returns a repackaging of
+    *that*; the result of decorating decorator itself is a similar callable.\n"""
     raise NotImplementedError
 
 def accepting(prototype, wrapping=wrapas, mime=mimic, rator=funcorator):
     """Decorator to fake function signature.
 
-    Takes one parameter, prototype: only its signature (argument names, defaults
-    and whether *more and **keywords are included) matters, so a simple lambda
-    expression is sufficient.  Returns a decorator which wraps a function so
-    that it can only be called in the ways that prototype supports.  The wrapped
-    function preserves the name, doc string, module and any attributes stored in
-    __dict__ of the function it wraps.
+    Takes one parameter, prototype: only its signature (argument names,
+    defaults and whether *more and **keywords are included) matters, so a
+    simple lambda expression is sufficient.  Returns a decorator which wraps a
+    function so that it can only be called in the ways that prototype
+    supports.  The wrapped function preserves the name, doc string, module and
+    any attributes stored in __dict__ of the function it wraps.
 
     Example use: when some other decorator has replaced a function with one
     using *args, **kw as signature, this can restore the original.  This can
@@ -179,14 +182,14 @@ def aliasing(decorator, mime=mimic, rator=funcorator):
     """Decorator-decorator to make original preserve superficial details.
 
     Single argument, decorator, is a decorator; return is a replacement
-    decorator with the same behaviour except that the results of its decoration
-    retain the name and doc-string of the functions they package.\n"""
+    decorator with the same behaviour except that the results of its
+    decoration retain the name and doc-string of the functions they package.\n"""
     def decor(function, base=decorator, label=labelas):
         return label(base(function), function)
     return mimic(decor, decorator, rator)
 
 def mimicking(decorator, mime=mimic, rator=funcorator):
-    """Decorator-decorator to make original's wrappers look like what they wrap.
+    """Decorator-decorator to make original's wrappers mimic what they wrap.
 
     Takes one argument, a decorator; returns a replacement decorator that
     preserves the signature, name, doc string, module and anything in __dict__
@@ -200,16 +203,15 @@ def postcompose(post, *more):
     """Apply some post-processing to every output of a function.
 
     Each argument must be a function.  Returns a decorator which, given a
-    function f, turns it into a function that is called exactly as f is but the
-    return from f is passed through each function from the decorator in turn.
-    Thus, following:
-        @postcompose(a, b, c)
-        def f(x): return x**2
-    a call to f(n) shall return c(b(a(n**2))).
+    function f, turns it into a function that is called exactly as f is but
+    the return from f is passed through each function from the decorator in
+    turn. Thus, following: @postcompose(a, b, c) def f(x): return x**2 a call
+    to f(n) shall return c(b(a(n**2))).
 
     For example, @postcompose(tuple) will turn a function that returns a list
     (e.g. because that's the easiest way to compute the sequence it wants to
-    return) into one that returns a tuple that freezes that list.
+    return) into one that returns a tuple that freezes that list.  Likewise
+    for @postcompose(frozenset) on a function returning a set.
 
     Equally, one can use postcompose itself as a decorator: it turns the
     decorated function into a decorator which post-processes the returns of
