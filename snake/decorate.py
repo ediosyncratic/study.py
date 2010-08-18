@@ -109,7 +109,7 @@ def inherit(function, base, join=joinlines, wrap=wrapas):
     function using the same argument names as base, so that they'll match
     references in function's immediate doc string, if any.\n"""
 
-    # TODO: make @inherit(x); @inherit(y)... work for several bases combined.
+    # TODO: decide what to do when several bases are combined.
     ans = wrap(function, base)
     assert function.__name__ == base.__name__
     ans.__name__ = function.__name__
