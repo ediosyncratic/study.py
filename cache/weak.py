@@ -72,7 +72,7 @@ class weakprop (propstore, recurseprop):
 
     import weakref
     __upget = recurseprop.__get__
-    @decorate.inherit(__upget)
+    @decorate.overriding(__upget)
     def __get__(self, obj, cls=None, ref=weakref.ref):
         bok = self.cache(obj)
         try: f = bok[self]
@@ -84,6 +84,7 @@ class weakprop (propstore, recurseprop):
             bok[self] = ref(ans)
 
         return ans
+    del weakref
 
     assert propstore.__init__.im_func is recurseprop.__init__.im_func
     class mutual (object):
@@ -105,6 +106,7 @@ class weakprop (propstore, recurseprop):
         loop.  Perhaps it could overtly call __get__ with an extra parameter
         on the successor properties.\n"""
 
+        import weakref
         def __init__(self, check, pair, ref=weakref.ref):
             if pair is None:
                 if check is not None: self.__check = check
@@ -121,7 +123,7 @@ class weakprop (propstore, recurseprop):
                 if back is None: # typically it is
                     pair.__partner = ref(self)
 
-        def __get__(self, src, val, bok, ref=fer):
+        def __get__(self, src, val, bok, ref=weakref.ref):
             # Not usable as a getter; only named __get__ to limit
             # namespace pollution.
 
@@ -140,10 +142,10 @@ class weakprop (propstore, recurseprop):
             try: check = self.__check
             except AttributeError: pass
             else: assert check(val) == src
-    del weakref
+        del weakref
 
     @classmethod
-    def __back(cls, reflex=mutual, extend=decorate.inherit):
+    def __back(cls, reflex=mutual, extend=decorate.overriding):
         """Lazily-evaluated class for mutual.
 
         Each class based on weakprop hereby obtains, as a .__mutual attribute,
@@ -180,7 +182,7 @@ class weakprop (propstore, recurseprop):
     del mutual
 
     @classmethod
-    @decorate.accepting(cls, pair=None, check=False: None)
+    @decorate.accepting(lambda cls, pair=None, check=False: None)
     def mutual(cls, pair=None, check=False, wrap=decorate.aliasing):
         """Weakly-referenced attribute look-up with link-back.
 
@@ -265,7 +267,7 @@ class weakattr (dictattr, weakprop):
     # values set (in __dict__) be weakly held ?  Should either answer be Yes ?
     __wget = weakprop.__get__
     __dget = dictattr.__get__
-    @decorate.inherit(__dget)
+    @decorate.overriding(__dget)
     def __get__(self, obj, cls=None):
         try: return self.__dget(obj, mode)
         except AttributeError: return self.__wget(obj, mode)
