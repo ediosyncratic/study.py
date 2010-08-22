@@ -54,16 +54,20 @@ class WordList (dict):
     def select(self, checker):
         """Returns an iterator over words accepted by a given test.
 
-        Single argument is a callable, typically the .search method of
-        an instance of re; each line from the word-list is passed to it
-        in turn; those for which it returns true are yielded by the
-        iterator.  Note that each line (except possibly the last) shall
+        Single argument is a callable, typically the .search method of an
+        instance of re; each line from the word-list is passed to it in turn;
+        for each of those for which it returns a true value, the iterator
+        yields a two-ple of the line and checker's return (the latter is
+        included so that you don't need to call checker again to get its
+        answer when, for example, it's the match object from a regex's
+        .search).  Note that each line (except possibly the last) shall
         include a trailing newline.\n"""
 
         fd = open(self.__file)
         try:
             for line in fd:
-                if checker(line):
-                    yield line
+                ans = checker(line)
+                if ans:
+                    yield line, ans
         finally: fd.close()
 
