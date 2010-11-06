@@ -232,21 +232,121 @@ class Body (Object):
         """Returns strength of tidal stresses near self.
 
         Made up of three terms:
-          * tidal stresses due to the body's own satellites (if any).
-          * tidal stresses due to whatever the body orbits (if any),
-          * ambient tidal stresses, taken as the orbit.centre.tidal
+          * that due to the body's own satellites (if any),
+          * that due to whatever the body orbits (if any) combined with the
+            contributions from other bodies orbiting the same centre, and
+          * an ambient term, taken as .orbit.centre.tidal without its
+            contributions due to .orbit.centre's satellites.
 
-        The last two are provided (as .ambient and .orbital) as attributes of
-        the composite, which is obtained by presuming that the various
-        contributions are all uncorrelated in phase - i.e. sometimes they
-        interfere with one another constructively, sometimes destructively - and
-        computed as the largest term plus a `fuzzy' term resembling `+/- each of
-        the remaining terms'. """
+        The last two are provided (as .orbital and .ambient) as attributes of
+        the composite; which also has, for each body that contributed, an
+        attribute for that body's effect, with that body's name.  The
+        difference between .orbital and the attribute named for the centre of
+        orbit is the contribution of the other bodies orbiting the same
+        centre.
 
-        row = [] # in which to collect up the contributions
+        Each term is taken to imply a tidal compression with half the strength
+        of its stretch in the two directions perpendicular to its stretching,
+        so we have to consider the directions of terms.  The orbital term
+        always stretches along the ray from self to its .orbit.centre; the
+        ambient term and the terms due to satellites vary their direction
+        uniformly relative to this ray, with no correlation between relative
+        direction and strength.  Terms due to other bodies orbiting the same
+        centre, however, vary strength and direction in ways notably
+        correlated with their direction relative to the ray from self to its
+        .orbit.centre; see theory below.  These terms are thus combined into
+        .orbital and deemed part of it, effectively expanding its range of
+        variation.
+
+        The resulting orbital term, ambient term and terms due to satellites
+        are presumed uncorrelated in direction; the largest of them is taken
+        as basis for the returned value, with each of the others contributing
+        an error bar ranging from -1/2 to +1 of times its full value.
+
+        Theory
+        ======
+
+        The basic effect is easy; the gravitational field at self due to a
+        body of mass M at distance R from self's centre pulls self towards the
+        other body hard enough to produce acceleration G*M/R**2, but self's
+        surface isn't all at distance R from the other body, so each point
+        experiences (relative to self's freely-falling frame) forces due to
+        the difference between this acceleration and the field, at the given
+        point, due to the other body.  For positions along the line of
+        centres, this is just their distance from self's centre times the
+        derivative of the field strength, 2*G*M/R**3 away from self's centre;
+        this is the primary tidal stress.  In directions at right angles to
+        the line of centres, the direction to the other body varies, producing
+        a discrepancy between the attraction to the other body (along the line
+        towards it) and self's acceleration (along the line from self's centre
+        towards the other body); this discrepancy's magnitude is G*M/R**2
+        times the sin() of the angle, which is the distance from self's centre
+        divided by R; and it effecitvely pulls towards self's centre.  We thus
+        have tidal stretching by 2*G*M/R**3 times displacement from self's
+        centre along the line of centres, with compression half as strong in
+        each direction perpendicular to this.
+
+        It thus remains to consider the variation in R between self and
+        another body orbiting the same centre, as the angle t between their
+        lines of centres varies.  Let S and B be the orbital radii of two
+        bodies, presumed constant (since other variations shall dwarf theirs)
+        with S > B; then R varies between S-B and S+B as R**2 = S**2 +B**2
+        -2*S*B*cos(t). The directions of the line joining S to B, relative to
+        their respective rays to their common centre of orbit, also vary with
+        t.  For S, being further out, the angle s between B and centre is
+        always less than a quarter turn, with sin(s) = B*sin(t)/R.  For B, the
+        angle b between S and centre varies over the full cycle, with sin(b) =
+        S*sin(t)/R.
+
+        At right angles to the plane of their orbits (presumed coplanar), each
+        body always experiences compression due to the other, varying in
+        magnitude as R varies from S-B to S+B.  Aside from a G*M/R**3 factor,
+        each body's radial stretching gets a contribution 2*abs(cos())
+        -abs(sin()) of its relevant angle, while its tangential compression
+        (due to orbit-centre) is offset by a matching 2*abs(sin()) -abs(cos())
+        term.
+
+        We know s is less than a quarter turn in magnitude, so presume that it
+        is between zero and a quarter turn, so sin() and cos() are positive;
+        and we're only interested in where the tangential stress is largest;
+        for the inner body at radius B there shall be two values of b for
+        which this arises, one between a quarter turn and a half turn, the
+        other between half turn and three quarters; select the latter, where
+        both sin() and cos() are negative.
+
+        The tangential term for the inner body is then (2*R*sin(b)
+        -R*cos(b))*G*M/R**4 with 0 < R*sin(b) = S*sin(t) and 0 < R*cos(b) = B
+        -S*cos(t), so we have (2*S*sin(t) -B +S*cos(t))*G*M/(S**2
+        -2*S*B*cos(t) +B**2)**2 with t between minus a quarter turn and
+        zero.  Setting G*M aside, differentiating and multiplying by R**6, we
+        get
+          d((2*S*sin(t) -B +S*cos(t))/R**4)/dt*R**6
+          = (2*S*cos(t) -S*sin(t))*R**2 -2*(2*S*sin(t) -B +S*cos(t))*2*S*B*sin(t)
+          = 2*S*S*S*cos(t) -4*S*S*B*cos(t)*cos(t) +2*S*B*B*cos(t) -S*S*S*sin(t)
+           +2*S*S*B*cos(t)*sin(t) -S*B*B*sin(t) -8*S*sin(t)*S*B*sin(t)
+           +4*B*S*B*sin(t) -4*S*cos(t)*S*B*sin(t)
+          = 2*S*(S*S +B*B)*cos(t) +S*(3*B*B -S*S)*sin(t) -8*S*S*B*sin(t)*sin(t)
+           -2*S*S*B*sin(t)*cos(t) -4*S*S*B*cos(t)*cos(t)
+          = S*( (S*S +B*B)*(2*cos(t) +sin(t)) -2*(S*S -B*B)*sin(t)
+               -2*S*B*(4*sin(t)*sin(t) +sin(t)*cos(t) +2*cos(t)*cos(t)) )
+
+        For the outer body, the analysis just swaps S and B while taking t to
+        be between zero and a quarter turn.\n"""
+
+        pole = zero # sum of all compression terms
+        spin = [] # in which to collect up angularly uncorrelated terms
+        radi = [] # in which to collect up maximal radial contributions
+        tang = [] # in which to collect up maximal tangential contributions
         bok = {} # in which to name contributions per body
 
-        ambient = zero
+        # TODO: work out separate radial (+ve) and circumferential (-ve)
+        # components.  Ambient and satellites take all directions relative to
+        # radial, so are simply (-1, +2) times G.m/r^3; orbital is always
+        # radial; but peers are where it gets interesting.  Max radial
+        # component is easy, 2.G.m/abs(r-R)^3, but circumferential is
+        # fiddlier.
+
+        ambient = peer = zero
         try: mid = self.orbit.centre
         except AttributeError: pass
         else:
@@ -254,26 +354,24 @@ class Body (Object):
             except AttributeError: pass
             # but separate out the satellite contribution to this ...
             else: ambient = ambient.orbital + ambient.ambient
+            row.append(ambient)
+
             try: r = self.orbit.radius
             except AttributeError: pass
             else:
-                peer = zero
                 for p in mid.satellites:
                     if p is self: continue
                     try: gm, s = p.GM, p.orbit.radius
                     except AttributeError: pass
                     else:
-                        best, hi, lo = (s ** 2 + r **2)**-1.5, abs(s - r)**-3, (s + r)**-3
+                        best, hi, lo = max(s, r)**-3, abs(s - r)**-3, (s + r)**-3
                         q = bok[p.name] = 2 * gm * Q.flat(lo, hi, best)
                         peer += q
 
-                if peer is not zero: ambient += peer
-                ambient.peer = peer
-            row.append(ambient)
-
-        try: orbital = bok[mid.name] = self.orbit.tidal
-        except AttributeError: orbital = zero
-        else: row.append(orbital)
+        try: bok[mid.name] = self.orbit.tidal
+        except AttributeError: orbital = peer
+        else: orbital = self.orbit.tidal + peer
+        row.append(orbital)
 
         for moon in self.satellites:
             try: mine = bok[moon.name] = moon.orbit.tidal * moon.mass / self.mass
@@ -286,8 +384,15 @@ class Body (Object):
             row, big = row[:-1], row[-1]
         else: big = zero
 
+        # TODO: this assumes tidal stretches along the line of centres
+        # (correct) and compresses 1/2 as hard on each direction perpendicular
+        # to that line (because I think the trace of a relevant tensor is
+        # zero); what's the correct value ?
+
         tot = sum(row, zero)
-        return Q(big + Q.flat(-tot, tot),
+        bok['squash'] = -(tot + big) / 2
+        return Q(big + Q.flat(-tot/2, tot),
+                 doc = self._lazy_get_tidal_.__doc__,
                  ambient = ambient, orbital = orbital, **bok)
 
     def _lazy_get_tide_(self, ignored):
@@ -296,6 +401,14 @@ class Body (Object):
         This is just the tidal stress times the body-radius.
         """
         return self.tidal * self.surface.radius
+
+    def _lazy_get_day_(self, ignored, unit=2*pi):
+        """Returns the standard day-length of the body.
+
+        This is the spin-period of the body adjusted for the amount of
+        movement round its centre of orbit.  The computation here assumes that
+        the surface spins in the same sense as the body follows its orbit.\n"""
+        return unit / (self.surface.spin.omega - self.orbit.spin.omega)
 
     def _lazy_get_density(self, ignored):
         return self.mass / self.surface.volume
@@ -364,9 +477,13 @@ class Body (Object):
         except TypeError: pass
         else: return given, None
 
-        try: given + time/angle # frequency; convert to period
+        try: given + angle/time # frequency; convert to period
         except TypeError: pass
         else: given = angle / given
+
+        try: given + time / angle
+        except TypeError: pass
+        else: given = given * angle
 
         try: given + time # period
         except TypeError: pass
@@ -376,6 +493,15 @@ class Body (Object):
         raise ValueError('how does that specify an orbit ?', given)
 
     def orbiter(self, given, O=Orbit, S=Spin, **what):
+        """The orbit with the given parameter.
+
+        Single positional parameter, given, may be an orbital radius, period
+        (either as time to complete one orbit or as time divided by angle
+        moved) or frequency (as angle traversed divided by time to traverse
+        it).  Returns an Orbit object describing an orbit around self with the
+        given parameter.  Keyword parameters, if supplied, are forwarded to
+        the Orbit's constructor (except for the names 'given', 'S' and 'O',
+        which should be avoided).\n"""
         radius, period = self.__radius(given)
         if period is None:
             return O(self, radius, None, **what) # accept Orbit's guestimate of spin
