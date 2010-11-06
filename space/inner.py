@@ -1,7 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """The Inner Planets of our Solar system
 
-$Id: inner.py,v 1.8 2008-05-11 19:54:22 eddy Exp $
+Available source for more data:
+http://solarsystem.nasa.gov/planets/profile.cfm?Object=Mars&Display=Facts
 """
 
 from study.value.units import Object, Quantity, tophat, \
@@ -76,7 +77,6 @@ Mars = KLplanet('Mars',
 
 The Romans named it after their god of war, thanks to its reddish colour.
 """),
-
                 satelload=load_martian)
 del load_martian
 
@@ -85,6 +85,50 @@ Mars.surface.spin.period.observe(1.02595675 * day)
 Mars.surface.radius.observe(3.43 * mega * metre)
 Mars.surface.radius.observe(mega * (3.397 + .001 * tophat) * metre) # NASA
 Mars.orbit.spin.period.observe(686.95 * day)
+
+Barsoom = Object(__doc__="""Barsoomian units of measurement.
+
+In Edgar Rice Burroughs' books of adventures on Barsoom (known to Earthlings
+as Mars), some units of measurement - I am thus far only aware of length and
+time - are accounted for clearly enough to be mapped to Earthling units.
+
+In 'Thuvia, Maid of Mars' [0], Burroughs provides a table of length units and
+a glossary including both these (but with ad spelt od) and some units of
+time.  The text accompanying the table is lamentably not self-consistent,
+giving the ad as 11.694 inches but claiming that the haad, which is 200 ad
+(2338.8 inches), is 2339 feet; and that the karad, 100 haad, is one degree of
+the circumference of Mars at its equator, for which the haad would need to be
+1945.2 feet.  Although the text with the table describes the ad (and the
+glossary describes the od) as a Martian foot, usage elsewhere - e.g. Chapter
+III of [1] The Chessmen of Mars - favours the sofad as foot.  Taking the sofad
+to be 11.694 inches yields, via ad and haad, a karad that is a respectable
+approximation to one degree of Mars's equator.  This then makes a reasonable
+resolution of the confusion, also followed by a fan site [2].  The ratios
+among the units, given by the table in 'Thuvia', are:
+
+     10 sofads = 1 ad
+    200 ads    = 1 haad
+    100 haads  = 1 karad
+    360 karads = 1 circumference of Mars at equator.
+
+The glossary at the end of 'Thuvia' also gives tal as a 'Martian second', xat
+as a 'Martian minute' and xode as 'Martian hour', but with no further
+details.  I have here presumed, based on Burroughs' choice of wording, that 24
+xode make up a Martian day, the xat is xode/60 and the tal is xat/60.
+
+[0] http://freeread.com.au/ebooks00/fr100046.txt
+    The table is given part way through Chapter VI, The Jeddak of Lothar.
+    The glossary is an appendix.
+[1] http://freeread.com.au/ebooks00/fr100047.txt
+[2] http://www.erblist.com/abg/maps.html
+""",
+                 karad = Mars.surface.circumference / 360,
+                 xode = Mars.day / 24)
+Barsoom.also(haad = Barsoom.karad / 100,
+             tal = Barsoom.xode / 60)
+Barsoom.also(ad = Barsoom.haad / 200,
+             xat = Barsoom.tal / 60)
+Barsoom.sofad = Barsoom.ad / 10
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
     Object, tophat, giga, mega, year, day, hour, minute, metre, kg, bar
