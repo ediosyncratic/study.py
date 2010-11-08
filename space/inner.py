@@ -113,21 +113,30 @@ among the units, given by the table in 'Thuvia', are:
 
 The glossary at the end of 'Thuvia' also gives tal as a 'Martian second', xat
 as a 'Martian minute' and xode as 'Martian hour', but with no further
-details.  I have here presumed, based on Burroughs' choice of wording, that 24
-xode make up a Martian day, the xat is xode/60 and the tal is xat/60.
+details. In 'The Chessmen of Mars' [3] (nearly half way through chapter II), I
+see a unit of time called zode (not xode) used, which I read the text to
+indicate as a tenth of a day, although the phrasing is unclear. The next
+chapter rather more clearly identifies eight zodes with 'a trifle over
+nineteen and a half Earth hours', which matches well with one zode being a
+tenth of a Martian day.  Burroughs seems to like simple powers of ten as
+factors and subdividing the zode into 100 tal, then each of these into 100
+xat, this last comes out at 0.8876 seconds, a reasonably plausible unit for
+him to characterise as a 'Martian second'.  So this is the sub-division I use
+here.
 
 [0] http://freeread.com.au/ebooks00/fr100046.txt
     The table is given part way through Chapter VI, The Jeddak of Lothar.
     The glossary is an appendix.
 [1] http://freeread.com.au/ebooks00/fr100047.txt
 [2] http://www.erblist.com/abg/maps.html
+[3] http://freeread.com.au/ebooks00/fr100047.txt
 """,
                  karad = Mars.surface.circumference / 360,
-                 xode = Mars.day / 24)
+                 zode = Mars.day / 10)
 Barsoom.also(haad = Barsoom.karad / 100,
-             tal = Barsoom.xode / 60)
+             tal = Barsoom.zode / 100)
 Barsoom.also(ad = Barsoom.haad / 200,
-             xat = Barsoom.tal / 60)
+             xat = Barsoom.tal / 100)
 Barsoom.sofad = Barsoom.ad / 10
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
