@@ -118,11 +118,13 @@ see a unit of time called zode (not xode) used, which I read the text to
 indicate as a tenth of a day, although the phrasing is unclear. The next
 chapter rather more clearly identifies eight zodes with 'a trifle over
 nineteen and a half Earth hours', which matches well with one zode being a
-tenth of a Martian day.  Burroughs seems to like simple powers of ten as
-factors and subdividing the zode into 100 tal, then each of these into 100
-xat, this last comes out at 0.8876 seconds, a reasonably plausible unit for
-him to characterise as a 'Martian second'.  So this is the sub-division I use
-here.
+tenth of a Martian day.  In the sixth chapter, Danger, of 'The Master Mind of
+Mars', five xats are given to equal about 15 minutes; dividing the zode by
+three minutes I get almost fifty, so infer that there are 50 xat in a
+zode.  Given that the interval mentioned is given as five xat, not one tal, I
+infer that the tal is not five xat; thus the most likely guess is that there
+are ten xat in a tal and five tal in a zode, rather than the other way around;
+so this is the sub-division I use here, making the tal roughly half an hour.
 
 [0] http://freeread.com.au/ebooks00/fr100046.txt
     The table is given part way through Chapter VI, The Jeddak of Lothar.
@@ -134,9 +136,9 @@ here.
                  karad = Mars.surface.circumference / 360,
                  zode = Mars.day / 10)
 Barsoom.also(haad = Barsoom.karad / 100,
-             tal = Barsoom.zode / 100)
+             tal = Barsoom.zode / 5)
 Barsoom.also(ad = Barsoom.haad / 200,
-             xat = Barsoom.tal / 100)
+             xat = Barsoom.tal / 10)
 Barsoom.sofad = Barsoom.ad / 10
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
