@@ -113,18 +113,18 @@ among the units, given by the table in 'Thuvia', are:
 
 The glossary at the end of 'Thuvia' also gives tal as a 'Martian second', xat
 as a 'Martian minute' and xode as 'Martian hour', but with no further
-details. In 'The Chessmen of Mars' [3] (nearly half way through chapter II), I
-see a unit of time called zode (not xode) used, which I read the text to
-indicate as a tenth of a day, although the phrasing is unclear. The next
+details.  In 'The Chessmen of Mars' [3] (nearly half way through chapter II),
+I see a unit of time called zode (not xode) used, which I read the text to
+indicate as a tenth of a day, although the phrasing is unclear.  The next
 chapter rather more clearly identifies eight zodes with 'a trifle over
 nineteen and a half Earth hours', which matches well with one zode being a
 tenth of a Martian day.  In the sixth chapter, Danger, of 'The Master Mind of
-Mars', five xats are given to equal about 15 minutes; dividing the zode by
-three minutes I get almost fifty, so infer that there are 50 xat in a
-zode.  Given that the interval mentioned is given as five xat, not one tal, I
-infer that the tal is not five xat; thus the most likely guess is that there
-are ten xat in a tal and five tal in a zode, rather than the other way around;
-so this is the sub-division I use here, making the tal roughly half an hour.
+Mars' [4], five xats are given to equal about 15 minutes; dividing the zode by
+three minutes I get almost fifty, so infer that there are 50 xat in a zode.  A
+later chapter of The Master Mind of Mars, 'Xaxa', gives one tal to be roughly
+one second (while the zode is confirmed as two and a half hours); as the xat
+is a little over 177 seconds, I conjecture that the tal is in fact a little
+shorter than a second, with two hundred of them in a xat.
 
 [0] http://freeread.com.au/ebooks00/fr100046.txt
     The table is given part way through Chapter VI, The Jeddak of Lothar.
@@ -132,13 +132,14 @@ so this is the sub-division I use here, making the tal roughly half an hour.
 [1] http://freeread.com.au/ebooks00/fr100047.txt
 [2] http://www.erblist.com/abg/maps.html
 [3] http://freeread.com.au/ebooks00/fr100047.txt
+[4] http://gutenberg.net.au/ebooks01/0100201.txt
 """,
                  karad = Mars.surface.circumference / 360,
                  zode = Mars.day / 10)
 Barsoom.also(haad = Barsoom.karad / 100,
-             tal = Barsoom.zode / 5)
+             xat = Barsoom.zode / 50)
 Barsoom.also(ad = Barsoom.haad / 200,
-             xat = Barsoom.tal / 10)
+             tal = Barsoom.xat / 200)
 Barsoom.sofad = Barsoom.ad / 10
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
