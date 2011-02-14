@@ -575,11 +575,22 @@ class Quantity (Object):
         return self._quantity(self.__scale.join(atan, self.__addcheck_(what, 'arcTan2')), radian)
 
     def __hypot(self, other, h=math.hypot):
+        """Pythagorean sum.
+
+        Adds the squares of self and other, returns the sum's square root.\n"""
         return self.__kin(self.__scale.join(h, self.__addcheck_(other, 'Hypotenuse')))
 
     del math
 
     def Hypotenuse(self, *others):
+        """Pythagorean sum.
+
+        Sums the squares of self and arbitrarily many others (all of the same
+        kind); returns the square root of the sum.  Meaningful for many
+        (albeit not all) kinds of quantities; enough that it makes more sense
+        to provide it universally - and ignore it when inappropriate - than to
+        try to exhausitively provide it kind-specifically for every kind of
+        quantity to which it *is* relevant.\n"""
         val = self
         for it in others:
             val = val.__hypot(it)
