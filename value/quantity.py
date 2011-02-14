@@ -304,10 +304,14 @@ def time():
 # years, days, hours, minutes, seconds.
 
 def thermal():
-    from SI import Kelvin
+    from SI import Kelvin, mol
+    from study.chemy.physics import Thermal
     def C(v, K=Kelvin): return v/K - 273.16
     def F(v): return v.Celsius * 1.8 + 32
-    return { 'Centigrade': C, 'C': C, 'Celsius': C,
+    def k(v, B=Thermal.k): return v * B
+    def R(v, R=mol.R): return v * R
+    return { 'Boltzmann':  k, 'k': k, 'R': R,
+             'Centigrade': C, 'C': C, 'Celsius': C,
              'Fahrenheit': F, 'F': F  }
 
 kind_prop_lookup = {
