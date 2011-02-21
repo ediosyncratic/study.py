@@ -194,59 +194,55 @@ def _cleandoc(text, dent=indent):
 
 del indent
 
-# lazy-evaluators for special attributes of quantities of specific types
+# Lazy-evaluators for special attributes of quantities of specific types; see
+# Quantity._lazy_get__kind_lazy_props_() for details.
 def scalar():
+    # Note that Sample doesn't cope well with complex values, but we can
+    # sometimes get away with manipulating them anyway.
     import cmath, math
     from SI import radian, second
 
-    def chose(val, s, c):
-        try: return s(val)
-        except (ValueError, TypeError):
-            return c(val)
+    def pick(m, c):
+        def ok(v, m=m, c=c):
+            try: return m(v)
+            except (ValueError, TypeError):
+                ans = c(v)
+                if ans.imag + 1 != 1 or 1 + ans.real == 1: return ans
+                # Imaginary part is ignorable, real part isn't:
+                return ans.real
+        return ok
 
-    def exp(val, xp=math.exp, px=cmath.exp, s=chose): return s(val, xp, px)
-    def ln(val, lg=math.log, gl=cmath.log, s=chose): return s(val, lg, gl)
-    def arccos(val, ac=math.acos, ca=cmath.acos, s=chose): return s(val, ac, ca)
-    def arcsin(val, ar=math.asin, sa=cmath.asin, s=chose): return s(val, ar, sa)
+    ln = pick(math.log, cmath.log)
+    arccos = pick(math.acos, cmath.acos)
+    arcsin = pick(math.asin, cmath.asin)
+    arctan = pick(math.atan, cmath.atan)
+
     def arcsec(val, ac=arccos): return ac(1./val)
     def arccosec(val, ar=arcsin): return ar(1./val)
+    def arccot(val, a=arctan, q=math.pi/2): return q - a(val)
 
-    def sinc(val, s=math.sin, x=cmath.sin, c=chose):
-        try: return c(val, s, c) / val
-        except ZeroDivisionError: return 1 # sinc(0) = 1
-        # and there's a reason why I'm not trying to offer asinc !
-        # min sinc is c. -.217 at pi * 1.43 ~ x = tan(x) ~ 4.5
+    def Shannon(val, ln=ln, ln2=math.log(2)):
+        if 1 + val == val: return 0
+        return val * ln(val) / ln2
+    # NB: for a distribution among N things, information content is
+    # sum(Shannon) and redundancy is 1 - sum(Shannon)/N.
 
-    def Shannon(val, ln=math.log, ln2=math.log(2)):
-        if val > 0: return val * ln(val) / ln2
-        return 0
-    # NB: for a distribution among N things, information content is sum(Shannon)
-    # and redundancy is 1 - sum(Shannon)/N.
+    def wrap(m, c, p=pick): return lambda v, f=p(m, c): v.evaluate(f)
+    def angular(func, r=radian):
+        return lambda v, f=func, r=r: r * v.evaluate(f)
 
-    def simple(val):
-        if val.imag + 1 == 1: return val.real
-        return val
-
-    def arccosh(val, ac=cmath.acosh, s=simple): return s(ac(val))
-    def arcsinh(val, ar=cmath.asinh, s=simple): return s(ar(val))
-    def arctanh(val, at=cmath.atanh, s=simple): return s(at(val))
-
-    return { 'arcCos': lambda v, a=arccos, r=radian: r * v.evaluate(a),
-             'arcSin': lambda v, a=arcsin, r=radian: r * v.evaluate(a),
-             'arcTan': lambda v, a=math.atan, r=radian: r * v.evaluate(a),
-             'arcCoTan': lambda v, a=math.atan, r=radian, q=math.pi / 4: r * (q - v.evaluate(a)),
-             'arcSec': lambda v, a=arccos, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
-             'arcCoSec': lambda v, a=math.asin, r=radian: r * v.evaluate(lambda x, f=a: f(1./x)),
-             'exp': lambda v, e=exp: v.evaluate(e),
+    return { 'arcCos': angular(arccos), 'arcSin': angular(arcsin),
+             'arcTan': angular(arctan), 'arcCoTan': angular(arccot),
+             'arcSec': angular(arcsec), 'arcCoSec': angular(arccosec),
+             'exp': wrap(math.exp, cmath.exp),
              'log': lambda v, l=ln: v.evaluate(l),
              'Shannon': lambda v, s=Shannon: v.evaluate(s),
-             'arccosh': lambda v, a=arccosh: v.evaluate(a),
-             'arcsinh': lambda v, a=arcsinh: v.evaluate(a),
-             'arctanh': lambda v, a=arctanh: v.evaluate(a),
-             'cosh': lambda v, c=math.cosh: v.evaluate(c),
-             'sinh': lambda v, s=math.sinh: v.evaluate(s),
-             'tanh': lambda v, t=math.tanh: v.evaluate(t),
-             'sinc': lambda v, s=sinc: v.evaluate(s),
+             'arccosh': wrap(math.acosh, cmath.acosh),
+             'arcsinh': wrap(math.asinh, cmath.asinh),
+             'arctanh': wrap(math.atanh, cmath.atanh),
+             'cosh': wrap(math.cosh, cmath.cosh),
+             'sinh': wrap(math.sinh, cmath.sinh),
+             'tanh': wrap(math.tanh, cmath.tanh),
              # See http://chaos.org.uk/~eddy/physics/Lorentz.html
              'Lorentz': lambda v, c=second.light / second: c * v.tanh,
              'Doppler': lambda v: v.log.Lorentz }
@@ -254,22 +250,30 @@ def scalar():
 def angle():
     from math import cos, sin, tan, pi
     from SI import radian
-    def angeval(q, f, r=radian): return (q/r).evaluate(f)
-    def sinc(val, r=radian, s=sin):
-        try: return (val/r).evaluate(s) / val
-        except ZeroDivisionError: return 1 / r
 
-    return { 'Sin': lambda v, s=sin, a=angeval: a(v, s),
-             'Cos': lambda v, c=cos, a=angeval: a(v, c),
-             'Tan': lambda v, t=tan, a=angeval: a(v, t),
+    # min(sinc) is c. -.217 at pi * 1.43 ~ x = tan(x) ~ 4.5
+    def sinc(val, sin=sin):
+        """sin(x)/x &larr;x
+
+        Used here to implement ({reals}: Sin(x).radian/x <- x :{angles}),
+        which may or may not be The Right Thing to do.  Requires further
+        research !\n"""
+        if val + 1 == 1: return 1 # sinc(0) = 1
+        return sin(val) / val
+    # ... and there's a reason why I'm not trying to offer arcsinc !
+
+    def wrap(func, r=radian):
+        return lambda q, f=func, r=r: (q/r).evaluate(f)
+
+    return { 'Sin': wrap(sin), 'Cos': wrap(cos), 'Tan': wrap(tan),
              'Sec': lambda v: 1. / v.Cos,
              'CoSec': lambda v: 1. / v.Sin,
-             'SinC': lambda v, s=sinc: s(v),
-             'CoTan': lambda v, q = radian * pi / 4: (q - v).Tan,
+             'CoTan': lambda v, q = radian * pi / 2: (q - v).Tan,
+             'SinC': lambda v, s=sinc, r=radian: (v/r).evaluate(sinc),
              'iExp': lambda v: v.Cos + 1j * v.Sin }
 
 def speed():
-    from SI import second, radian
+    from SI import second
     # See http://chaos.org.uk/~eddy/physics/Lorentz.html
     return { 'Lorentz': lambda v, c=second.light / second: (v / c).arctanh,
              'Doppler': lambda v: v.Lorentz.exp }
@@ -277,48 +281,70 @@ def speed():
 def mass():
     from SI import second, metre
     def weigh(v, g = 9.80665 * metre / second**2): return v * g
-    def energy(v, cc = (second.light / second)**2): return v * cc
-    return { 'weight': weigh, 'force': weigh, 'energy': energy }
+    return { 'weight': weigh, 'force': weigh,
+             'energy': lambda v, cc = (second.light / second)**2: v * cc,
+             'wavelength': lambda m: m.energy.frequency.wavelength }
 
 def energy():
     from SI import second, Joule
     def mass(v, cc = (second.light / second)**2): return v / cc
+
     from math import log
     def magnitude(v, J=Joule, ln10=log(10)):
         """Seismographic moment magnitude.
 
         This is the standardized moment magnitude scale for earthquakes; the
-        energy is taken to be the total energy, stored as stress in the Earth's
-        crust, released.  For the energy magnitude scale (i.e. if your energy is
-        the radiated seismic energy), add 5.8/1.5; for the Ricter scale, add
-        1.65 (or so).  Bear in mind that energy coming from non-seismic sources
-        (e.g. nukes) tends not to couple as directly to the Earth's crust, so
-        don't necessarily produce comparable effects.\n"""
+        energy is taken to be the total energy, stored as stress in the
+        Earth's crust, released.  For the energy magnitude scale (i.e. if your
+        energy is the radiated seismic energy), add 5.8/1.5; for the Ricter
+        scale, add 1.65 (or so).  Bear in mind that energy coming from
+        non-seismic sources (e.g. nukes) tends not to couple as directly to
+        the Earth's crust, so don't necessarily produce comparable effects.\n"""
         return ((v / J).log / ln10 - 9.1) / 1.5
-    return { 'mass': mass }
+
+    from study.chemy.physics import Thermal, Quantum
+    return { 'frequency': lambda e, h=Quantum.h: e / h,
+             'temperature': lambda e, k=Thermal.k: e / k,
+             'mass': mass, 'seismic': magnitude }
+
+def frequency():
+    from study.chemy.physics import Quantum
+    return { 'period': lambda f: 1/f, 'wavelength': lambda f: (1/f).light,
+             'energy': lambda f, h=Quantum.h: f * h }
+
+def wavelength():
+    from study.chemy.physics import Quantum
+    from SI import second
+    return { 'momentum': lambda d, h=Quantum.h: h / d,
+             'mass': lambda d, h=Quantum.h * second / second.light: h / d,
+             'frequency': lambda d, c=second.light/second: c / d }
 
 def time():
+    # NB: must control imports - broken if they evaluate .light !
     from SI import second, metre
-    return { 'light': lambda v, c=299792458 * metre / second: v * c }
+    return { 'light': lambda v, c=299792458 * metre / second: v * c,
+             'frequency': lambda t: 1/t }
 # It would also be nice to give time a print-format that breaks it up into
 # years, days, hours, minutes, seconds.
 
 def thermal():
     from SI import Kelvin, mol
-    from study.chemy.physics import Thermal
     def C(v, K=Kelvin): return v/K - 273.16
     def F(v): return v.Celsius * 1.8 + 32
+
+    from study.chemy.physics import Thermal
     def k(v, B=Thermal.k): return v * B
-    def R(v, R=mol.R): return v * R
-    return { 'Boltzmann':  k, 'k': k, 'R': R,
+
+    return { 'R': lambda v, R=mol.R: v * R,
+             'Boltzmann':  k, 'k': k, 'energy':  k,
              'Centigrade': C, 'C': C, 'Celsius': C,
              'Fahrenheit': F, 'F': F  }
 
-kind_prop_lookup = {
+kind_prop_lookup = { # { ._unit_str: function }
     '': scalar, 'rad': angle, 'm/s': speed,
-    'kg': mass, 's': time, 'K': thermal,
-    '(m/s)**2.kg' : energy }
-del scalar, angle, speed, mass, time, thermal
+    'kg': mass, 's': time, 'm': wavelength, 'K': thermal,
+    '/s': frequency, '(m/s)**2.kg': energy }
+del scalar, angle, speed, mass, frequency, time, thermal
 
 from study.snake import prodict
 class Prodict (prodict.Prodict):
@@ -481,7 +507,29 @@ class Quantity (Object):
         except KeyError: return self.__lazy_late_(key)
         else: return f(self)
 
-    def _lazy_get__kind_lazy_props_(self, ig, k=kind_prop_lookup, cache={}, empty={}):
+    def _lazy_get__kind_lazy_props_(self, ig,
+                                    k=kind_prop_lookup, cache={}, empty={}):
+        """Quantity-kind-specific attribute lookup.
+
+        For each kind of quantity (length, speed, etc.) this provides a
+        mapping from names of attributes, relevant only to that kind of
+        quantity, to functions that convert a value of that kind to its
+        relevant attribute.  That values of this mapping are functions is
+        required to ensure the attribute depends on the quantity of which it
+        is an attribute.
+
+        The actual mapping returned is obtained from an internal mapping which
+        takes ._unit_str as key (identifying the kind) and provides a function
+        as value.  The return from calling the provided function (with no
+        arguments) is the mapping we return (and it's cached, so we won't need
+        to call that function next time this method is called with the given
+        ._unit_str).  This second layer of function-via-mapping makes it
+        possible for the functions (that build the mappings whose values are
+        the functions that compute kind-specific attributes) to import modules
+        that may depend on this one - typically to obtain units, or the values
+        of physical constants, that are expressed as Quantity objects -
+        without creating a cyclic dependency.\n"""
+
         key = self._unit_str
         try: return cache[key]
         except KeyError: pass
