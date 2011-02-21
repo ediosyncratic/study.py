@@ -8,15 +8,15 @@ Exports:
 The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
+
+$Id: ticker.py,v 1.16 2010-01-07 21:35:46 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
 from urllib2 import urlopen, Request
 from HTMLParser import HTMLParser
-from study.parse.tabular import Table
 
 class StockPageParser (HTMLParser):
-    __table = None
     def process(self, name, wget=urlopen, req=Request,
                 url='http://www.oslobors.no/markedsaktivitet/stockOverview'):
         self.__stack, self.__keys, self.data = [], [], None
@@ -34,7 +34,7 @@ class StockPageParser (HTMLParser):
                     # </bodge>
                     self.feed(line)
             except:
-                try: del self.__table
+                try: del self.__cell
                 except AttributeError: pass
                 raise
         finally:
@@ -43,94 +43,71 @@ class StockPageParser (HTMLParser):
         self.close()
         data = self.data
         del self.__stack, self.__keys, self.data
+        for k, v in data.items():
+            if v == '-': del data[k]
         return data
 
-    def handle_starttag(self, tag, attrs, T=Table,
-                        magic="manamind_stockQuote_table_table"):
+    def handle_starttag(self, tag, attrs):
         stack = self.__stack
         n = len(stack)
         if n == 0:
             if tag == 'div':
-                if dict(attrs).get('id', '') == magic:
+                if dict(attrs).get('id', '') == "manamind_stockQuote_table_table":
                     stack.append(tag)
-                    self.__table = T()
         elif n == 1:
             if tag == 'tr':
                 stack.append(tag)
-                self.__table.open_row()
+                self.__cell = 0
         elif n == 2:
             if tag in ('th', 'td'):
                 stack.append(tag)
                 bok = dict(attrs)
-                i = int(bok.get('colspan', '1'))
-                self.__table.open_cell()
-                while i > 1:
-                    i -= 1
-                    self.__table.close_cell()
-                    self.__table.open_cell()
+                self.__cell += int(bok.get('colspan', '1'))
 
         elif tag in ('th', 'td'):
-            print 'Surprise:', tag, self.__stack
+            print tag, self.__stack
 
     # def handle_startendtag(tag, attrs): pass
 
     def handle_endtag(self, tag):
         stack = self.__stack
         while stack and tag in stack:
-            top = stack.pop()
-            if self.__table and top in ('th', 'td'):
-                self.__table.close_cell()
-
-            elif top == 'tr':
+            if stack[-1] == 'tr':
                 assert tag == 'tr', 'Row should always be closed explicitly'
-                self.__table.close_row()
+                if self.data is None:
+                    # finish off header row, prepare for data row
+                    while len(self.__keys) < self.__cell:
+                        self.__keys.append('')
+                    self.data = {}
+                del self.__cell
+            if tag == stack.pop(): break
 
-            elif top == 'div':
-                self.data = self.__table.close(self.__factory)
-                del self.__table
+    def handle_data(self, data,
+                    notoeng={ 'Siste': 'Last', 'Tid': 'Time',
+                              'H\xf8y': 'High', 'Lav': 'Low',
+                              'Kj\xf8per': 'Buy', 'Selger': 'Sell' }):
+        if not data: return # not interesting
+        try: i = self.__cell
+        except AttributeError: return
+        keys = self.__keys
+        if self.data is None:
+            assert self.__stack[-1] == 'th' and i >= len(keys)
+            while i > len(keys): keys.append('')
+            keys.append(data)
+            assert keys[i] is data
+        else:
+            assert self.__stack[-1] == 'td'
+            assert 0 <= i < len(keys), (i, keys, data, self.__stack)
+            if keys[i] and data:
+                key = keys[i]
+                try: key = notoeng[key]
+                except KeyError: pass
+                else: data = '.'.join(data.split(','))
+                try: key.lower()
+                except UnicodeDecodeError: pass
+                else: self.data[key] = self.data.get(key, '') + data
 
-            if top == tag: break
-
-    def handle_data(self, data):
-        if self.__table is None: return # not interested
-        if data.strip():
-            if len(self.__table) > 0: assert self.__stack[-1] == 'td'
-            else: assert self.__stack[-1] == 'th'
-        self.__table.add_data(data)
-
-    class __factory (Table.Transform):
-        def first(self, headings,
-                  notoeng={ 'Siste': 'Last', 'Tid': 'Time',
-                            'H\xf8y': 'High', 'Lav': 'Low',
-                            'Kj\xf8per': 'Buy', 'Selger': 'Sell' },
-                  cash=( 'Last', 'High', 'Low' ),
-                  munge=lambda t: '.'.join(''.join(t.split('.')).split(',')),
-                  ignore=lambda t: ''):
-            heads, xfrm = [], []
-            for det in headings:
-                det, f = det.strip(), lambda x: x
-                try: it = notoeng[det]
-                except KeyError:
-                    it = det
-                    if it not in notoeng.values(): f = ignore
-                else:
-                    if it in cash: f = munge
-                heads.append(it)
-                xfrm.append(f)
-
-            self.__keys, self.__xfrm = tuple(heads), tuple(xfrm)
-            return []
-
-        def each(self, row):
-            # Apply any needed text transformations:
-            return tuple(map(lambda f, e: f(e.strip()), self.__xfrm, row))
-
-        def package(self, all):
-            assert len(all) == 1, all
-            return dict(filter(lambda (k, v): k and v and v != '-',
-                               map(lambda *s: s, self.__keys, all[0])))
-
-del HTMLParser, urlopen, Request, Table
+del HTMLParser, urlopen, Request
 def report(ticker, parser=StockPageParser()):
     """Return summary data for the selected stock.
 
