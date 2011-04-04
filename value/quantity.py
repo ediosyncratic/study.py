@@ -280,10 +280,13 @@ def speed():
 
 def mass():
     from SI import second, metre
+    from study.chemy.physics import Cosmos
+    def hole(m, s=Cosmos.Schwarzschild): return s * m
     def weigh(v, g = 9.80665 * metre / second**2): return v * g
     return { 'weight': weigh, 'force': weigh,
              'energy': lambda v, cc = (second.light / second)**2: v * cc,
-             'wavelength': lambda m: m.energy.frequency.wavelength }
+             'wavelength': lambda m: m.energy.frequency.wavelength,
+             'Schwarzschild': hole, 'hole': hole }
 
 def energy():
     from SI import second, Joule
@@ -312,12 +315,14 @@ def frequency():
     return { 'period': lambda f: 1/f, 'wavelength': lambda f: (1/f).light,
              'energy': lambda f, h=Quantum.h: f * h }
 
-def wavelength():
-    from study.chemy.physics import Quantum
+def length():
+    from study.chemy.physics import Quantum, Cosmos
     from SI import second
+    def hole(r, k=Cosmos.Schwarzschild): return k * r
     return { 'momentum': lambda d, h=Quantum.h: h / d,
              'mass': lambda d, h=Quantum.h * second / second.light: h / d,
-             'frequency': lambda d, c=second.light/second: c / d }
+             'frequency': lambda d, c=second.light/second: c / d,
+             'Schwarzschild': hole, 'hole': hole }
 
 def time():
     # NB: must control imports - broken if they evaluate .light !
@@ -342,9 +347,9 @@ def thermal():
 
 kind_prop_lookup = { # { ._unit_str: function }
     '': scalar, 'rad': angle, 'm/s': speed,
-    'kg': mass, 's': time, 'm': wavelength, 'K': thermal,
+    'kg': mass, 's': time, 'm': length, 'K': thermal,
     '/s': frequency, '(m/s)**2.kg': energy }
-del scalar, angle, speed, mass, frequency, time, thermal
+del scalar, angle, speed, mass, energy, frequency, length, time, thermal
 
 from study.snake import prodict
 class Prodict (prodict.Prodict):
