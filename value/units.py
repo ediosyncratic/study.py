@@ -131,40 +131,201 @@ cc = cm ** 3
 tex = gram / km # fineness of textiles
 dtex, denier = deci * tex, deci * tex / .9
 
-St = Stokes = cm**2 / second # kinematic viscosity
 Angstrom = .1 * nano * metre    # Ångstrøm or Ångström, aka Å
 # (but there's a separate Unicode code-point for the unit ...).
 micron, fermi = micro * metre, femto * metre
 litre = milli * stere
 hectare = hecto * are
 barn = (10 * femto * metre) ** 2
+bar = .1 * mega * Pascal
+def Centigrade(number): return Kelvin * (number + 273.16)
 
 stilb = candela / cm**2
 phot = 10 * kilo * lux
 
+St = Stokes = cm**2 / second # kinematic viscosity
 Gs = Gauss = .1 * milli * Tesla
 gamma = nano * Tesla
 Mx = Maxwell = 10 * nano * Weber
-
 erg = .1 * micro * Joule
 dyn = 10 * micro * Newton
 
-bar = .1 * mega * Pascal
-def Centigrade(number): return Kelvin * (number + 273.16)
+# NB: A/m = C.(m/s)/m^2, charge flux density.
+Oe = Oersted = Quantity(kilo / 4 / pi, Ampere / metre,
+                        """Magnetising field strength in the cgs system.
+
+Named after Hans Christian Ørsted.
+
+Measures H-field strength, in contrast to B-field strength (in Tesla or
+Gauss).  Multiplying H by permeability of the medium gives B.
+""")
 
 # Radiation and its effects:
 Bq = Becquerel = Hz             # Activity of a radionuclide (events / s)
-Gy = Gray = Joule / kilogramme  # Absorbed dose of radiation
-Sv = sievert = Gy               # Dose equivalent
-# rad = Gy/100 # but conflicts with common abbreviation of radian
-rem = 10 * milli * Sv
-# 10 milli Gray is also called a rad (but its name conflicts with radian)
-
 Ci = Curie = 37 * giga * Becquerel
-R = Roentgen = Quantity(.258, milli * Coulomb / kilogramme,
-                       fullname='Röentgen') # also Rontgen ?
-Oe = Oersted = kilo * Ampere / metre / 4 / pi # should that be Örsted ?
-# see also particle.py for the electron-Volt, eV, and Rydberg'c constant.
+
+R = Roentgen = Quantity(258, micro * Coulomb / kilogramme,
+                        """The Röentgen, a unit of ionising radiation.
+
+This measures the intensity of of ionising radiation in terms of amount of
+charge separated per unit mass of exposed material.  Its definition is: the
+amount of radiation required to liberate 1 esu of charge of each polarity in 1
+cubic centimeter of dry air.  Here, the esu - electro-static unit,
+a.k.a. franklin (Fr) or statcoulomb (statC) - is (in some sense) 1/2997924580
+Coulombs (but normally expressed in the Coulomb-cgs system, which takes 4*pi
+times the permittivity of free space as a dimensionless unit, so charge has
+units length*sqrt(force)).
+""",
+                        fullname='Röentgen')
+
+Gy = Gray = Quantity(1, Joule / kilogramme,
+                     """Absorbed dose of radiation.
+
+This measures the amount of energy absorbed, from radiation, by a subject's
+tissues, during exposure to radiation, per unit mass of tissue.  It is a raw
+physical unit and takes no account of how much damage is caused per unit of
+energy.  Contrast the Sievert and its derivatives.
+
+The centi-Gray is also called a rad; but its name conflicts with the standard
+abbreviation for radian, so I don't include it in this units collection.
+""")
+
+Sv = Sievert = Quantity(1, Gray,
+                        """Dose equivalent of radiation.
+
+Although dimensionally the same unit as the Gray, the Sievert is an adjusted
+'dose-equivalent' unit which aims to take into account the differences in how
+much damage different kinds and intensities of radiation do.  The rem is a
+more commonly used unit, equal to one centi-Sievert.
+
+Note that these are units of total dose and the effects of irradiation are not
+simply linear; a given dose in a short period of time may do significantly
+more harm than the same dose spread over a longer time.  The Sievert is a
+'big' unit, in the sense that someone exposed to several Sievert within a few
+days can be expected to die within a few months; exposure levels between 2.5
+and 4 Sv in a few days kill half of those exposed to them; exposure to half a
+Sievert within a few days typically produces radiation sickness, albeit
+usually healable if treated promptly and properly.  Yet there are places on
+Earth where the natural background exposes inhabitants to a quarter Sievert
+(somewhat more than the planet-wide average lifetime dose) per year with no
+sign of ill effects.
+
+In contrast to the 'big' Sievert, the rem is a 'small' unit: there is no
+direct evidence of doses less than one rem causing health effects in humans.
+""")
+rem = centi * Sv
+radiation = Object(
+    background = Quantity.flat(1, 13, 2.4, milli * Sv / year,
+                               """Background radiation level.
+
+The given range, based on a table in UNSCEAR's FAQ, ignores some outliers; the
+highest of which is around Talesh-Mahalleh in Iran, whose hot springs - used
+as a health spa - exhibit levels up to two hundred times as high as the global
+average used as best estimate here.  As seen in the error-bar used here, there
+is substantial variation across the globe; for individual countries, narrower
+ranges with significantly different averages apply, e.g. the USA's average is
+generally reckoned to be 3.6 mSv/yr.
+
+Food contributes around 0.4 mSv/yr to the total.  Flight crews on air-craft
+typically experience an extra 2.2 mSv/yr from increased exposure to cosmic
+rays, effectively doubling their exposure; passengers take a proportionate
+increase dependent on how often they fly.  Those who live in airtight homes in
+regions of high Radon-prudiction (notably granite hills) can be subject to as
+much as 10 mSv/yr extra from Radon; and can endu up suffocating, regardless of
+the radioactivity - ventilate your cellar !
+
+In contrast, nuclear bomb testing contributed 0.15 mSv/yr at its peak, in 1963
+(when I was born); this contribution has since decreased
+thirty-fold.  Releases from coal-fired power stations have been found to
+account for significantly more than those from nuclear energy and weapons
+combined; and the harm caused by these releases is dwarfed by that from the
+accompanying greenhouse emissions and acid rain.
+
+Sources:
+ * FAQ at http://www.unscear.org/
+ * http://en.wikipedia.org/wiki/Background_radiation
+ * http://en.wikipedia.org/wiki/Ionizing_radiation#Sources
+"""),
+    EPA = Object(
+        airborne = Quantity(10 * milli, rem / year,
+                            """Exposure limit from airborne emissions.
+
+Applies to 'operations of nuclear fuel cycle facilities', including power
+plant, uranium mines and mills.
+"""),
+        emergency = Quantity(25, rem,
+                             """Guideline for non-livesaver volunteers.
+
+During an emergency, for work not directed towards saving lives, volunteers
+should not be exposed to more than a quarter Sievert.
+"""),
+        lifesaver = Quantity(75, rem,
+                             """Guideline for life-saving volunteers.
+
+During an emergency, those volunteering to do work that shall save lives
+should not normally be exposed to more than three quarters of a Sievert.
+"""),
+        __doc__="""Various EPA guidelines and limits on radiation exposure.
+
+The USA's Environmental Protection Agency sets limits on how much radioactive
+material may be released into the environment.  See also radiation.DOE.
+"""),
+    DOE = Object(
+        public = Quantity(milli, Sievert / year,
+                          """DOE limit on public exposure.
+
+Members of the public, who are not radiation workers, should not be exposed -
+by the combined effect of all DOE facilities - to more than one mSv each year
+(less than half the normal background level).
+"""),
+        worker = Quantity(5, rem / year,
+                          """DOE limit on radiation worker exposure.
+
+The US NRC and DOE limit occupational exposure of radiation workers to a
+twentieth of a Sievert per year, fifty times the permitted exposure of the
+general public (see radiation.DOE.public).
+"""),
+        __doc__ = """Various DOE limits on radiation exposure.
+
+The US department of energy and nuclear regulatory commission set limits on
+radiation exposure from the DOE's operations.  See also radiation.EPA.
+"""),
+    EU = Object(
+        aircrew = Quantity(20 * milli, Sievert / year,
+                           "EU limit for annual exposure of airline crew."),
+        __doc__="EU limits on radiation exposure."),
+    danger = Quantity.flat(25, 75, 50, rem,
+                           """Threshold beyond which acute doses are harmful.
+
+It is generally reckoned that subjects exposed to more than about half a
+Sievert in a short space of time can be expected to suffer some degree of
+radiation sickness, albeit proper medical attention should suffice to ensure
+full recovery unless the dose is significantly above this threshold.  Those
+exposed to several Sievert, in a short space of time, can be expected to die
+within a few months.
+"""),
+    __doc__="""A collection of doses and dose-rates for ionizing radiation.
+
+Note that dose and dose-rate limits tend to be set conservatively; the fact
+that authorities impose such limits is not tied to any concrete evidence that
+these limits are at all close to levels at which subjects would experience
+harm.  The limits were initially set cautiously partly because even such
+cautious limits do appear achievable, partly because the ethics of conducting
+experiments (either in the laboratory or by allowing higher dose rates and
+thus effectively using the general public as test subjects) preclude discovery
+of actual thresholds at which harm becomes significant.  The accident at
+Chernobyl did produce significant experimental data on the subject (thanks to
+dosimeters on the fire-fighters who risked - and in many cases lost - their
+lives to control the damage), which could be used to revise limits: but
+political factors make it unlikely that this will happen.
+
+See also the relevant units: Sievert, Gray and rem for doses by energy
+delivered; Röentgen and Oersted for doses by charge; Becquerel and Curie for
+hit-frequency.  Contrast study.chemy.physics's Cosmos.temperature (of the
+(non-ionizing) cosmic microwave background).
+""")
+
+# see also study.chemy.particle for the electron-Volt, eV, and Rydberg'c constant.
 
 # Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(101325, Pascal,
