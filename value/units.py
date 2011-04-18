@@ -41,18 +41,17 @@ del log
 # Angles:
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
-grad = turn / 400 # a unit used by gunners, I believe.
 arc = Object(degree = turn / 360,
              __doc__="""The arc-units of angle.
 
 An angle can be expressed by the portion of a circle, centred on the point at
-which two lines meet in the given angle, that falls between the two lines.  Such
-a portion is known as an 'arc' of the circle.  Its length depends on the radius
-of the circle, but its more important characteristic is the angle it 'subtends'
-at its centre - that is, the angle we first started with.  Thus arcs are
-characterised by angles and a standard family of units of angle is characterised
-by the subdivision of a turn into arcs subtending assorted fractions of the
-whole.
+which two lines meet in the given angle, that falls between the two
+lines.  Such a portion is known as an 'arc' of the circle.  Its length depends
+on the radius of the circle, but its more important characteristic is the
+angle it 'subtends' at its centre - that is, the angle we first started
+with.  Thus arcs are characterised by angles and a standard family of units of
+angle is characterised by the subdivision of a turn into arcs subtending
+assorted fractions of the whole.
 
 The classical unit of arc, the degree, is one 360th of a turn.
 This arises from the Babylonian approximation of the year as being 360 days
@@ -67,17 +66,18 @@ accuracy comparable with the degree, any object outside the solar system and
 visible to the unaided human eye is sufficiently distant, for these purposes.
 
 Once astronomers had half-way-decent telescopes, they could resolve angles
-(between objects they could see) on much finer scales than the degree (and could
-see much fainter objects), so it became meaningful to sub-divide the degree.
-For one reason or another, one sixtieth of a degree was chosen as the next
-smaller unit.  Presumably by some kind of analogy treating the degree as an
-'hour', this unit is known as the 'minute' of arc.
+(between objects they could see) on much finer scales than the degree (and
+could see much fainter objects), so it became meaningful to sub-divide the
+degree.  A first subdivision by a factor of sixty giave a 'minute' (synonym of
+tiny) unit, which became known as a 'minute' (pronounced differently).
 
 Once telescopes became sufficiently better to enable astronomers to resolve
 angles significantly smaller than the minute of arc, it became necessary to
-sub-divide the minute.  Having once used a factor of sixty to obtain a minute,
-it was natural to further sub-divide the minute by a factor of sixty to obtain a
-second of arc.
+sub-divide the minute.  Subdividing again by a factor of sixty was a 'second'
+(minute, in the 'tiny' sense) sub-division so it's known as the second of
+arc.  (The exact same operation applied to an hour subdivided it into a minute
+sub-division and a second minute sub-division to produce the units of time
+with the same names.)
 
 If we back-derive the 'hour' of arc, it would be one degree of arc.  The next
 factor of sixty up from the degree is, conveniently, turn/6 - which is the
@@ -85,10 +85,11 @@ internal angle in each corner of an equilateral triangle (i.e. one whose three
 internal angles are equal).  This is the angle a twenty-four hour clock's hour
 hand sweeps across in four hours or a twelve-hour clock's hour hand sweeps
 across in two hours.  If we added, to our clock, a hand which swept one degree
-per hour of time, it would complete a whole turn in 360 hours, which is 360 / 24
-= 15 days; just one day more than a fortnight and almost half an average month.
-One year would then be just slightly over twenty-four and a third turns of this
-hand of our clock.\n""",
+per hour of time, it would complete a whole turn in 360 hours, which is 360 /
+24 = 15 days; just one day more than a fortnight and almost half an average
+month. One year would then be just slightly over twenty-four and a third turns
+of this hand of our clock.\n""",
+             grad = turn / 400, # a unit of elevation used by gunners, IIRC.
              point = turn / 32) # there are 32 points on a ship's compass rose
 arc.minute = arc.degree / 60
 arc.second = second.arc = arc.minute / 60
@@ -103,7 +104,8 @@ minute = Quantity(60, second, arc=arc.minute)
 hour = 60 * minute # should this also be the degree of time ?
 day = 24 * hour
 week = 7 * day
-fortnight, year = 2 * week, 27 * 773 * week / 400 # the Gregorian approximation
+fortnight = 2 * week
+year = 27 * 773 * week / 400 # the Gregorian approximation
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 6**3 seconds abound ...
 
