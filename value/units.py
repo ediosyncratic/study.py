@@ -2,8 +2,6 @@
 """Assorted units of measurement.
 
 See SI.py for base units and archaea.py for more arcane units (and references).
-
-$Id: units.py,v 1.33 2009-08-30 23:00:57 eddy Exp $
 """
 from SI import *
 
@@ -12,22 +10,22 @@ from math import log
 bel = Quantity(log(10), {},
                """Bel
 
-The Bel is a logarithmic unit, originally the reduction in audio level over one
-mile of standard telephone cable but now formalized as a scaling by a factor of
-ten.  This is quite a large ratio, so the deci Bel, dB, is more commonly used.
-Two Bel equals five astronomical magnitudes.\n""")
+The Bel is a logarithmic unit, originally the reduction in audio level over
+one mile of standard telephone cable but now formalized as a scaling by a
+factor of ten.  This is quite a large ratio, so the deci Bel, dB, is more
+commonly used. Two Bel equals five astronomical magnitudes.\n""")
 magnitude = Quantity(log(.01) / 5, {},
                      """Astromonical apparent magnitude.
 
 The observed brightness of astronomical objects is described on a logarithmic
 scale, effectively taking logarithms to base .01**.2 ~= 0.398; if one object's
-brightness is one hundred times that of another, then the former's magnitude is
-five lower than that of the latter.  This is a tidied-up form of the ancient
-Hellenistic astronomers' scheme (popularized by Ptolemy, probably originated by
-Hipparchus) for classifying visible stars into six magnitudes; the brightest
-stars were first magnitude and the limit of human vision were sixth magnitude.
-In the tidied-up scheme, Sirius has magnitude -1.46; the Sun and Moon are even
-more negative.
+brightness is one hundred times that of another, then the former's magnitude
+is five lower than that of the latter.  This is a tidied-up form of the
+ancient Hellenistic astronomers' scheme (popularized by Ptolemy, probably
+originated by Hipparchus) for classifying visible stars into six magnitudes;
+the brightest stars were first magnitude and the limit of human vision were
+sixth magnitude. In the tidied-up scheme, Sirius has magnitude -1.46; the Sun
+and Moon are even more negative.
 
 Note that astronomical objects are also assigned 'absolute' magnitudes, which
 relates to its luminosity (of which the lumen is unit).  For solar system
@@ -115,8 +113,9 @@ year.also(Gregorian = year,
 year.tropical.document("""The tropical year.
 
 This is the time between successive vernal equinoxes.  It differs from the
-sidereal year because of the precession of the equinoxes: the equinoctial points
-move 50.27 seconds of arc per year westwards round the plane of the ecliptic.
+sidereal year because of the precession of the equinoxes: the equinoctial
+points move 50.27 seconds of arc per year westwards round the plane of the
+ecliptic.
 """) # so a period of c. 25.78 millennia
 
 year.sidereal.document("""The sidereal year: Earth's orbital period.
@@ -327,7 +326,8 @@ hit-frequency.  Contrast study.chemy.physics's Cosmos.temperature (of the
 (non-ionizing) cosmic microwave background).
 """)
 
-# see also study.chemy.particle for the electron-Volt, eV, and Rydberg'c constant.
+# see also study.chemy.particle for the electron-Volt, eV, and Rydberg's
+# constant.
 
 # Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(101325, Pascal,
@@ -339,9 +339,9 @@ atm = Atmosphere = Quantity(101325, Pascal,
 mol.STP = Quantity(Centigrade(0) / atm, {},
                    """Standard temperature / pressure
 
-Various thermodynamic quantities are defined in terms a standard temperature of
-zero Celsius and pressure of one (standard) atmosphere; these are supplied as
-.temperature and .pressure attributes of mol.STP.  In many cases, notably
+Various thermodynamic quantities are defined in terms a standard temperature
+of zero Celsius and pressure of one (standard) atmosphere; these are supplied
+as .temperature and .pressure attributes of mol.STP.  In many cases, notably
 whenever the ideal gas law is involved, it is actually only the ratio of these
 two that matters, so mol.STP is in fact the .temperature / .pressure ratio.
 """,
@@ -355,13 +355,16 @@ Named after Evangelista Torricelli (1608-1647), who succeeded Galileo as court
 mathematician to Grand Duke Ferdinando II of Tuscany.
 
 The unit is defined as the pressure exerted by a depth of one millimetre of
-mercury at zero Celsius under standard gravity.  Actual laboratory observations
-should be corrected for the local ambient gravitational field strength and
-mercury's thermal expansion.""")
+mercury at zero Celsius under standard gravity.  Actual laboratory
+observations should be corrected for the local ambient gravitational field
+strength and mercury's thermal expansion.
+""")
 
 mach = Quantity(331.46, metre / second,
                 doc = """The speed of sound in dry air.
-\n(at standard temperature and pressure; see mol.STP).\n""")
+
+(at standard temperature and pressure; see mol.STP).
+""")
 
 Rankine = Kelvin / 1.8
 degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
@@ -369,31 +372,33 @@ degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
             Reaumur = .8 * Kelvin,
             __doc__ = """The degree.
 
-Various quantities are measured in 'degrees': the name comes from the Latin for
-a step (de gradus, I think), which makes it sort-of synonymous with 'unit'.
-See arc.__doc__ for the unit of angle with this name.
+Various quantities are measured in 'degrees': the name comes from the Latin
+for a step (de gradus, I think), which makes it sort-of synonymous with
+'unit'. See arc.__doc__ for the unit of angle with this name.
 
 Several units of temperature share this name, qualified by the originators of
-the respective units.  A Swede called Celsius invented a unit which France (and
-hence SI) adopted; a Frenchman called Réaumur invented one which the Germans
-adopted (until they switched over to SI); and a German called Fahrenheit
-invented (before these others, the thermometer and) various units, one of which
-remains in use in some backwards parts of the anglophone world.\n""")
+the respective units.  A Swede called Celsius invented a unit which France
+(and hence SI) adopted; a Frenchman called Réaumur invented one which the
+Germans adopted (until they switched over to SI); and a German called
+Fahrenheit invented (before these others, the thermometer and) various units,
+one of which remains in use in some backwards parts of the anglophone world.
+""")
 
 degree.__dict__['Réaumur'] = degree.Reaumur
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def Reaumur(number): return Centigrade(number * .8)
 
-calorie = Object(international = Quantity(4.1868, Joule, # 3.088 * lb.weight * foot
+calorie = Object(international = Quantity(4.1868, Joule,
+                                          # 3.088 * lb.weight * foot
                                           doc="The international calorie."),
                  thermochemical = Quantity(4.184, Joule,
                                            doc="The thermodynamic calorie."),
                  doc="""The calorie.
 
 This unit is implicated in assorted confusions.  First, there's both an
-international one and a thermochemical one, and I've seen the international one
-described as the 'thermodynamic calorie (IT)'.  Second, I've heard that some
-folk, notably dieticians (allegedly) use 'calorie' to mean kilo calorie.
+international one and a thermochemical one, and I've seen the international
+one described as the 'thermodynamic calorie (IT)'.  Second, I've heard that
+some folk, notably dieticians (allegedly) use 'calorie' to mean kilo calorie.
 
 Values used here are taken from python's Scientific.Physics.PhysicalQuantities
 module.\n""")
@@ -412,6 +417,6 @@ limit = Object(__doc__ = "Various limiting values, usually for humans",
                                   """Threshold of human hearing.
 
 This is the sound intensity conventionally used as base-value when describing
-sound intensities in decibels: divide a sound intensity by this and take its log
-to base ten and multiply by ten to get the dB (SIL) value for it.  A sound
+sound intensities in decibels: divide a sound intensity by this and take its
+log to base ten and multiply by ten to get the dB (SIL) value for it.  A sound
 intensity of one Watt per square metre is thus 12 Bel or 120 dB.\n"""))

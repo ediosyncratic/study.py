@@ -3,15 +3,15 @@
 
 See SI.py for base units and units.py for various others.
 
-This file documents lots of obscure and/or silly units, may of them derived from
-the /usr/share/misc/units repository of knowledge on the subject (see
+This file documents lots of obscure and/or silly units, may of them derived
+from the /usr/share/misc/units repository of knowledge on the subject (see
 units.html, in URLs attribute of this module, for details).  This file aims to
-be all-inclusive, rather than sensible; however, there are `issues', since some
-of the units (especially ones relevant to trade in the anglophone world) have
-several variants - where possible, I have tried to find namespace-based ways to
-manage this mess (e.g.: print bushel.US.__doc__), but sometimes (e.g. the chain)
-I just gave up and left a comment here indicating the part of the story that
-I've left out !
+be all-inclusive, rather than sensible; however, there are `issues', since
+some of the units (especially ones relevant to trade in the anglophone world)
+have several variants - where possible, I have tried to find namespace-based
+ways to manage this mess (e.g.: print bushel.US.__doc__), but sometimes
+(e.g. the chain) I just gave up and left a comment here indicating the part of
+the story that I've left out !
 
 I should probably replace most of this file with a family of XML or RDF
 documents describing all the units, coupled to a deployment of some standard
@@ -22,58 +22,57 @@ units of measurements in all sorts of odd domains.
 
   For example, consider the fuel efficiency of transport systems fueled by
   petrol; this is commonly measured in miles / gallon in the anglophone world
-  (with consequent confusion between the new imperialists and the old; while the
-  two agree on what a mile is, they disagree on what a gallon is; five UK
+  (with consequent confusion between the new imperialists and the old; while
+  the two agree on what a mile is, they disagree on what a gallon is; five UK
   gallons roughly equal six US gallons) or kilometres / litre in the civilised
-  world (48 miles / UK gallon is roughly equal to 40 miles / US gallon and to 17
-  kilometres / litre).  This last is, itself, one million times the natural SI
-  unit, metres per cubic metre.
+  world (48 miles / UK gallon is roughly equal to 40 miles / US gallon and to
+  17 kilometres / litre).  This last is, itself, one million times the natural
+  SI unit, metres per cubic metre.
 
   Superficially, this is a 1/area unit, though the implicit `of petrol' clause
   in it does subvert that a little; 17 km/litre is officially 17 million /
   square metre, a.k.a. 17 per square millimetre; which is meaningless drivel
-  until I point out that it means that each square millimetre of cross-sectional
-  area of your fuel tank contributes (at this fuel efficiency) 17 to the ratio
-  between the speed of your vehicle and the rate at which the fuel level in the
-  tank is dropping; if your fuel tank's cross-section is one square foot (92,903
-  square mm), and your vehicle is managing 17 km/litre, then you're travelling a
-  little over one and a half million (i.e. 17 * 92,903) times as fast as the
-  level in the fuel tank is dropping.
+  until I point out that it means that each square millimetre of
+  cross-sectional area of your fuel tank contributes (at this fuel efficiency)
+  17 to the ratio between the speed of your vehicle and the rate at which the
+  fuel level in the tank is dropping; if your fuel tank's cross-section is one
+  square foot (92,903 square mm), and your vehicle is managing 17 km/litre,
+  then you're travelling a little over one and a half million (i.e. 17 *
+  92,903) times as fast as the level in the fuel tank is dropping.
 
-  In reality, fuel efficiencies of real road vehicles seem to fall in the range
-  from around 8 to around 80 mpg (UK), so that a unit of order 20 mpg would be
-  quite handy; as it happens, one furlong / UK floz is exactly 20 miles per UK
-  gallon, suggesting it as the ideal imperial unit for the task (i.e. it's the
-  right size and marvelously perverse).  A slightly saner unit would clearly be
-  the mile per UK pint - the given range runs from one to 10 of these, and
-  that's a nice range of numbers to work with - which is 2.83 km / litre.  By a
-  weird twist of fate, 2.83 is almost exactly the square root of 8; so that the
-  civilised unit, one km/litre, is 2.83 miles per UK gallon; and using this unit
-  makes the range of real-world values run from 2.8 to 28, with 10 km/litre
-  (roughly 28 miles per UK gallon or 23 per US gallon) presenting itself as a
-  fairly good cut-off between `inefficient' and `not so bad, all things
-  considered'.
+  In reality, fuel efficiencies of real road vehicles seem to fall in the
+  range from around 8 to around 80 mpg (UK), so that a unit of order 20 mpg
+  would be quite handy; as it happens, one furlong / UK floz is exactly 20
+  miles per UK gallon, suggesting it as the ideal imperial unit for the task
+  (i.e. it's the right size and marvelously perverse).  A slightly saner unit
+  would clearly be the mile per UK pint - the given range runs from one to 10
+  of these, and that's a nice range of numbers to work with - which is 2.83 km
+  / litre.  By a weird twist of fate, 2.83 is almost exactly the square root
+  of 8; so that the civilised unit, one km/litre, is 2.83 miles per UK gallon;
+  and using this unit makes the range of real-world values run from 2.8 to 28,
+  with 10 km/litre (roughly 28 miles per UK gallon or 23 per US gallon)
+  presenting itself as a fairly good cut-off between `inefficient' and `not so
+  bad, all things considered'.
 
-  Note that one might equally measure the same phenomenon as a fuel consumption
-  rate, in gallons per mile or litres per kilometre, which would encourage
-  trying to find a unit of order one UK gallon per 80 miles, a.k.a. one UK pint
-  per ten miles or 2 UK floz per mile.  (The pint per mile would also make quite
-  a good unit of measurement for pub-crawls, albeit with very different
-  semantics.)  A vehicle consuming a small number of floz per mile (up to five
-  or six, to match the cut-off above) would then be considered frugal, while
-  ones beyond that would be considered wasteful.
+  Note that one might equally measure the same phenomenon as a fuel
+  consumption rate, in gallons per mile or litres per kilometre, which would
+  encourage trying to find a unit of order one UK gallon per 80 miles,
+  a.k.a. one UK pint per ten miles or 2 UK floz per mile.  (The pint per mile
+  would also make quite a good unit of measurement for pub-crawls, albeit with
+  very different semantics.)  A vehicle consuming a small number of floz per
+  mile (up to five or six, to match the cut-off above) would then be
+  considered frugal, while ones beyond that would be considered wasteful.
 
 Chosing the right unit, and the right way up (c.f. the contrast between fuel
 efficiency and consumption rate), is important to how measurements get
-interpreted - for example, although the gradient of a sloping road may formally
-be a dimensionless quantity, it makes sense to measure `slope' in such units as
-metre (of ascent or descent) per kilometre (of travel) or, in a culture which
-has different units for vertical and horizontal lengths, fathoms per furlong.
-Even when using the official SI unit, different ways of expressing a unit can
-change perceptions of its meaning - for example, (metre / second)**2 means the
-same as Joule / kilogramme, but expresses a different perspective on it.
-
-$Id: archaea.py,v 1.12 2010-04-08 17:19:09 eddy Exp $
+interpreted - for example, although the gradient of a sloping road may
+formally be a dimensionless quantity, it makes sense to measure `slope' in
+such units as metre (of ascent or descent) per kilometre (of travel) or, in a
+culture which has different units for vertical and horizontal lengths, fathoms
+per furlong. Even when using the official SI unit, different ways of
+expressing a unit can change perceptions of its meaning - for example, (metre
+/ second)**2 means the same as Joule / kilogramme, but expresses a different
+perspective on it.
 
   You, in this country, are subjected to the British insularity in weights and
   measures; you use the foot, inch and yard. I am obliged to use that system,
@@ -114,6 +113,9 @@ http://home.hetnet.nl/~vanadovv/Lengte.html
 
 Fathom = vadem in dutch:
 <URL: http://home.hetnet.nl/~vanadovv/Lengte.html >
+
+The source 'poxy', sometimes mentioned below, is my 1973 reprint of the fifth
+edition of the Pocket Oxford Dictionary.
 """
 
 from units import *
@@ -122,7 +124,8 @@ from units import *
 Lenat = base_unit('L', 'Lenat',
 		  """The standard unit of bogosity
 
-See the New Hackers' Dictionary, under microLenat.  Also known as the Reid. """)
+See the New Hackers' Dictionary, under microLenat.  Also known as the Reid.
+""")
 
 Helen = base_unit('Helen', 'Helen',
 		  """The standard unit of beauty (trad).
@@ -130,16 +133,18 @@ Helen = base_unit('Helen', 'Helen',
 Definitively `beautiful enough to launch a thousand ships', so that launching a
 single ship gains credit for a single milli-Helen.  The origin of this is the
 story of the Trojan war, in which a Greek fleet of a thousand ships, carrying a
-great army, went to retrieve Helen from Troy, to which Paris had taken her. """)
+great army, went to retrieve Helen from Troy, to which Paris had taken her.
+""")
 
 Scoville = base_unit('Scoville', 'Scoville',
 		     """Standard unit of pungency.
 
-Dilution to one part in N (with sugar water) makes the taste undetectable for an
-N Scoville pungency.  Conventional wisdom classes 0 to 500 as mild, 500 to 999
-as medium, 1k to 4.999 k as hot and 5k or above super-hot.  Chile sauces scoring
-93 k Scoville are insane, but some exist as high as 577 k Scoville; Jalapeno
-extract scores about 4.5 k; pure Capsaicin rates over 15,000,000 Scoville Units.
+Dilution to one part in N (with sugar water) makes the taste undetectable for
+an N Scoville pungency.  Conventional wisdom classes 0 to 500 as mild, 500 to
+999 as medium, 1k to 4.999 k as hot and 5k or above super-hot.  Chile sauces
+scoring 93 k Scoville are insane, but some exist as high as 577 k Scoville;
+Jalapeno extract scores about 4.5 k; pure Capsaicin rates over 15,000,000
+Scoville Units.
 """)
 
 # Dimensionless:
@@ -161,40 +166,42 @@ paper.also(bundle = 2 * paper.ream, bale = 10 * paper.ream,
 Geldof = Quantity(3e4, 1/day,
                   """The pre-Geldof poverty-induced infant mortality rate.
 
-As at 2005, the Live8Live organizers report that 30,000 children die every day,
-needlessly, as a result of extreme poverty.  This seemed a reasonable basis on
-which to name a rate-of-death unit.  Since Sir Bob Geldof stands as front-man
-for the Live8Live organization, and has done sterling work in previous kindred
-organizations, he seemed a natural person after whom to name the unit.  It
-should be noted that the 3e4/day figure is merely the infant mortality rate; we
-could as readily use 5e4 if we include adults.\n""")
-
+As at 2005, the Live8Live organizers report that 30,000 children die every
+day, needlessly, as a result of extreme poverty.  This seemed a reasonable
+basis on which to name a rate-of-death unit.  Since Sir Bob Geldof stands as
+front-man for the Live8Live organization, and has done sterling work in
+previous kindred organizations, he seemed a natural person after whom to name
+the unit.  It should be noted that the 3e4/day figure is merely the infant
+mortality rate; we could as readily use 5e4 if we include adults.
+""")
 
-# Many units are or have been subject to what amounts to dialect variation, some
-# have undergone significant changes of definition over time (as compared to the
-# fine-tuning of, for example, the metre in 1975).  This is only to be expected:
-# language works like that and it's words we're discussing here.
+# Many units are or have been subject to what amounts to dialect variation,
+# some have undergone significant changes of definition over time (as compared
+# to the fine-tuning of, for example, the metre in 1975).  This is only to be
+# expected: language works like that and it's words we're discussing here.
 
 # Comments in the following indicate the views of various sources. (K&L = Kaye
 # and Laby, NHD = New Hackers' Dictionary, KDWB = Kim's dad's 1936 white
-# booklet, EB = 11th edition Encyclopaedia Britannica, 1911, article on Weights
-# and Measures.)  Where source is not given in a comment (either on the line or
-# at start of section) the calculation of the line reflects a consensus.  Either
-# that or it's some random detail I tripped over somewhere and jotted down ...
+# booklet, EB = 11th edition Encyclopaedia Britannica, 1911, article on
+# Weights and Measures.)  Where source is not given in a comment (either on
+# the line or at start of section) the calculation of the line reflects a
+# consensus.  Either that or it's some random detail I tripped over somewhere
+# and jotted down ...
 
 # Units I describe as `anglophone' are, to the best of my knowledge, common to
 # all the `English-speaking' peoples (they also typically have equivalents in
-# archaic units of Scandinavia): by `imperial' I mean those in which the US and
-# UK have diverged.  The US versions of these are collected together in the
-# namespace of an object US; these units also appear as .US attributes of the UK
-# variants.  Various other nations' arcane units are likewise collected in
-# name-space objects (whose names are English words for the national
+# archaic units of Scandinavia): by `imperial' I mean those in which the US
+# and UK have diverged.  The US versions of these are collected together in
+# the namespace of an object US; these units also appear as .US attributes of
+# the UK variants.  Various other nations' arcane units are likewise collected
+# in name-space objects (whose names are English words for the national
 # adjectives); where cognate with an anglophone unit, they also appear in that
 # unit's name-space (using the national adjective in its native tongue, except
 # for French - an attribute name can't have a cedilla in it).  For these
-# purposes, Troy is treated as a nation - but doesn't actually mean the ancient
-# city-state of that name !  I should probably do the same to the UK versions of
-# anglophone units - if only to make this module's name-space less cluttered !
+# purposes, Troy is treated as a nation - but doesn't actually mean the
+# ancient city-state of that name !  I should probably do the same to the UK
+# versions of anglophone units - if only to make this module's name-space less
+# cluttered !
 
 champagne = Object(
     split = .2 * litre,
@@ -225,38 +232,40 @@ cubit = span * 2 # but also used as synonym for ell
 ft = foot = Quantity(3, hand,
                      """The English foot.
 
-See namespace for other nation's variants on this unit.  All are fairly close to
-the distance (given here as foot.astronomical) that light travels in a nano second:
-those closest to it are the old Swedish foot, just under 1% below, and the
-English foot, just over 1/60 above.
+See namespace for other nation's variants on this unit.  All are fairly close
+to the distance (given here as foot.astronomical) that light travels in a nano
+second: those closest to it are the old Swedish foot, just under 1% below, and
+the English foot, just over 1/60 above.
 """,
                      astronomical = nano * second.light,
                      survey = Quantity(1.2e3 / 3937, metre,
                                        """The (geodetic) survey foot.
 
-In the US the Metric Act of 1866 defined the foot to equal exactly
-1200/3937m, or approximately 30.48006096cm.  This unit, still used for
-geodetic surveying in the United States, is now called the survey
-foot.\n"""))
+In the US the Metric Act of 1866 defined the foot to equal exactly 1200/3937m,
+or approximately 30.48006096cm.  This unit, still used for geodetic surveying
+in the United States, is now called the survey foot.
+"""))
 
 yard = Quantity(3, foot,
                 """The Modern Yard.
 
 The yard (0.9144 metres) is a modern survivor of a family of roughly
-stride-sized units of length dating back - if the excellent Monsieur Thom is to
-be believed - to prehistory (Thom measured the lengths in stone circles all over
-Europe and found evidence that they were measured to a common unit,
+stride-sized units of length dating back - if the excellent Monsieur Thom is
+to be believed - to prehistory (Thom measured the lengths in stone circles all
+over Europe and found evidence that they were measured to a common unit,
 approximately equal to the yard).  It takes its name from a Germanic word,
-'gyrd'.  Its metric replacement, the metre, is just slightly bigger.\n""")
+'gyrd'.  Its metric replacement, the metre, is just slightly bigger.
+""")
 
 nail = yard / 16
 pace = Quantity(5, foot, US = 30 * inch)
 rope = 4 * pace
 fathom = Quantity(2, yard, """The Fathom.
 
-The fathom (also called 'mark') is cognate with the Swedish famn and Danish favn
-(q.v.) and has principally survived in use as a maritime measure of vertical
-distances - notably the depths of bodies of water.\n""")
+The fathom (also called 'mark') is cognate with the Swedish famn and Danish
+favn (q.v.) and has principally survived in use as a maritime measure of
+vertical distances - notably the depths of bodies of water.
+""")
 
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
 chain.engineer = 100 * foot # rather than 100 links; c.f. Swedish.ref
@@ -266,20 +275,21 @@ furlong = 10 * chain	# from German, `furrow long'
 mile = Quantity(8, furlong,
                 """The Statute Mile.
 
-The British mile (also used in the U.S.A.) is just over 1600 metres; for a long
-time it was used as a standard distance for races, fitting nicely with the
-pattern of doubling lengths upwards from 100m.  Like all Imperial units, it has
-a long and contorted history.
+The British mile (also used in the U.S.A.) is just over 1600 metres; for a
+long time it was used as a standard distance for races, fitting nicely with
+the pattern of doubling lengths upwards from 100m.  Like all Imperial units,
+it has a long and contorted history.
 
 Its nominal origin is in the Imperial Roman 'millum pes' - a thousand paces,
 though the Roman pes was the distance a soldier's foot travels in each stride,
-roughly double the separation of the feet when both are on the ground.  Compare
-this to the British 'pace', of 5 feet, which is quite close to one thousandth of
-a mile, while the US 'pace' is exactly half as long.
+roughly double the separation of the feet when both are on the
+ground.  Compare this to the British 'pace', of 5 feet, which is quite close
+to one thousandth of a mile, while the US 'pace' is exactly half as long.
 
 Some backward countries seem likely to continue using this unit to measure
 distances - along with the mile per hour as a unit of speed - for some time to
-come.  Contrast mile.nautical and the Scandinavian mil.\n""")
+come.  Contrast mile.nautical and the Scandinavian mil.
+""")
 
 league = Quantity(3, mile,
                   """The league
@@ -289,24 +299,23 @@ A varying measure of road distance, usu. about three miles (poxy).
 marathon = Quantity(1, 26 * mile + 385 * yard,
                     """The length of a marathon race.
 
-At the first Olympic games, hosted by Athens in 1896, a race was run
-from the town of Marathon to Athens, following a 40 km route,
-commemorating a confused legend about a messenger bearing news of the
-end of the battle of Marathon in 490 BC.  (Prior to the battle,
-Pheidippides allegedly ran, in two days, from Athens to Sparta, a
-distance of over 140 miles, to request aid.  After the battle, the
-Athenian army marched home in a hurry, lest the Persians sail up the
-coast to attack Athens directly.  These two stories ended up getting
+At the first Olympic games, hosted by Athens in 1896, a race was run from the
+town of Marathon to Athens, following a 40 km route, commemorating a confused
+legend about a messenger bearing news of the end of the battle of Marathon in
+490 BC.  (Prior to the battle, Pheidippides allegedly ran, in two days, from
+Athens to Sparta, a distance of over 140 miles, to request aid.  After the
+battle, the Athenian army marched home in a hurry, lest the Persians sail up
+the coast to attack Athens directly.  These two stories ended up getting
 conflated.)
 
-Since then, races over about 40 km have tended to be called
-marathons.  Until 1921, there was no standardised distance for the race;
-thereafter, a standard distance of 42.195 km was specified for Olympic
-marathons and has been widely adopted elsewhere.  The given distance is
-based on the 26 miles and 385 yards of the 1908 Olympic marathon, which
-had happened to have a particularly memorable ending; this course's
-length, in turn, had been arrived at by a (surprisingly well-documented)
-comedy of happenstances in the preparations for the race.
+Since then, races over about 40 km have tended to be called marathons.  Until
+1921, there was no standardised distance for the race; thereafter, a standard
+distance of 42.195 km was specified for Olympic marathons and has been widely
+adopted elsewhere.  The given distance is based on the 26 miles and 385 yards
+of the 1908 Olympic marathon, which had happened to have a particularly
+memorable ending; this course's length, in turn, had been arrived at by a
+(surprisingly well-documented) comedy of happenstances in the preparations for
+the race.
 """)
 
 point = pica / 12        # the printer's point
@@ -322,14 +331,14 @@ mile.also(sea = 2000 * yard,
           nautical = Quantity(1852, metre, # K&L, given as the definition of this unit.
                               """The nautical mile
 
-I've met assertions that the nautical mile is 2000 yards (here given as mile.sea
-since I've seen it called a sea mile).  Alternatively, that it's one minute of
-arc - i.e. Earth.surface.radius * pi / 180 / 60.  My available figures for the
-Earth's radius yield figures ranging from 1853 to 1855 metres, aka 2026 to 2029
-yards: so Kaye & Laby fits with the minute of arc view (to reasonable accuracy)
-and I take the 2000 yard figure as being a widely used approximation.
-Apparently, the US used some other unit until 1954, the UK until 1970; both
-catching up with a 1929 international standard.
+I've met assertions that the nautical mile is 2000 yards (here given as
+mile.sea since I've seen it called a sea mile).  Alternatively, that it's one
+minute of arc - i.e. Earth.surface.radius * pi / 180 / 60.  My available
+figures for the Earth's radius yield figures ranging from 1853 to 1855 metres,
+aka 2026 to 2029 yards: so Kaye & Laby fits with the minute of arc view (to
+reasonable accuracy) and I take the 2000 yard figure as being a widely used
+approximation. Apparently, the US used some other unit until 1954, the UK
+until 1970; both catching up with a 1929 international standard.
 """,
                               UK = 6080 * foot)) # until 1970
 cable = Quantity(0.1, mile.nautical,
@@ -340,7 +349,7 @@ knot = mile.nautical / hour
 
 foot.French = 4500 * metre / 13853	# pied de roi, French foot
 inch.French = foot.French / 12
-point.French = inch.French / 144
+point.French = inch.French / 144        # hmm ... not inch / 72 ?
 French = Object(pied = foot.French,
                 # what're the right French names for inch, line, point ?
                 inch = inch.French,
@@ -357,7 +366,8 @@ foot (or 'fot' in Swedish) is less than 1% shorter; most others are slightly
 longer.  Given that the metre is now defined in terms of the light second, it
 violates the spirit of SI to retain it; it should be replaced by the light
 second and units derived therefrom.  The light nanosecond thus presents itself
-naturally as a replacement unit, which would naturally be called the 'SI foot'.
+naturally as a replacement unit, which would naturally be called the 'SI
+foot'.
 """)
 
 # Archaic units of mass:
@@ -382,8 +392,8 @@ TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
                """The conventional unit of power of explosions
 
 The energy released by each gram of TNT (trinitrotoluene) upon detonation is
-between 4.1 and 4.6 kJ; however, for the purposes of standardized definition, a
-value of 4184 Joule is used.  It is worth noting that food carbohydrate has
+between 4.1 and 4.6 kJ; however, for the purposes of standardized definition,
+a value of 4184 Joule is used.  It is worth noting that food carbohydrate has
 energy content per unit mass roughly four times as high as this.
 
 c.f.: http://en.wikipedia.org/wiki/TNT_equivalent
@@ -430,9 +440,9 @@ Cologne = Object(mark = Quantity(233.856, gram,
 
 Introduced by King Hans of Denmark in the late 1400s as a standard of weight,
 later used in the definition of various (mainly Germanic) currency standards,
-notably including (in 1754) the Holy Roman Empire's conventionsthaler, one tenth
-of a Cologne mark of silver, superseded in the early 1800s by the (Prussian)
-Thaler, containing one fourteenth of a Cologne mark of silver.
+notably including (in 1754) the Holy Roman Empire's conventionsthaler, one
+tenth of a Cologne mark of silver, superseded in the early 1800s by the
+(Prussian) Thaler, containing one fourteenth of a Cologne mark of silver.
 
 See: http://en.wikipedia.org/wiki/Cologne_Mark
 """))
@@ -454,7 +464,8 @@ pound.Troy = 12 * ounce.Troy
 carat = Quantity(.2, gram, # metric variant, from /usr/share/misc/units
                  """The Carat, a unit of mass used by jewelers.
 
-Apparently originally the mass of a carob seed.\n""",
+Apparently originally the mass of a carob seed.
+""",
                  Troy=3.17 * grain) # or 3.163 grain according to u.s.m.u
 Troy = Object(drachm = dram.apothecary, denier = denier.Troy, carat = carat.Troy,
               ounce = ounce.Troy, pound = pound.Troy)
@@ -542,7 +553,8 @@ tun = Quantity(2, pipe, # 216 gallons, but I've had 72 suggested.
                wine = 2 * pipe.wine)
 wine = Object(doc = """Winchester measures, for wine.
 
-(Due to Queen Anne's regime, 1707)\n""",
+(Due to Queen Anne's regime, 1707)
+""",
               gallon = gallon.wine, quart = quart.wine, pint = pint.wine,
               barrel = barrel.wine, rundlet = 18 * gallon.wine, tierce = tierce.wine,
               hogshead = hogshead.wine, puncheon = puncheon.wine,
@@ -615,15 +627,17 @@ ell.Norsk, fathom.Norsk = Norse.alen, Norse.favn
 mil = Quantity(10, kilo * metre,
                """The Norwegian mil, 10 km.
 
-In Norway, 10 km is known as 'en mil'.  This is clearly a metricised replacement
-for an archaic Norwegian unit of distance, presumably close to the Danish and
-Swedish variants which I've found documented on the web.  The name is doubtless
-cognate with the Anglic 'mile' (q.v.), but the distance is significantly larger
-(but compare the Prussion mile).  The related sjømil units of the Scandinavian
-tradition literally translate as 'sea mile'; see Swedish.sjoemil, for example.
-However, the Scandinavian countries have embraced international standards, so
-now use the 1929 nautical mile and the metric system of units, rather than
-clinging to archaic units like some less civilized countries.\n""",
+In Norway, 10 km is known as 'en mil'.  This is clearly a metricised
+replacement for an archaic Norwegian unit of distance, presumably close to the
+Danish and Swedish variants which I've found documented on the web.  The name
+is doubtless cognate with the Anglic 'mile' (q.v.), but the distance is
+significantly larger (but compare the Prussion mile).  The related sjømil
+units of the Scandinavian tradition literally translate as 'sea mile'; see
+Swedish.sjoemil, for example.  However, the Scandinavian countries have
+embraced international standards, so now use the 1929 nautical mile and the
+metric system of units, rather than clinging to archaic units like some less
+civilized countries.
+""",
                Dansk = Danish.mil,
                Svensk = Swedish.mil)
 
@@ -638,7 +652,8 @@ Russia = Object(verst = 1167 * yard, pood = 36.11 * pound)
 # `dry measure'
 peck = gallon * 2
 bushel = peck * 4       # but Nick thought a peck was half a bushel ...
-# average weights of bushels: barley = 47 lb, oats = 38 lb, wheat = 60 lb; c.f. USbushel
+# average weights of bushels:
+# barley = 47 lb, oats = 38 lb, wheat = 60 lb; c.f. USbushel
 strike = 2 * bushel
 coomb = bag = 2 * strike
 # Quarter = 2 * coomb = 64 * gallon
@@ -681,3 +696,4 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
             cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
 
 # Now, imagine being expected, in school, to memorise the UK share of that ...
+# http://www.chaos.org.uk/~eddy/physics/units.html

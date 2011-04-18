@@ -11,8 +11,6 @@ Classes:
 
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
-
-$Id: sequence.py,v 1.47 2010-01-09 16:16:43 eddy Exp $
 """
 from study.snake.decorate import mimicking
 
