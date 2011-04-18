@@ -3,15 +3,15 @@
 
 See SI.py for base units and units.py for various others.
 
-This file documents lots of obscure and/or silly units, may of them derived
+This file documents lots of obscure and/or silly units, many of them derived
 from the /usr/share/misc/units repository of knowledge on the subject (see
-units.html, in URLs attribute of this module, for details).  This file aims to
-be all-inclusive, rather than sensible; however, there are `issues', since
-some of the units (especially ones relevant to trade in the anglophone world)
-have several variants - where possible, I have tried to find namespace-based
-ways to manage this mess (e.g.: print bushel.US.__doc__), but sometimes
-(e.g. the chain) I just gave up and left a comment here indicating the part of
-the story that I've left out !
+gnu.org's units.html, in URLs attribute of this module, for details).  This
+file aims to be all-inclusive, rather than sensible; however, there are
+`issues', since some of the units (especially ones relevant to trade in the
+anglophone world) have several variants - where possible, I have tried to find
+namespace-based ways to manage this mess (e.g.: print bushel.US.__doc__), but
+sometimes (e.g. the chain) I just gave up and left a comment here indicating
+the part of the story that I've left out !
 
 I should probably replace most of this file with a family of XML or RDF
 documents describing all the units, coupled to a deployment of some standard
@@ -73,16 +73,6 @@ per furlong. Even when using the official SI unit, different ways of
 expressing a unit can change perceptions of its meaning - for example, (metre
 / second)**2 means the same as Joule / kilogramme, but expresses a different
 perspective on it.
-
-  You, in this country, are subjected to the British insularity in weights and
-  measures; you use the foot, inch and yard. I am obliged to use that system,
-  but must apologize to you for doing so, because it is so inconvenient, and I
-  hope Americans will do everything in their power to introduce the French
-  metrical system. ... I look upon our English system as a wickedly,
-  brain-destroying system of bondage under which we suffer. The reason why we
-  continue to use it, is the imaginary difficulty of making a change, and
-  nothing else; but I do not think in America that any such difficulty should
-  stand in the way of adopting so splendidly useful a reform. -- Lord Kelvin.
 """
 
 URLs = """Interesting URLs:
@@ -98,6 +88,7 @@ http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
 http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
 http://en.wikipedia.org/wiki/Category:Units_of_measure
 http://www.easyunitconverter.com/
+http://www.chaos.org.uk/~eddy/physics/units.html
 
 Nautical mile and its kin
 http://www.gwydir.demon.co.uk/jo/units/sea.htm
@@ -696,4 +687,3 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
             cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
 
 # Now, imagine being expected, in school, to memorise the UK share of that ...
-# http://www.chaos.org.uk/~eddy/physics/units.html
