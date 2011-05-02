@@ -175,9 +175,8 @@ class ReadSeq (Iterable):
         except TypeError: pass
         else: return self.__get(ind)
 
-        for it in self:
-            if ind == 0: return it
-            ind -= 1
+        for i, it in enumerate(self):
+            if ind == i: return it
 
         raise IndexError(ind)
     del Slice
