@@ -157,45 +157,85 @@ class StockSVG (Cached):
         move(name, self.__path)
     del os
 
-    def indent(col):
-        t, s = divmod(col, 5)
+    def indent(col, tab): # tool, deleted below
+        """Start a new line.
+
+        Arguments:
+          col -- column to which to indent the new line
+          tab -- width of each tab character used in indentation
+        """
+        t, s = divmod(col, tab)
         return '\n' + '\t' * t + ' ' * s
 
     import re
+    def rebreak(data, prior,
+                TAB=5, # tab-width I use in the .svg file
+                chop=re.compile(r'\b\s\s+\b'),
+                dent=indent): # another tool
+        """Split up a d="..." attribute nicely.
+
+        Arguments:
+          data -- the value used for the d attribute
+          prior -- text prior to d=... on that line
+        Indentation is determined from the content of prior.
+
+        The xml.dom.expatbuilder parser replaces each blank (including tabs
+        and newlines) in the value of an attribute with a space, wrecking any
+        nice formatting one may have done.  One can see where the damage has
+        been done as long as the original data only used single spaces for the
+        routine separation of data items: canonicalisation makes each
+        line-break and its indentation into a sequence of several adjacent
+        spaces.  So this finds each of those and restores the indentation
+        needed to line the following data up under the start of the attribute
+        value.  If the block of consecutive spaces was longer than this
+        accounts for, any surplus spaces are assumed to have originated from
+        blank lines, which are duly restored. Finally, the result ends with a
+        newline and indentation sufficient to line up following attributes
+        under the start of d=...\n"""
+        # Work out indentations:
+        tail = len(prior.expandtabs(TAB))
+        newline = dent(tail + 3, TAB) # 3 is for 'd="'
+        cleaned = ""
+        while True: # for each many-space separator:
+            was = chop.search(data)
+            if not was: break
+            cleaned += data[:was.start()]
+            # Restore line-breaks and indentation:
+            for ch in was.group(0)[len(newline):]:
+                cleaned += '\n'
+            cleaned += newline
+            data = data[was.end():]
+        return cleaned + data + dent(tail, TAB)
+    del indent
+
     def toxml(self,
-              find=re.compile(r'^([\t ]+)(.+\b)(d=)("[^"]+")\s*',
+              find=re.compile(r'^([\t ]+.+\b)d=("[^"]+")\s*',
                               re.MULTILINE),
-              chop=re.compile(r'\b\s\s+\b'),
-              dent=indent):
+              chunk=rebreak):
+        """Re-serialize the DOM tree to SVG.
+
+        This restores (to the best of its ability) assorted damage the expat
+        parser does to the content when round-tripping, so that (for the most
+        part) what's changed is only what .update() was told to change.\n"""
         out = self.__dom.toxml('utf-8')
-        # gnn ... puts mode-line comment after first newline :-(
+
+        # gnn ... that puts the mode-line comment after the first newline :-(
         ind = out.find('\n')
         cut = out.find('-->', ind) + 3
         out = out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
-        # ... and futzes with in-data spacing :-(
+
+        # ... and canonicalises each .isspace() character to a space :-(
         cleaned = ""
-        while True:
+        while True: # for each d="..." attribute:
             was = find.search(out)
             if not was: break
-            cleaned += out[:was.start(4)]
-            data = was.group(4)
-            attr = len(was.group(1).expandtabs(5)) + len(was.group(2))
-            out = dent(attr) + out[was.end():]
-            indent = dent(attr + len(was.group(3)) + 1)
-            while True:
-                was = chop.search(data)
-                if not was: break
-                cleaned += data[:was.start()]
-                if len(was.group(0)) > 4:
-                    cleaned += '\n'
-                cleaned += indent
-                data = data[was.end():]
-            cleaned += data
-
+            cleaned += out[:was.start(2)] + chunk(was.group(2), was.group(1))
+            out = out[was.end():]
         out = cleaned + out
+
         if out[-1] != '\n': return out + '\n'
         return out
-    del re, indent
+    del re, rebreak
 
     def text_by_100(value):
             # Multiply value by 100, without converting from text:
