@@ -166,34 +166,6 @@ class qSample (Sample):
 
 del massage_text
 
-def indent(line, tabwidth=8):
-    dent = i = 0
-    while line[i].isspace():
-        if line[i] == '\t': dent = (1 + dent // tabwidth) * tabwidth
-        elif line[i] == ' ': dent += 1
-        # else: erm ... try not to think about it.
-        i += 1
-    return dent
-
-def _cleandoc(text, dent=indent):
-    if text:
-        text = text.strip()
-
-        if '\n' in text:
-            # Remove any ubiquitous common indent (and any dangling hspace):
-            lines = map(lambda x: x.rstrip(), text.split('\n'))
-            ind, i = min(map(dent, filter(None, lines[1:]))), 1
-            while i < len(lines):
-                # Canonicalize surviving indentation to spaces while we're at it.
-                if lines[i]: lines[i] = ' ' * (dent(lines[i]) - ind) + lines[i].lstrip()
-                i += 1
-            text = '\n'.join(lines)
-
-        if text: return text + '\n'
-    # else: implicitly return None.
-
-del indent
-
 # Lazy-evaluators for special attributes of quantities of specific types; see
 # Quantity._lazy_get__kind_lazy_props_() for details.
 def scalar():
@@ -441,12 +413,33 @@ class Quantity (Object):
             if row: scale = qSample(row)
             else: scale = new
 
-        if doc is not None: doc = _cleandoc(doc)
+        if doc is not None: doc = self.__cleandoc(doc)
 
         # initialise self as a Quantity with the thus-massaged arguments
         self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.__name(nom or fullname, fullname or nom)
         # Should __addcheck_() what['best'], what['low'] ... if given.
+
+    @staticmethod
+    def __cleandoc(text):
+        if text:
+            text = text.strip()
+
+            if text.find('\n ') >= 0 or text.find('\n\t') >= 0:
+                # Remove any ubiquitous common indent (and any dangling hspace
+                # - expanding tabs as spaces, while we're at it):
+                lines = map(lambda x: x.rstrip().expandtabs(),
+                            text.split('\n'))
+                # First line typically lacks the common indent.
+                text, lines = lines[0] + '\n', lines[1:]
+                ind = min(map(lambda x: len(x) - len(x.lstrip()),
+                              filter(None, lines)))
+                assert not ind or not \
+                    filter(lambda x, i=ind: x and not x[:i].isspace(), lines)
+                text += '\n'.join(map(lambda x, i=ind: x[i:], lines))
+
+            if text: return text + '\n'
+        # else: implicitly return None.
 
     def _primitive(self):
         """Returns a quantity in a primitive form.
@@ -465,7 +458,7 @@ class Quantity (Object):
         if fullname: self._long_name_ = fullname
 
     def document(self, doc):
-        doc = _cleandoc(doc)
+        doc = self.__cleandoc(doc)
         if not doc: return
 
         try: old = self.__dict__['__doc__']
