@@ -159,17 +159,35 @@ class StockSVG (Cached):
 
     import re
     def toxml(self,
-              find=re.compile(r'(\n\s+)([^"\n]+="[^"\n]+\d)\b   +\b'),
-              mend=lambda m: m.expand(r'\1\2\1')):
+              find=re.compile(r'^([\t ]+)(.+\b)(d=)("[^"]+")\s*',
+                              re.MULTILINE),
+              chop=re.compile(r'\b\s\s+\b')):
         out = self.__dom.toxml('utf-8')
         # gnn ... puts mode-line comment after first newline :-(
         ind = out.find('\n')
         cut = out.find('-->', ind) + 3
         out = out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
-        # ... and turns in-data line-breaks into strings of spaces :-(
+        # ... and futzes with in-data spacing :-(
+        cleaned = ""
         while True:
-            out, n = find.subn(mend, out)
-            if n < 1: break
+            was = find.search(out)
+            if not was: break
+            cleaned += out[:was.start(4)]
+            data = was.group(4)
+            # TODO: write something that tabifies these:
+            indent = '\n' + was.group(1) + ' ' * (len(was.group(2)) + len(was.group(3)) + 1)
+            out = '\n' + was.group(1) + ' ' * len(was.group(2)) + out[was.end():]
+            while True:
+                was = chop.search(data)
+                if not was: break
+                cleaned += data[:was.start()]
+                if len(was.group(0)) > 4:
+                    cleaned += '\n'
+                cleaned += indent
+                data = data[was.end():]
+            cleaned += data
+
+        out = cleaned + out
         if out[-1] != '\n': return out + '\n'
         return out
     del re
