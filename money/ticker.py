@@ -157,11 +157,16 @@ class StockSVG (Cached):
         move(name, self.__path)
     del os
 
+    def indent(col):
+        t, s = divmod(col, 5)
+        return '\n' + '\t' * t + ' ' * s
+
     import re
     def toxml(self,
               find=re.compile(r'^([\t ]+)(.+\b)(d=)("[^"]+")\s*',
                               re.MULTILINE),
-              chop=re.compile(r'\b\s\s+\b')):
+              chop=re.compile(r'\b\s\s+\b'),
+              dent=indent):
         out = self.__dom.toxml('utf-8')
         # gnn ... puts mode-line comment after first newline :-(
         ind = out.find('\n')
@@ -174,9 +179,9 @@ class StockSVG (Cached):
             if not was: break
             cleaned += out[:was.start(4)]
             data = was.group(4)
-            # TODO: write something that tabifies these:
-            indent = '\n' + was.group(1) + ' ' * (len(was.group(2)) + len(was.group(3)) + 1)
-            out = '\n' + was.group(1) + ' ' * len(was.group(2)) + out[was.end():]
+            attr = len(was.group(1).expandtabs(5)) + len(was.group(2))
+            out = dent(attr) + out[was.end():]
+            indent = dent(attr + len(was.group(3)) + 1)
             while True:
                 was = chop.search(data)
                 if not was: break
@@ -190,7 +195,7 @@ class StockSVG (Cached):
         out = cleaned + out
         if out[-1] != '\n': return out + '\n'
         return out
-    del re
+    del re, indent
 
     def text_by_100(value):
             # Multiply value by 100, without converting from text:
