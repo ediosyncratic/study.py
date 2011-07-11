@@ -344,9 +344,8 @@ _terse_dict = {}
 class Quantity (Object):
 
     __obinit = Object.__init__
-    def __init__(self, scale, units={},
-                 doc=None, nom=None, fullname=None,
-                 sample=None,
+    def __init__(self, scale, units=Prodict(),
+                 doc=None, nom=None, fullname=None, sample=None,
                  *args, **what):
         """Initialises an object representing a quantity.
 
@@ -381,24 +380,11 @@ class Quantity (Object):
         # Initialise self as an Object:
         self.__obinit(*args, **what)
 
-        # massage the arguments: first mix scale and units
-        if isinstance(units, Quantity):
-            if units.__scale is 1: units = units.__units
-            else: scale, units = scale * units.__scale, units.__units
-        if isinstance(scale, Quantity):
-            units, scale = scale.__units * units, scale.__scale
-        if not isinstance(units, Prodict):
-            units = Prodict(units)
-
-        # massaging scale as a sample (so we can trust its str() to work).
-        if not isinstance(scale, Sample):
-            scale = qSample(best=scale)
-        elif not isinstance(scale, qSample):
-            scale = qSample(scale)
-
-        # then (check and) massage sample:
+        # Massage the arguments: first mix scale and units.
+        scale, units = self.__clean_scale_units(scale, units)
+        # then (check and) massage sample (if any):
         if sample:
-            try: new, row = scale.copy(), ()
+            try: new, row = scale.copy(), () # TODO: check this is always OK
             except (TypeError, AttributeError): row = [ scale ]
 
             for val in sample:
@@ -417,6 +403,44 @@ class Quantity (Object):
         self.__scale, self.__units, self.__doc__ = scale, units, doc
         self.__name(nom or fullname, fullname or nom)
         # Should __addcheck_() what['best'], what['low'] ... if given.
+
+    @staticmethod
+    def __clean_scale_units(scale, units,
+                            scalartypes=(type(1), type(1.), type(1.+0j)),
+                            Bok=Prodict, Spread=Sample, Nice=qSample):
+        """Tidy up scale and units passed to constructor.
+
+        Each is allowed to be a Quantity, scale may be a qSample, Sample or
+        native scalar, units may be a simple dictionary or a Prodict.  This
+        method puts all of the scalar-ness into scale and all the units-ness
+        into units.  (It mainly exists so that scalartypes can be computed
+        just once, rather than on every run of the test that uses it; but it
+        may also help make it possible to del qSample and Prodict from this
+        module's name-space, some day; and it also makes __init__ easier to
+        read.)\n"""
+
+        # Using try allows Object()s that borrow() from Quantity()s work.
+        try: u, s = units.__units, units.__scale
+        except AttributeError: pass
+        else:
+            if type(s) in scalartypes and s == 1: units = u
+            else: scale, units = scale * s, u
+
+        try: u, s = scale.__units, scale.__scale
+        except AttributeError: pass
+        else: units, scale = u * units, s
+
+        if not isinstance(units, Bok):
+            units = Bok(units)
+
+        # massaging scale as a sample (so we can trust its str() to work).
+        if not isinstance(scale, Spread):
+            scale = Nice(best=scale)
+        elif not isinstance(scale, Nice):
+            scale = Nice(scale)
+
+        assert isinstance(scale, Nice) and isinstance(units, Bok)
+        return scale, units
 
     @staticmethod
     def __cleandoc(text):
@@ -449,6 +473,7 @@ class Quantity (Object):
         what, units = self.__scale, self.__units
         if isinstance(what, qSample):
             what = Sample(what.mirror, **what.dir)
+        # FIXME: given that Quantity will qSample() it, what's the point ?
         return Quantity(what, units)
 
     def __name(self, nom=None, fullname=None):
@@ -557,11 +582,10 @@ class Quantity (Object):
     def __int__(self): return int(self._scalar)
 
     def _lazy_get__scalar_(self, ignored):
-	# in later equivalents, self.__units may use quantities as units; in
-	# which case, one should `flatten' self to check whether non-empty
-	# really means dimensioned ...
-        if self.__units: raise TypeError('not dimensionless', self._unit_str)
-        return self.__scale
+        try: return self.__get_scale(self, {})
+        except TypeError, what:
+            assert len(what.args) == 1
+            raise TypeError('not dimensionless', what.args[0])
 
     def __nonzero__(self): return 0 != self.__scale
     def __neg__(self):
@@ -577,6 +601,30 @@ class Quantity (Object):
         ans = self.__abs = self.copy(abs)
         return ans
 
+    @staticmethod
+    def __get_scale(value, units):
+        """Checks value the given units and returns its scalar.
+
+        Arguments:
+          value -- the value to be checked and extracted
+          units -- the expected units dictionary
+
+        If the value doesn't match the units, a type-error is raised, whose
+        .args[0] is value._unit_str if it had one; otherwise, .args is
+        empty.\n"""
+
+        # In later equivalents, units may use Quantity()s as units; in which
+        # case, one should `flatten' it to check whether non-empty really
+        # means dimensioned - and similar is needed for equality comparisons.
+
+        try:
+            if value.__units != units:
+                raise TypeError(value._unit_str)
+            return value.__scale
+        except AttributeError:
+            if units: raise TypeError()
+            return value
+
     # Support for additive functionality:
     def __addcheck_(self, other, why):
         """Checks for additive compatibility and unpacks.
@@ -584,26 +632,20 @@ class Quantity (Object):
         Arguments:
 
           other -- another quantity, which should have the same dimensions as
-          self; may be a scalar iff self is dimensionless.
+                   self; may be a scalar iff self is dimensionless.
 
-          why -- string, e.g. '+' or 'compare', describing what caller is doing:
-          used in raising errors.
+          why -- string, e.g. '+' or 'compare', describing what caller is
+                 doing: used as prefix in error messages.
 
-        Returns other's scalar aspect or raises a TypeError. """
+        Returns other's scalar aspect or raises a TypeError.\n"""
 
-        try:
-            if self.__units != other.__units:
-                raise TypeError(why + ' with differing dimensions',
-				self._unit_str, other._unit_str)
-
-            return other.__scale
-
-        except AttributeError:
-            if self.__units:
-                raise TypeError(why + ' between scalar and dimensioned quantity',
-				other, self._unit_str)
-
-            return other
+        try: return self.__get_scale(other, self.__units)
+        except TypeError, what: pass
+        if what.args:
+            raise TypeError(why + ' with differing dimensions',
+                            what.args[0], self._unit_str)
+        raise TypeError(why + ' between scalar and dimensioned quantity',
+                        other, self._unit_str)
 
     import math
 
@@ -885,8 +927,9 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def _quantity(self, what, units): return self.__class__(what, units)
 
-    @staticmethod
-    def flat(lo, hi, best=None,
+    @classmethod
+    def flat(cls, lo, hi, best=None,
+             # Be sure to keep defaults in sync with __init__():
              units=Prodict(), doc=None, nom=None, fullname=None, sample=None,
              *args, **what):
         """Describe a value with a flat distribution.
@@ -897,27 +940,25 @@ class Quantity (Object):
 
         Next positional parameter, or keyword best, is taken as the best
         estimate value in the interval, or None if no best estimate is
-        available.  Subsequent optional arguments units, doc, nom, fullname and
-        sample are as for Quantity's constructor (q.v.).\n"""
+        available.  Subsequent optional arguments units, doc, nom, fullname
+        and sample are as for Quantity's constructor (q.v.).  Be sure to pass
+        None as best if supplying any of these but no best estimate.
 
-        if isinstance(lo, Quantity):
-            un, lo = lo.__units, lo.__scale
-            units = units * un
-        else: un = {}
+        Values of lo, hi and (when given) best must all be of the same kind
+        (i.e. have the same units), although mixing dimensionless Quantity()s
+        with plain scalars (or Sample()s) is allowed.  If they have units,
+        these are combined with the supplied units (if any); thus, for
+        example, lo and hi could be times and units could be the speed of
+        light, to produce a range of distances (that light travels between the
+        given periods of time).\n"""
 
-        if un:
-            assert isinstance(hi, Quantity) and hi.__units == un
-            hi = hi.__scale
-            if best is not None:
-                assert isinstance(best, Quantity) and best.__units == un
-                best = best.__scale
-        else:
-            if isinstance(hi, Quantity):
-                assert not hi.__units
-                hi = hi.__scale
-            if isinstance(best, Quantity):
-                assert not best.__units
-                best = best.__scale
+        try: un, lo = lo.__units, lo.__scale
+        except AttributeError: un = {}
+        else: units = units * un
+
+        hi = cls.__get_scale(hi, un)
+        if best is not None:
+            best = cls.__get_scale(best, un)
 
         return Quantity(Sample.flat(lo, hi, best),
                         units, doc, nom, fullname, sample, *args, **what)
