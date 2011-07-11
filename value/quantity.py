@@ -289,9 +289,11 @@ def length():
     from study.chemy.physics import Quantum, Cosmos
     from SI import second
     def hole(r, k=Cosmos.Schwarzschild): return k * r
+    c = second.light / second
     return { 'momentum': lambda d, h=Quantum.h: h / d,
-             'mass': lambda d, h=Quantum.h * second / second.light: h / d,
-             'frequency': lambda d, c=second.light/second: c / d,
+             'mass': lambda d, h=Quantum.h / c: h / d,
+             'frequency': lambda d, v=c: v / d,
+             'time': lambda d, v=c: d / v,
              'Schwarzschild': hole, 'hole': hole }
 
 def time():
