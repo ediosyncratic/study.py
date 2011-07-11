@@ -7,6 +7,7 @@ from SI import *
 
 # Logarithmic units:
 from math import log
+
 bel = Quantity(log(10), {},
                """Bel
 
@@ -14,6 +15,7 @@ The Bel is a logarithmic unit, originally the reduction in audio level over
 one mile of standard telephone cable but now formalized as a scaling by a
 factor of ten.  This is quite a large ratio, so the deci Bel, dB, is more
 commonly used. Two Bel equals five astronomical magnitudes.\n""")
+
 magnitude = Quantity(log(.01) / 5, {},
                      """Astromonical apparent magnitude.
 
@@ -85,15 +87,11 @@ hand sweeps across in four hours or a twelve-hour clock's hour hand sweeps
 across in two hours.  If we added, to our clock, a hand which swept one degree
 per hour of time, it would complete a whole turn in 360 hours, which is 360 /
 24 = 15 days; just one day more than a fortnight and almost half an average
-month. One year would then be just slightly over twenty-four and a third turns
-of this hand of our clock.\n""",
-             grad = turn / 400, # a unit of elevation used by gunners, IIRC.
-             point = turn / 32) # there are 32 points on a ship's compass rose
-arc.minute = arc.degree / 60
-arc.second = second.arc = arc.minute / 60
-
-# Degrees of angle (for temperature, see below):
-degree = Object(arc.degree, arc = arc.degree)
+month.  One year would then be just slightly over twenty-four and a third
+turns of this hand of our clock.  If, instead, we introduced the unit of time
+that's sixty hours, this anti-minute (huge ?) is two and a half days; six of
+them make up the fore-going 15-day unit.\n""",
+         point = turn / 32) # there are 32 points on a ship's compass rose
 
 # Time
 minute = Quantity(60, second, arc=arc.minute)
@@ -124,6 +122,9 @@ This is the period of Earth's orbit relative to the fixed stars.  Contrast the
 tropical year (disturbed by the precession of the equinoxes) and the Gregorian
 year (an approximation).
 """)
+
+minute.arc = arc.minute = arc.degree / 60
+second.arc = arc.second = arc.minute / 60
 
 # Miscelaneous SI-compatible units (c.f. SI.py), notably cm,g,s ones:
 gram, tonne = milli * kilogramme, kilo * kilogramme
@@ -145,7 +146,8 @@ stilb = candela / cm**2
 phot = 10 * kilo * lux
 
 St = Stokes = cm**2 / second # kinematic viscosity
-Gs = Gauss = .1 * milli * Tesla
+poise = Pascal * second / 10 # dynamic viscosity = kinematic * density
+Gs = Gauss = 1e-4 * Tesla
 gamma = nano * Tesla
 Mx = Maxwell = 10 * nano * Weber
 erg = .1 * micro * Joule
@@ -367,49 +369,8 @@ mach = Quantity(331.46, metre / second,
 """)
 
 Rankine = Kelvin / 1.8
-degree.also(Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
-            Fahrenheit = Rankine, F = Rankine,
-            Reaumur = .8 * Kelvin,
-            __doc__ = """The degree.
-
-Various quantities are measured in 'degrees': the name comes from the Latin
-for a step (de gradus, I think), which makes it sort-of synonymous with
-'unit'. See arc.__doc__ for the unit of angle with this name.
-
-Several units of temperature share this name, qualified by the originators of
-the respective units.  A Swede called Celsius invented a unit which France
-(and hence SI) adopted; a Frenchman called Réaumur invented one which the
-Germans adopted (until they switched over to SI); and a German called
-Fahrenheit invented (before these others, the thermometer and) various units,
-one of which remains in use in some backwards parts of the anglophone world.
-""")
-
-degree.__dict__['Réaumur'] = degree.Reaumur
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def Reaumur(number): return Centigrade(number * .8)
-
-calorie = Object(international = Quantity(4.1868, Joule,
-                                          # 3.088 * lb.weight * foot
-                                          doc="The international calorie."),
-                 thermochemical = Quantity(4.184, Joule,
-                                           doc="The thermodynamic calorie."),
-                 doc="""The calorie.
-
-This unit is implicated in assorted confusions.  First, there's both an
-international one and a thermochemical one, and I've seen the international
-one described as the 'thermodynamic calorie (IT)'.  Second, I've heard that
-some folk, notably dieticians (allegedly) use 'calorie' to mean kilo calorie.
-
-Values used here are taken from python's Scientific.Physics.PhysicalQuantities
-module.\n""")
-
-calorie = Quantity(1,
-                   (calorie.international + calorie.thermochemical) * .5 +
-                   (calorie.international - calorie.thermochemical) * tophat,
-                   None, None, None, None, # doc, nom, fullname, sample
-                   calorie)
-
-clausius = kilo * calorie / Kelvin
 
 limit = Object(__doc__ = "Various limiting values, usually for humans",
                # vision ?

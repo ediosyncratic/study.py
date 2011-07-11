@@ -104,9 +104,47 @@ http://home.hetnet.nl/~vanadovv/Lengte.html
 
 Fathom = vadem in dutch:
 <URL: http://home.hetnet.nl/~vanadovv/Lengte.html >
+http://gwydir.demon.co.uk/jo/units/oldunits/sea.htm
 
-The source 'poxy', sometimes mentioned below, is my 1973 reprint of the fifth
-edition of the Pocket Oxford Dictionary.
+Sources begging to be plundered:
+ * http://en.wikipedia.org/wiki/Metrication#Chronology_and_status_of_conversion_by_country
+   links to old systems from several nations ;-)
+ * More fun energy units: http://en.wikipedia.org/wiki/Tonne_of_oil_equivalent
+   (also, diverse other quantities are implied).
+"""
+
+__notes__ = """\
+Many units are or have been subject to what amounts to dialect variation, some
+have undergone significant changes of definition over time (as compared to the
+fine-tuning of, for example, the metre in 1975).  This is only to be expected:
+language works like that and it's words we're discussing here.
+
+Comments in the following indicate the views of various sources. (K&L = Kaye
+and Laby, NHD = New Hackers' Dictionary, KDWB = Kim's dad's 1936 white
+booklet, EB = 11th edition Encyclopaedia Britannica, 1911, article on Weights
+and Measures.)  The source 'poxy' is my 1973 reprint of the fifth edition of
+the Pocket Oxford Dictionary.  Where source is not given in a comment (either
+on the line or at start of section) the calculation of the line reflects a
+consensus.  Either that or it's some random detail I tripped over somewhere
+and jotted down but forgot to record the source ...
+
+Units I describe as `anglophone' are, to the best of my knowledge, common to
+all the `English-speaking' peoples (they also typically have equivalents in
+archaic units of Scandinavia and sometimes elsewhere): by `imperial' I mean
+those in which the US and UK have diverged.  The US versions of these are
+collected together in the namespace of an object US; these units also appear
+as .US attributes of the (un-namespaced) UK variants.  Various other nations'
+arcane units are likewise collected in name-space objects (whose names are
+English words for the national adjectives); where cognate with an anglophone
+unit, they also appear in that unit's name-space (using the national adjective
+in its native tongue, except for French - an attribute name can't have a
+cedilla in it).  For these purposes, Troy is treated as a nation - but doesn't
+actually mean the ancient city-state of that name !  I should probably do the
+same to the UK versions of anglophone units - if only to make this module's
+name-space less cluttered !  For similar reasons, I should break up this
+module into a sub-package comprising several modules (and probably write some
+machinery classes to facilitate cross-linking unit.nation and nation.unit,
+among other complications).
 """
 
 from units import *
@@ -166,34 +204,36 @@ the unit.  It should be noted that the 3e4/day figure is merely the infant
 mortality rate; we could as readily use 5e4 if we include adults.
 """)
 
-# Many units are or have been subject to what amounts to dialect variation,
-# some have undergone significant changes of definition over time (as compared
-# to the fine-tuning of, for example, the metre in 1975).  This is only to be
-# expected: language works like that and it's words we're discussing here.
+# The degree and some additions to arc
+arc.also(grad = turn / 400, # a unit of elevation used by gunners, IIRC.
+         mil = Quantity(1e-3, radian,
+                        """The milliradian (a gunnery unit).
 
-# Comments in the following indicate the views of various sources. (K&L = Kaye
-# and Laby, NHD = New Hackers' Dictionary, KDWB = Kim's dad's 1936 white
-# booklet, EB = 11th edition Encyclopaedia Britannica, 1911, article on
-# Weights and Measures.)  Where source is not given in a comment (either on
-# the line or at start of section) the calculation of the line reflects a
-# consensus.  Either that or it's some random detail I tripped over somewhere
-# and jotted down ...
+http://gwydir.demon.co.uk/jo/units/oldunits/sea.htm#angles
+""",
+                        NATO=turn/6400,
+                        Warsaw=turn/6000))
 
-# Units I describe as `anglophone' are, to the best of my knowledge, common to
-# all the `English-speaking' peoples (they also typically have equivalents in
-# archaic units of Scandinavia): by `imperial' I mean those in which the US
-# and UK have diverged.  The US versions of these are collected together in
-# the namespace of an object US; these units also appear as .US attributes of
-# the UK variants.  Various other nations' arcane units are likewise collected
-# in name-space objects (whose names are English words for the national
-# adjectives); where cognate with an anglophone unit, they also appear in that
-# unit's name-space (using the national adjective in its native tongue, except
-# for French - an attribute name can't have a cedilla in it).  For these
-# purposes, Troy is treated as a nation - but doesn't actually mean the
-# ancient city-state of that name !  I should probably do the same to the UK
-# versions of anglophone units - if only to make this module's name-space less
-# cluttered !
+degree = Object(arc.degree, arc = arc.degree,
+                Centigrade = Kelvin, Celsius = Kelvin, C = Kelvin,
+                Fahrenheit = Rankine, F = Rankine,
+                Reaumur = .8 * Kelvin,
+                __doc__ = """The degree.
 
+Various quantities are measured in 'degrees': the name comes from the Latin
+for a step (de gradus, I think), which makes it sort-of synonymous with
+'unit'. See arc.__doc__ for the unit of angle with this name.
+
+Several units of temperature share this name, qualified by the originators of
+the respective units.  A Swede called Celsius invented a unit which France
+(and hence SI) adopted; a Frenchman called Réaumur invented one which the
+Germans adopted (until they switched over to SI); and a German called
+Fahrenheit invented (before these others, the thermometer and) various units,
+one of which remains in use in some backwards parts of the anglophone world.
+""")
+
+degree.__dict__['Réaumur'] = degree.Reaumur
+
 champagne = Object(
     split = .2 * litre,
     magnum = 1.5 * litre)
@@ -204,8 +244,6 @@ champagne.also(
     salmanazar = 6 * champagne.magnum,
     balthazar = 8 * champagne.magnum,
     nebuchadnezzar = 10 * champagne.magnum)
-
-jiffy = second / 60 # but also s/100 and ms ...
 
 # Anglophone units of length:
 inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
@@ -218,22 +256,33 @@ palmlength = 8 * inch
 span = 9 * inch
 fingerlength = span / 2
 fingerbreadth = 7 * inch / 8
-ell = Quantity(5, span, flemish = Quantity(27, inch, doc="The Flemish ell"))
+ell = Quantity(5, span, flemish = Quantity(27, inch, "The Flemish ell"))
 cubit = span * 2 # but also used as synonym for ell
 ft = foot = Quantity(3, hand,
                      """The English foot.
 
 See namespace for other nation's variants on this unit.  All are fairly close
-to the distance (given here as foot.astronomical) that light travels in a nano
-second: those closest to it are the old Swedish foot, just under 1% below, and
-the English foot, just over 1/60 above.
+to the distance (given here as foot.SI) that light travels in a nano second:
+those closest to it are the old Swedish foot, just under 1% below, and the
+English foot, just over 1/60 above.
 """,
-                     astronomical = nano * second.light,
-                     survey = Quantity(1.2e3 / 3937, metre,
-                                       """The (geodetic) survey foot.
+                     SI=Quantity(nano, second.light,
+                                 """The SI foot, or light nanosecond.
+
+In one nanosecond, light travels a distance firmly within the range of lengths
+known, among various nations' diverse archaic units, as a foot.  The Swedish
+foot (or 'fot' in Swedish) is less than 1% shorter; most others are slightly
+longer.  Given that the metre is now defined in terms of the light second, it
+violates the spirit of SI to retain it; it should be replaced by the light
+second and units derived therefrom.  The light nanosecond thus presents itself
+naturally as a replacement unit, which would naturally be called the 'SI
+foot'.
+"""),
+                     survey=Quantity(1.2e3 / 3937, metre,
+                                     """The (geodetic) survey foot.
 
 In the US the Metric Act of 1866 defined the foot to equal exactly 1200/3937m,
-or approximately 30.48006096cm.  This unit, still used for geodetic surveying
+or approximately 30.48006096 cm.  This unit, still used for geodetic surveying
 in the United States, is now called the survey foot.
 """))
 
@@ -242,10 +291,11 @@ yard = Quantity(3, foot,
 
 The yard (0.9144 metres) is a modern survivor of a family of roughly
 stride-sized units of length dating back - if the excellent Monsieur Thom is
-to be believed - to prehistory (Thom measured the lengths in stone circles all
-over Europe and found evidence that they were measured to a common unit,
-approximately equal to the yard).  It takes its name from a Germanic word,
-'gyrd'.  Its metric replacement, the metre, is just slightly bigger.
+to be believed - to prehistory.  (Thom measured the lengths in stone circles
+all over Europe and found correlations that lead him to conclude that they
+were measured to a common unit, approximately equal to the yard.)  It takes
+its name from a Germanic word, 'gyrd'.  Its metric replacement, the metre, is
+just slightly bigger than the anglophone yard.
 """)
 
 nail = yard / 16
@@ -257,6 +307,7 @@ The fathom (also called 'mark') is cognate with the Swedish famn and Danish
 favn (q.v.) and has principally survived in use as a maritime measure of
 vertical distances - notably the depths of bodies of water.
 """)
+shackle = 15 * fathom
 
 chain = 22 * yard 	# but engineers (and Ramsden) use a 100ft chain !
 chain.engineer = 100 * foot # rather than 100 links; c.f. Swedish.ref
@@ -279,7 +330,8 @@ to one thousandth of a mile, while the US 'pace' is exactly half as long.
 
 Some backward countries seem likely to continue using this unit to measure
 distances - along with the mile per hour as a unit of speed - for some time to
-come.  Contrast mile.nautical and the Scandinavian mil.
+come.  Contrast mile.nautical, the Scandinavian mil and, generally, the other
+things you'll find listed by dir(mile).
 """)
 
 league = Quantity(3, mile,
@@ -309,17 +361,30 @@ memorable ending; this course's length, in turn, had been arrived at by a
 the race.
 """)
 
-point = pica / 12        # the printer's point
-point.silversmith = inch / 4000 # the silversmith's point (contrast: point.jeweller - a mass)
-point.arc = arc.point
-shoe = Object( # units of thickness of leather in shoes
+point = Quantity(.25 / 3, pica, "The printer's point (a length).",
+                  silversmith=Quantity(.25e-3, inch,
+                                        """The silversmith's point (a length).
+
+Contrast: point.jeweller - a mass.
+"""),
+                  arc = arc.point)
+shoe = Object(
+    __doc__= "Units of thickness of leather in shoes.",
     iron = inch / 48, # soles
     ounce = inch / 64)# elsewhere
 railgauge = 4 * foot + 8.5 * inch
-mile.also(sea = 2000 * yard,
+mile.also(sea = Quantity(2000, yard,
+                         """A 'sea mile'.
+
+Apparently an informal approximation to the nautical mile; see comments on
+mile.nautical.  The various Scandinavian nations also had kindred units, see
+note on mile.Scandinavian, although I presently only have data for the Swedish
+sjoemil.
+"""),
           geographical = 7420 * metre,
           Prussian = 7532 * metre,
-          nautical = Quantity(1852, metre, # K&L, given as the definition of this unit.
+          nautical = Quantity(1852, metre,
+                              # K&L, given as the definition of this unit.
                               """The nautical mile
 
 I've met assertions that the nautical mile is 2000 yards (here given as
@@ -328,10 +393,27 @@ minute of arc - i.e. Earth.surface.radius * pi / 180 / 60.  My available
 figures for the Earth's radius yield figures ranging from 1853 to 1855 metres,
 aka 2026 to 2029 yards: so Kaye & Laby fits with the minute of arc view (to
 reasonable accuracy) and I take the 2000 yard figure as being a widely used
-approximation. Apparently, the US used some other unit until 1954, the UK
-until 1970; both catching up with a 1929 international standard.
+approximation.  See also notes on mile.nautical.UK.  Apparently, the US used
+some other unit until 1954, the UK until 1970; both catching up with a 1929
+international standard.
 """,
-                              UK = 6080 * foot)) # until 1970
+                 UK = Quantity(6080, foot,
+                               """Archaic UK Nautical mile
+
+Replaced in 1970 with the international standard.
+
+<quote src='http://gwydir.demon.co.uk/jo/units/oldunits/sea.htm'>
+Nautical miles measure distance. 1 nautical mile is the angular distance of 1
+minute of arc on the earth's surface. As these differ slightly (6108' at pole
+and 6046' at equator) 6080 was adopted (this being it's approximate value in
+the English Channel). ... Now the International nautical mile is used
+throughout the UK, except in the Statutory Instrument 1995 No. 1804 which
+defines it as 1853 metres!
+</quote>
+
+Some authors (notably including Joseph Conrad) use knot (q.v.) as a synonym
+for the nautical mile (as well as the speed that covers one per hour).
+""")))
 cable = Quantity(0.1, mile.nautical,
                  US = Quantity(100, fathom,
                                navy = 720 * foot.survey))
@@ -348,18 +430,6 @@ French = Object(pied = foot.French,
                 point = point.French,
                 toise = 6 * foot.French,
                 arpent = (180 * foot.French)**2)
-
-foot.SI = Quantity(nano, second.light, """The SI foot, or light nanosecond.
-
-In one nanosecond, light travels a distance firmly within the range of lengths
-known, among various nations' diverse archaic units, as a foot.  The Swedish
-foot (or 'fot' in Swedish) is less than 1% shorter; most others are slightly
-longer.  Given that the metre is now defined in terms of the light second, it
-violates the spirit of SI to retain it; it should be replaced by the light
-second and units derived therefrom.  The light nanosecond thus presents itself
-naturally as a replacement unit, which would naturally be called the 'SI
-foot'.
-""")
 
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
@@ -377,53 +447,6 @@ cental = 100 * pound # cental is a UK name for the US cwt
 quintal = 76 * pound # standard (iron) "flask" of Mercury (originally a Spanish unit)
 cwt = hundredweight = Quantity(8, stone, US = cental)
 ton = Quantity(20, cwt, US = 20 * cwt.US, metric = tonne)
-
-# Miscellaneous units
-TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
-               """The conventional unit of power of explosions
-
-The energy released by each gram of TNT (trinitrotoluene) upon detonation is
-between 4.1 and 4.6 kJ; however, for the purposes of standardized definition,
-a value of 4184 Joule is used.  It is worth noting that food carbohydrate has
-energy content per unit mass roughly four times as high as this.
-
-c.f.: http://en.wikipedia.org/wiki/TNT_equivalent
-""")
-
-Magnitude = Object(
-    # Seismographic energy scales
-    moment = lambda n: 10 ** (1.5 * n + 9.1) * Joule,
-    energy = lambda n: 10 ** (1.5 * n + 2.9) * Joule,
-    Richter = lambda n: 10 ** (1.5 * n + 6) * 4.2 * Joule)
-
-# Speed of sound in dry air at 0 centigrade
-sound = 331.3 * metre / second # * (temperature / 273.15 / K)**.5
-# so km / 3 / sec at 3.35 centigrade; 343 m/s at 20 centigrade
-
-# Anglophone units of energy:
-CHU = calorie * pound / gram # whatever CHU is ! (KDWB)
-BTU = Btu = BritishThermalUnit = CHU * Rankine / Kelvin
-therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
-
-# Anglophone units of area (KDWB):
-acre = chain * furlong # consensus; mile**2/640.  From German/Norse: field
-rood = acre / 4
-rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
-# US names for certain areas:
-section = mile**2
-township = 36 * section
-homestead = 160 * acre # aka section / 4
-
-# `cubic or solid measure' (KDWB):
-foot.timber = foot**3
-stack = Object(wood = 108 * foot.timber) # yard * fathom * fathom
-cord = 128 * foot.timber
-cord.house = cord / 3
-ton.ship = 40 * foot.timber
-ton.ship.timber = 42 * foot.timber
-ton.also(displacement = 35 * foot.timber,
-         freight = ton.ship,
-         register = 100 * foot.timber)	# internal capacity of ships
 
 # Cologne mark and derivatives (c/o Wikipedia):
 Cologne = Object(mark = Quantity(233.856, gram,
@@ -458,8 +481,8 @@ carat = Quantity(.2, gram, # metric variant, from /usr/share/misc/units
 Apparently originally the mass of a carob seed.
 """,
                  Troy=3.17 * grain) # or 3.163 grain according to u.s.m.u
-Troy = Object(drachm = dram.apothecary, denier = denier.Troy, carat = carat.Troy,
-              ounce = ounce.Troy, pound = pound.Troy)
+Troy = Object(drachm = dram.apothecary, denier = denier.Troy,
+              carat = carat.Troy, ounce = ounce.Troy, pound = pound.Troy)
 point.jeweller = carat / 100
 pound.mercantile = 15 * Troy.ounce
 
@@ -481,7 +504,173 @@ slug = pound.weight / celo
 slinch = 12 * slug
 duty = foot * pound.weight
 pond = gram.weight
+
+# Miscellaneous units
+jiffy = second / 60 # but also s/100 and ms ...
 
+TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
+               """The conventional unit of power of explosions
+
+The energy released by each gram of TNT (trinitrotoluene) upon detonation is
+between 4.1 and 4.6 kJ; however, for the purposes of standardized definition,
+a value of 4184 Joule is used.  It is worth noting that food carbohydrate has
+energy content per unit mass roughly four times as high as this.  Multiply
+this by ton.US to get the commonly used 'ton of TNT' unit of explosive power.
+
+c.f.: http://en.wikipedia.org/wiki/TNT_equivalent
+""")
+
+Magnitude = Object(
+    # Seismographic energy scales
+    moment = lambda n: 10 ** (1.5 * n + 9.1) * Joule,
+    energy = lambda n: 10 ** (1.5 * n + 2.9) * Joule,
+    Richter = lambda n: 10 ** (1.5 * n + 6) * 4.2 * Joule)
+
+# Speed of sound in dry air at 0 centigrade
+sound = 331.3 * metre / second # * (temperature / 273.15 / K)**.5
+# so km / 3 / sec at 3.35 centigrade; 343 m/s at 20 centigrade
+
+# Archaic energy units based on the heat capacity of water.
+
+# temporary name, to avoid calorie.short = calorie (rude to GC)
+_short = Quantity.flat(4.182, 4.204, None, Joule,
+                      """The short calorie.
+
+The short calorie (or gram-calorie) is defined to be the amount of heat energy
+needed to warm one gram of water by one degree Celsius at standard atmospheric
+pressure.  Since the heat capacity of water varies with temperature, this
+definition leads to various actual values for the unit, depending on the
+chosen temperature at which to measure, or range of temperatures over which to
+average.
+
+Water is at its densest at 4 Celsius and also has its highest heat capacity
+there, 4.204 J/K/kg, giving rise to the largest of the range of units known as
+the calorie, the 4-degree calorie, measured for a rise from 3.5 to 4.5
+Centigrade.  The heat capacity of water decreases, via (4.1855 +/- .0005)
+J/K/kg between 14.5 and 15.5 Centigrade, reaching 4.182 J/K/kg between 19.5
+and 20.5 Centigrade
+
+See calorie.nutritional, .thermochemical and .international for particular
+values selected, from among the available candidates, by standards bodies.
+In contrast, calorie.short and .long represent the range of values seen
+between 4 and 20 centigrade.
+""")
+
+calorie = Object(_short,
+                 __doc__="""The calorie.
+
+This was originally a unit of chemical and thermal energy, defined by Nicolas
+Clément in 1824 as the amount of energy required to warm one kg of water by
+one degree Celsius.  This original 'kg-calorie' definition was superceded just
+over a century later when a British Association of Science committee proposed
+the 'gram calorie'.  The former is now called the long calorie or Calorie
+(capitalised) while the latter is called the short calorie or calorie
+(lower-case; try to avoid starting sentences with this word).  Nutritional
+information is in many contexts given using the older long Calorie while
+modern standards bodies specify calorie to mean diverse variations on the
+short calorie; in the resulting confusion, the sanest course of action is to
+avoid using these units entirely, especially as they're deprecated by SI
+(since they take the heat capacity of water as a unit, without specifying the
+temperature at which it's to be taken, despite its variation with
+temperature).
+
+Some values used here are taken from python's
+Scientific.Physics.PhysicalQuantities module.
+
+Note that using the Celsius degree (defined as one percent of the interval
+between the boiling and freezing temperatures of water) and asking for the
+specific heat capacity of water to be 1 (at some suitably specific temperature
+and pressure) leads to 64.8 * metre/second as unit of speed; this holds true
+regardless of unit of mass, as long as the same unit is used both in building
+one's unit of energy and in defining heat capacity (as for the long calorie;
+the short calorie uses the kg in defining the Joule but the gram in defining
+heat capacity).  Using 64.8 metre (2550 inches, 0.2161 light microseconds) as
+unit of length, in conjunction with the second, would suffice, yielding
+c. 2720000 cubic metres as unit of volume; a body of water with volume one
+millionth of this would thus have mass around 272 kg, which we could use to
+complete a system of units based on the second and properties of water.
+""",
+                 mean = Quantity(4.19, Joule,
+                                        """The mean calorie.
+
+This is one percent of the energy needed to warm one gram of air-free pure
+water at atmospheric pressure from its freezing point to its boiling point.
+See calorie's documentation for further details.
+"""),
+                 international = Quantity(4.1868, Joule,
+                                          # 3.088 * lb.weight * foot
+                                          """The international calorie.
+
+This is the calorie adopted by the Fifth International Conference on
+Properties of Steam (London, 1956), formalising a decimal truncation of an
+earlier (1929) figure of 180/43.
+"""),
+                 thermochemical = Quantity(4.184, Joule,
+                                         """The thermochemical calorie.
+
+This is ISO's standard calorie.
+"""),
+                 nutritional = Quantity(4.182, Joule,
+                                        """The nutritional calorie.
+
+This is the standard calorie adopted by the International Union of Nutritional
+Sciences.
+"""),
+                 short=_short,
+                 long = Quantity(kilo, _short,
+                                 """The long Calorie.
+
+The long Calorie (it is conventional to capitalise it, to limit confusion with
+the short calorie; I prefer to simply *not use* either) is defined as the
+amount of heat energy needed to warm one kilogramme of water by one degree
+Celsius; one Calorie is consequently one kilocalorie.  It is what's usually
+meant when anything to do with nutritional energy uses the term 'Calorie'
+(usually without bothering to capitalise).  It is subject to the same
+variation with base temperature as the short calorie; see documentation of
+calorie.short for further details, or that of calorie for background.
+"""))
+del _short
+
+Calorie = calorie.long
+Clausius = Quantity(1, Calorie / Kelvin, # the heat capacity of a kg of water.
+                    "Clausius's original unit of entropy.",
+                    "Cl", "Clausius")
+frigorie = calorie / hour # Rate of transfer of heat (in refrigeration).
+
+# Anglophone units of energy:
+CHU = calorie.short * pound / gram # don't know what CHU stands for ! (KDWB)
+BTU = Quantity(1, CHU * Rankine / Kelvin,
+               """British Thermal Unit
+
+This is the energy required (at standard atmospheric pressure) to heat one
+pound of water by one degree Fahrenheit.  (The heat capacity of water varies
+with temperature, hence variants on the unit arise by chosing a different
+reference temperature at which to measure; see documentation of calorie for
+details.)  It is not an SI unit; if a prefix M is prepended to it, it's from
+the latin numeral M and so means a thousand - not (mega) a million !
+""")
+# = Clausius * Rankine * pound / kg
+therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
+
+# Anglophone units of area (KDWB):
+acre = chain * furlong # consensus; mile**2/640.  From German/Norse: field
+rood = acre / 4
+rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
+# US names for certain areas:
+section = mile**2
+township = 36 * section
+homestead = 160 * acre # aka section / 4
+
+# `cubic or solid measure' (KDWB):
+foot.timber = foot**3
+stack = Object(wood = 108 * foot.timber) # yard * fathom * fathom
+cord = 128 * foot.timber
+cord.house = cord / 3
+ton.ship = 40 * foot.timber
+ton.ship.timber = 42 * foot.timber
+ton.also(displacement = 35 * foot.timber,
+         freight = ton.ship,
+         register = 100 * foot.timber)	# internal capacity of ships
 
 # Imperial units of volume (part 1):
 
@@ -570,6 +759,7 @@ Swedish.also(fot = Quantity(1, Swedish.aln/2, old=Swedish.aln.old/2), # foot
              famn = Quantity(3, Swedish.aln,
                              old = 3 * Swedish.aln.old), # fathom (Norsk: favn)
              sjoemil = Quantity(4, Swedish.kvartmil, doc="Svensk sjømil")) # "sea mile"
+mile.sea.Svensk = Swedish.sjoemil
 # Joachim also reports favn as a unit of volume ~ 2.4 metre**3 (so ~ 2 * housecord)
 Swedish.also(mil = Quantity(6000, Swedish.famn, old=6000 * Swedish.famn.old),
              tum = Quantity(1, Swedish.fot / 10, # thumb, i.e. inch
@@ -615,8 +805,8 @@ foot.Norsk, inch.Norsk = Norse.fot, Norse.tom
 ell.Norsk, fathom.Norsk = Norse.alen, Norse.favn
 # unse ~ ounce
 
-mil = Quantity(10, kilo * metre,
-               """The Norwegian mil, 10 km.
+mile.Scandinavian = mil = Quantity(10, kilo * metre,
+                                   """The Norwegian mil, 10 km.
 
 In Norway, 10 km is known as 'en mil'.  This is clearly a metricised
 replacement for an archaic Norwegian unit of distance, presumably close to the
@@ -624,13 +814,12 @@ Danish and Swedish variants which I've found documented on the web.  The name
 is doubtless cognate with the Anglic 'mile' (q.v.), but the distance is
 significantly larger (but compare the Prussion mile).  The related sjømil
 units of the Scandinavian tradition literally translate as 'sea mile'; see
-Swedish.sjoemil, for example.  However, the Scandinavian countries have
-embraced international standards, so now use the 1929 nautical mile and the
-metric system of units, rather than clinging to archaic units like some less
-civilized countries.
-""",
-               Dansk = Danish.mil,
-               Svensk = Swedish.mil)
+Swedish.sjoemil, for example, and mile.sea.  However, the Scandinavian
+countries have embraced international standards, so now use the 1929 nautical
+mile and the metric system of units, rather than clinging to archaic units
+like some less civilized countries.
+""")
+mil.also(Norsk = Norse.mil, Dansk = Danish.mil, Svensk = Swedish.mil)
 
 # Obscure stuff from Kim's dad's 1936 white booklet ...
 Swiss = Object(lien = 5249 * yard) # c. (land) league
