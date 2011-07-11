@@ -7,7 +7,7 @@ See also: units.py
 from quantity import base_unit, Quantity, qSample, _quantifier_dictionary
 
 class bQuantity (Quantity):
-    def _quantity(self, what, units):
+    def __quantity__(self, what, units):
         try: order = units['bit']
         except KeyError: order = 0
         if order: return self.__class__(what, units)

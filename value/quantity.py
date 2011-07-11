@@ -575,7 +575,7 @@ class Quantity (Object):
 	result the same units as self, whatever these may be; .copy() makes no
 	attempt to check whether what you asked for makes sense ... """
 
-	return self._quantity(self._scalar.copy(f), {})
+	return self.__quantity__(self._scalar.copy(f), {})
 
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
@@ -662,7 +662,7 @@ class Quantity (Object):
             from SI import radian
             units.append(radian)
 
-        return self._quantity(self.__scale.join(atan, self.__addcheck_(what, 'arcTan2')), radian)
+        return self.__quantity__(self.__scale.join(atan, self.__addcheck_(what, 'arcTan2')), radian)
 
     def __hypot(self, other, h=math.hypot):
         """Pythagorean sum.
@@ -687,7 +687,7 @@ class Quantity (Object):
         return val
 
     # Addition, subtraction and their reverses.
-    def __kin(self,    scale): return self._quantity(scale, self.__units)
+    def __kin(self,    scale): return self.__quantity__(scale, self.__units)
 
     def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck_(other, '+'))
     def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
@@ -716,21 +716,21 @@ class Quantity (Object):
 
     def __mul__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(self.__scale * ot, self.__units * her)
+        return self.__quantity__(self.__scale * ot, self.__units * her)
 
     def __rmul__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(ot * self.__scale, her * self.__units)
+        return self.__quantity__(ot * self.__scale, her * self.__units)
 
     def __div__(self, other, grab=unpack): 
         ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
-        return self._quantity(self.__scale / ot, self.__units / her)
+        return self.__quantity__(self.__scale / ot, self.__units / her)
     __truediv__ = __div__
 
     def __rdiv__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self._quantity(ot / self.__scale, her / self.__units)
+        return self.__quantity__(ot / self.__scale, her / self.__units)
     __rtruediv__ = __rdiv__
 
     def __pow__(self, what, mod=None, grab=unpack):
@@ -739,14 +739,14 @@ class Quantity (Object):
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
-        return self._quantity(pow(self.__scale, wh), self.__units ** wh)
+        return self.__quantity__(pow(self.__scale, wh), self.__units ** wh)
 
     def __rpow__(self, what, mod=None, grab=unpack):
         assert mod is None, "Ternary pow isn't meant to call __rpow__ !"
         if self.__units: raise TypeError('raising to a dimensioned power', self)
 
         wh, at = grab(what)
-        return self._quantity(pow(wh, self.__scale), at ** self.__scale)
+        return self.__quantity__(pow(wh, self.__scale), at ** self.__scale)
 
     del unpack
 
@@ -771,7 +771,7 @@ class Quantity (Object):
 
     def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
     def _lazy_get_variance_(self, ignored):
-        return self._quantity(self.__scale.variance, self.__units ** 2)
+        return self.__quantity__(self.__scale.variance, self.__units ** 2)
 
     # lazy string and representation lookups:
 
@@ -925,7 +925,7 @@ class Quantity (Object):
     def _unit_order(self, unit): return self.__units[unit]
 
     # Method to override, if needed, in derived classes ...
-    def _quantity(self, what, units): return self.__class__(what, units)
+    def __quantity__(self, what, units): return self.__class__(what, units)
 
     @classmethod
     def flat(cls, lo, hi, best=None,
