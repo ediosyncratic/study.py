@@ -38,6 +38,174 @@ to be the apparent magnitude it would have at a distance of 10 parsecs.\n""")
 
 del log
 
+# Time
+minute = Quantity(60, second)
+# bell = 30 * minute # nautical - need to check correctness !
+# Not to be confused with the Bel, a tenth of which is the dB.
+hour = 60 * minute # should this also be the degree of time ?
+day = 24 * hour
+week = 7 * day
+fortnight = 2 * week
+
+year = Quantity.flat(365.242, 365.25636, 365.24225,
+                     day,
+                     """The period of relative motion of Earth and Sun.
+
+The year originated in each human culture as the period over which the cycle
+of the Earthly seasons repeats itself.  The seasons have fuzzy boundaries,
+which, historically, made it difficult to measure this period with any
+precision; but also makes it possible to be fairly forgiving of minor
+discrepancies in one's estimate of it.
+
+Each day the Sun moves from East to West across the sky (due to the Earth's
+spinning, rather than actual relative motion of Earth and Sun) but, from day
+to day; its path moves North for many days, then slows, stops and travels
+South for about as long before slowing, stopping and turning North once more;
+as it goes about that cycle, the length of time the Sun takes to cross the sky
+lengthens and shortens.  These variations affect the weather and living
+creatures respond in diverse ways; the cycles in the Sun's variations incline
+these consequences to be likewise cyclic; but the atmosphere and life are
+complex, so their responses to the solar cycle are at best roughly
+cyclic.  The fuzzy notion of season is a characterisation, of the agregate of
+all the diverse cycles of life and weather that roughly follow the Sun's
+cycle, that helps one to anticipate the weather, the availability of diverse
+foods in diverse places and the movements of dangerous beasts; anticipating
+these improves one's chances of prosperity and safety.  Cultures that provide
+a straightforward framework for keeping track of the cycle of the seasons have
+thus also prospered, to the point where each culture has some such framework;
+and each such framework effectively embeds an estimate of the length of the
+underlying period of the solar cycle - this period is idealised by the
+tropical year (see year.tropical for details).
+
+Once folk got moderately skilled at astronomy, it became evident that there is
+another cycle with almost the same period: folk first noticed it as the period
+of the Sun's movement relative to the pattern of fixed stars (where the
+tropical cycle is relative to the world around us - its horizon and such
+land-marks as folk may use as references when observing the Sun's movement);
+later, folk learned to characterise this movement as a parallax effect caused
+by the Earth's orbit around the Sun.  This cycle's period is called the
+sidereal year (see year.sidereal) and is longer than the tropical year by
+twenty and a bit minutes.  The tropical year is the natural one to use for
+Earthly activity (which is all any calendar has ever mattered for thus far),
+so it's what a calendar aims to match; but the sidereal one is easier to
+measure precisely, once one has the necessary astronomical skills.
+
+Being a day or several short would lead to appreciable drift between the
+observed seasons and the calendar's labelling of dates: a culture would need
+to adapt to it, each generation sowing its crops a modest way later in the
+'year' than the previous used to.  Using a raw 360-day calendar (with no
+intercallary days - apparently some Zoroastrian sects use this) would lead to
+a full season's drift within eighteen years, so each generation would grow up
+with different associations of calendar dates with seasons from those their
+parents grew up with.  Approximating the year as 52 weeks (364 days), though
+convenient, would still leave enough drift to be significant across a
+life-time (at least for those who live to be old); the calendar would drift by
+a season within 74 years.
+
+Using 365 days (the 'vague year') as approximation (almost a quarter day off)
+would reduce the drift to a week or three in each lifetime; even a
+pre-literate culture might well notice that (e.g. a feast associated with a
+particular calendar date might be associated, in old folk tales, with a
+different season than one is used to), but one could readily enough adapt to
+it.  See year.Julian, .Gregorian and .Herschel for better approximations; each
+of which comes with a .leap(yrno) method that returns true if the year with
+sequence number yrno is a leap year (of 366 days) in the given calendar;
+otherwise, it's a normal year (of 365 days).
+
+Meanwhile, it should be noted that the Earth's spin is slowing, causing the
+length of the day to increase by 1.70 +/- .05 milliseconds per century; the
+length of the year is relatively stable, so the number of days in a year is
+decreasing at one per 13.9 million years; the 7.5 milli-days of difference
+between Gregorian and Julian years corresponds to about 104 millennia of this
+variation.  However, this variation is itself varying; although a major factor
+in it is the tidal slowing of the Earth (which isn't varying much), this is
+complicated by the Earth having changed shape over the last ten millennia due
+to ice sheets (that used to press down on the poles) having melted, leading to
+the equatorial radius decreasing while the polar radius increases, thereby
+reducing Earth's moment of inertia without affecting its angular momentum, so
+causing it to spin faster than it would have, partially countering the tidal
+drag.  As Earth's shape stabilises, the day length increase shall increase
+towards c. 2.3 ms/century.
+""",
+
+                     Julian = Quantity(3 * 487, day / 4,
+                                       """The Julian year.
+
+This is the nominal average duration of one year in the calendar that Rome
+switched to using under Julius Caesar.  The extra day once every four years
+reduces the error to the point where, to drift a week, the calendar must be in
+use for nearly nine centures; and, indeed, it remained in use in Rome for over
+1500 years (see year.Gregorian) and elsewhere until the 20th century.
+""",
+                                       leap=lambda yrno: yrno % 4 == 0),
+
+                     Gregorian = Quantity(27 * 773, week / 400,
+                                          """The Gregorian year.
+
+This is the nominal average duration of one year in the Gregorian calendar,
+introduced by Pope Gregory XIII in 1582.  See the documentation of year for
+general discussion of available approximations to it.
+
+The Gregorian calendar uses a cycle of 400 years, mostly of 365 days but with
+97 'leap years' of 366 days (namely, those years whose sequence number is a
+multiple of four, excluding the ones whose number is a multiple of 100 but not
+of 400).  The average for this is 365 +97/400, which works out at
+        365 * day + 5 * hour + 49 * minute + 12 * second
+
+This is a mere 26 seconds longer than the tropical year, so the seasons drift
+so slowly we don't notice; in ten millennia (longer than documented history)
+they'll only drift by about three days, which is still small enough to be lost
+in the fuzziness of the seasons' boundaries.
+""",
+                                          leap=lambda yrno: (
+            yrno % 4 == 0 and (yrno % 100 != 0 or yrno % 400 == 0))),
+
+                     Herschel = Quantity(365.24225, day,
+                                         """The Herschel year.
+
+Sir John Herschel advocated, as a refinement to the Gregorian calendar's
+approximation to the year (see year.Gregorian), letting years whose number is
+a multiple of 4000 be normal, rather than leap; this would not affect any date
+for which the Gregorian calendar has been in use (so it's backwards
+compatible) and would improve the precision of the calendar's estimate of the
+year length to 365 * day + 5 * hour + 48 * minute + 50.4 * second, which is
+less than five seconds above the tropical year.  We don't have to make up our
+minds about that for a millennium or two, though ;-)
+""",
+                                         leap=lambda yrno: (
+            yrno % 4 == 0 and (yrno % 100 != 0 or (
+                    yrno % 400 == 0 and yrno % 4000 != 0)))),
+
+                     tropical = Quantity(1, 365 * day +
+                                         5 * hour + 48 * minute + 46 * second,
+                                         """The tropical year.
+
+This is the time between successive vernal equinoxes.  It differs from the
+sidereal year because of the precession of the equinoxes: the equinoctial
+points move 50.27 seconds of arc per year westwards round the plane of the
+ecliptic.
+"""), # so a period of c. 25.78 millennia
+
+                     sidereal = Quantity(1, 365 * day +
+                                         6 * hour + 9 * minute + 9.5 * second,
+                                         """The sidereal year.
+
+This is the period of Earth's orbit about the Sun relative to the fixed
+stars.  Contrast the tropical year (disturbed by the precession of the
+equinoxes) and the Gregorian year (an approximation).
+"""),
+
+                     anomalistic = Quantity(1, 365 * day + 6 * hour +
+                                            13 * minute + 52.6 * second,
+                                            """The anomalistic year.
+
+This is the interval between successive perihelions of Earth's orbit.  Since
+the major axis of the orbit isn't exactly fixed, this isn't quite the same as
+the sidereal year ...
+"""))
+month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
+# factors of 6**3 seconds abound ...
+
 # Angles:
 from math import pi
 turn = cycle = revolution = 2 * pi * radian
@@ -53,9 +221,10 @@ with.  Thus arcs are characterised by angles and a standard family of units of
 angle is characterised by the subdivision of a turn into arcs subtending
 assorted fractions of the whole.
 
-The classical unit of arc, the degree, is one 360th of a turn.
-This arises from the Babylonian approximation of the year as being 360 days
-long - nice numerology but bad astronomy.
+The classical unit of arc, the degree, is one 360th of a turn.  This dates
+back to the Babylonians, who (probably didn't actually suffer the delusion
+that the year was tidily 360 days long, whatever popular myth may say, but)
+liked factors of 60 and 6.
 
 The separation of two distant objects, as seen in the sky, may sensibly be
 described by the angle between the rays from the observer to the objects.  If
@@ -92,36 +261,6 @@ turns of this hand of our clock.  If, instead, we introduced the unit of time
 that's sixty hours, this anti-minute (huge ?) is two and a half days; six of
 them make up the fore-going 15-day unit.\n""",
          point = turn / 32) # there are 32 points on a ship's compass rose
-
-# Time
-minute = Quantity(60, second, arc=arc.minute)
-# bell = 30 * minute # nautical - need to check correctness !
-# Not to be confused with the Bel, a tenth of which is the dB.
-hour = 60 * minute # should this also be the degree of time ?
-day = 24 * hour
-week = 7 * day
-fortnight = 2 * week
-year = 27 * 773 * week / 400 # the Gregorian approximation
-month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
-# factors of 6**3 seconds abound ...
-
-year.also(Gregorian = year,
-          tropical = 365 * day + 5 * hour + 48 * minute + 46 * second,
-          sidereal = 365 * day + 6 * hour + 9 * minute + 9.5 * second)
-year.tropical.document("""The tropical year.
-
-This is the time between successive vernal equinoxes.  It differs from the
-sidereal year because of the precession of the equinoxes: the equinoctial
-points move 50.27 seconds of arc per year westwards round the plane of the
-ecliptic.
-""") # so a period of c. 25.78 millennia
-
-year.sidereal.document("""The sidereal year: Earth's orbital period.
-
-This is the period of Earth's orbit relative to the fixed stars.  Contrast the
-tropical year (disturbed by the precession of the equinoxes) and the Gregorian
-year (an approximation).
-""")
 
 minute.arc = arc.minute = arc.degree / 60
 second.arc = arc.second = arc.minute / 60
