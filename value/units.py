@@ -14,7 +14,9 @@ bel = Quantity(log(10), {},
 The Bel is a logarithmic unit, originally the reduction in audio level over
 one mile of standard telephone cable but now formalized as a scaling by a
 factor of ten.  This is quite a large ratio, so the deci Bel, dB, is more
-commonly used. Two Bel equals five astronomical magnitudes.\n""")
+commonly used.  Since the base-ten log of two is minutely over 0.3, a factor
+of two is approximately three decibel.  Two Bel equal five astronomical
+magnitudes.\n""")
 
 magnitude = Quantity(log(.01) / 5, {},
                      """Astromonical apparent magnitude.
