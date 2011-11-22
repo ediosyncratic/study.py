@@ -75,6 +75,22 @@ def Stirling(n, __s=roottwopi, exp=math.exp):
     # approximates factorial
     if n: __s = __s / exp(n+ 1./12/n) # change lost between calls
     return pow(n, .5 + n) * __s
+
+# Related, see http://www.chaos.org.uk/~eddy/math/factorial.html#Approx
+def quarup(x): return x * (1 +2./(9 +(8*x)**2)) # temp, deleted below.
+def halfac(n, rootish=lambda x, q=quarup: q(x)**.5):
+    """n => n!/(n-.5)!
+
+    i.e. gamma(n+1)/gamma(n+.5), for which a respectably good
+    approximation is available.\n"""
+    return rootish(n + .25)
+def c2nn(n, rnp=lambda x, pi=math.pi, q=quarup: (q(x) * pi)**.5):
+    """Short-cut for chose(2*n, n).
+
+    Like halfac, a respectably good approximation is available.
+    See also study.maths.Pascal.c2nno4n(n).\n"""
+    return 4**n / rnp(n + .25)
+del quarup
 
 # Lanczos's approximation (with 6 coefficients and an offset of 5)
 @asreal
