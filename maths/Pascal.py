@@ -152,3 +152,28 @@ def Pascal(tot, scale=1):
     to all entries in the row; thus sum(Pascal(n, .5**n)) == 1.\n"""
 
     return tuple(map(lambda i, t=tot, s=scale: chose(t, i) * s, range(1+tot)))
+
+def c2nno4n(n):
+    """n => chose(2n, n)/4**n
+
+    Computed as product(lambda i: (n+i)/4/i, range(1, 1+n)), taking terms in
+    such order as to keep the computed value near 1 as long as possible, so as
+    to restrain the impact of rounding errors.
+
+    Note that this ~ (n*pi)**.5 for large n; evaluating lambda x:
+    x*(1+2./(9+(8*x)**2)) at n+.25, multiplying by pi and taking 1/sqrt()
+    gives a good approximation to the answer; see study.maths.stirling.c2nn()
+    and http://www.chaos.org.uk/~eddy/math/factorial.html#Approx\n"""
+    ans, each = 1, lambda k, q = .25 * n: q / k + .25 # (n+k)/4/k
+    i = j = n // 3 # solves n+k = 4*k, rounding down
+    # each(j) is as close to 1 as we can get it; as j decreases it grows; as i
+    # increases, each(i) shrinks
+    while i < n or j > 0: # iterate outwards:
+        if j > 0 and (i == n or ans < 1):
+            ans *= each(j) # > 1
+            j -= 1
+        else:
+            assert i < n and (j == 0 or ans >= 1)
+            i += 1
+            ans *= each(i) # < 1
+    return ans
