@@ -3,8 +3,6 @@
 
 Note that each outer planet's system of moons has a total mass of roughly 1e-4
 times the planet's mass: http://www.physorg.com/news69517584.html
-
-$Id: outer.py,v 1.7 2007-03-26 07:57:55 eddy Exp $
 """
 
 from study.value.units import tophat, giga, mega, metre, day, hour, minute, year, kg
@@ -80,7 +78,35 @@ Uranus = KLplanet('Uranus',
                             flattening = .03),
                   Orbit(Sun, (2886 + .1 * tophat) * giga * metre,
                         Spin(84.75 * year, .773), .047),
-                  14.5, 1.30, atmosphere=gassy, discovery=Discovery("Herschel", 1781),
+                  14.5, 1.30, atmosphere=gassy,
+                  discovery=Discovery("William Herschel", 1781,
+                                      etymology="""Latin: Uranus
+
+In Roman mythology, Uranus was the father of Saturn.
+""",
+                                      origin="""Initially named Georgium Sidus.
+
+Uranus was the first planet discovered by science.  Previously, folk had
+espied the Sun, Mercury, Venus, the Moon, Mars, Jupiter and Saturn (albeit
+naming them diversely by culture); these had been known since antiquity, as
+they were visible to anyone (e.g. shepherds) who spent any timeout and about
+by night.  Herschel studied the motions of Jupiter and Saturn and noticed
+slight deviations, in the latter's movement, from what he could predict using
+Newton's theory, given the known heavenly bodies.  The deviations fitted with
+what would arise from there being another planet beyond Saturn, so he worked
+out where that planet would be and looked there; sure enough, it was there.
+
+Herschel, a German immigrant to England, initially honoured the German king of
+England by naming the newly-discovered planet after him, as George's star (in
+Latin, Georgium Sidus).  This name was less popular outside George's earthly
+realm.  Johann Bode suggested the name Uranus - as the next star out from
+Jupiter was named for Jupiter's father, Saturn, so the next star out from it
+is named for Saturn's father, Uranus.  The name Georgium Sidus remained as an
+archaism in some contexts until 1850 but has now been entirely supplanted by
+Bode's suggestion.
+
+http://www.irregularwebcomic.net/3207.html#note4
+"""),
                   satelload=load_uranic)
 del load_uranic
 
