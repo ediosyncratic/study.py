@@ -8,8 +8,6 @@ Exports:
 The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
-
-$Id: ticker.py,v 1.16 2010-01-07 21:35:46 eddy Exp $
 """
 
 # Parser for Oslo Børs ticker pages:
@@ -167,11 +165,19 @@ class StockSVG (Cached):
         t, s = divmod(col, tab)
         return '\n' + '\t' * t + ' ' * s
 
+    def inwidth(text, tab): # tool, deleted below
+        """Work out how deep an indent the given text implies.
+
+        The given text, or the portion of it up to the first newline if there
+        is one, is taken to be text preceding what we want our indented text
+        to line up under; this function returns the column offset at which the
+        indented text is to start.\n"""
+        return len(text.expandtabs(tab).split('\n')[0])
+
     import re
-    def rebreak(data, prior,
-                TAB=5, # tab-width I use in the .svg file
+    def rebreak(data, prior, tab,
                 chop=re.compile(r'\b\s\s+\b'),
-                dent=indent): # another tool
+                dent=indent, wide=inwidth): # another tool
         """Split up a d="..." attribute nicely.
 
         Arguments:
@@ -193,25 +199,76 @@ class StockSVG (Cached):
         newline and indentation sufficient to line up following attributes
         under the start of d=...\n"""
         # Work out indentations:
-        tail = len(prior.expandtabs(TAB))
-        newline = dent(tail + 3, TAB) # 3 is for 'd="'
+        tail = wide(prior, tab)
+        begin = dent(tail + 3, tab) # 3 is for 'd="'
         cleaned = ""
         while True: # for each many-space separator:
             was = chop.search(data)
             if not was: break
             cleaned += data[:was.start()]
             # Restore line-breaks and indentation:
-            for ch in was.group(0)[len(newline):]:
+            for ch in was.group(0)[len(begin):]:
                 cleaned += '\n'
-            cleaned += newline
+            cleaned += begin
             data = data[was.end():]
-        return cleaned + data + dent(tail, TAB)
-    del indent
+        return cleaned + data + dent(tail, tab)
+
+    def rebox(elm, prior, tab, fill,
+              vbox=re.compile(r'\s*(viewBox="[^"]*")\s*'),
+              dent=indent, wide=inwidth):
+        """Reflow the SVG element itself, with viewBox on its own line.
+
+        The viewBox element is what changes between revisions of a graph
+        updated by this script, so put it on a line of its own to make the
+        difference between revisions easy to read.  At the same time, avoid
+        unduly long lines.  Aside from viewBox itself (which should never be
+        too long for the fill column), no attribute value contains space, so
+        we can be simplistic about the re-flowing (I'd otherwise want to avoid
+        splitting within an attribute value).\n"""
+
+        lead = wide(prior, tab)
+        newline = dent(lead, tab)
+        box = vbox.search(elm)
+        if box: lines = [ elm[:box.start()], box.group(1), elm[box.end():] ]
+        else: lines = [ elm ]
+
+        i = 0
+        while i < len(lines):
+            if '\n' in lines[i]: lines[i:i+1] = lines[i].split('\n')
+            if i < 1: line, big = lines[i].rstrip(), fill
+            else: line, big = lines[i].strip(), fill - lead
+
+            if len(line.expandtabs(tab)) < big:
+                lines[i] = line
+            else:
+                w = big
+                while w > 0 and not line[w].isspace(): w -= 1
+                while w > 0 and line[w-1].isspace(): w -= 1
+                if w > 0: lines[i:i+1] = [ line[:w], line[w:] ]
+                else: # no space in line[:big]; cut as soon after as possible
+                    w = big
+                    try:
+                        while not line[w].isspace(): w += 1
+                        lines[i:i+1] = [ line[:w], line[w:] ]
+                    except IndexError: pass # no space in line at all
+            i += 1
+
+        return newline.join(lines)
+
+    del indent, inwidth
 
     def toxml(self,
-              find=re.compile(r'^([\t ]+.+\b)d=("[^"]+")\s*',
-                              re.MULTILINE),
-              chunk=rebreak):
+              ismode=re.compile(r'-\*-(.*)-\*-'),
+              tabwidth=re.compile(r'tab-width:\s*(\d+)$'),
+              fillcol=re.compile(r'fill-column:\s*(\d+)$'),
+              svgelm=re.compile(r'(<svg\s+)([^>]*)>', re.MULTILINE),
+              points=re.compile(r'^([\t ]+.+\b)d=("[^"]+")\s*',
+                                re.MULTILINE),
+              # Common settings I use in files (mode line may over-ride):
+              TAB=8, # tab-width
+              FILL=78, # fill-column
+              # Tools from above:
+              chunk=rebreak, flow=rebox):
         """Re-serialize the DOM tree to SVG.
 
         This restores (to the best of its ability) assorted damage the expat
@@ -222,20 +279,38 @@ class StockSVG (Cached):
         # gnn ... that puts the mode-line comment after the first newline :-(
         ind = out.find('\n')
         cut = out.find('-->', ind) + 3
-        out = out[:ind] + out[ind+1:cut] + '\n' + out[cut:]
+        mode = out[ind+1:cut]
+        conf = ismode.search(mode)
+        if conf:
+            # Parse mode-line:
+            for frag in conf.group(1).split(';'):
+                tab = tabwidth.match(frag.strip())
+                if tab: TAB = int(tab.group(1))
 
-        # ... and canonicalises each .isspace() character to a space :-(
+                fill = fillcol.match(frag.strip())
+                if fill: FILL = int(fill.group(1))
+            # Put mode-line on first line
+            out = out[:ind] + mode + '\n' + out[cut:]
+
+        # ... joins all attributes of the svg element onto one line ...
+        svg = svgelm.search(out)
+        assert svg, "Failed to find <svg ...> element in serialized DOM"
+        out = out[:svg.start(2)] + flow(svg.group(2), svg.group(1),
+                                        TAB, FILL) + out[svg.end(2):]
+
+        # ... and kills newlines in attribute values :-(
         cleaned = ""
         while True: # for each d="..." attribute:
-            was = find.search(out)
+            was = points.search(out)
             if not was: break
-            cleaned += out[:was.start(2)] + chunk(was.group(2), was.group(1))
+            cleaned += out[:was.start(2)] + chunk(was.group(2),
+                                                  was.group(1), TAB)
             out = out[was.end():]
         out = cleaned + out
 
         if out[-1] != '\n': return out + '\n'
         return out
-    del re, rebreak
+    del re, rebreak, rebox
 
     def text_by_100(value):
             # Multiply value by 100, without converting from text:
