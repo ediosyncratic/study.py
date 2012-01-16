@@ -14,8 +14,8 @@ from element import * # q.v.
 from particle import Nucleon
 from study.value.quantity import Quantity, Object, tophat, micro
 from study.value.units import second, metre, gram, kilogramme, litre, \
-     Joule, Kelvin, Centigrade, Atmosphere, mach
-from study.value.archaea import gallon, pound
+     Joule, Kelvin, Centigrade, Pascal, Atmosphere, mach
+from study.value.archaea import gallon, pound, calorie
 
 # Properties of some substances:
 class Gas (Substance):
@@ -33,20 +33,42 @@ class Gas (Substance):
         return self.density / self._amupokt
 del Nucleon
 
+def waterviscosity(T,
+                   A=2.414e-5 * Pascal * second, K=Kelvin,
+                   ten=Quantity(10)):
+    """Variation of water's dynamic viscosity with temperature.
+
+    Takes one argument, an absolute temperature (e.g. a return from
+    study.value.archaea's Centigrade or Fahrenheit).  Result is probably only
+    valid if this is a temperature at which water is a liquid !\n"""
+    return A * ten**(247.8/(T/K -140)) # adapted from Wikipedia
+
 water = Substance(
 	density = Quantity(1 -27e-6 +tophat * micro, kilogramme / litre,
                            """Density of water.
 
-at 277.13K, when density is maximal.\n"""),
+at 277.13K, when density is maximal.  The definition of the UK gallon used to
+make the density of water 10 pound / gallon at some specific temperature; but
+now both pound and gallon are defined in terms of SI.\n"""),
+
+        viscosity = waterviscosity,
         heat = Heats(
-    capacity = Quantity(4.2 + tophat * .1, Joule / gram / Kelvin,
-                        "The specific heat capacity of water")),
+    capacity = Quantity(1, calorie / gram / Kelvin,
+                        """The specific heat capacity of water.
+
+The definition of the (short) calorie is as the energy it takes to heat one
+gram of water by one degree Celsius.  Naturally, this varies with temperature;
+see calorie's documentation for consequences.
+""")),
         temperature = Temperatures(
     triple = Quantity(273.16, Kelvin,
                       "Triple point of water (by definition of the Kelvin)."),
     melt = Quantity(273.150, Kelvin,
                       "Freezing point of water (at one atmosphere)."),
-    boil = Quantity(373.150, Kelvin, "Melting point of water (at one atmosphere).")))
+    boil = Quantity(373.150, Kelvin,
+                    "Melting point of water (at one atmosphere).")))
+del waterviscosity
+water.heat.capacity.observe(Joule * (4.2 + tophat * .1) / gram / Kelvin)
 IcePoint = water.temperature.freeze
 milk = Substance(density = 10.5 * pound / gallon)
 
