@@ -45,12 +45,16 @@ class StockPageParser (HTMLParser):
             if v == '-': del data[k]
         return data
 
-    def handle_starttag(self, tag, attrs):
+    def handle_starttag(self, tag, attrs,
+                        # start and end of table id:
+                        prefix="manamind_stockQuote",
+                        suffix="_table_table"):
         stack = self.__stack
         n = len(stack)
         if n == 0:
             if tag == 'div':
-                if dict(attrs).get('id', '') == "manamind_stockQuote_table_table":
+                nom = dict(attrs).get('id', '')
+                if nom.startswith(prefix) and nom.endswith(suffix):
                     stack.append(tag)
         elif n == 1:
             if tag == 'tr':
