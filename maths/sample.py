@@ -61,7 +61,7 @@ class Sample (tuple):
 
     # Assorted ways to get lists of cuts for such use:
     @staticmethod
-    def __half(value):
+    def __half(value): # contrast __mid, below
         if (value // 2) * 2 == value:
             return value // 2
         return value * 0.5
@@ -106,8 +106,26 @@ class Sample (tuple):
         cuts.append(all[-1] + all[j] - cut)
         return tuple(cuts)
 
+    @staticmethod
+    def __mid(lo, hi, base):
+        """Returns a terse number between lo and hi.
+
+        Requires three arguments: a lower bound, an upper bound and a (whole
+        number) base.  The lower bound must be strictly less than the upper
+        bound.  The result is roughly half way between lo and hi and a
+        multiple of 1./base**n for the least natural n for which this is
+        possible.\n"""
+
+        gap = 1.
+        assert lo < hi
+        while lo + gap > hi: gap /= base
+        n = (1 + (hi - lo) / gap) // 2
+        ans = lo - lo % gap + n * gap
+        assert lo <= ans < hi, (lo, hi, gap, n, ans)
+        return ans
+
     @classmethod
-    def __split(cls, i, idx, cuts, all, c, s):
+    def __split(cls, i, idx, cuts, all, c, s, base):
         """Try to split cuts[i:i+1]
 
         ... into up to s pieces containing at least c entries.
@@ -137,7 +155,7 @@ class Sample (tuple):
                 if m < low + c: break # too few entries below interval
                 # Tweak knife[j] to mid-point:
                 assert all[m+1] > knife[j]
-                knife[j] = cls.__half(all[m] + all[m+1])
+                knife[j] = cls.__mid(all[m], all[m+1], base)
                 m += 1 # restore knife[j] < all[m]
                 index.insert(0, m)
             else: # didn't break; success !
@@ -148,7 +166,31 @@ class Sample (tuple):
             s -= 1
         return False
 
-    def enranged(self, c=1, s=7, n=None):
+    @classmethod
+    def __relax(cls, cuts, idx, all, base):
+        """Adjusts cuts to terse values.
+
+        Rounds each cuts[i] to a multiple of 1./base**n (for the smallest n,
+        in each case, that allows this) that lies between the same
+        all[idx[i]-1] <= cuts[i] < all[idx[i]].\n"""
+        i = len(cuts)
+        while i > 0:
+            i -= 1
+            j = idx[i]
+            if j < 1: # no lo
+                lo, hi = cuts[i], all[j]
+                lo -= hi - lo
+            elif j < len(all):
+                lo, hi = all[j-1], all[j]
+            else: # no hi
+                lo, hi = all[j-1], cuts[i]
+                hi += hi - lo
+
+            if lo < hi: # else: can't help this one
+                cuts[i] = cls.__mid(lo, hi, base)
+                assert lo <= cuts[i] < hi
+
+    def enranged(self, c=1, s=7, n=None, base=10):
         """Subdivide range of values for mixed range/count equipartition.
 
         All parameters are optional:
@@ -158,11 +200,16 @@ class Sample (tuple):
                doesn't work out; default is 7.
           n -- number of sub-divisions to use, or None (the default) for no
                limit.
-        """
+          base -- aim to make cut-points terse when written in this base;
+                  defaults to ten.
+
+        Returns a list of cut-points between which to aggregate self's
+        values.\n"""
         cuts, idx = list(self.niles(1)), [0, len(self)]
         if n is None: check = lambda m: True
         else: check = lambda m, n=n: m <= n
         all = self.sorted
+        self.__relax(cuts, idx, all, base)
         # all[idx[i]-1] <= cuts[i] < all[idx[i]], strict when possible
 
         while check(len(cuts)):
@@ -175,24 +222,30 @@ class Sample (tuple):
                     # idx[i+1] - idx[i] is a maximal candidate for splitting
                     t = min(s, wide / c)
                     if n is not None: t = min(t, 2 + n - len(cuts))
-                    if self.__split(i, idx, cuts, all, c, t): break
+                    if self.__split(i, idx, cuts, all, c, t, base): break
             else: break # wide wound down to 0; no split possible
 
         return cuts
 
-    def confused(self, r=7):
+    def confused(self, r=7, base=10):
         """Group elements so as to get nice density.
 
-        Single optional parameter, r, defaults to 7; adjacent ranges are
-        required to have average densities whose ratios to one another are no
-        bigger than it.\n"""
+        Parameters are optional:
+          r -- density ratio limit (defaults: 7); adjacent ranges are required
+               to have average densities whose ratios to one another are no
+               bigger than it.
+          base -- aim to make cut-points terse when written in this base;
+                  defaults to ten.
+
+        Returns a list of cut-points between which to aggregate self's
+        values.\n"""
         all, cuts, idx = iter(self.sorted), [], []
         # all[idx[i]-1] < cuts[i] < all[idx[i]]
         was, j = all.next(), 0
         for it in all: # self.sorted[j] == was
             j += 1
             if it > was: # self.sorted[j] == it
-                cuts.append(self.__half(it + was))
+                cuts.append(self.__mid(was, it, base))
                 idx.append(j)
                 was = it
 
