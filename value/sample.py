@@ -24,8 +24,6 @@ any other.
 Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
-
-$Id: sample.py,v 1.48 2009-03-29 11:15:25 eddy Exp $
 """
 
 class _baseWeighted:
@@ -157,12 +155,37 @@ class curveWeighted (Lazy, _baseWeighted):
         It doesn't say anything about mean or median.
 
         Doing it piecewise linearly looks a pig.  So do it piecewise constant,
-        with steps at the mid-points between adjacent weights. """
+        with steps at the mid-points between adjacent weights.\n"""
+
+        # TODO: refactor; keep __init__, __cuts, .cuts, .size and most of the
+        # signatures; but abstract away to an interpolator class with a
+        # piece-wise constant example implementation, as used here, that I
+        # could replace with some other interpolator if I ever implement one.
 
         def __init__(self, weigher, ignored):
+            """Initialize from a weight-mapping.
+
+            First argument is a mapping from values to weights.  (Second
+            argument is ignored; it's part of the lazy-attribute protocol and
+            should always have value 'interpolator'.)  Initializes self with
+            attributes .cuts and .size; cuts is a sorted list of bounds of
+            intervals; in each interval from a cuts[i] to cuts[1+i], there is
+            exactly one key of the mapping, whose value is used as size[i];
+            this is the integral of the curve described by self over the
+            interval.
+
+            This only constrains cuts[0] to be less, and cuts[-1] to be
+            greater, than all keys of the mapping; the actual values used span
+            the range of keys.  When only one key is available, it is used for
+            both; otherwise, these bounds are so placed that the intervals
+            around the max and min keys stretch twice as far outside the key
+            as inwards towards the interior of the distribution - except for
+            one heuristic adjustment.  If all keys of the mapping are on one
+            side of zero and the foregoing would place a bound on the other
+            side, that bound is moved to zero.\n"""
             self.cuts = self.__cuts(weigher.sortedkeys)
-            self.size = tuple(map(lambda k, w=weigher: w[k], weigher.sortedkeys))
-            # the curve described has integral size[i] between cut[i] and cut[1+i].
+            self.size = tuple(map(lambda k, w=weigher: w[k],
+                                  weigher.sortedkeys))
 
         def __cuts(self, row, mean=lambda a, b: .5*(a+b)):
             # computes cut points and ensures they're floats.
@@ -171,12 +194,16 @@ class curveWeighted (Lazy, _baseWeighted):
                 x = 1. * row[0] # coerce it to real
                 return (x, x)
 
-            assert not filter(lambda x: x < 0, map(lambda x, y: y - x, row[:-1], row[1:])), \
+            assert not filter(None,
+                              map(lambda x, y: y < x, row[:-1], row[1:])), \
                    ('expected sorted data', row)
+
+            # Between extreme key b and its neighbour i, we have a cut
+            # at (b+i)/2; twice as far the other side of it is 2*b-i,
+            # a.k.a. b +(b-i), or b -(i-b).
             top, bot = 2. * row[-1] - row[-2], 2. * row[0] - row[1]
-            # if all data-points are one side of zero, don't put a cut the other side ...
-            if top > 0 and row[-1] <= 0: top = 0
-            if bot < 0 and row[0] >= 0: bot = 0
+            if top > 0 and row[-1] <= 0: top = 0.
+            if bot < 0 and row[0] >= 0: bot = 0.
 
             return ( bot, ) + tuple(map(mean, row[:-1], row[1:])) + ( top, )
 
@@ -185,12 +212,12 @@ class curveWeighted (Lazy, _baseWeighted):
         def split(self, weights):
             """Cuts the distribution into pieces in the proportions requested.
 
-            Required argument, weights, is a list of non-negative values, having
-            positive sum.  A scaling is applied to all entries in the list to
-            make its sum equal to self.total().
+            Required argument, weights, is a list of non-negative values,
+            having positive sum.  A scaling is applied to all entries in the
+            list to make its sum equal to self.total().
 
             Returns a list, result, one entry shorter than weights, for which
-            self.weigh(result) equals the re-scaled weights-list. """
+            self.weigh(result) equals the re-scaled weights-list.\n"""
 
             assert not filter(lambda x: x < 0, weights), 'weights cannot be negative'
             scale = self.total / sum(weights)
@@ -307,49 +334,108 @@ class curveWeighted (Lazy, _baseWeighted):
                 lambda k, (m, s): k*s + m).interpolator
 
             # Don't let gaussian span zero if originals don't:
-            if self.cuts[0] > 0 and other.cuts[0] > 0 and prod.cuts[0] < 0:
-                rest = [0] + filter(lambda x: x > 0, prod.cuts)
-            elif self.cuts[-1] < 0 and other.cuts[-1] < 0 and prod.cuts[-1] > 0:
-                rest = filter(lambda x: x < 0, prod.cuts) + [0]
+            if self.cuts[-1] < 0 and other.cuts[-1] < 0 and prod.cuts[-1] > 0:
+                rest = filter(lambda x: x < 0, prod.cuts) + [0.]
+            elif self.cuts[0] > 0 and other.cuts[0] > 0 and prod.cuts[0] < 0:
+                rest = [0.] + filter(lambda x: x > 0, prod.cuts)
             else: rest = prod.cuts
-            # Find the end-points of the intervals on which all three are constant:
-            cuts = {}
-            for s in self.cuts, other.cuts, rest:
-                for k in s: cuts[k] = None
-            cuts = cuts.keys()
+            # Find the end-points of the intervals on which all three are
+            # constant:
+            cuts = list(set(self.cuts + other.cuts + rest))
             cuts.sort()
+            return self.__cross(cuts,
+                                # Each distribution's weight in each interval:
+                                map(lambda w,  t=sum(self.size): w/t,
+                                    self.weigh(cuts)),
+                                map(lambda w, t=sum(other.size): w/t,
+                                    other.weigh(cuts)),
+                                prod.weigh(cuts))
 
-            # Compute each distribution's weight in each interval:
-            me, you, its = self.weigh(cuts), other.weigh(cuts), prod.weigh(cuts)
-            me = map(lambda w, t=sum(self.size): w/t, me)
-            you = map(lambda w, t=sum(other.size): w/t, you)
+        @staticmethod
+        def __cross(cuts, me, you, its, mean=lambda a, b: (a+b)*.5):
+            """Compute consensus distribution from weights in intervals.
+
+            Arguments:
+              cuts -- a sequence of cut-points
+              me -- on distribution's weights when cut on these
+              you -- the other distribution's weights when so cut
+              its -- weights of a gaussian consensus distribution when so cut
+
+            Each weight list starts with the weight in the relevant
+            distribution before the first cut and ends with the weight after
+            the last; both of these are expected to be zero; this is asserted
+            and these zero end values are discarded.  The remaining values in
+            each weight list are integrals of the distributions, between
+            entries in cuts, normalised such that each has sum (repsectably
+            close to) 1, save that its may have been trimmed to avoid
+            over-spilling zero if neither of the source distributions did.
+
+            Each weight is understood as a probability of a value falling in
+            its interval; consequently, the true conjunction of the two source
+            distributions should have weight me[i]*you[i] on the interval from
+            cuts[i] to cuts[i+1].  However, this may produce a degenerate
+            distribution if the two sources disagree - i.e. don't overlap, or
+            barely overlap.  This is remedied, if it happens, by adding in an
+            aliquot from its, as follows.
+
+            When there are N intervals, each weight in me or you is expected
+            to be O(1./N), giving N products of O(1./N/N); so, to roughly
+            normalise, the product of weights in each interval is scaled by
+            N.  If the two distributions are in reasonably good agreement,
+            this shall produce a product distribution with sum > 1; if
+            agreement is poor, this total shall be < 1 (in the case of no
+            overlap, it'll be zero).  In the latter case, the short-fall below
+            1 is used to scale its; the thus-scaled value from its is then
+            added to each interval's consensus weight.
+
+            A suitable weight dictionary is then returned, that describes a
+            distribution with the resulting consensus weights in the given
+            intervals (collapsing out boundaries between any adjacent
+            intervals that happen to have equal density).  It is to be
+            expected that, when it is used as weight dictionary, the resulting
+            interpolator's cuts match those passed to this method (modulo the
+            elisions due to equal density).\n"""
             assert me[0] == 0 == me[-1] and you[0] == 0 == you[-1] and its[0] == 0 == its[-1]
             assert max(map(abs, (sum(me)-1, sum(you)-1))) < 1e-5
             assert 0 < sum(its) < 1+1e-5 # may have been trimmed, so materially < 1
             me, you, its = me[1:-1], you[1:-1], its[1:-1]
+            assert len(cuts) - 1 == len(me) == len(you) == len(its) > 0
 
             # Multiply self's and other's weights in each interval:
-            bits = map(lambda x, y, n=len(me): x * y * n, me, you)
-            assert len(cuts) - 1 == len(bits) > 0
-            unit = sum(bits) # if me and you were uniform, this'd be 1
+            prod = map(lambda x, y, n=len(me): x * y * n, me, you)
+            assert len(cuts) - 1 == len(prod) > 0
+            unit = sum(prod) # if me and you were uniform, this'd be 1
             if unit < 1: # Add enough gaussian to bring it up to 1
-                bits = map(lambda x, z, t=1-unit: x + t * z, bits, its)
-                unit = sum(bits)
-            # (Could eliminate cuts between intervals of equal density.)
+                prod = map(lambda x, z, t=1-unit: x + t * z, prod, its)
+                unit = sum(prod)
+
+            # Eliminate cuts between intervals of equal density:
+            dens = iter(map(lambda p, g: p/g, prod,
+                            map(lambda x, y: y - x, cuts[:-1], cuts[1:])))
+            i, last = 0, dens.next()
+            for d in dens:
+                if d == last:
+                    prod[i] += prod[i+1]
+                    del prod[i+1], cuts[i+1]
+                else:
+                    i += 1
+                    last = d
+            # That can't have deleted first or last.
+            assert len(cuts) > 1
 
             # Now turn this product distribution into a weight dictionary:
             bok = {}
-            if len(bits) > 1:
-                bok[(cuts[0] + 2*cuts[1])/3.] = bits[0]
-                bok[(2*cuts[-2] + cuts[-1])/3.] = bits[-1]
-                bits = bits[1:-1]
-                for k in map(lambda a, b: .5*(a+b), cuts[1:-2], cuts[2:-1]):
-                    bok[k], bits = bits[0], bits[1:]
-                assert len(bits) == 0
+            if len(prod) > 1:
+                bok[(cuts[0] + 2*cuts[1])/3.] = prod[0]
+                bok[(2*cuts[-2] + cuts[-1])/3.] = prod[-1]
+                prod = prod[1:-1]
+                for k in map(mean, cuts[1:-2], cuts[2:-1]):
+                    bok[k], prod = prod[0], prod[1:]
+                assert len(prod) == 0
             else:
                 assert len(cuts) == 2
                 assert cuts[0] == cuts[1] # conjecture !
-                bok[(cuts[0] + cuts[1])*.5] = 1. # any value will do ...
+                bok[mean(cuts[0], cuts[1])] = 1. # any value will do ...
 
             return bok
 
@@ -591,27 +677,28 @@ class repWeighted (curveWeighted):
     def bounds(self, frac=1):
         """Bounds self's distribution.
 
-        Optional argument, frac (default: 1), is the proportion of self's total
-        weight which is to fall between the bounds; ignored (i.e. treated as 1)
-        unless between 0 and 1.  Returns a 2-tuple (lo, hi) for which:
+        Optional argument, frac (default: 1), is the proportion of self's
+        total weight which is to fall between the bounds; ignored
+        (i.e. treated as 1) unless between 0 and 1.  Returns a twople (lo, hi)
+        for which:
 
             self.between(*self.bounds(f)) == f * self.total()
 
         Thus, for instance, 95% of a distribution lies between the two entries
         in the .bounds(0.95) of the distribution; 2.5% lies below the first
-        entry and 2.5% lies above the second. """
+        entry and 2.5% lies above the second.\n"""
 
-        # arguably:
-        # a,b = bounds(u, 1-frac, v) with u+v=frac and a,b as close together as possible.
+        # One could arguably prefer: a,b = bounds(u, 1-frac, v)
+        # with u+v=frac and a,b as close together as possible.
 
         if 0 <= frac < 1:
             gap = .5 * (1 - frac)
             return self.interpolator.split([ gap, frac, gap ])
-        else:
-            cut = self.interpolator.cuts
-            return cut[0], cut[-1]
 
-    def niles(self, n, mid=None):
+        cut = self.interpolator.cuts
+        return cut[0], cut[-1]
+
+    def niles(self, n, mid=False):
         """Subdivides distribution into n equal bands.
 
         First argument, n, is the number of bands into which to divide self's
@@ -621,29 +708,33 @@ class repWeighted (curveWeighted):
 
         Returns a tuple of sample points (n+1 of them if mid is false, n if it
         is true) for self's distribution: between any two adjacent entries in
-        the tuple, self.between() finds weight self.total()/n.  If mid is false
-        (default) the first and last entries in the tuple are the top and bottom
-        of self's distribution's tails (which may be further apart than self's
-        highest and lowest keys).
+        the tuple, self.between() finds weight self.total()/n.  If mid is
+        false (default) the first and last entries in the tuple are the top
+        and bottom of self's distribution's tails (which may be further apart
+        than self's highest and lowest keys).
 
         Contrast statWeighted.median(), which always returns a sample-point of
-        the distribution, and joinWeighted.condense(), which uses sample-points
-        for the equivalent of niles with mid = true.  Note that self's median
-        can be obtained as the single entry in self.niles(1, true) or as the
-        middle entry of self.niles(2). """
+        the distribution, and joinWeighted.condense(), which uses
+        sample-points for the equivalent of niles with mid = true.  Note that
+        self's median can be obtained as the single entry in self.niles(1,
+        True) or as the middle entry of self.niles(2)."""
 
-        if n < 1: raise ValueError('Can only subdivide range into positive number of parts')
+        if n < 1: raise ValueError('Can only subdivide range into positive number of parts', n)
         if mid: return self.interpolator.split([ 1 ] + [ 2 ] * n + [ 1 ])
         else:   return self.interpolator.split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
-    # Is this interpolator-work ?
+    # TODO: this looks like interpolator-work
     def __embrace(self, total, about):
         """Finds a slice of self, returns its weight and width.
 
         Arguments:
           total -- lower-bound on total weight of the slice.
           about -- slice will span this value
-        """
+
+        Finds a pair of values left, right for which left <= about <= right
+        and weight = self.between(left, right) gives weight >= total, if
+        possible; this fails if total exceeds self.total(), in which case
+        left, right = self.bounds().  Returns (weight, right - left).\n"""
 
         row = self.sortedkeys
         hi = top = len(row)
@@ -674,9 +765,9 @@ class repWeighted (curveWeighted):
         # assert weight > total or (lo, hi) == (0, top), 'while loop exit'
 
         # So, how wide is this range ?  Identify nominal end-points:
-        if hi < top: right = .5 * (row[hi] + row[hi-1])
+        if hi+1 < top: right = .5 * (row[hi] + row[hi+1])
         elif top > 1: right = 2 * row[-1] - row[-2]
-        else: right = row[hi-1]
+        else: right = row[-1]
 
         if lo > 0: left = .5 * (row[lo] + row[lo-1])
         elif top > 1: left = 2 * row[0] - row[1]
@@ -690,7 +781,7 @@ class repWeighted (curveWeighted):
         return weight, right - left
 
     def __unit(self, hat):
-        """Returns a suitable power of 10 for examining what."""
+        """Returns a suitable power of 10 for examining hat."""
 
         if hat: what = hat
         else: what = 1
@@ -710,27 +801,28 @@ class repWeighted (curveWeighted):
     def round(self, estim=None):
         """Returns a rounding-string for estim.
 
-        Argument, estim, is optional: if omitted, the distribution's median (if
-        available) or mean (likewise) will be used.
-
-        Result is a string representing this value to some accuracy, in %e-style
-        format.  This implicity represents an interval, given by `plus or minus
-        a half in the last digit'.  This interval will contain estim.
+        Argument, estim, is optional: if omitted, the distribution's median
+        (if available) or mean (likewise) will be used.  Result is a string
+        representing this value to some accuracy, in %e-style (or %E-style)
+        format.  This implicity represents an interval, given by `plus or
+        minus a half in the last digit'.  This interval will contain estim.
 
         Normally, the interval denoted by the result string will contain less
         than half the weight of self's distribution and is the shortest such
         representation.  E.g. if self.between(3.05, 3.15) >= .5 >
         self.between(3.135, 3.145) then self.round(pi) will return '3.14'.
 
-        That's impossible if half (or more) of self's weight sits at estim,
-        i.e. self's half-width about estim is zero.  In this case, the result
-        string will only give estim to as many significant digits as eight more
-        than the number of sample-points of self; and if the next five digits
-        would all have been 0, any trailing zeros will be elided from the ones
-        given [for various sanity reasons].  Sugar: in this `exact' case, any
-        exponent used will employ E rather than e (thus 1.2E1 for 12); and if no
-        digits appear after the '.'  in an exact representation, the '.' is
-        omitted. """
+        That would yield an infinite string if half (or more) of self's weight
+        sat at estim, i.e. self's half-width about estim were zero.  In this
+        case, the number of significant digits of estim given in the result
+        string will be eight more than the number of sample-points of self
+        (the speed of light, in m/s, is a nine-digit integer with one
+        sample-point; eight is the offset needed for it to display neatly);
+        and if the next five digits would all have been 0, any trailing zeros
+        will be elided from the ones given [for various sanity
+        reasons].  Sugar: in this `exact' case, any exponent used will employ
+        E rather than e (thus 1.2E1 for 12); and if no digits appear after the
+        '.'  in an exact representation, the '.' is omitted.\n"""
 
         # Handle argument default:
         if estim is None:
@@ -767,10 +859,11 @@ class repWeighted (curveWeighted):
 
         if width <= 0:
             # Single-point distribution: special treatment.
-            # No interval contains less than half the distribution ... so
-            # the loop will not terminate without intervention !
-            # Impose an upper limit on how many digits we'll produce: consider 1/3.
-            stop = 7 + len(self.sortedkeys) # How many keys we have, +7 for good measure.
+            # No interval contains less than half the distribution ... so the
+            # loop will not terminate without intervention !  Impose an upper
+            # limit on how many digits we'll produce: consider 1/3.
+
+            stop = 7 + len(self.sortedkeys) # How many keys we have, +7
             # I'll actually produce up to one more than this (why 7 ? because
             # the speed of light is exact in nine digits; when obtained from a
             # single-point distribution, the following will give us exactly all
@@ -824,7 +917,7 @@ class repWeighted (curveWeighted):
                     break
 
                 if len(body) > stop:
-                    adddot = 1
+                    adddot = True
                     break
 
             # Compute weight in interval implied by suitably-rounded value:
@@ -1657,7 +1750,10 @@ class Sample (Object):
     # Extractor function (not method) needed by join and __cmp__:
     def extract(what):
         try: bok = what.__weigh
-        except AttributeError: return { what: 1 }, what
+        except AttributeError, prior:
+            try: return { what: 1 }, what
+            except AttributeError, given:
+                raise AttributeError(*(prior.args + given.args + (what,)))
         return bok, what.best
 
     def join(self, func, what, grab=extract):
@@ -1785,19 +1881,20 @@ class Sample (Object):
 
         return self.__weigh.bounds(frac)
 
-    def fractiles(self, n, mid=None):
+    def fractiles(self, n, mid=False):
         """Cuts self's distribution into n equal parts.
 
-        First argument, n, is the number of parts into which to subdivide.
-        Second argument, mid, controls whether you get n band-centres or 1+n
-        band-ends.
+        First argument, n, is the number of parts into which to
+        subdivide.  Optional second argument, mid, controls whether you get n
+        band-centres or 1+n band-ends.
 
         Returns a tuple of points in self's distribution; between any adjacent
         pair of these, 1/n of the distribution's weight lies.  If mid is true,
         there is weight 0.5/n to the left of the first entry in the tuple and
-        the same to the right of the last, and there are n entries in the tuple.
-        If mid is false (the default) the first and last entries are the nominal
-        extremes of the distribution and there are 1+n entries in the tuple. """
+        the same to the right of the last, and there are n entries in the
+        tuple. If mid is false (the default) the first and last entries are
+        the nominal extremes of the distribution and there are 1+n entries in
+        the tuple."""
 
         return self.__weigh.niles(n, mid)
 
@@ -1839,7 +1936,7 @@ Note that one can do some surprising things with Sample()s; e.g.:
     >>> gr**2
     0.
     >>> gr**2 > gr+1
-    1
+    True
 
 in which gr's weighs are the roots to x*x=x+1 (and its .best is .5).
 Notice that gr.copy(lambda x: x**2-x-1) and gr**2-gr-1 will have quite
