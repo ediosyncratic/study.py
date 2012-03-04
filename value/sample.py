@@ -330,8 +330,9 @@ class curveWeighted (Lazy, _baseWeighted):
             mys, yos = mys**2, yos**2
             v = 1/(1/mys +1/yos)
             prod = Weighted(curveWeighted.gaussish).combine(
-                {((mym / mys + yom / yos)*v, v**.5): 1},
-                lambda k, (m, s): k*s + m).interpolator
+                {0: 1},
+                lambda k, ig, m=(mym / mys + yom / yos)*v, s=v**.5: k*s + m
+                ).interpolator
 
             # Don't let gaussian span zero if originals don't:
             if self.cuts[-1] < 0 and other.cuts[-1] < 0 and prod.cuts[-1] > 0:
@@ -401,7 +402,7 @@ class curveWeighted (Lazy, _baseWeighted):
             me, you, its = me[1:-1], you[1:-1], its[1:-1]
             assert len(cuts) - 1 == len(me) == len(you) == len(its) > 0
 
-            # Multiply self's and other's weights in each interval:
+            # Multiply my and your weights in each interval:
             prod = map(lambda x, y, n=len(me): x * y * n, me, you)
             assert len(cuts) - 1 == len(prod) > 0
             unit = sum(prod) # if me and you were uniform, this'd be 1
@@ -1097,32 +1098,203 @@ class joinWeighted (curveWeighted):
         # sample points:
         return self.decompose(map(middle, filter(None, parts)))
 
-    def __combine(self, dict, func):
-        """Generate coarsely combined distribution.
+    def single(f, a, x): # tool-function for corners
+        try: return f(a, x)
+        except ZeroDivisionError:
+            if a: return 2 * f(2 * a, x)
+            elif x: return 2 * f(a, 2 * x)
+            else: raise
 
-        This just combines each weight point of self with each in dict, giving
-        each the product of weights.  This naive approach isn't good enough:
-        combining a narrow tophat with a broad one yields an answer with four
-        equally weighted points, one pair close together at each end of a broad
-        interval; which our piece-wise constant interpolator understands as two
-        narrow spikes at either end of a low trough.\n"""
-        # TODO: fix that !
-        ans = self._weighted_({})
+    def morebad(prior, more): # tool-function for corners
+        """Helper for accumulating similar exceptions' .args values.
 
-        for key, val in self.items():
-            ans.add(dict, val,
-                    lambda j, k=key, f=func: f(k,j))
+        First argument, prior, is a (possibly empty) tuple of accumulated
+        .args entries from earlier errors.  Second argument, more, is the
+        .args of a new error.  Commonly, the first entry in this shall have
+        been seen in some earlier error, as most exceptions use a simple
+        string as their sole argument.  When more[0] is in prior, it is
+        omitted from the return; otherwise, more is returned.\n"""
+        if more and more[0] in prior: return more[1:]
+        return more
 
+    # tool-function for __combine
+    def corners(f, (a, b), (x, y), s=single, more=morebad):
+        """A function's values at the corners of a rectangle.
+
+        Tries to return the tuple of f(i, j) values with i in (a, b), j in (x,
+        y), coping as gracefully as it can when this leads f to divide by
+        zero.  Its strategy for dealing with that case is based on considering
+        the case where f(i, j) is i/j.  In this case, the error arises when x
+        or y is zero: if both are, we have a real error and should fail.
+
+        So the remaining case has one of x, y zero; the other is some z either
+        < 0 or > 0 and everything below has implicit 'give or take a sign'
+        applied to it.  First consider the case where a == b; when they
+        differ, we can average the result over variation between them; and
+        assume a != 0 for now.  So our answer is a variate V whose inverse U
+        is distributed over the interval between 0 and z/a.
+
+        If we assume U is uniformly distributed, V won't have a well-defined
+        mean, let alone variance; density du.a/z implies dv.a/z/v/v, whose
+        mean integrates d(log(v)).a/z and variance integrates dv.a/z, both
+        over the interval from z/a away from zero to a relevant infinity.  We
+        can still work out its median; it's where a/z/v is 1/2 so v = 2*a/z,
+        encouraging us to use uniform on the interval from a/z to 4*a/z (to
+        make the outer tail half as wide as the inward one, as usual).  But
+        let's look at possibilities with, at least, normalisable mean, too.
+
+        So suppose U's density is k*du*u**q for some q>0 but hopefully small;
+        integrating between 0 and z/a we get (z/a)**(1+q)*k/(1+q) so
+        normalisation makes k = (1+q)*(a/z)**(1+q).  Then density k*du*u**q =
+        k*d(u**(q+1))/(q+1) = k*d(v**(-q-1))/(q+1) = -k.dv/v**(q+2).  Its mean
+        integrates k.dv/v**(q+1) to get the change in k/v**q/q, which is
+        (1+q)*a/z/q, provided q > 0 (so k/v**q/q tends to zero as v tends to
+        the relevant infinity).  The variance integrates k.dv/v**q and needs q
+        > 1 to be bounded; it then gives the change in k/v**(q-1)/(q-1), which
+        is (1+q)*a*a/z/z/(q-1), so we'd like standard deviation roughly
+        (a/z)*sqrt(1 +2/(q-1)).  For median we integrate the density and get
+        the change in (a/z/v)**(q+1), which hits half when v is
+        (2**1./(1+q))*a/z; for small enough q, this is arbitrarily close below
+        2*a/z, that we saw when q = 0.  Integrating the density out from a/z
+        to the mean, (1+1/q)*a/z, we get 1 - 1/(1+1/q)**(q+1); for large q
+        this is going to be something like 1-exp(-1) but, for small q, it's
+        close below 1 (as we can expect from the unbounded integral for mean
+        when q is zero).
+
+        So the mean is close beyond (from 0's perspective) a/z for huge q but
+        tends to infinity as q tends towards zero; while the median is also
+        close beyond a/z for huge q but tends to 2*a/z as q tends towards
+        zero; which makes it much more tractable to work with.  In any case,
+        whatever we do about this shall also be applied to other functions
+        that divide by zero, so something robust is more important than
+        something over-optimised for _divide().  So let's go with 4*a/z in
+        place of the answer from whichever of x and y was zero.  Since I'm not
+        sure whether to read that as 4*f(a,z) or f(4*a,z), I'll read it as
+        2*f(2*a,z).  We can apply that for a and b separately to get
+        reasonable answers.  Aside from that, it just suffices to deal with
+        the case where f is actually _divide with its argument order reversed
+        (so a, b are denominators, x, y are numerators).\n"""
+
+        row, bad = [], ()
+        try: row.append(s(f, a, x))
+        except ZeroDivisionError, what: bad += what.args
+        try: row.append(s(f, a, y))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+        try: row.append(s(f, b, x))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+        try: row.append(s(f, b, y))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+
+        if len(row) < 2:
+            raise apply(ZeroDivisionError,
+                        bad + ('calling', f, 'on', (a, b), (x, y)))
+
+        return tuple(row)
+    del single, morebad
+
+    def __combine(self, other, func,
+                  quad=corners,
+                  # Interpolator as list of (lo, hi, w) triples:
+                  chop=lambda i: map(lambda *args: args,
+                                     i.cuts[:-1], i.cuts[1:], i.size)):
+        """Generate a combined distribution.
+
+        For each interval of self's interpolator and each interval of other's,
+        the product of the weights of those intervals is taken to be uniformly
+        spread across the range from lowest to highest value of func(x, y) as
+        x varies over self's interval and y over other's.  Assumes the lowest
+        and highest values are taken at corners of the rectangle thus
+        described by the two intervals.  This gives a mess over overlapping
+        intervals; every end-point of any of these is then used as a
+        cut-point, between which to sum the various intervals' contributions
+        to obtain weights to place at the centre-points between
+        cut-points.  Hopefully this is somewhat more robust than placing the
+        product of two weights at the centre of each rectangle.
+
+        Could be improved by using all four of func's values at corners of
+        each rectangle, and ordering the corners by func's values at them, to
+        produce a piecewise linear block (roughly a trapezium) for each
+        rectangle (still to be integrated up to piecewise constant blocks on
+        each interval between corner-values).  But let's try an easier
+        approach first !\n"""
+
+        me = self.interpolator
+        try: you = other.interpolator
+        except AttributeError:
+            you = Weighted(other).interpolator
+
+        your, our, cuts = chop(you), [], set()
+        for m in chop(me):
+            for y in your:
+                all = quad(func, m[:-1], y[:-1])
+                lo, hi = min(all), max(all)
+                our.append((lo, hi, m[-1] * y[-1]))
+                cuts.add(lo)
+                cuts.add(hi)
+
+        our.sort() # sorts by our[i][0] primarily
+        cuts = list(cuts)
+        cuts.sort()
+        if len(cuts) > 1:
+            # Deal with degenerate end-spikes:
+            if our[-1][0] == our[-1][1]:
+                cuts.append(2 * cuts[-1] - cuts[-2])
+            if our[0][0] == our[0][1]:
+                cuts.insert(0, 2 * cuts[0] - cuts[1])
+
+        cuts, live, bok = iter(cuts), [], {}
+        try:
+            # If this fails, we have no data:
+            lo = cuts.next()
+            bok = { lo: 1 }
+            # If this fails, we have an exact spike:
+            hi = cuts.next()
+            # Otherwise, we can sensibly digest our intervals:
+            bok = {}
+            while True:
+                assert lo < hi
+                if our and our[0][0] <= hi:
+                    our, b, i = our[1:], our[0], len(live)
+                    # live is ordered by live[i][1]; insert b
+                    if i:
+                        while i > 0:
+                            if live[i-1][1] <= b[1]: break
+                            i -= 1
+                        live.insert(i, b)
+                    else: live.append(b)
+                elif live and live[0][1] < lo: live = live[1:]
+                else:
+                    tot, wide = 0 * live[0][-1], hi - lo
+                    for (l, h, w) in live:
+                        assert lo <= h and l <= hi
+                        if l == h: # point spike
+                            assert l == lo or h == hi
+                            tot += w * .5 # half to the interval on each side
+                        else: tot += wide * w * 1. / (h - l)
+                    bok[(lo+hi)*.5] = tot
+
+                    lo = hi
+                    hi = cuts.next()
+
+        except StopIteration:
+            # If initial setting of hi failed, bok is { lo: 1 }; otherwise
+            # we should normally have emptied our;
+            assert not our or bok == { lo: 1 }
+            # If initialization failed, we never put anything in live
+            assert not live or max(map(lambda x: x[1], live)) <= lo
+
+        ans = self._weighted_(bok)
         try: return ans.normalise()
         except ZeroDivisionError: return ans
+    del corners
 
-    def combine(self, dict, func, count=None):
+    def combine(self, other, func, count=None):
         if count is None:
-            try: det = dict.__detail
+            try: det = other.__detail
             except AttributeError: count = self.__detail
             else: count = max(det, self.__detail)
 
-        return self.__combine(dict, func).condense(count)
+        return self.__combine(other, func).condense(count)
 
     # Comparison: which is probably greater ?
     def __cmp__(self, what):
@@ -1753,7 +1925,8 @@ class Sample (Object):
         except AttributeError, prior:
             try: return { what: 1 }, what
             except AttributeError, given:
-                raise AttributeError(*(prior.args + given.args + (what,)))
+                raise apply(AttributeError,
+                            (prior.args + given.args + (what,)))
         return bok, what.best
 
     def join(self, func, what, grab=extract):
@@ -1763,12 +1936,13 @@ class Sample (Object):
         number, which will be handled as if it were a single-point sample).  Do
         not pass more than two arguments.
 
-        An intermediate distribution is built: for each point in each
-        distribution (self and the other), the product of their weights gives
-        the weight used for the result of applying the function to the two
-        sample points.  The resulting distribution may then be somewhat
-        simplified.  Its best estimate is obtained by applying the function to
-        self's best estimate and that of the other sample. """
+        An composite distribution is built, using products of weights from the
+        two samples to provide weights to attach to values returned by the
+        function when passed a value from each; self's value is always the
+        first parameter to func, the second parameter comes from the other
+        sample.  This distribution is combined with a best estimate, obtained
+        by applying the function to self's best estimate and that of the other
+        sample, to create a new Sample.\n"""
 
         bok, best = grab(what)
         return self._sampler_(self.__weigh.combine(bok, func),
