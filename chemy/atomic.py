@@ -1,10 +1,9 @@
 """Atomic energy levels.
-
-$Id: atomic.py,v 1.9 2010-06-27 17:27:59 eddy Exp $
 """
 from study.maths.polynomial import Polynomial
+from study.maths.natural import hcf
 
-class SHOpoly(Polynomial):
+class SHOpoly (Polynomial):
     __upinit = Polynomial.__init__
     def __init__(self, n):
         """Polynomial for quantum simple harmonic oscillators.
@@ -15,24 +14,24 @@ class SHOpoly(Polynomial):
 
         See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml\n"""
 
+        self.__upinit(self.__coefs(n))
+
+    @staticmethod
+    def __coefs(n, gcd=hcf):
         bok, e = {n: 1}, n
         while n > 1:
             n -= 2
             v = -(n + 1) * (n + 2) * bok[n + 2] // 2
-            a, b = v, e - n
-            # Nominally, we add bok[n] = a / b but then rescale all
+            a = gcd(v, e - n)
+            # Nominally, we add bok[n] = v/(e-n) but then rescale all
             # co-efficients to make that whole; really, scale all others
-            # by b/hcf(a,b) and set bok[n] = a/hcf(a,b).
-            assert b > 0
-            if a < 0: a = -a
-            if a < b: a, b = b, a
-            while b: a, b = b, a % b
+            # by (e-n)/a and set bok[n] = v/a.
             assert a > 0 and (e - n) % a == 0 == v % a, 'Euclid failed !'
             b = (e - n) // a
             for k in bok.iterkeys(): bok[k] *= b
             bok[n] = v // a
 
-        self.__upinit(bok)
+        return bok
 
     def _lazy_get_scale_(self, ig, square=Polynomial((0,0,1))):
         grand = (self * self).unafter(square)
@@ -41,6 +40,7 @@ class SHOpoly(Polynomial):
             ans *= n + .5
             ans += grand.coefficient(n)
             n -= 1
+        assert ans * 2**(self.rank % 2) == reduce(lambda x, y: x * (y+1), range(self.rank), 1)
         return ans # * (h/k/m/2)**.5
 
 class Laguerre (Polynomial):
@@ -53,7 +53,6 @@ class Laguerre (Polynomial):
             raise ValueError("Laguerre(n, b) is defined for natural n, b with n > b", n, b)
         self.__upinit(self.__coefs(n, b))
 
-    from study.maths.natural import hcf
     from study.maths.Pascal import factorial
     @staticmethod
     def __coefs(n, b, gcd=hcf, pling=factorial):
@@ -67,12 +66,12 @@ class Laguerre (Polynomial):
 
         assert last == 0
         return map(lambda x, e=gcd(*f): x // e, f)
-    del hcf, factorial
+    del factorial
 
     def _lazy_get_scale_(self, ig, linear=Polynomial((0,1))):
         return ((self * linear)**2).Gamma ** .5
 
-del Polynomial
+del Polynomial, hcf
 
 from study.snake.lazy import Lazy
 
