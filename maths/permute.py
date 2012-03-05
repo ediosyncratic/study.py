@@ -12,12 +12,13 @@ Provides:
 
    unfixed(n) -- number of fixed-point-free permutations of n things; tends to n!/e.
 
-See individual doc strings for further details of these; see Theory sections of
-doc-strings for fuller discussion of permutations.  See also: Pascal.py for
+See individual doc strings for further details of these; see Theory sections
+of doc-strings for fuller discussion of permutations.  See also: Pascal.py for
 factorial(), chose() and other combinatoric toys.
 
 Note that Numeric python's numarray infrastructure provides for quite a lot of
-the same things as the following.\n"""
+the same things as the following.
+"""
 
 from study.cache.property import Cached, lazyprop, lazyattr
 from study.snake.sequence import Tuple
@@ -64,17 +65,17 @@ class Permutation (Tuple, Cached):
     r@p@q and likewise for longer sequences of sequences, in so far as these
     allow formation of the composite.  Thus permute(row, ind, ..., dex) is
     row@ind@...@dex.  Note, however, that r@q might not be allowed even when
-    r@(q@p) is: e.g. when r's length appears as an entry in q, but its position
-    in q doesn't appear in p; if all other entries in q are valid indices into
-    r, q@p's entries will all be valid indices into r.
+    r@(q@p) is: e.g. when r's length appears as an entry in q, but its
+    position in q doesn't appear in p; if all other entries in q are valid
+    indices into r, q@p's entries will all be valid indices into r.
 
     Definition:
         A sequence, p, is described as a permutation if it contains all the
         entries of range(len(p)).
 
     Note that, given its length, this leaves it with no room to repeat any of
-    its entries.  If you ever want to discuss infinite permutations, you'll need
-    to define them explicitly as one-to-one mappings; but for finite
+    its entries.  If you ever want to discuss infinite permutations, you'll
+    need to define them explicitly as one-to-one mappings; but for finite
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
@@ -83,10 +84,10 @@ class Permutation (Tuple, Cached):
         """Construct a permutation.
 
         Single argument is either a natural number, in which case the identity
-        permutation of the given length is constructed, or a sequence of natural
-        numbers in which no number is repeated and every natural less than each
-        entry is present in the sequence.  (This constraint is not checked
-        unless you evaluate the .inverse or .sign attribute.)\n"""
+        permutation of the given length is constructed, or a sequence of
+        natural numbers in which no number is repeated and every natural less
+        than each entry is present in the sequence.  (This constraint is not
+        checked unless you evaluate the .inverse or .sign attribute.)\n"""
         try: perm[:]
         except TypeError: return cls.__upnew(cls, range(perm))
         else: return cls.__upnew(cls, perm)
@@ -96,12 +97,12 @@ class Permutation (Tuple, Cached):
 
         First argument is a list to be permuted; all subsequent arguments are
         permutations (or sequences representating permutations) of this list's
-        length; self(row, ind, ..., dex)[i] is row[ind[...dex[self[i]]...]].
-        See permute().  The name permute is provided as an alias for function
-        call, mainly for ease of reading when a function yields a permutation
-        which is being called; order(seq).permute(seq) is more readable, IMO,
-        than order(seq)(seq).\n"""
-        return permute(* seqs + (self,))
+        length; self(row, ind, ..., dex)[i] is
+        row[ind[...dex[self[i]]...]]. See permute().  The name permute is
+        provided as an alias for function call, mainly for ease of reading
+        when a function yields a permutation which is being called;
+        order(seq).permute(seq) is more readable, IMO, than order(seq)(seq).\n"""
+        return permute(* seqs + (self,)) # forward reference; see after class
 
     permute = __call__
 
@@ -123,8 +124,8 @@ class Permutation (Tuple, Cached):
         p.inverse, then p@q and q@p are the identity permutation, id =
         range(len(p)), of the same length.
 
-        Computed by filling in q[p[i]] as i for each i.  Checking that self is a
-        permutation is most readilly done by verifying that the inverse we
+        Computed by filling in q[p[i]] as i for each i.  Checking that self is
+        a permutation is most readilly done by verifying that the inverse we
         compute does actually get an entry in each position; the pidgeon-hole
         principle then ensures the rest.
 
@@ -132,31 +133,31 @@ class Permutation (Tuple, Cached):
         ======
 
         Given a sequence, row, and a permutation, p, of the same length, row@p
-        is described as `a permutation of' row: it contains the same entries as
-        row but in a different order; any repeated entry in row is repeated just
-        as often in a permutation of row; permutations of row have the same
-        length as row.  A permutation of a permutation is thus a permutation
-        with the same length.
+        is described as `a permutation of' row: it contains the same entries
+        as row but in a different order; any repeated entry in row is repeated
+        just as often in a permutation of row; permutations of row have the
+        same length as row.  A permutation of a permutation is thus a
+        permutation with the same length.
 
         From the definition of permute, the identity permutation of any given
-        length is trivially a right identity: r@id == r for any sequence, r, of
-        the given length.  Likewise, for any sequence, p, of entries in id,
+        length is trivially a right identity: r@id == r for any sequence, r,
+        of the given length.  Likewise, for any sequence, p, of entries in id,
         e.g. any permutation of id, id@p == p; thus id is a left identity on
-        permutations of id.  Thus, as a binary operator on permutations of some
-        given length, @ has, as (both left and right) identity, the range of the
-        given length.
+        permutations of id.  Thus, as a binary operator on permutations of
+        some given length, @ has, as (both left and right) identity, the range
+        of the given length.
 
         Using q = order(p), p@q is a sorted permutation of p; so, when p is a
-        permutation, p@q is sorted and has the same entries as p, which has the
-        same entries as id, which is sorted; so p@q == id, making q a
+        permutation, p@q is sorted and has the same entries as p, which has
+        the same entries as id, which is sorted; so p@q == id, making q a
         right-inverse for p.
 
         Theorem:
-            If @ is an associative binary operator closed on some collection, P
-            - i.e. for any a, b in P we have a@b in P - having an identity, id,
-            in P - i.e. for any a in P, id@a = a = a@id - and (having)
-            right-inverses for all elements of P, then these right-inverses also
-            serve as left inverses.
+            If @ is an associative binary operator closed on some collection,
+            P - i.e. for any a, b in P we have a@b in P - having an identity,
+            id, in P - i.e. for any a in P, id@a = a = a@id - and (having)
+            right-inverses for all elements of P, then these right-inverses
+            also serve as left inverses.
 
             Proof:
                 Given p in P, consider its right-inverse, q, and q's
@@ -165,8 +166,8 @@ class Permutation (Tuple, Cached):
 
         Our composition, @, meets the preconditions of this, with P the
         collection of permutations with the same length as p, hence order()
-        would, on permutations, serve as inversion.  However, the implementation
-        here is more efficient than calling order.\n"""
+        would, on permutations, serve as inversion.  However, the
+        implementation here is more efficient than calling order.\n"""
 
         assert cls is None
         n = len(self)
@@ -197,11 +198,11 @@ class Permutation (Tuple, Cached):
 
         The signature homomorphism is the unique non-fatuous mapping from
         permutations to the multiplicative group {+1, -1} which respects the
-        group structure (that is, sign(s*t) = sign(s)*sign(t) for all
+        group structure (that is, sign(s@t) = sign(s)*sign(t) for all
         permutations s, t; and at least some permutations have sign -1).  Its
         value is entirely determined by the fact that every transposition
-        (i.e. a permutation that simply swaps two elements) has sign -1.
-        """
+        (i.e. a permutation that simply swaps two elements) has sign -1; this
+        is used in computing the value.\n"""
         assert cls is None
         mess, sign, i = list(self), +1, len(self)
         try:
@@ -209,7 +210,8 @@ class Permutation (Tuple, Cached):
                 i -= 1
 
                 if i != mess[i]:
-                    sign, j = -sign, mess.index(i)
+                    sign, j = -sign, mess.index(i) # may ValueError
+                    assert j < i
                     mess[i], mess[j] = mess[j], mess[i]
 
             if mess != range(len(self)): raise ValueError
@@ -223,15 +225,17 @@ class Permutation (Tuple, Cached):
         """Computes the period of the permutation.
 
         See http://www.research.att.com/~njas/sequences/A000793 and
-        http://mathworld.wolfram.com/LandausFunction.html for Landau's function,
-        which gives the maximal period among permutations of each length.  This
-        is equally the maximum, over partitions of the length, of the lowest
-        common multiple of the lengths of the parts.\n"""
+        http://mathworld.wolfram.com/LandausFunction.html for Landau's
+        function, which gives the maximal period among permutations of each
+        length.  This is equally the maximum, over partitions of the length,
+        of the lowest common multiple of the lengths of the parts.  Note that
+        this method may fail to terminate if self is not actually a
+        permutation.\n"""
         assert cls is None
-        q, i = compose(self, self), 1
+        q, i = compose(self, self), 1 # Invariant: q = self**(1+i)
         while q != self:
             q, i = compose(q, self), 1+i
-        return i
+        return i # self == self**(1+i) so self**i is an identity
 
     def cycle(self, by=1):
         return self.__permutation__(cycle(self, by))
@@ -244,9 +248,9 @@ class Permutation (Tuple, Cached):
           size -- length of the permutations
           fix -- sequence whose non-None entries all permutations should match
 
-        Returns an iterator over all permutations of the given size that can be
-        obtained by filling in the None entries of fix and, if its length is
-        less than size, extending it to the requested length.\n"""
+        Returns an iterator over all permutations of the given size that can
+        be obtained by filling in the None entries of fix and, if its length
+        is less than size, extending it to the requested length.\n"""
 
         fix = tuple(fix)
         js = filter(lambda j: j is not None, fix)
@@ -278,35 +282,35 @@ class Permutation (Tuple, Cached):
                 anagram = ''.join(it(word))
                 if dictionary.has_key(anagram): print anagram
 
-        Cycles through all the permutations of [0,...,n-1], a.k.a. range(n), for
-        some n; does so in lexicographic order: that is, a permutation p shall
-        be yielded sooner than a permutation q precisely if, in the first
-        position at which they differ, p[i] is less than q[i].
+        Cycles through all the permutations of [0,...,n-1], a.k.a. range(n),
+        for some n; does so in lexicographic order: that is, a permutation p
+        shall be yielded sooner than a permutation q precisely if, in the
+        first position at which they differ, p[i] is less than q[i].
 
         Theory
         ======
 
         To iterate over permutations it suffices to specify a well-ordering of
-        permutations - i.e. a choice of one of them as `first', combined with a
-        `next' opertion which will, starting from the first, iterate over all
-        candidates.  An obvious well-ordering to use is the one obtained from
-        `lexicographic order', in which one compares two sequences by finding
-        the first entry in which they differ and comparing those.
+        permutations - i.e. a choice of one of them as `first', combined with
+        a `next' opertion which will, starting from the first, iterate over
+        all candidates.  An obvious well-ordering to use is the one obtained
+        from `lexicographic order', in which one compares two sequences by
+        finding the first entry in which they differ and comparing those.
 
         Among permutations of any given length, this makes the identity `less
         than' all others, so it's our `first' permutation.  Note that a
         reverse-sorted (big values before little ones) sequence is later than
         any other sequence with the same entries.  To find the `next'
-        permutation, in the lexicographic order, one must change as late a chunk
-        of the permutation as possible.  To this end, find the longest
+        permutation, in the lexicographic order, one must change as late a
+        chunk of the permutation as possible.  To this end, find the longest
         reverse-sorted tail of the permutation: no shuffling of only that can
         yield a later permutation, so our next permutation must bring in at
-        least the previous entry; since the previous entry (by construction) is
-        less than the first entry in the reverse-sorted tail, shuffling it into
-        the tail can produce a later entry.  A little thought will then reveal
-        that we should swap it with the smallest entry in the tail bigger than
-        it, then reverse (i.e. forward-sort) the thus-amended tail.  This is the
-        step used by this iterator.\n"""
+        least the previous entry; since the previous entry (by construction)
+        is less than the first entry in the reverse-sorted tail, shuffling it
+        into the tail can produce a later entry.  A little thought will then
+        reveal that we should swap it with the smallest entry in the tail
+        bigger than it, then reverse (i.e. forward-sort) the thus-amended
+        tail.  This is the step used by this iterator.\n"""
 
         if size < 0:
             raise StopIteration
@@ -349,15 +353,15 @@ def Iterator(size, P=Permutation): # backward compatibility
 def permute(*indices):
     """Returns row permuted by a sequence of indices.
 
-    All arguments must be sequences.  The first is the row to be permuted; each
-    subsequent argument will be used to permute the row; entries in each
+    All arguments must be sequences.  The first is the row to be permuted;
+    each subsequent argument will be used to permute the row; entries in each
     argument after the first are read as indices into the preceding argument.
 
     Returns sequence with
       permute(row, ind, ..., dex)[i] == row[ind[...dex[i]...]],
 
-    which may be understood as the composite of the sequences, read as functions
-    (see Theory sections in doc-strings in permute.py)."""
+    which may be understood as the composite of the sequences, read as
+    functions (see Theory sections in doc-strings in permute.py)."""
 
     indices, ans = indices[:-1], indices[-1] # IndexError if no sequences given !
 
@@ -372,12 +376,13 @@ def compose(*perms):
 
     Presumes that all arguments are permutations and interprets each as
     coinciding with the identity beyond its length - e.g. (1, 2, 0) is
-    implicitly (1, 2, 0, 3, 4, 5, 6, ...) - so as to resolve any differences in
-    length.  Otherwise, functionally equivalent to permute, though implemented
-    with the two loops rolled out the other way (to implement the
-    identity-default behaviour by catching IndexErrors). """
+    implicitly (1, 2, 0, 3, 4, 5, 6, ...) - so as to resolve any differences
+    in length.  Otherwise, functionally equivalent to permute, though
+    implemented with the two loops rolled out the other way (to implement the
+    identity-default behaviour by catching IndexErrors)."""
 
-    n = max(map(len, perms)) # IndexError if no permutations given !
+    try: n = max(map(len, perms))
+    except IndexError: n = 0 # Permute([]) is an implicit identity.
 
     result, i = [], 0
     while i < n:
@@ -395,9 +400,9 @@ def cycle(row, by=1):
     """Permutes a sequence cyclicly.
 
     Optional argument, by, has a default of 1: it is the position to which the
-    first item in the sequence is to be moved; a portion of this length is moved
-    from the end of the sequence to the start; all other entries in the list are
-    moved down the list this far.
+    first item in the sequence is to be moved; a portion of this length is
+    moved from the end of the sequence to the start; all other entries in the
+    list are moved down the list this far.
 
     For example: cycle((0, 1, 2, 3, 4), 2) yields (3, 4, 0, 1, 2). """
 
@@ -409,14 +414,14 @@ def order(row, cmp=cmp):
 
     The sequence order(row).permute(row) is sorted, contains each entry of row
     exactly as often as it appears in row and has the same length as row.  See
-    Permutation.inverse, above, for discussion of what this implies when row is
-    a permutation.
+    Permutation.inverse, above, for discussion of what this implies when row
+    is a permutation.
 
     If row has been obtained as r@q, then p = order(row) is a permutation with
     the same length as q and makes r@q@p a sorted list with this same length,
     making q@p a useful replacement for q: it contains the same entries as q,
     but r@(q@p) is sorted.  This is exploited in the recursive calls to order
-    which model the qsort algorithm."""
+    which model the qsort algorithm.\n"""
 
     n = len(row)
     if n < 2: return range(n)
@@ -448,10 +453,10 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
 
     Subtracting from num!, we get the sum over 0 < i <= num of: the number of
     ways of chosing i things to keep fixed, times the number of ways of
-    permuting the remaining (num-i) items without any of these staying fixed.
-    Indeed, num! = sum(: chose(num,i) * unfixed(num-i) <- i :1+num) as every
-    permutation of num keeps i items fixed, for some i, while permuting the
-    remaining i items without (further) fixed points.  This yields (as
+    permuting the remaining (num-i) items without any of these staying
+    fixed. Indeed, num! = sum(: chose(num,i) * unfixed(num-i) <- i :1+num) as
+    every permutation of num keeps i items fixed, for some i, while permuting
+    the remaining i items without (further) fixed points.  This yields (as
     chose(num,i) = chose(num, num-i) and (1+num| num-i <- i |1+num) is a
     permutation)
 
@@ -463,28 +468,30 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
     I find that unfixed(num) * e - factorial(num) gets rapidly close to 0.  We
     get a glitch in the sequence of values at 17 and 19, arising from rounding
     of the floating-point product, between the initial slide towards 0 and the
-    subsequent exact zero.  Now, factorial(num) / e is
-    sum(: pow(-1,i) * num! / i! <- i :natural) which is, in turn,
-    sum(: pow(-1,i) * num! / i! <- i :1+num) plus something smaller than 1.
+    subsequent exact zero.  Now, factorial(num) / e is sum(: pow(-1,i) * num!
+    / i! <- i :natural) which is, in turn, sum(: pow(-1,i) * num! / i! <- i
+    :1+num) plus something smaller than 1.
 
     So, consider any natural N for which, for each num in N,
 	unfixed(num) = sum(: pow(-1,i)*num!/i! <- i :1+num).
-    An example would be N = 0, since there is no num in 0 = {}.  In such a case,
-    unfixed(N)
 
-      = N! - sum(: chose(N,i) * sum(: pow(-1,j)*i!/j! <- j :1+i) <- i :1+N) # n=N-i+j
+    An example would be N = 0, since there is no num in 0 = {}.  In such a
+    case,
+    unfixed(N)
+      = N! - sum(: chose(N,i) * sum(: pow(-1,j)*i!/j! <- j :1+i) <- i :1+N)
+        # substitute n = N - i + j, so i = N - n + j:
       = N! - sum(: sum(: N! / (n-j)! * pow(-1,j) / j! <- j :n) <- n-1 :1+N)
       = N! - sum(: N!/n! * sum(: chose(n,j)*pow(-1,j) <- j :n) <- n-1 :N)
       = N! + sum(: N!/n! * pow(-1,n) <- n-1 :N)
       = sum(: pow(-1,i) * N! / i! <- i :1+N)
 
-    Thus unfixed has this form for num=N also, so that 1+N has the same property
-    we demanded of N and, inductively, the equation holds for all num.
-    Furthermore, we have unfixed(N) = N*unfixed(N-1) + pow(-1,N) which gives us
-    a nice cheap way to evaluate unfixed; which clearly indicates that
-    unfixed(N) must grow proportional to factorial in the long run (as witnessed
-    in the clue which lead me here, exp(-1) being the constant of
-    proportionality). """
+    Thus unfixed has this form for num=N also, so that 1+N has the same
+    property we demanded of N and, inductively, the equation holds for all
+    num.  Furthermore, we have unfixed(N) = N*unfixed(N-1) + pow(-1,N) which
+    gives us a nice cheap way to evaluate unfixed; which clearly indicates
+    that unfixed(N) must grow proportional to factorial in the long run (as
+    witnessed in the clue which lead me here, exp(-1) being the constant of
+    proportionality).\n"""
 
     # Deal with boundary case
     if num < 0: return 0
