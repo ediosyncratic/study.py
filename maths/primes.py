@@ -2,10 +2,10 @@
 
 This module provides an object, primes, which masquerades as the infinite list
 of all primes, in their proper order.  If you ask it how long it is, it'll be
-finite, but if you ask for an element past the `end' you'll still get it (though
-you may have to wait).  Ask for its last element and you'll get some prime: ask
-whether some bigger prime is in the list and the answer will be yes, none the
-less.
+finite, but if you ask for an element past the `end' you'll still get it
+(though you may have to wait).  Ask for its last element and you'll get some
+prime: ask whether some bigger prime is in the list and the answer will be
+yes, none the less.
 
 Building on that, this module also provides facilities for factorisation and
 multiplying back together again:
@@ -19,8 +19,6 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ... and there must be such a thing as complex
 primes.
-
-$Id: primes.py,v 1.25 2009-03-18 08:24:01 eddy Exp $
 """
 
 checking = None
@@ -184,16 +182,17 @@ class _Prime(lazyTuple):
 
     _private_doc_ = """
 
-    From lazyTuple, this inherits ._item_carrier in which we store all the primes
-    less than ._ask, which is the next number we're going to check to see if
-    it's prime.  Any higher primes we've discovered (usually thanks to
-    factorise(), see below) are kept in _sparse (in their correct order, albeit
-    probably with gaps).  All currently known primes may be listed as .known().
+    From lazyTuple, this inherits ._item_carrier in which we store all the
+    primes less than ._ask, which is the next number we're going to check to
+    see if it's prime.  Any higher primes we've discovered (usually thanks to
+    factorise(), see below) are kept in _sparse (in their correct order,
+    albeit probably with gaps).  All currently known primes may be listed as
+    .known().
 
-    self._ask will be an ordinary integer as long as it can, then switch over to
-    being a long one.  Entries in .known() will be ordinary integers most of the
-    time, unless they are so big they must be long().  However, some entries
-    which could be ordinary may still be long().
+    self._ask will be an ordinary integer as long as it can, then switch over
+    to being a long one.  Entries in .known() will be ordinary integers most
+    of the time, unless they are so big they must be long().  However, some
+    entries which could be ordinary may still be long().
 
     """
 
@@ -278,7 +277,7 @@ class _Prime(lazyTuple):
 
 	Argument, other, defaults to self._ask: it must not be a prime.  The
 	only time it matters is when it's self._ask: which is then stepped
-	forward to the next integer. """
+	forward to the next integer.\n"""
 	if other in ( None, self._ask ):
 	    self._ask = 1 + self._ask
 
@@ -288,8 +287,8 @@ class _Prime(lazyTuple):
 
 	Argument, other, defaults to self._ask: it must be a prime.  If it is
 	self._ask, we append it and advance _ask.  Otherwise, if it isn't
-	already in self or _sparse, we add it to _sparse in its proper place.
-	"""
+	already in self or _sparse, we add it to _sparse in its proper
+	place.\n"""
 
 	if not other or other == self._ask:
 	    # add _ask to self and advance
@@ -324,25 +323,25 @@ class _Prime(lazyTuple):
 	The result of factorise() is always a Prodict: the number, N, that it
         describes is num times the one gather, treated as a Prodict, described
         when passed in.  The result's keys are primes, -1 or 0 and its values
-        are positive integers, indicating multiplicities.  The key -1 is present
-        precisely if N is negative, in which case its multiplicity is 1 (not,
-        for instance, 3 or 5).  The key 0 only appears when N is 0, in which
-        case the result is Prodict({0: 1}).  Note that 1 = int(Prodict({})) so I
-        don't need to make a special case of 1 ;^)
+        are positive integers, indicating multiplicities.  The key -1 is
+        present precisely if N is negative, in which case its multiplicity is
+        1 (not, for instance, 3 or 5).  The key 0 only appears when N is 0, in
+        which case the result is Prodict({0: 1}).  Note that 1 =
+        int(Prodict({})) so I don't need to make a special case of 1 ;^)
 
-	If num is a positive integer, factorise(num) is a Prodict whose keys are
-	its prime factors: the value for each key is its multiplicity as a
+	If num is a positive integer, factorise(num) is a Prodict whose keys
+	are its prime factors: the value for each key is its multiplicity as a
 	factor of num.  Thus, int(factorise(num)) is num.
 
 	Zero is a special case (because it is a multiple of every number): its
-	given factorisation is { 0: 1 }.  Negative values are factorised as the
-	factorisation of the corresponding positive value, with one extra key,
-	-1, with multiplicity 1.
+	given factorisation is { 0: 1 }.  Negative values are factorised as
+	the factorisation of the corresponding positive value, with one extra
+	key, -1, with multiplicity 1.
 
 	If you want to know the factorisation of the product of a sequence of
 	integers, do it by using gather to collect up their several
-	factorisations: it's much easier to factorise each of them in turn than
-	to factorise their product !
+	factorisations: it's much easier to factorise each of them in turn
+	than to factorise their product !
 
 	    out = Prodict({})
 	    for num in sequence: factorise(num, out)
@@ -442,10 +441,10 @@ def _tabulate_block(file, block):
     line once they are more than 38 characters each).  Ends in a stray comma,
     which python won't mind when it loads the array, but no newline.
 
-    The tabulation algorithm assumes that each entry in block is bigger than all
-    previous (specifically, it has at least as many digits), and that entries
-    which don't need to be long aren't.  Breaking these assumptions will cause
-    no harm beyond making the table messier. """
+    The tabulation algorithm assumes that each entry in block is bigger than
+    all previous (specifically, it has at least as many digits), and that
+    entries which don't need to be long aren't.  Breaking these assumptions
+    will cause no harm beyond making the table messier."""
 
     across = 80	# Force an initial newline, etc.
     click = 9	# biggest number in current number of digits (initially 1)
@@ -548,8 +547,8 @@ class cachePrimes(_Prime, Lazy):
     def _load(self, found):
 	"""Loads data that's been imported from a file.
 
-	Argument, found, is the module object as which the file was imported: it
-	should have integer attributes, found.at and found.to and list
+	Argument, found, is the module object as which the file was imported:
+	it should have integer attributes, found.at and found.to and list
 	attributes found.sparse and found.block, with each member of sparse
 	greater than any member of block, and at+len(block)==to.  The given
 	block is used as self[at:to], while entries in sparse are added to
@@ -557,7 +556,7 @@ class cachePrimes(_Prime, Lazy):
 
 	The bits of the file we'll examine are variables in the global scope
 	with names 'at', 'to', 'sparse' and 'block'.  Most of this function
-	checks things, the actual loading is quite brief ! """
+	checks things, the actual loading is quite brief !\n"""
 
 	size = len(self._item_carrier)
 	# Assume found contains the namespace we want to load: if not, convert KeyError.
@@ -632,18 +631,18 @@ class cachePrimes(_Prime, Lazy):
 	  name -- name-stem for cache files. Default is 'c'.
 
 	  force -- flag, default is false.  Normally, persist() trusts files
-	  already in the cache and doesn't bother re-writing them: set force to
-	  some true value to make all the files be written anew.
+	  already in the cache and doesn't bother re-writing them: set force
+	  to some true value to make all the files be written anew.
 
 	Updates the cache.  Each cache file contains a sub-list of the known
 	primes: small primes are recorded in files with 1024 entries, but
 	subsequent sub-lists are longer (by a factor of 2 whenever the
 	chunk-size gets bigger than an eighth of the number of primes in all
 	earlier cache files).  Each cache-file's name expresses the range of
-	indices it contains: this information is also present in the cache-file,
-	along with the current value of _sparse.  The block of primes stored in
-	the file is formatted to be readable on an 80-column display.  The data
-	are stored in the file under the names
+	indices it contains: this information is also present in the
+	cache-file, along with the current value of _sparse.  The block of
+	primes stored in the file is formatted to be readable on an 80-column
+	display.  The data are stored in the file under the names
 
 	  at -- index, in self, of first prime in block
 
@@ -718,22 +717,26 @@ is_prime = primes.__contains__
 def Sisyphus():
     """An iterator that'll ensure primes grows indefinitely.
 
-    If you've got spare clock cycles to burn, and disk you'd be happy to fill up
-    by expanding your cache of known primes, iterate Sisyphus.  For example:
+    If you've got spare clock cycles to burn, and disk you'd be happy to fill
+    up by expanding your cache of known primes, iterate Sisyphus.  For
+    example:
       for it in Sisyphus: pass
     shall always find more work to do.  Note that this function is called once
     to create one eponymous iterator (making this function inaccessible
     thereafter), so you can interrupt an iteration of it at any point without
     losing (much) state; simply begin iterating it again later and it'll start
-    off on the iteration in which you interrupted it.
+    off on the iteration in which you interrupted it.  Just do be aware that
+    it may impose significant resource burdens on your computer - the Linux
+    OOOM-killer is very likely to interrupt your python process and, quite
+    possibly, its parents.
 
-    The iterator this function returns is, in fact, the witness to a proof that
-    there is no greatest prime: its i-th iteration takes the product of the
-    first i primes, adds one and factorises the result.  Since this cannot have
-    any of the first i primes as a factor (it's equal to 1 modulo each of them),
-    all of its prime factors must exceed all of the first i primes.  This being
-    true for all i, we may infer that, no matter how may primes we find, there
-    are always some more to be found.\n"""
+    The iterator this function returns is, in fact, the witness to a proof
+    that there is no greatest prime: its i-th iteration takes the product of
+    the first i primes, adds one and factorises the result.  Since this cannot
+    have any of the first i primes as a factor (it's equal to 1 modulo each of
+    them), all of its prime factors must exceed all of the first i
+    primes.  This being true for all i, we may infer that, no matter how may
+    primes we find, there are always some more to be found.\n"""
 
     n = 1
     for p in primes:
@@ -752,22 +755,22 @@ def Factorise(args=(), gather=None, cache=True):
 
 	  args -- an integer, a tuple thereof or (if omitted) the empty tuple.
 
-	  gather -- dictionary to which to add results, or None (the default) to
-	  use a fresh empty dictionary: this is what Factorise() returns.
+	  gather -- dictionary to which to add results, or None (the default)
+	  to use a fresh empty dictionary: this is what Factorise() returns.
 
           cache -- flag, default is True.  By default, Factorise() will do a
-	  primes.persist() when it is finished: this will slow you down when it
-	  happens (writing a cache file can take a while once you know a lot of
-	  primes).  Set cache to some false value to suppress this (and remember
-	  to run primes.persist() at the end of your session).
+	  primes.persist() when it is finished: this will slow you down when
+	  it happens (writing a cache file can take a while once you know a
+	  lot of primes).  Set cache to some false value to suppress this (and
+	  remember to run primes.persist() at the end of your session).
 
 	If args is a non-empty tuple, this returns a dictionary whose keys are
 	the entries in the tuple, mapped to values which are what you get by
 	passing the key to Factorise().  If args is the empty tuple, Factorise
 	acts as if it'd been given the smallest natural number that the primes
 	module doesn't yet know about.  If args is an integer, Factorise()
-	behaves as primes.factorise(), so int(Factorise(())) will be this `least
-	unknown', but it'll be known by the time you've evaluated that.
+	behaves as primes.factorise(), so int(Factorise(())) will be this
+	`least unknown', but it'll be known by the time you've evaluated that.
 
 	See also: Prodict and primes.factorise().
 	"""
@@ -809,16 +812,16 @@ def factors(num):
 
     The value this dictionary associates with any factor is the factor's
     multiplicity as a factor of num, except for the key 1 (for which this is
-    ill-defined) which gets the maximum of all the values in the dictionary.
-    Thus, where defined, pow(k, factors(n)[k]) is a factor of n: for k not equal
-    to 1, furthermore, pow(k, 1+factors(n)[k]) is not a factor of n.  Notice
-    that factors(n)[n] = 1.
+    ill-defined) which gets the maximum of all the values in the
+    dictionary. Thus, where defined, pow(k, factors(n)[k]) is a factor of n:
+    for k not equal to 1, furthermore, pow(k, 1+factors(n)[k]) is not a factor
+    of n.  Notice that factors(n)[n] = 1.
 
-    If num is negative, -1 is listed with multiplicity 1, as is its product with
-    each positive factor.  This is not wholly satisfactory, but it's not quite
-    clear what's saner.  (Perhaps each negative factor's nominal multiplicity
-    should be the largest odd number not greater than the matching positive
-    factor's multiplicity.)\n"""
+    If num is negative, -1 is listed with multiplicity 1, as is its product
+    with each positive factor.  This is not wholly satisfactory, but it's not
+    quite clear what's saner.  (Perhaps each negative factor's nominal
+    multiplicity should be the largest odd number not greater than the
+    matching positive factor's multiplicity.)\n"""
 
     if num < 0:
 	num = -num
