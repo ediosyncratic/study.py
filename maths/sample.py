@@ -26,18 +26,25 @@ class Sample (tuple):
         assert cls is None
 
     @staticmethod
-    def __diff(seq):
-        "Differences between adjacent members of a sequence"
-        return map(lambda x, y: y - x, seq[:-1], seq[1:])
+    def __diff(seq, step=1):
+        """Differences between successive members of a sequence.
 
-    def density(self, cuts):
-        idx = self.partition(cuts)
-        return map(lambda x, y: x / y,
-                   self.__diff(idx), self.__diff(cuts))
+        Required argument, seq, is a sequence of values.  Optional argument
+        step (default: 1) is the index-difference to use.  Returns a list d
+        with d[i] = seq[i+step]-seq[i] for each i at which this is valid (so
+        len(d) = len(seq) step for step > 0).
+
+        Note that a negative value for step will be read as len(self)-step;
+        this might not be as useful as you'd suppose.  If you want reverse
+        steps, use a positive value for step and map(lambda x: -x, ...) the
+        result.  A step of zero will is silly but allowed; you'll get the same
+        as map(lambda x: x-x, seq).\n"""
+        return map(lambda x, y: y - x, seq[:-step], seq[step:])
 
     def partition(self, cuts):
-        assert not filter(None, map(lambda x, y: y <= x, cuts[:-1],
-                                    cuts[1:])), "Mis-ordered cuts"
+        assert not filter(None,
+                          map(lambda x, y: y <= x, cuts[:-1], cuts[1:])
+                          ), "Mis-ordered cuts"
         all, idx, j = self.sorted, [], 0
         # all[idx[i]-1] <= cuts[i] < all[idx[i]], strict where possible
         for cut in cuts:
@@ -48,16 +55,113 @@ class Sample (tuple):
 
         return idx
 
-    def blocks(self, cuts):
-        """The data you need to draw self partitioned using cuts
+    def blocks(self, cuts, blur=0):
+        """The data you need to draw self partitioned using cuts.
+
+        Required arguments, cuts, is an iterable (or iterator) over the
+        boundary values of the intervals between which to average self's
+        density.  Optional argument blur (default: 0) is the number of
+        intervals, on either side of each interval, to include with it when
+        averaging; so the density on each interval will be the average over
+        the 1+2*blur intervals of which it is the middle portion.  However,
+        for intervals within blur extras of an end, the number of intervals to
+        the relevant end is used in place of blur (symmetrically).
 
         Returns a sequence of tuples, one per interval between entries in
         cuts, of form (start, width, weight), where start is an entry in cuts
         (and is not the last), width is the next entry minus start and weight
         is the number of entries in self between these two entries, divided by
         width.\n"""
+
+        cuts = tuple(cuts) # to consume an iterator once
+        idx, wide = self.partition(cuts), 1 + 2 * blur
+        weigh, gaps = self.__diff(idx, wide), self.__diff(cuts, wide)
+        # Missing blur lower-blur intervals at each end:
+        while wide > 1:
+            wide -= 2
+            weigh.insert(0, idx[wide] - idx[0])
+            gaps.insert(0, cuts[wide] - cuts[0])
+            weigh.append(idx[-1] - idx[-1-wide])
+            gaps.append(cuts[-1] - cuts[-1-wide])
+
         return tuple(map(lambda *args: args,
-                         cuts[:-1], self.__diff(cuts), self.density(cuts)))
+                         cuts[:-1], self.__diff(cuts),
+                         # density in each interval:
+                         map(lambda x, y: x / y, weigh, gaps)))
+
+    def density(self, n):
+        """Compute density using a moving interval.
+
+        Single parameter, n, is the number of self's data-points that should
+        lie within the interval about each point, centred on that point, used
+        to assess the density at that point.  The symmetric interval, about
+        each point, used is the minimal-width one with >= n data-points in it
+        or at its boundary; when there are data-points on its boundary, its
+        total may be > n and its interior shall contain < n; even so, it is
+        deemed to contain exactly n data-points for purposes of computing the
+        density.  The density is continuous everywhere, but non-smooth (it has
+        discontinuous gradient) at each mid-point of an interval between
+        data-points with n-1 or n-2 others strictly between them; the density
+        is locally maximal (n-1) or minimal (n-2) at these points.
+
+        ValueError is raised if n < 2 (intervals are undefined or some are
+        zero-width) or (not enough data-points) n > len(self).  Otherwise,
+        returns a list of (value, density) points at which the density is not
+        smooth, starting and ending with (value, 0) points approximating the
+        tails by linear drop-off.  The density follows a lambda x: k/(x-c)
+        curve in each smooth segment; each tail's approximation uses the
+        gradient this would have given at the relevant outermost data-point,
+        decreasing away from the last discontinuity to reach zero density at
+        the point given.  The density should be deemed zero before the first
+        and after the last and may (fairly) sensibly be simply linearly
+        interpolated between the returned points otherwise.
+
+        Details of the tail:
+
+        Consider either a boundary data-point at t; let c be the n-th
+        data-point inwards, starting with t as first; then, outwards from
+        (t+c)/2, the density has form f = lambda x: k/(x-c), where
+          * k is -n/2 with t < c and x < (t+c)/2 for a left tail, or
+          * k is n/2 with t > c and x > (t+c)/2 for a right tail.
+
+        This has derivative f'(t) = -k/(t-c)**2 at t and we want a tail of
+        this gradient passing through the same point as f at x = (t+c)/2,
+        where f(x) is 2*k/(t-c), so we're solving
+        0 = 2*k/(t-c) -k*(x -(t+c)/2)/(t-c)**2
+        i.e. x = 2*(t-c) + (t+c)/2 = t +1.5*(t-c) = 2.5*t -1.5*c
+
+        The last discontinuity point was at (t+c)/2 = t -.5*(t-c), so this is
+        three times as far beyond the end of the range of data-points as the
+        last discontinuity was within the range.\n"""
+
+        # TODO: work out y-mid-point of each k/(x-c) curve, return the curve
+        # between these points instead.
+
+        if n < 2:
+            raise ValueError("Too few of data-points per interval", n)
+        if n > len(self):
+            raise ValueError("Demanding too much", n, len(self))
+
+        i, j, pts = 0, n-1, []
+        all = self.sorted
+        # t = all[0], c = all[n-1]
+        lo, hi = all[i], all[j]
+        pts.append((self.__half(5*lo -3*hi), 0))
+        pts.append((self.__half(lo +hi), n * 1. / (hi - lo)))
+        while i + n < len(self):
+            if i + n < j + 1: # we have spare points; advance i
+                i += 1
+                if all[i] <= lo: continue
+                lo = all[i]
+
+            else: # need wider interval
+                j += 1
+                if all[j] <= hi: continue
+                hi = all[j]
+
+            pts.append((self.__half(lo + hi), n * 1. / (hi - lo)))
+        pts.append((self.__half(5*hi -3*lo), 0))
+        return tuple(pts)
 
     # Assorted ways to get lists of cuts for such use:
     @staticmethod
