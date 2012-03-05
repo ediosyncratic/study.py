@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?><!--*- Mode: sgml; coding: utf-8; -*-->
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.1 Tiny//EN'
+  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd'>
+<svg baseProfile="tiny" version="1.1" viewBox="-90 0 340 2500" xml:lang="en-GB" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <g id="fix-vertical" transform="translate(0 2100)">
+    <g fill="none" transform="matrix(1 0 0 -1 0 0)">
+      <g stroke="grey">
+        <line id="price-axis" x1="0" x2="0" y1="0" y2="2000"/>
+        <line id="date-axis" x1="0" x2="340" y1="0" y2="0"/>
+      </g>
+    </g>
+    <g font-size="50">
+      <g id="price-labels" transform="translate(-80 0)">
+        <text id="price-origin" x="30" y="0">0</text>
+      </g>
+      <g id="date-labels" transform="matrix(0 1 -1 0 0 0)">
+        <text id="date-origin" x="0" y="0">17 Oct 2008</text>
+      </g>
+    </g>
+  </g>
+</svg>
