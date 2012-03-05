@@ -58,6 +58,10 @@ class _baseWeighted:
     # These aren't ideal, but it's sometimes nice to know highest and lowest keys (see Sample.__div__).
     def high(self): return max(self.keys())
     def low(self): return min(self.keys())
+    @classmethod
+    def __weighted__(cls, *args, **what):
+        """Method to over-ride to match common constructor signature"""
+        return cls(*args, **what)
 
 # First layer of functionality: interpret self as describing a curve.
 import math # del at end of this page
@@ -112,11 +116,12 @@ class curveWeighted (Lazy, _baseWeighted):
             if high is None:
                 if low is not None: self.add({low: 1})
             elif low is None: self.add({high: 1})
-            else: self.add({(low * 2 + high) / 3.: 1, (low + 2 * high) / 3.: 1})
+            else: self.add({(low * 2 + high) / 3.: 1,
+                            (low + 2 * high) / 3.: 1})
 
         else:
-            cut, sum = self.interpolator.cuts, self.interpolator.total * share
-            bok = {}
+            bok, smooth = {}, self.interpolator
+            cut, sum = smooth.cuts, smooth.total * share
             if low is not None and low < cut[0]:
                 # arrange for low to be new cut[0]
                 bok[.5 * (low + self.sortedkeys[0])] = sum
@@ -180,12 +185,15 @@ class curveWeighted (Lazy, _baseWeighted):
             one heuristic adjustment.  If all keys of the mapping are on one
             side of zero and the foregoing would place a bound on the other
             side, that bound is moved to zero.\n"""
-            mids = weigher.sortedkeys
+            try: mids = weigher.sortedkeys
+            except AttributeError:
+                mids = weigher.keys()
+                mids.sort()
             return cls.fromMidMass(mids, map(lambda k, w=weigher: w[k], mids))
 
         @classmethod
         def fromMidMass(cls, mids, mass):
-            return cls.__interpolator__(cls.__cuts(mids), mass)
+            return cls(cls.__cuts(mids), mass)
 
         @staticmethod
         def __cuts(row, mean=lambda a, b: .5*(a+b)):
@@ -242,13 +250,20 @@ class curveWeighted (Lazy, _baseWeighted):
                 gaus = self.gaussian((mym / mys + yom / yos) * v, v)
                 prod += gaus.scale(to = 1 - prod.total)
 
-            return prod.toWeights()
+            return prod
 
         def toWeights(self, mean=lambda x, y: .5 * (x + y)):
             # Turn a distribution into a weight dictionary:
             bok, cut = {}, self.cuts
-            if len(self) > 1:
-                seq = iter(self.mass)
+            if len(self) == 1 and cut[0] < cut[1]:
+                # Split simple interval evenly in two:
+                cut = (cut[0], mean(cut[0], cut[1]), cut[1])
+                mass = self.mass[0] * .5
+                mass = (mass, mass)
+            else: mass = self.mass
+
+            if len(mass) > 1:
+                seq = iter(mass)
                 bok[(cut[0] + 2*cut[1])/3.] = seq.next()
                 for k in map(mean, cut[1:-2], cut[2:-1]):
                     bok[k] = seq.next()
@@ -638,7 +653,8 @@ class joinWeighted (curveWeighted):
     def __init__(self, detail):
         self.__detail = detail
 
-    def add(self, weights, scale=1, func=None, oneach=lambda x: (x, 1)):
+    def add(self, weights, scale=1, func=None, smooth=None,
+            oneach=lambda x: (x, 1)):
         """Increment some of my keys.
 
         Arguments:
@@ -664,10 +680,26 @@ class joinWeighted (curveWeighted):
         .mirror is obtained: this is a joinWeighted and the same recursion is
         used.  Otherwise, (func's replacements for) keys should be scalars. """
 
+        if smooth is not None and weights is None:
+            weights = smooth.toWeights()
+
         try: mites = weights.items()
         except AttributeError:
             try: mites = map(oneach, weights[:])
             except (TypeError, AttributeError): mites = [ (weights, 1) ]
+
+        if smooth is None:
+            # Those filtered out need the recursive calls to .add():
+            smooth = filter(lambda (k,v): not isinstance(
+                    k, (Sample, joinWeighted)), mites)
+            if func is not None:
+                smooth = map(lambda (k, v): (func(k), v))
+            smooth = self.Interpolator.fromSample(dict(smooth))
+
+        smooth = smooth.scale(by=scale)
+        try: prior = self.interpolator
+        except AttributeError: pass
+        else: smooth += prior
 
         for key, val in mites:
             val = val * scale
@@ -679,14 +711,18 @@ class joinWeighted (curveWeighted):
                 if func is not None: key = func(key)
                 self[key] = self[key] + val
 
+        self.interpolator = smooth
+
     def cross(self, other):
         """Pointwise product of two distributions.
 
         This models set intersection and the inference of a combined likelihood
         distribution from those due to two separate data-sets.\n"""
         assert len(self) > 1 < len(other), "delta functions aren't nice here"
-        return self._weighted_(self.interpolator.cross(other.interpolator),
-                               detail=max(self.__detail, other.__detail))
+        prod = self.interpolator.cross(other.interpolator)
+        return self.__weighted__(None,
+                                 detail=max(self.__detail, other.__detail),
+                                 smooth=prod)
 
     def decompose(self, new, mean=lambda a, b: (a+b)/2.):
         """Decomposes self.
@@ -698,26 +734,33 @@ class joinWeighted (curveWeighted):
         # assert: new is sorted (but may have some repeated entries)
 
         # Flush out any repeats and out-of-range:
-        lo, hi = self.bounds()
-        run = []
-        for k in new:
-            if k not in run and hi > k > lo:
-                run.append(k)
+        run = filter(lambda k, (l,h)=self.bounds(): l < k < h, set(new))
+        run.sort()
 
-        # Get repWeighted to share self's weights out correctly between run's entries:
-        result = {}
-        if run:
-            load = self.interpolator.weigh(map(mean, run[:-1], run[1:]))
-            for k in run: result[k], load = load[0], load[1:]
-        # TODO: I'm not convinced (2002/Feb) interpolator is the right solution
-        # here; this method is used when self is a messy hodge-podge, so the
-        # weight which straddles the mid-point between entries in new is
-        # haphazardly weighted.  I may have been better off lumping each weight
-        # to nearest in new or sharing each weight between the nearest entries
-        # in new in proportion to how close each is.
+        # Share self's weights out correctly between run's entries:
+        result, smooth, fresh = {}, self.interpolator, None
+        if len(run) == 1:
+            result[run[0]] = self.total
+            if run[0] < smooth.cuts[0]: cuts = (run[0], smooth.cuts[-1])
+            elif run[0] > smoooth.cuts[-1]: cuts = (smooth.cuts[0], run[0])
+            else: cuts = (smooth.cuts[0], smooth.cuts[-1])
+            fresh = self.Interpolator(cuts, (self.total,))
+        elif run:
+            cuts = map(mean, run[:-1], run[1:])
+            mass = smooth.weigh(cuts)
+            if smooth.cuts[0] < run[0]:
+                lo = smooth.cuts[0]
+            else: lo = 2 * run[0] - run[1]
+            cuts.insert(0, lo)
+            if smooth.cuts[-1] > run[-1]:
+                hi = smooth.cuts[-1]
+            else: hi = 2 * run[-1] - run[-2]
+            cuts.append(hi)
+            load, fresh = iter(mass), self.Interpolator(cuts, mass)
+            for k in run: result[k] = load.next()
 
         # Build a new distribution with this weighting:
-        return self._weighted_(result, detail=len(result))
+        return self.__weighted__(result, detail=len(result), smooth=fresh)
 
     def condense(self, count=None, middle=lambda i: i.median()):
         """Simplifies a messy distribution.
@@ -726,45 +769,24 @@ class joinWeighted (curveWeighted):
         in the result (default: None).  None is taken to mean the level of
         detail specified for self when it was created.
 
-        Returns a self._weighted_() whose keys are: the highest and lowest of
-        self, and; count-1 points in between, roughly evenly-spaced as to self's
-        weight between them.  The weight of each of these points is based on
-        carving up self's weights according to who's nearest.\n"""
+        Returns a self.__weighted__() whose keys are: the highest and lowest
+        of self, and; count-1 points in between, roughly evenly-spaced as to
+        self's weight between them.  The weight of each of these points is
+        based on carving up self's weights according to who's nearest.\n"""
 
         if count is None: count = self.__detail
         if len(self) <= count: return self
 
-        # Carve self up into count-2 interior (count-1)-iles and two half-bands at
-        # top and bottom.
-        if count > 1: count = count - 1
-        step, parts, last = self.total() * 1. / count, [ self._weighted_({}) ], None
-        gap = .5 * step # total weight remaining in current band
-        assert step > 0, 'Condensing degenerate weighting'
+        # Carve self up into count-2 interior (count-1)-iles and two
+        # half-bands at top and bottom:
+        if count < 3: count = 0
+        else: count -= 2
 
-        for key in self.sortedkeys:
-            # Weight provided by this key:
-            val = self[key]
-
-            # If that completes the band, split it suitably between bands:
-            while gap < val: # well, OK, one big weight might span several bands
-                # Fill up old band with its share of val:
-                if gap > 0: parts[-1][key], val = gap, val - gap
-                # Tack a new (empty) band onto parts:
-                parts.append(self._weighted_({}))
-                # Reset gap for this new band:
-                gap = step
-                # Note: final band wants gap = .5 * step, but won't get filled
-                # in any case, so it doesn't care.
-
-            # Add this key to the current band and decrement gap accordingly
-            if val > 0:
-                parts[-1][key] = val
-                gap = gap - val
-
-        # Use medians of resulting parts as sample points for condensed
-        # distribution.  Work out how much weight to give to each of these
-        # sample points:
-        return self.decompose(map(middle, filter(None, parts)))
+        smooth = self.interpolator
+        cuts = smooth.split([ 1 ] + [ 2 ] * count + [ 1 ])
+        mass = smooth.weigh(cuts)
+        cuts = (smooth.cuts[0],) + cuts + (smooth.cuts[-1],)
+        return self.__weighted__(None, smooth=self.Interpolator(cuts, mass))
 
     def single(f, a, x): # tool-function for corners
         try: return f(a, x)
@@ -863,8 +885,7 @@ class joinWeighted (curveWeighted):
     def __combine(self, other, func, count,
                   quad=corners,
                   # Interpolator as list of (lo, hi, w) triples:
-                  chop=lambda i: map(lambda *args: args,
-                                     i.cuts[:-1], i.cuts[1:], i.mass)):
+                  chop=lambda i: i.map(lambda *args: args)):
         """Generate a combined distribution.
 
         Takes exactly three arguments:
@@ -933,7 +954,8 @@ class joinWeighted (curveWeighted):
             raise ValueError('No data to combine', self, other)
         try: hi = spike.next()
         except StopIteration:
-            return self._weighted_({ lo: 1 })
+            return self.__weighted__({ lo: 1 },
+                                     smooth=self.Interpolator((lo, lo), (1,)))
 
         live, wait, step, part = [], [], False, 0 * our[0][-1]
         try:
@@ -984,12 +1006,14 @@ class joinWeighted (curveWeighted):
         # We got total weight wait[i] between cuts[i] and cuts[i+1] (which are
         # distinct) for each i < len(wait).  Now carve that up into count
         # bands:
-        ans = self.Interpolator(cuts, wait)
+        pol = self.Interpolator(cuts, wait)
         # TODO: prune ans to c. count intervals, or .weigh() it out.
 
-        ans = self._weighted_(ans.toWeights())
-        try: return ans.normalise()
-        except ZeroDivisionError: return ans
+        try: pol = pol.scale() # normalise
+        except ValueError: pass
+        ans = self.__weighted__(None, smooth=pol)
+        ans.interpolator = pol
+        return ans
     del corners
 
     def combine(self, other, func, count=None):
@@ -1212,11 +1236,13 @@ class _Weighted (Object, _baseWeighted):
                         ) + Object._borrowed_value_
 
     __upinit = Object.__init__
-    def __init__(self, weights, scale=1, *args, **what):
+    def __init__(self, weights=None, scale=1, smooth=None,
+                 *args, **what):
         assert not what.has_key('values'), what['values']
         self.__upinit(*args, **what)
         self.__weights = {}
-        self.add(weights, scale)
+        self.add(weights, scale, smooth=smooth)
+        if smooth is not None: self.interpolator = smooth
 
         # borrow _borrowed_values_ from weights
         self.borrow(self.__weights)
@@ -1247,12 +1273,11 @@ class _Weighted (Object, _baseWeighted):
 
         if val > 0:
             self.__weights[key] = val
-            self.__change_weights()
-
         else:
             # don't bother storing 0 values.
             try: del self[key]
             except KeyError: pass
+        self.__change_weights()
 
     def __delitem__(self, key):
         del self.__weights[key]
@@ -1271,8 +1296,8 @@ class _Weighted (Object, _baseWeighted):
     def copy(self, func=None, scale=None):
         """Copies a distribution.
 
-        No arguments are required.  The new distribution is of the same class as
-        self.  With no arguments, this distribution is identical to the
+        No arguments are required.  The new distribution is of the same class
+        as self.  With no arguments, this distribution is identical to the
         original: the two optional arguments allow for its keys and values
         (respectively) to be different.
 
@@ -1308,25 +1333,14 @@ class _Weighted (Object, _baseWeighted):
                     bok[k] = v * scale
 
         return self.__obcopy(bok)
-
-    # `make something like me'
-    @classmethod
-    def _weighted_(cls, *args, **what):
-        """Method for overriding by derived classes.
-
-        Generates a new weight-book from the same creation args as a _Weighted.
-        Derived classes will typically want to generate instances of themselves,
-        which is what this does: if their __init__ has signature incompatible
-        with that of _Weighted, they can override this method with something
-        which works round that. """
-        return cls(*args, **what)
 
 class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     __joinit = joinWeighted.__init__
     __weinit = _Weighted.__init__
 
-    def __init__(self, weights, scale=1, detail=5, *args, **what):
-        self.__weinit(weights, scale, *args, **what)
+    def __init__(self, weights=None, scale=1, detail=5, smooth=None,
+                 *args, **what):
+        self.__weinit(weights, scale, smooth=smooth, *args, **what)
         self.__joinit(detail)
 
 # That's built Weighted; now to build Sample, its client.
