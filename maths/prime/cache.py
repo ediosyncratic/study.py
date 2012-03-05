@@ -47,8 +47,6 @@ Caches:
  * The cache root __init__.py may eventually record a cache format version, for
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
-
-$Id: cache.py,v 1.52 2009-10-16 06:09:01 eddy Exp $
 """
 
 from study.cache import whole
@@ -71,6 +69,8 @@ class Node (whole.Node):
             ind += self.parent.indices.start
 
         return ind
+
+    # FIXME: [PQ] -> P, [FG] -> F: distinguish internally instead.
 
     @lazyprop
     def prime(self, ig=None):

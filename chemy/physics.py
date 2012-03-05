@@ -1,10 +1,8 @@
-"""Basic physics.
+"""Basic constants of physics.
 
 See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
-
-$Id: physics.py,v 1.13 2009-08-30 11:23:56 eddy Exp $
 """
 from study.value.units import *
 
@@ -196,7 +194,8 @@ and related phenomena, such as the electromagnetic field) scaled by Einstein's
 gravitational constant, usually called &kappa;, which is 8 * pi times Newton's
 gravitational constant divided by a suitable power of the speed of
 light.  Thus &kappa; has the dimensions of a length per mass, give or take
-some factors of velocity (which is nominally dimensionless, like angles).\n"""),
+some factors of velocity (which is nominally dimensionless - like angles, only
+more convincingly so).\n"""),
             qperm = Quantity(1, (4 * pi * Cosmos.G * Vacuum.permittivity)**.5,
                              """The Einstein/Maxwell Charge-to-Mass ratio.
 

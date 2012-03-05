@@ -162,8 +162,8 @@ def chose(n, m):
     infinite and we have to resolve cancelling infinities; otherwise, the
     result is infinite (so this raises ZeroDivisionError).
 
-    When n<0 and m are integers, if 0 > m > n then both m! and (n-m)! are
-    infinite so we should expect the answer 0, matching the n>0 case's value
+    When n < 0 and m are integers, if 0 > m > n then both m! and (n-m)! are
+    infinite so we should expect the answer 0, matching the n > 0 case's value
     for 0 > m or m > n.  For m <= n < 0, we have n!/m!/(n-m)! with n-m > 0 and
     n!/m! = n.(n-1)...(m+1) = (-1)**(n-m) * (-(m+1))!/(-(n+1))! so chose(n, m)
     = (-1)**(n-m)*chose(-(m+1), -(n+1)).  For n < 0 <= m we likewise have
@@ -174,7 +174,8 @@ def chose(n, m):
     otherwise, the recurrence relation chose(n,m) = chose(n-1,m)
     +chose(n-1,m-1) is honoured; and that chose is badly behaved near the tidy
     values derived above.  See
-    http://www.chaos.org.uk/~eddy/math/lacsaP.html\n"""
+    http://www.chaos.org.uk/~eddy/math/lacsaP.html
+    for the rationale behind handling of n < 0.\n"""
 
     try: num = gactorial(n)
     except ZeroDivisionError: pass

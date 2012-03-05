@@ -1,6 +1,4 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
-
-$Id: polynomial.py,v 1.41 2010-06-27 16:02:06 eddy Exp $
 """
 import types
 from study.snake.lazy import Lazy
@@ -108,7 +106,7 @@ class Polynomial (Lazy):
         can then be used to generate polynomials the way many folk prefer; with
         this, Polynomial((1,2,3)) can simply be written 3*z*z +2*z +1.
 
-        See also the pseudo-constructors .Chose(n) and .PowerSum(n).\n"""
+        See also: the alternate constructors listed in the class doc.\n"""
 
 	if denominator is not None:
 	    1. / denominator # raise suitable error if unsuitable as denominator !

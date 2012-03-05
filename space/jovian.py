@@ -1,10 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """The moons of Jupiter.
 
-Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and L5
-(trailing).
-
-$Id: jovian.py,v 1.5 2007-03-24 22:42:21 eddy Exp $
+Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and
+L5 (trailing).
 """
 
 from study.value.units import metre, km, mega, tophat

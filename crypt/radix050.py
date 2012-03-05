@@ -16,8 +16,6 @@ This module exports two functions:
 Bill has found that this is the wrong way to approach the decoding, though: it
 is actually done by cutting the int, seen as a sequence of bits, into chunks,
 then decoding each chunk separately.
-
-$Id: radix050.py,v 1.2 2007-03-24 22:02:59 eddy Exp $
 """ # ' deconfuse font-lock
 
 _charset = " abcdefghijklmnopqrstuvwxyz$.?0123456789"

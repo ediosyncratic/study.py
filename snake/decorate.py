@@ -54,7 +54,7 @@ def wrapas(function, prototype,
     way in which prototype supports being called.  See accepting, below, for a
     decorator deploying this.\n"""
     assert isfunc(function)
-    n, a, k, d = fetch(prototype)
+    n, a, k, d = fetch(prototype) # TypeError if prototype is a built-in :-(
     glob, i = { fname: function }, 0
     # default values might not repr nicely, so tunnel them via glob:
     for v in d or ():
@@ -205,21 +205,25 @@ def postcompose(post, *more):
     Each argument must be a function.  Returns a decorator which, given a
     function f, turns it into a function that is called exactly as f is but
     the return from f is passed through each function from the decorator in
-    turn. Thus, following: @postcompose(a, b, c) def f(x): return x**2 a call
-    to f(n) shall return c(b(a(n**2))).
+    turn. Thus, following:
+        @postcompose(a, b, c)
+        def f(x): return x**2
+    a call to f(n) shall return c(b(a(n**2))).
 
     For example, @postcompose(tuple) will turn a function that returns a list
     (e.g. because that's the easiest way to compute the sequence it wants to
     return) into one that returns a tuple that freezes that list.  Likewise
-    for @postcompose(frozenset) on a function returning a set.
+    for @postcompose(frozenset) on a function returning a set.  When the
+    function has many return statements, this can save you repeating the final
+    wrapping of its return value (and avoid the risk of neglecting this).
 
     Equally, one can use postcompose itself as a decorator: it turns the
     decorated function into a decorator which post-processes the returns of
     functions to which *it* is applied.\n"""
     @mimicking
-    def decor(decorator, after=(post,) + more):
+    def decor(decorated, after=(post,) + more):
         def ans(*args, **kw):
-            ret = decorator(*args, **kw)
+            ret = decorated(*args, **kw)
             for f in after: ret = f(ret)
             return ret
         return ans

@@ -7,8 +7,6 @@ letter: dot is encoded as '.', dash as '-'.
 
 Provides two functions, encode and decode, which perform the implied
 conversions.
-
-$Id: morse.py,v 1.3 2007-03-24 16:02:27 eddy Exp $
 """
 
 encoding = {

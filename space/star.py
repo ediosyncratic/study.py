@@ -12,8 +12,6 @@ See also:
   http://antwrp.gsfc.nasa.gov/apod/ap020220.html
   Big fat database of stars:
   http://antwrp.gsfc.nasa.gov/apod/ap990426.html
-
-$Id: star.py,v 1.9 2007-07-11 07:24:48 eddy Exp $
 """
 
 from study.value.units import Quantity, tophat, kilo, mega, giga, micro, year
@@ -29,11 +27,12 @@ del Sun
 Gliese710 = Star('Gliese 710',
                  __doc__ = """Gliese 710
 
-According to http://www.xs4all.nl/~mke/Gliese710.htm this is a red dwarf headed
-our way at 50,400 km/hr, 50 times the size of Earth, 100,000 times as massive
-and due to arrive in about 1.4 mega years.  However, solstation reports that
-astronomers don't expect it to disturb the Oort cloud enough to 'create a
-substantial increase in the long-period comet flux at Earth's orbit'.
+According to http://www.xs4all.nl/~mke/Gliese710.htm this is a red dwarf
+headed our way at 50,400 km/hr, 50 times the size of Earth, 100,000 times as
+massive and due to arrive in about 1.4 mega years.  However, solstation
+reports that astronomers don't expect it to disturb the Oort cloud enough to
+'create a substantial increase in the long-period comet flux at Earth's
+orbit'.
 
 Apparently, we're also due (not quite so close, but nearer than Proxima
 Centauri, our current nearest neighbour) visits from Barnard's star (10,000
@@ -53,8 +52,8 @@ Gliese710.Solstation('K5-M1 V', 63.0 + tophat * .1,
 Centaur.Alpha = System("&alpha; Centauri",
                         __doc__="""&alpha; Centauri has been known since ancient times.
 
-It's the fourth brightest star in the night sky as well as the brightest star in
-constellation Centaurus; it's been known about for millennia.\n""",
+It's the fourth brightest star in the night sky as well as the brightest star
+in constellation Centaurus; it's been known about for millennia.\n""",
                         aliases=("Rigil Kentaurus",),
                         discovery=Discovery('prehistoric', (-2 + tophat * 3) * kilo,
                                             etymology="Arabic: Rigil Kentaurus = the foot of the Centaur"),
@@ -76,8 +75,8 @@ Centaur.Alpha.A.Solstation('G2 V', 4.36 + tophat * .01,
                                                 location='Cape Hope',
                                                 story="""Separation
 
-The Abbé [Abbot] Nicholas Louis de La Caille (1713-1762) was at the Cape of Good
-Hope, the southernmost point of Africa, in 1752 studying the stars of the
+The Abbé [Abbot] Nicholas Louis de La Caille (1713-1762) was at the Cape of
+Good Hope, the southernmost point of Africa, in 1752 studying the stars of the
 southern hemisphere with just a half-inch (8x) refractor.  He noticed that
 &alpha; Centauri was actually two stars.\n"""))
 
@@ -108,11 +107,11 @@ Centaur.Alpha.C.Solstation('M5.5 Ve', 4.22 + tophat * .01,
                                                 location='Cape Hope',
                                                 story="""Proxima Centauri's discovery
 
-Although &alpha; Centauri was known to be double at least as early as 1752, the
-third member of the group was not discovered until 1915.  Like de La Caille
-before him, Robert Thorburn Ayton Innes (1861-1933) of Edinburgh, Scotland was
-also observing from Cape Hope, probably with the 7-inch refractor at the Royal
-Observatory.\n"""),
+Although &alpha; Centauri was known to be double at least as early as 1752,
+the third member of the group was not discovered until 1915.  Like de La
+Caille before him, Robert Thorburn Ayton Innes (1861-1933) of Edinburgh,
+Scotland was also observing from Cape Hope, probably with the 7-inch refractor
+at the Royal Observatory.\n"""),
                             age=giga * year * (5.5 + tophat),
                             orbit=Orbit(Centaur.Alpha,
                                         year.light * (.2 + .02 * tophat),
@@ -124,13 +123,13 @@ Observatory.\n"""),
                                         Quantity(.8 + .42 * tophat,
                                                  doc="""Some uncertainty.
 
-Source says Proxima's orbit might be hyperbolic, i.e. eccentricity may exceed 1;
-but, if elliptical, seems to have period about half a mega-year.
-Using (1-e.e)**1.5 = 2*pi*L/T*(L/G/M)**.5 gives
+Source says Proxima's orbit might be hyperbolic, i.e. eccentricity may exceed
+1; but, if elliptical, seems to have period about half a mega-year.  Using
+(1-e.e)**1.5 = 2*pi*L/T*(L/G/M)**.5 gives
         1-e.e = L * (2*pi/T)**(2./3) / (G*M)**(1./3)
-If we assume L (the semi-latus rectum) is the R given, that comes out at
-1.59, making e.e negative; but all we know is R is somewhere between L/(1+e)
-and L/(1-e); exploiting L/(1-e) >= R, we can infer 1+e >= 1.59, used above.
+If we assume L (the semi-latus rectum) is the R given, that comes out at 1.59,
+making e.e negative; but all we know is R is somewhere between L/(1+e) and
+L/(1-e); exploiting L/(1-e) >= R, we can infer 1+e >= 1.59, used above.
 """)))
 
 Centaur.Proxima.NeighbourTable(4.3, (-1.6,-1.2,-3.8), 'M5e', .00006, 0.1)

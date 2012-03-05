@@ -4,8 +4,6 @@
   unique(seq) -- copy sequence, skipping duplicates
   deltas(seq [, step]) -- list of differences between entries in sequence
   median(seq) -- find entry, with as many >= it as <= it, in seq (or a mapping's keys)
-
-$Id: row.py,v 1.1 2008-05-12 08:47:00 eddy Exp $
 """
 
 def transpose(rows):
@@ -14,12 +12,12 @@ def transpose(rows):
     Only argument is a sequence of sequences.  Result is a list of tuples.  Each
     inner sequence of the input is effectively padded with None entries to the
     length of the longest, so that we may read the input as a `rectangular'
-    array: output[i][j] is input[j][i] for all.
+    array: output[i][j] is input[j][i] for all relevant i, j.
 
     The first inner sequence of the input provides the first members of the
     tuples in the result list; the first tuple of the result list consists of
     the first members of the inner sequences in the input.  For `first', read
-    nth(n) for any n; or read `last'; provided you do so throughout, truth is.
+    nth(n) for any n, provided you do so throughout.
 
     Transposing a tuple of lists will yield a list of tuples preserving the
     `position in tuple' and `position in list' of each entry. """
@@ -46,7 +44,7 @@ def deltas(seq, step=1):
 
     Required argument, seq, is a sequence of values between which subtraction is
     feasible.  Optional argument, step, defaults to 1.  Returns the list
-    (: seq[i+step] - seq[i] &larr; i).\n"""
+    (: seq[i+step] - seq[i] &larr; i :).\n"""
     return map(lambda x, y: y - x, seq[:-step], seq[step:])
 
 def median(seq):

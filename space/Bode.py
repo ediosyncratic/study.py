@@ -1,8 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """The Titius-Bode law, a.k.a. Bode's law:
 
-A mathematical formula which generates, with modest accuracy, the semimajor axes
-of the planets in order out from the Sun.  Write down the sequence
+A mathematical formula which generates, with modest accuracy, the semimajor
+axes of the planets in order out from the Sun.  Write down the sequence
         0, 3, 6, 12, 24, 48, 96, ...
 and add 4 to each term:
         4, 7, 10, 16, 28, 52, 100, ...
@@ -12,15 +12,16 @@ which reasonably approximate the semimajor axes of the planets, measured in
 astronomical units; more accurately they're
     0.38692, 0.72300, 1, 1.52296, 5.1998, 9.556, 19.25, 30.18, 39.59
 but the last few of these (which are better modelled by an arithmetic
-progression in steps of 10 AU) weren't known when the pattern was first noticed.
+progression in steps of 10 AU) weren't known when the pattern was first
+noticed.
 
 Bode's law had no theoretical justification when it was first introduced; it
 did, however, agree with the soon-to-be-discovered planet Uranus' orbit (19.25
-AU actual; 19.6 AU predicted).  Similarly, it predicted a missing planet between
-Mars and Jupiter, and shortly thereafter the asteroids were found in very
-similar orbits (2.77 AU actual for Ceres; 2.8 AU predicted).  The series,
-however, seems to skip over Neptune's orbit.  The form of Bode's law (that is, a
-roughly geometric series) is not surprising, considering our theories on the
+AU actual; 19.6 AU predicted).  Similarly, it predicted a missing planet
+between Mars and Jupiter, and shortly thereafter the asteroids were found in
+very similar orbits (2.77 AU actual for Ceres; 2.8 AU predicted).  The series,
+however, seems to skip over Neptune's orbit.  The form of Bode's law (that is,
+a roughly geometric series) is not surprising, considering our theories on the
 formation of solar systems, but its particular formulation is thought of as
 coincidental.  In particular, it is notable that the pattern from Saturn
 outwards is better modelled by an arithmetic series (in steps of 10 AU), whose
@@ -28,8 +29,8 @@ next value inwards would be roughly zero, -0.46 AU.
 
 (That's from http://www.alcyone.com/max/physics/laws/b.html, and 0.46 AU is
 about 100 times the Sun's radius; while
-http://www.astropa.unipa.it/versione_inglese/Hystory/BODE'S_LAW.htm gives some
-history, as follows.)
+http://www.astropa.unipa.it/versione_inglese/Hystory/BODE'S_LAW.htm
+gives some history, as follows.)
 
 The law first appeared in 1766 in a translation, by Johann Daniel Titius von
 Wittenberg, of Contemplation de la Nature (1764), by the French natural
@@ -38,13 +39,19 @@ correspondence with others.  Johann Bode repeated it in a foot-note, then went
 on to become a professional astronomer, so everyone cited him as source ...
 
 Herschel's discovery (March 1781) of Uranus encouraged various astronomers to
-search for a planet in the gap between Mars and Jupiter, where the law predicts
-a planet at 2.8 AU; in 1800, a team set up an international collaboration;
-starting on the first day of the next year, Piazzi made the first of a series of
-observations of what he soon realised was such a missing planet, which he named
-Ceres Ferdinandea.
+search for a planet in the gap between Mars and Jupiter, where the law
+predicts a planet at 2.8 AU; in 1800, a team set up an international
+collaboration; starting on the first day of the next year, Piazzi made the
+first of a series of observations of what he soon realised was such a missing
+planet, which he named Ceres Ferdinandea.
 
-$Id: Bode.py,v 1.9 2007-06-03 16:43:21 eddy Exp $
+It is possible to match the actual radii marginally better with an offset plus
+arithmetic series (as in Bode's law) if we use a factor slightly below two as
+ratio in the arithmetic series.  The hard part is optimizing the
+approximation. Alternatively, we can look at the patten from the outskirts
+inward and see the 10AU linear sequence from Neptune in to Saturn, with zero
+as next sequence entry, then describe the inner portion in terms of scaling
+down with an offset.
 """
 
 from study.snake.lazy import Lazy
@@ -123,6 +130,13 @@ Public methods:
             gap = map(lambda x, y: y - x, row[:-1], row[1:])
             rat = map(lambda x, y: (y / x).log, gap[:-1], gap[1:])
             cut = mid(rat) / 5
+
+	    # Could perhaps do better by considering every ratio of differences
+	    # among entries; these are all base**j * (base**i - 1)/(base**k - 1)
+	    # if we do things in the right order; and every difference between
+	    # entries with adjacent indices yields, where it's used as
+	    # denominator, a simple k = 1 so these ratios are base**j *
+	    # (base**(i-1) + ... + base**2 + base + 1)
 
             score = rat[0]
             while score < cut:

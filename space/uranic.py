@@ -1,7 +1,5 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Uranus.
-
-$Id: uranic.py,v 1.3 2007-03-24 22:42:21 eddy Exp $
 """
 
 from study.value.units import mega, metre, km, tophat

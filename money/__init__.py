@@ -4,8 +4,6 @@
 Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
-
-$Id: __init__.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 from study.value.quantity import base_unit, tophat
 

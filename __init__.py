@@ -23,9 +23,17 @@ the attributes we actually want).  In particular, the data should not be part of
 this package: it should be contained in data files digested by the code in this
 package.  However, this requires some fairly far-reaching re-design, so I'll
 make do with what I have in the mean time ;-)
-
-$Id: __init__.py,v 1.7 2008-11-21 08:16:46 eddy Exp $
 """
+# TODO: PEP 8 conformance
+# rename class-parameters to cls (from mode, klaz, etc.)
+# prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
+# purge any type(blah) == what checks in favour of insinstance
+# purge CVS cruft (and switch to git)
+# use __all__ ?
+
+# TODO: reStructuredText conversion
+# Modify doc-strings to use reStructuredText; in each module, once
+# converted, specify global __docformat__ = 'restructuredtext'
 
 # Basics:
 import snake

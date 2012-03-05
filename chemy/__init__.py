@@ -9,6 +9,4 @@
  planck -- Planck's units
  substance -- properties of some substances
  thermal -- black-body radiator
-
-$Id: __init__.py,v 1.2 2007-04-09 00:40:15 eddy Exp $
 """

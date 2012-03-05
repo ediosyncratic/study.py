@@ -1,8 +1,6 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
-
-$Id: root.py,v 1.7 2007-03-24 15:53:22 eddy Exp $
 """
 
 class Search:

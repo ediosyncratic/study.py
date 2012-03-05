@@ -54,20 +54,18 @@ See also:
     Extrasolar Planets -- http://antwrp.gsfc.nasa.gov/apod/ap010817.html
 
 Note: brightness of stars is given as 'magnitude' on a logarithmic scale where
-five units is a factor of 100; i.e. the unit of magnitude is 100**.2, just over
-2.5.
+five units is a factor of 100; i.e. the unit of magnitude is 100**.2, just
+over 2.5.
 
 Todo: replace all the source-specific constructors.  Instead, have minimal
 constructors for objects whose classes support 'fill in my details' methods
 specific to the relevant sources.  Causes all manner of grief: sub-bands of
-Saturn's rings need to know that's what they are before they know their radii or
-those of the bands in which they're implanted.  Has some nice effects, though: a
-minimal structure can be built that fills itself in on demand by imporing
-modules that just cause the side effects of refining data.  Requires total
-revolution.  Also demands that I find the assorted sources again so as to record
-each separately, as the present data is a mish-mash of them all.
-
-$Id: __init__.py,v 1.10 2007-07-08 02:08:33 eddy Exp $
+Saturn's rings need to know that's what they are before they know their radii
+or those of the bands in which they're implanted.  Has some nice effects,
+though: a minimal structure can be built that fills itself in on demand by
+imporing modules that just cause the side effects of refining data.  Requires
+total revolution.  Also demands that I find the assorted sources again so as
+to record each separately, as the present data is a mish-mash of them all.
 """
 
 from study.snake.lazy import Lazy

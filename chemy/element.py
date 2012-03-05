@@ -12,8 +12,6 @@ For data, see (inter alia): http://www.webelements.com/
 
 TODO: convert to use a minimalist constructor with source-specific data-supply
 methods; this module can be converted with minimal entanglement with others.
-
-$Id: element.py,v 1.15 2008-09-21 10:50:34 eddy Exp $
 """
 from study.value.units import Object, Sample, Quantity, \
      mega, kilo, harpo, tophat, sample, year, \
@@ -31,8 +29,7 @@ def nucleus(Q, N, name, **what):
     except IndexError, TypeError: klaz = Nucleus # e.g. when N is a Sample
     return klaz(**what)
 
-class Atom (Particle):
-    _namespace = 'Atom.item'
+class Atom (Particle): _namespace = 'Atom.item'
 class bAtom (Boson, Atom): 'Bosonic atom'
 class fAtom (Fermion, Atom): 'Fermionic atom'
 def atom(Q, N, name, symbol, doc, **what):
@@ -70,7 +67,7 @@ class Temperatures (Object):
     __upinit = Object.__init__
     __zero = 0 * Kelvin
     def __init__(self, melt=None, boil=None, **what):
-        assert(melt is None or boil is None or melt + self.__zero <= boil)
+        assert melt is None or boil is None or melt + self.__zero <= boil
         if melt is not None: what['melt'] = melt
         if boil is not None: what['boil'] = boil
         self.__upinit(**what)
@@ -112,7 +109,7 @@ class Isotope (Substance):
         # So we record the attempt even if we fail to put it into effect ...
 
         if self.__names: self.__names.append(self.__name)
-        else: self.__names = [ self.symbol, self.name ]
+        else: self.__names = [ self.name ]
         self.__names.insert(0, self.symbol)
 
         try: del self.name
@@ -715,6 +712,64 @@ Thoron = Radon[220].nominate('Thoron', 'Tn')
 deuteron = Deuterium.atom.nucleus
 triton = Tritium.atom.nucleus
 alpha = Helium[4].atom.nucleus
+
+# Nuclear reactions in stars (nucleosynthesis):
+# http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node8.html
+# (With some adjustments, suggested to author as possibly corrections.)
+# Main sequence, temperature > 12 MK:
+#  p-p chain a: 
+#   H[1] + H[1] -> positron + neutrino + H[2]
+#   H[2] + H[1] -> gamma + He[3]
+#   He[3] + He[3] -> H[1] + H[1] + He[4]
+#  p-p chain b:
+#   He[3] + He[4] -> gamma + Be[7]
+#   Be[7] + electron -> Li[7] + neutrino
+#   Li[7] + H[1] -> He[4] + He[4]
+#  p-p chain c:
+#   Be[7] + "&mu;" -> gamma + B[8]
+#   B[8] -> positron + neutrino + Be[8]
+#   Be[8] -> He[4] + He[4]
+#  C-N cycle (dominates for stellar mass > about 1.2 * Sun.mass):
+#   N[15] + H[1] -> He[4] + C[12]
+#   C[12] + H[1] -> gamma + N[13]
+#   N[13] -> positron + neutrino + C[13] # sole source of C[13]
+#   C[13] + H[1] -> gamma + N[14]
+#   N[14] + H[1] -> gamma + O[15]
+#   O[15] -> positron + neutrino + N[15]
+#  Extending that to the C-N-O cycle:
+#   N[15] + H[1] -> gamma + O[16]
+#   O[16] + H[1] -> gamma + F[17]
+#   F[17] -> positron + neutrino + O[17]
+#   O[17] + H[1] -> He[4] + N[14]
+#  O-F extras:
+#   O[17] + H[1] -> gamma + F[18]
+#   F[18] -> positron + neutrino + O[18]
+#   O[18] + H[1] -> He[4] + N[15]
+#   O[18] + H[1] -> gamma + F[19]
+#   F[19] + H[1] -> He[4] + O[16]
+# http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node12.html
+# The core Helium burning (CHeB) phase, which ends the red giant phase:
+#  Triple-alpha process, temperature > c. 100 MK)
+#   He[4] + He[4] -> Be[8] # NB: Be[8] has a half-life of c. 7e-16s, limiting next step !
+#   Be[8] + He[4] -> C[12](excited)
+#   C[12](excited) -> gamma + gamma + C[12]
+#  This can continue as:
+#   C[12] + He[4] -> gamma + O[16]
+#   O[16] + He[4] -> gamma + Ne[20]
+#   Ne[20] + He[4] -> gamma + Mg[24]
+#  The C-N cycle leaves N[14] from which to seed:
+#   N[14] + He[4] -> gamma + F[18] # thence to O[18] as above
+#   O[18] + He[4] -> gamma + Ne[22]
+# Asymptotic Giant Branch phase; He exhausted, second red-giant phase:
+#  H-burning shell (outside He-shell):
+#   p-p chains and C-N cycle, as earlier
+#  He-burning shell (s-process actions on p-p and C-N products):
+#   C[13] + He[4] -> neutron + O[16]
+#   Ne[22] + He[4] -> neutron + Mg[25]
+#   neutron-addition then pushes elements above Fe[56] (s(low)-process and r(apid)-process).
+#  Extra C[13] production (see sole source, above) when H[1] gets into the
+#  C-rich core; and "hot bottom burning" (stars with mass > Sun.mass * 4, T > 50
+#  MK in H-shell) does more.
 
 del Object, Sample, Quantity, mega, kilo, harpo, tophat, \
     Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, year, metre, mol, torr, cc, \

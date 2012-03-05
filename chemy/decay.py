@@ -23,7 +23,11 @@ modest half-life, during which this intermediate can run into the third party.
 Description of reactions/decays is thus quite a subtle problem.  Which is my
 excuse for the present implementation being over-simple ...
 
-$Id: decay.py,v 1.6 2008-05-11 15:47:38 eddy Exp $
+TODO: add (and integrate this with) a class to model reactions generally; need
+to take account of how ingredients are mixed (depends on pressure, temperature,
+via frequencies of relevant collisions with various amounts of energy; c.f. the
+nucleosynthesis data in elements.py); should be able to infer rates from
+activation energies and mixing data.
 """
 import math # del it later
 _ln2 = math.log(2)
@@ -62,8 +66,7 @@ def ratedDecay(source, halflife, *procs):
 
       Equally, the proportion of decays that follow each of the processes is
       proportional to its rate.  Thus the rate for each process is just sum(r)
-      times the proportion of decays that follow that process.
-    """
+      times the proportion of decays that follow that process.\n"""
 
     scale = sum(map(lambda x: x[0], procs)) * halflife / _ln2
     procs = tuple(map(lambda p, s=scale: (p[0] / s,) + tuple(p[1:]), procs))
@@ -73,8 +76,7 @@ from study.snake.lazy import Lazy
 from study.value.units import second
 
 class Decay (Lazy):
-    """Describes all the decays of some species of particle.
-    """
+    """Describes all the decays of some species of particle."""
 
     def __init__(self, source, *procs):
         """Initialises a Decay description.
@@ -94,8 +96,8 @@ class Decay (Lazy):
               None (in which case the energy defecit between other yields and
               what decayed will be computed - no matter how bogusly), and
 
-            * all subsequent members are decay products, which must be
-              Particle()s, of the decay mode which, at the given rate, releases
+            * all subsequent members are decay products, each of which must be a
+              Particle(), of the decay mode which, at the given rate, releases
               the given energy.
 
         Each such sequence is used to construct an object holding the decay rate
@@ -104,7 +106,7 @@ class Decay (Lazy):
         be accessible as the members of self.processes, a tuple.
 
         The overall rate of decay of self.source is provided by self.rate; it is
-        simply the sum of the .rate attributes over self.processes. """
+        simply the sum of the .rate attributes over self.processes.\n"""
 
         self.source = source
         row, rate = [], 0 / second

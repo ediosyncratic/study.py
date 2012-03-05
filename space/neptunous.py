@@ -5,8 +5,6 @@ It's also accompanied in its orbit by a host of trojans:
 http://www.space.com/scienceastronomy/070130_st_neptune_trojans.html
 The ones found to date are at its forward Lagrange point, L4; and the New
 Horizons probe shall pass near its trailing one, L5, en route to Pluto.
-
-$Id: neptunous.py,v 1.4 2007-03-24 22:42:21 eddy Exp $
 """
 
 from study.value.units import mega, metre, km

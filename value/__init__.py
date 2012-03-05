@@ -9,6 +9,4 @@ Fragments:
   sample -- describes a number with uncertain value
   SI -- the base units of SI
   units -- other vaguely sensible units
-
-$Id: __init__.py,v 1.2 2007-04-09 00:42:38 eddy Exp $
 """

@@ -1,7 +1,5 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
-
-$Id: common.py,v 1.11 2008-05-11 19:53:03 eddy Exp $
 """
 from study.value.units import tophat, arc, pi, Object, second
 
@@ -91,8 +89,7 @@ class Orbit (Round):
         direction of the orbit's velocity at closest approach.
 
         [1] http://csep10.phys.utk.edu/astr161/lect/history/kepler.html
-        [2] http://www.chaos.org.uk/~eddy/physics/cocentric.html
-        """
+        [2] http://www.chaos.org.uk/~eddy/physics/cocentric.html\n"""
         ws = []
 	try: ws.append(what['speed'] / radius)
 	except KeyError: pass
@@ -205,6 +202,7 @@ class SurfacePart (Object):
         exec '_lazy_get_%s_ = proportion' % nom
     del proportion
 
+    # Fails to deliver Earth.surface.Ocean.volume :-(
     extensives = ( 'area', 'mass', 'volume', 'population' )
     def extensive(self, prop):
         ans = None
@@ -246,7 +244,13 @@ class Surface (Spheroid, Round, SurfacePart):
 	"""Radius for synchronous orbit."""
 	return (self.gravity * (self.radius / self.spin.omega) ** 2)**third
 
-class Ocean (SurfacePart): pass
+class Ocean (SurfacePart):
+    __upvol = SurfacePart._lazy_get_volume_
+    def _lazy_get_volume_(self, ig):
+        # guesstimate approximately "conical":
+        try: return self.depth * self.area / 3
+        except AttributeError: return self.__upvol(ig)
+
 class LandMass (SurfacePart): pass
 class Continent (LandMass): pass
 class Island (LandMass): pass # also used for groups of islands

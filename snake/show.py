@@ -2,7 +2,8 @@
 
   printmenu -- prints an unordered list in multi-column format
 
-$Id: show.py,v 1.4 2008-08-24 20:56:01 eddy Exp $
+Note that this may be adapted to work more like the standard library's
+textwrap.TextWrapper, if I ever find the time.
 """
 from row import transpose
 try:
@@ -11,8 +12,9 @@ try:
     finally: del environ
 except (KeyError, ValueError, ImportError): wide = 72
 
-def printmenu(menu=None, width=wide, flip=transpose):
-    """Pretty-prints the known errors.
+def printmenu(menu=None, width=wide,
+              flip=transpose):
+    """Pretty-prints the given menu items.
 
     Arguments are optional (but omitting the first makes this a no-op):
 
@@ -21,13 +23,15 @@ def printmenu(menu=None, width=wide, flip=transpose):
       width -- width of available display (default: int(os.environ['COLUMNS'])
                if available, else 72): the output will be formatted in a table
                with as many columns as the display permits.  Any sufficiently
-               low value (e.g. 0) will force single-column output, which ignores
-               width.
+               low value (e.g. 0) will force single-column output, which
+               ignores width.
 
     Single-column output will respect the order of the given sequence; for
-    multi-column output, the strings are sorted by length so that the strings in
-    each column are all of similar length; this is a display-space-saving
+    multi-column output, the strings are sorted by length so that the strings
+    in each column are all of similar length; this is a display-space-saving
     optimisation.\n"""
+    # TODO: within each column, preserve the order prior to sorting ?
+    # This would make the single-column case less anomalous.
     if not menu: return
 
     def lines(fmt, seq):
@@ -74,10 +78,11 @@ def printmenu(menu=None, width=wide, flip=transpose):
         """Minor tidy-up *after* transpose.
 
         In effect, transpose reads cols as a rectangle, substituting None into
-        any gaps left by cols of varying length: tidy takes out any instances of
-        None at the ends of the resulting rows (safe in the knowledge that these
-        are gap-fillers inserted as above, and that there will be at most one in
-        each row since only the last column might be shorter than the rest). """
+        any gaps left by cols of varying length: tidy takes out any instances
+        of None at the ends of the resulting rows (safe in the knowledge that
+        these are gap-fillers inserted as above, and that there will be at
+        most one in each row since only the last column might be shorter than
+        the rest)."""
 
         if not seq[-1]: return tuple(seq[:-1]) + ('',)
         return tuple(seq)
