@@ -27,9 +27,9 @@ def dumb(data, ten=10):
     argument 'ten', whose default is 10 (the abuse of language and notation is
     deliberate).\n"""
 
-    num = 0
+    num, seq = 0, iter(data)
     while data:
-        (hi, lo), data = divmod(data[0], 16), data[1:]
+        (hi, lo) = divmod(seq.next(), 16)
         num = lo + ten * (hi + ten * num)
 
     return num
