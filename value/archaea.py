@@ -507,6 +507,7 @@ pond = gram.weight
 
 # Miscellaneous units
 jiffy = second / 60 # but also s/100 and ms ...
+Atmosphere.technical = kg.weight / cm**2
 
 TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
                """The conventional unit of power of explosions

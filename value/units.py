@@ -475,8 +475,7 @@ hit-frequency.  Contrast study.chemy.physics's Cosmos.temperature (of the
 # Non-SI but (relatively) scientific:
 atm = Atmosphere = Quantity(101325, Pascal,
                             """Standard Atmospheric Pressure""",
-                            'atm', 'Atmoshpere',
-                            technical = kg.weight / cm**2)
+                            'atm', 'Atmoshpere')
 
 # Standard temperature and pressure:
 mol.STP = Quantity(Centigrade(0) / atm, {},
