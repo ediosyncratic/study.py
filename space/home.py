@@ -170,7 +170,7 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
     age = Quantity(4.6e9, year, # Peter Francis, age of solar system [missing error bar]
                    lifespan = 1e18 * second, # Nuffield, order of magnitude
                    remain = (5 + tophat) * giga * year), # plus c. 2e9 years as a white dwarf
-    magnitude = qSample({}, low=4.79, high=4.83), # K&L, Moore
+    magnitude = Quantity.flat(4.79, 4.83), # K&L, Moore
     aliases = ('Sol',))
 
 del load_rubble
@@ -340,12 +340,12 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                                  IAisland('Iceland', .039768),
                                  IAisland('Formosa', .013855)),
                         name = 'Land',
-                        height = Quantity(qSample({}, mean = 840,
-                                                  low = 0, high = 8840),
-                                          metre)),
+                        height = Quantity.flat(0, 8840, mean = 840) * metre),
 
             # misc other data:
             rainfall = .125e18 * kg / year,
+            # but c. half a million km**3/year according to
+            # http://www.globalchange.umich.edu/globalchange2/current/lectures/freshwater_supply/freshwater.html
             flattening = 1 / 298.25,
             albedo = .39, # so 61% of incident radiation is absorbed
             # but total solar power available at surface is 1/8 of that in space:
@@ -444,11 +444,9 @@ century at present, though its average over the last 2500 years is more like
 
 Earth.surface.radius.observe(6.37814 * mega * metre) # NASA
 Earth.mass.observe(5.9742e24 * kg)
-Earth.orbit.radius.observe(Quantity(qSample({},
-                                            low = 147.1e9, # perihelion
-                                            high = 152.1e9, # aphelion
-                                            best = 1000001017.8 * 149.597871), # mean
-                                    metre))
+Earth.orbit.radius.observe(Quantity.flat(147.1e9, # perihelion
+                                         152.1e9, # aphelion
+                                         1000001017.8 * 149.597871) * metre)
 
 del IAcontinent, IAisland, IAocean
 
