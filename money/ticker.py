@@ -422,10 +422,12 @@ class StockSVG (Cached):
         except ValueError: pass
         else: return date(when.tm_year, when.tm_mon, when.tm_mday)
 
+        try: when = parse(what, '%d %b')
+        except ValueError:
+            if what.endswith('.'): raise # can't fix
+            when = parse(what + '.', '%d %b')
+
         if now is None: now = date.today()
-        if what.endswith('.'): when = what
-        else: when = what + '.'
-        when = parse(when, '%d %b')
         when = date(now.year, when.tm_mon, when.tm_mday)
         if when > now: # year rolled round since page generated ?
             then = date(now.year - 1, when.month, when.day)
@@ -433,11 +435,15 @@ class StockSVG (Cached):
                 return then
         return when
 
-    def readtime(what, getdate=withlocale(locale.LC_TIME, "nb_NO")(readdate),
+    def readtime(what, alt=readdate,
+                 getdate=withlocale(locale.LC_TIME, "nb_NO")(readdate),
                  today=datetime.date.today, parse=time.strptime):
         now = today()
         try: return getdate(what, now)
-        except ValueError: pass
+        except ValueError:
+            try: return alt(what, now)
+            except ValueError: pass
+
         parse(what, '%H:%M') # daytime format
         # That may raise ValueError again - try other formats ?
         return now
