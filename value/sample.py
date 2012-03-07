@@ -879,13 +879,11 @@ class joinWeighted (curveWeighted):
             raise apply(ZeroDivisionError,
                         bad + ('calling', f, 'on', (a, b), (x, y)))
 
+        row.sort()
         return tuple(row)
     del single, morebad
 
-    def __combine(self, other, func, count,
-                  quad=corners,
-                  # Interpolator as list of (lo, hi, w) triples:
-                  chop=lambda i: i.map(lambda *args: args)):
+    def __combine(self, other, func, count, quad=corners):
         """Generate a combined distribution.
 
         Takes exactly three arguments:
@@ -929,14 +927,14 @@ class joinWeighted (curveWeighted):
         except AttributeError:
             you = Weighted(other).interpolator
 
-        your, our, cuts = chop(you), [], set()
-        for m in chop(me):
+        your, our, cuts = tuple(you.filter()), [], set()
+        for m in me.filter():
             for y in your:
-                all = quad(func, m[:-1], y[:-1])
-                lo, hi = min(all), max(all)
-                our.append((lo, hi, m[-1] * y[-1]))
-                cuts.add(lo)
-                cuts.add(hi)
+                all = quad(func, m[:-1], y[:-1]) # it's .sort()ed.
+                our.append((all[0], all[-1], m[-1] * y[-1]))
+                assert our[-1][-1], "I filtered out the zero weights !"
+                cuts.add(all[0])
+                cuts.add(all[-1])
 
         our.sort() # sorts by our[i][0] primarily
         cuts = list(cuts)
@@ -973,6 +971,7 @@ class joinWeighted (curveWeighted):
                     else: live.append(b)
                 elif step: hi, step = spike.next(), False
                 else:
+                    # TODO: encode as Interval.weigh() implementations
                     tot, part, wide = part, 0 * part, hi - lo
                     for (l, h, w) in live:
                         assert lo <= h and l <= hi
