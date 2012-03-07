@@ -49,7 +49,7 @@ class Interpolator (Cached):
     @lazyprop
     @postcompose(tuple)
     def spikes(self, cls=None):
-        """Returns a list of self's degenerate values.
+        """Returns a tuple of self's degenerate values.
 
         If self has non-zero weight in an interval that ends where it starts,
         this indicates a spike in the distribution - a delta function in the
@@ -58,11 +58,26 @@ class Interpolator (Cached):
 
         Note that combining spikes with non-zero density intervals presents
         problems for analysis of correct behaviour.\n"""
-        seq = iter(self.cuts)
-        last = seq.next()
-        for it in seq:
-            if it == last: yield it
-            last = it
+        for (l, h, w) in self.filter(lambda l, h, w: l == h):
+            yield h
+
+    def filter(self, test=lambda l, h, w: w):
+        """Express self as a sequence of non-empty intervals.
+
+        Single argument, test, is optional.  If given, it should be afunction
+        taking a (start, end, weight) triple, as for map()'s func, and
+        returning a true or false value according as this triple is to be
+        included or excluded.  The default selects intervals of non-zero
+        weight.
+
+        Returns an iterator over triples (cuts[i], cuts[i+1], mass[i]) where
+        test was true.\n"""
+        for l, h, w in self:
+            if test(l, h, w): yield l, h, w
+
+    def __iter__(self):
+        for (l, h, w) in self.map(lambda *args: args):
+            yield l, h, w
 
     @staticmethod
     def density(lo, hi, wt):
@@ -107,7 +122,9 @@ class Interpolator (Cached):
         and a ValueError is raised if it fails; otherwise, to is ignored).  If
         neither is passed, to = 1 is applied; this provides the natural
         normalisation for a probability distribution.  If by is not passed and
-        self.total is zero, a ValueError is raised.
+        self.total is zero, a ValueError is raised, as the desired scaling
+        cannot be attained (unless to is zero, but asking for that would be
+        silly anyway).
 
         Returns an Interpolator with the same cuts as self but mass scaled as
         specified.\n"""
