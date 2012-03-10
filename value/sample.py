@@ -403,7 +403,8 @@ class repWeighted (curveWeighted):
         self's median can be obtained as the single entry in self.niles(1,
         True) or as the middle entry of self.niles(2)."""
 
-        if n < 1: raise ValueError('Can only subdivide range into positive number of parts', n)
+        if n < 1: raise ValueError(
+            'Can only subdivide range into positive number of parts', n)
         if mid: return self.interpolator.split([ 1 ] + [ 2 ] * n + [ 1 ])
         else:   return self.interpolator.split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
@@ -703,7 +704,7 @@ class joinWeighted (curveWeighted):
 
         for key, val in mites:
             val = val * scale
-            if val < 0: raise ValueError, ('Negative weight', val, key, scale)
+            if val < 0: raise ValueError('Negative weight', val, key, scale)
             if isinstance(key, Sample): key = key.mirror
 
             if isinstance(key, joinWeighted): self.add(key, val, func)
@@ -1066,7 +1067,7 @@ class statWeighted (_baseWeighted):
 
         See, for comparison, joinWeighted.condense() and repWeighted.niles(). """
 
-        if not self: raise ValueError, 'Taking median of an empty population'
+        if not self: raise ValueError('Taking median of an empty population')
         if len(self) == 1: return self.keys()[0] # trivial case
 
         row = self.sortedkeys
@@ -1163,7 +1164,7 @@ class statWeighted (_baseWeighted):
         """Returns variant on self normalised to have .total() equal to 1."""
         sum = self.total()
         if sum == 1: return self
-        if not sum: raise ZeroDivisionError, (
+        if not sum: raise ZeroDivisionError(
             'Attempted to normalise zero-sum mapping', self)
 
         # NB: sum *might* itself be a weighted thing
@@ -1207,7 +1208,7 @@ class statWeighted (_baseWeighted):
 
     def mode(self):
         row = self.modes()
-        if not row: raise ValueError, 'empty population has no mode'
+        if not row: raise ValueError('empty population has no mode')
         if len(row) < 2: return row[0] # easy case
         row, n = list(row), len(row)
         row.sort()
@@ -1268,7 +1269,7 @@ class _Weighted (Object, _baseWeighted):
 
     def __setitem__(self, key, val):
         val = float(val)
-        if val < 0: raise ValueError, ('Negative weight', key, val)
+        if val < 0: raise ValueError('Negative weight', key, val)
 
         if val > 0:
             self.__weights[key] = val
@@ -1424,7 +1425,8 @@ class Sample (Object):
         except AttributeError:
             self.__best = []
             if not weights and what.get('low', None) is None and what.get('high', None) is None:
-                raise TypeError, 'What kind of numeric Sample has no data at all ?'
+                raise TypeError(
+                    'What kind of numeric Sample has no data at all ?')
         else:
             def flatten(b):
                 """Coerce a Sample or Weighted to a scalar."""
@@ -1607,10 +1609,11 @@ class Sample (Object):
             else: lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
         except AttributeError:
             if not what:
-                raise ZeroDivisionError, ('Dividing by zero', self, what)
+                raise ZeroDivisionError('Dividing by zero', self, what)
         else:
             if lo == 0 == hi or lo * hi < 0:
-                raise ZeroDivisionError, ('Dividing by interval about 0', self, what)
+                raise ZeroDivisionError('Dividing by (interval about) 0',
+                                        self, what)
 
         return self.join(f, what)
     __truediv__ = __div__
@@ -1619,7 +1622,7 @@ class Sample (Object):
         w = self.__weigh
         lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
         if lo == 0 == hi or lo * hi < 0:
-            raise ZeroDivisionError, ('Dividing by interval about 0', what, self)
+            raise ZeroDivisionError('Dividing by interval about 0', what, self)
 
         return self.join(f, what)
     __rtruediv__ = __rdiv__
@@ -1746,8 +1749,8 @@ class Sample (Object):
     def _lazy_get_variance_(self, ignored):
         try: total, self.mean, vary = self.__weigh._variance()
         except (ValueError, ZeroDivisionError):
-            raise ValueError, ('Seeking variance of degenerate distribution',
-                               self.__weigh)
+            raise ValueError('Seeking variance of degenerate distribution',
+                             self.__weigh)
         return vary
 
     def _lazy_get_width_(self, ignored): return self.span[1] - self.span[0]
