@@ -27,9 +27,9 @@ class Interpolator (Cached):
         increasing order.  The distribution described has weight mass[i]
         between cuts[i] and cuts[i+1].\n"""
         assert len(mass) + 1 == len(cuts)
+        assert not filter(lambda x: x < 0, mass)
         self.cuts, self.mass = tuple(cuts), tuple(mass)
-        assert not filter(None, map(lambda x, y: y < x,
-                                    self.cuts[:-1], self.cuts[1:])), \
+        assert not filter(None, self.map(lambda x, y, w: y < x)), \
             ("Cuts should be sorted", self.cuts)
 
     def __len__(self): return len(self.mass)
@@ -60,6 +60,18 @@ class Interpolator (Cached):
         problems for analysis of correct behaviour.\n"""
         for (l, h, w) in self.filter(lambda l, h, w: l == h):
             yield h
+
+    def simplify(self, count):
+        """Returns a simplified version of self.
+
+        Single argument, count, is a target value for len() of the
+        result.  This base implementation splits self into count equal
+        intervals; derived classes might chose to do something more
+        sophisticated.\n"""
+        cuts = self.split([0] + [1] * count + [0])
+        mass = self.weigh(cuts)
+        assert not mass[0] and not mass[-1]
+        return self.__interpolator__(cuts, mass[1:-1])
 
     def filter(self, test=lambda l, h, w: w):
         """Express self as a sequence of non-empty intervals.
@@ -353,13 +365,31 @@ class Interpolator (Cached):
         adapt sensibly when any of the spans in question is zero.\n"""
         raise NotImplementedError
 
+    def combine(self, func, other):
+        """Combine two interpolators.
+
+        Required arguments:
+          func -- a callable; see below
+          other -- a second interpolator
+
+        For various values of x drawn from self's range of values and y from
+        other's, func(x, y) shall be called; what it returns shall be used to
+        select cut-points for the result and to compute the weights between
+        them.
+
+        The result may well have many more cut-points than self or other;
+        callers may benefit from calling .simplify(n) on the result, for some
+        suitable n.\n"""
+        raise NotImplementedError
+
 del Cached, postcompose
 
 class PiecewiseConstant (Interpolator):
     """Interpolator based on a piecewise constant function.
 
     Implements Interpolator by treating each interval between cuts as a
-    uniform distribution with the indicated total weight.  Crude but
+    uniform distribution with the indicated total weight, save that each spike
+    is (as usual) treated as a simple weight at the spike value.  Crude but
     straightforward.  For method documentation, check matching methods of
     Interpolator.\n"""
 
@@ -372,18 +402,26 @@ class PiecewiseConstant (Interpolator):
         ans, prior, i = [], cut[0], 0
         for w in map(lambda x, s=scale: x*s, weights[:-1]):
 
-            avail = load[i]
+            try: avail = load[i]
+            except IndexError: avail = 0
             # Maybe starting part way through a band:
             if prior > cut[i]:
                 avail *= (cut[1+i] - prior) / (cut[1+i] - cut[i])
 
             # Swallow any bands we can:
-            while w >= avail:
-                w, i, prior = w - avail, 1+i, cut[1+i]
-                avail = load[i]
+            try:
+                while w >= avail:
+                    w, i, prior = w - avail, 1+i, cut[1+i]
+                    avail = load[i]
+            except IndexError: # fell off end
+                # There's no weight left to the right of prior
+                assert 1e-6 * sum(weights) > sum(weights[len(ans)+1:])
+                # Modulo rounding, w should now be zero
+                assert 1e-6 * self.total > w
+                w = 0 # don't let rounding errors mess us up below
 
             # grab what we need from present band:
-            if w > 0: prior = prior + w * (cut[i+1] - cut[i]) / load[i]
+            if w > 0: prior += w * (cut[i+1] - cut[i]) / load[i]
             ans.append(prior)
 
         return tuple(ans)
@@ -454,7 +492,7 @@ class PiecewiseConstant (Interpolator):
                         # out-of-order entries in seq - or mis-incremented i.
                         assert seq[s-1] >= stop, \
                             'Apparently, I incremented i in error'
-                        s = 1 + s # and leave last alone ...
+                        s += 1 # and leave last alone ...
 
                     elif stop < cut[1+i]:
                         if last is None: last = cut[i]
@@ -462,15 +500,17 @@ class PiecewiseConstant (Interpolator):
                             result[s] += load[i] * (stop - last) / (cut[1+i] - cut[i])
                         last, s = stop, 1 + s
 
-                    elif cut[i] == stop == cut[i+1] and not 0 < i < len(seq):
+                    elif cut[i] == stop == cut[i+1]:
                         assert last is None
-                        weight, i = load[i], i + 1
-                        while cut[i+1] == stop:
-                            weight += load[i]
-                            i += 1
+                        if s < 1 and seq[1] == stop: s += 1
+                        else:
+                            weight, i = load[i], i + 1
+                            while cut[i+1] == stop:
+                                weight += load[i]
+                                i += 1
 
-                        s = self.__share(weight, result, seq, s)
-                        assert s >= len(seq) or seq[s] > stop
+                            s = self.__share(weight, result, seq, s)
+                            assert s >= len(seq) or seq[s] > stop
 
                     else:
                         if last is not None:
@@ -479,7 +519,8 @@ class PiecewiseConstant (Interpolator):
                             last, i = None, 1 + i
 
                         while stop >= cut[1+i]:
-                            if stop <= cut[i]: break # __share(load[i],...)
+                            # Do we need to __share(load[i],...) ?
+                            if stop <= cut[i] and 1 < s + 1 < len(seq): break
                             result[s] += load[i]
                             i += 1
 
@@ -512,6 +553,9 @@ class PiecewiseConstant (Interpolator):
             one += w * (c + last) / 2
             two += w * (c * c + last * c + last * last) / 3
 
+        if not zero: raise ValueError(
+            'Degenerate distribution has no mean or variance', self)
+
         mean = one / zero
         two /= zero
         # If difference > 10%, assume the real difference drowned any rounding
@@ -525,8 +569,7 @@ class PiecewiseConstant (Interpolator):
         last = cut.next() - mean
         for c in cut:
             c -= mean
-            w = siz.next()
-            two += w * (c * c + last * c + last * last) / 3
+            two += siz.next() * (c * c + last * c + last * last) / 3
             last = c
 
         return mean, two / zero
@@ -553,7 +596,8 @@ class PiecewiseConstant (Interpolator):
         cuts = list(set(self.cuts + other.cuts)) + list(spikes)
         cuts.sort()
         me, yo = self.weigh(cuts), other.weigh(cuts)
-        assert me[0] == 0 == me[-1] and yo[0] == 0 == yo[-1]
+        assert 1e-6 * self.total > max(me[0], me[-1])
+        assert 1e-6 * other.total > max(yo[0], yo[-1]), (self, other, cuts)
         me, yo = me[1:-1], yo[1:-1]
         assert len(cuts) - 1 == len(me) == len(yo) > 0
 
@@ -562,7 +606,7 @@ class PiecewiseConstant (Interpolator):
         return self.__interpolator__(cuts, mass)
 
     @classmethod
-    def __clean(cls, cuts, mass):
+    def __clean(cls, cuts, mass): # tool for __mul__
         """Eliminate cuts between intervals of equal density.
 
         Takes two arguments, a list of cuts and a list of masses in the
@@ -587,7 +631,7 @@ class PiecewiseConstant (Interpolator):
         return cuts, mass
 
     @staticmethod
-    def __mul(lo, hi, me, yo):
+    def __mul(lo, hi, me, yo): # tool for __mul__
         """Implements the required per-interval multiplication.
 
         If lo == hi, we're on a mutual spike whose weight should be the
@@ -602,7 +646,8 @@ class PiecewiseConstant (Interpolator):
         cuts = list(set(self.cuts + other.cuts)) + list(spikes)
         cuts.sort()
         me, yo = self.weigh(cuts, 1), other.weigh(cuts, 1)
-        assert me[0] == 0 == me[-1] and yo[0] == 0 == yo[-1]
+        assert 1e-6 * self.total > max(me[0], me[-1])
+        assert 1e-6 * other.total > max(yo[0], yo[-1])
         me, yo = me[1:-1], yo[1:-1]
         assert max(map(abs, (sum(me)-1, sum(yo)-1))) < 1e-5
         assert len(cuts) - 1 == len(me) == len(yo) > 0
@@ -624,5 +669,310 @@ class PiecewiseConstant (Interpolator):
 
         cuts, mass = self.__clean(cuts, mass)
         return self.__interpolator__(cuts, mass)
+
+
+    def single(f, a, x, b, y): # tool-function for __join
+        """Kludge round divide-by-zero errors.
+
+        First argument, f, is a function; subsequent arguments a, x, b, y are
+        interval end-point values; we want to compute f(a, x) and but this may
+        divide by zero.  When it does, we invent a suitable replacement value,
+        for a relevant bound of f's values with first input ranging from a to
+        b and second ranging from x to y.
+
+        Consider (first) what would happen if f(a, x) were a/x and x were
+        0.  For simplicity, suppose a and b are equal, in this case.  So we
+        want the range of values of a/z with x = 0 < z <= y (or y >= z > 0 =
+        x).  We're really modelling a random variate, Z, distributed over the
+        interval between x and y; and want to model the variate a/Z; and we'll
+        be modelling this last by a uniform density on some range.  That range
+        can't be infinite in width, so we have to clip it, effectively
+        relacing x with some value a little closer to y, to avoid dividing by
+        zero.  If Z is uniformly distributed between x = 0 and y, a/Z shall
+        have its nearer-zero bound at a/y and median at 2*a/y, so one obvious
+        candidate representation is to use 3*a/y as the far-from-zero bound.
+
+        The reader is welcome to consider what happens if Z's density is z**u
+        for some u > 0, so as to give density zero at x = 0.  I find that this
+        gives mean and median close beyond a/y for huge u, tending to infinity
+        and 2*a/y, respectively, as u tends to 0 from above.  This leaves no
+        useful way to use the mean to suggest a half-way sensible answer,
+        while median encourages the answer above.  However, this analysis does
+        reveal that, for a near-uniform distribution between x and y, the mean
+        is further out than the median would suggest, encouraging us to make
+        the interval wider than we otherwise would.  So I chose to use 4*a/y
+        as the far bound, interpreted as f(a, (3*x+y)/4); replace x with the
+        point in its interval a quarter of the way towards y.
+
+        When a and b are different, we're going to get a/y and b/y at two
+        corners of our square and it makes sense to use (3*x+y)/4 in place of
+        x as the other end of the x-to-y interval.
+
+        It then remains to deal with the fact that f(a, x) would equally
+        divide by zero if f were x/a and a were zero; so f((3*a+b)/4, x) is as
+        apt to be what we need as f(a, (3*x+y)/4).  Of course, if f(a,x)
+        really is a/x or x/a, the wrong one of these shall also divide by
+        zero, which shall tell us which to use.  If we're able to evaluate
+        both, I chose to use their mean; if only one, use it; and, if neither,
+        fall back on f((3*a+b)/4, (3*x+y)/4), allowing any divide-by-zero
+        there to finally be accepted as unavoidable (re-raising the original
+        error from calling f(a, x), not this final error).\n"""
+
+        try: return f(a, x)
+        except ZeroDivisionError, what:
+            b, y = (3 * a + b) * .25, (3 * x + y) * .25
+            row = []
+            try: row.append(f(a, y))
+            except ZeroDivisionError: pass
+            try: row.append(f(b, x))
+            except ZeroDivisionError: pass
+
+            if len(row) == 2: return 0.5 * sum(row)
+            try: return row[0]
+            except IndexError: pass
+
+            try: return f(b, y)
+            # Final fall-back, re-using original error on failure:
+            except ZeroDivisionError: raise what
+
+    def morebad(prior, more): # tool-function for __join
+        """Helper for accumulating similar exceptions' .args values.
+
+        First argument, prior, is a (possibly empty) tuple of accumulated
+        .args entries from earlier errors.  Second argument, more, is the
+        .args of a new error.  Commonly, the first entry in this shall have
+        been seen in some earlier error, as most exceptions use a simple
+        string as their sole argument.  When more[0] is in prior, it is
+        omitted from the return; otherwise, more is returned.\n"""
+        if more and more[0] in prior: return more[1:]
+        return more
+
+    class Tile (object):
+        def __init__(self, xs, wt):
+            assert wt, 'non-empty'
+            assert len(xs) == len(self), 'right number of entries'
+            assert not filter(None, map(lambda x, y: y < x,
+                                        xs[:-1], xs[1:])), 'sorted'
+            assert len(xs) < 2 or xs[0] < xs[-1], 'spike or interval'
+            self.kinks, self.weight = xs, wt
+
+        def __nonzero__(self): return self.kinks[-1] > self.kinks[0]
+        def __cmp__(self, other):
+            return cmp(self.start, other.start) or cmp(self.stop, other.stop)
+
+        @lazyprop
+        def start(self, cls=None):
+            assert cls is None
+            return self.kinks[0]
+
+        @lazyprop
+        def stop(self, cls=None):
+            assert cls is None
+            return self.kinks[-1]
+
+        def weigh(self, lo, hi):
+            """Returns how self.weight contributes to an interval.
+
+            Two arguments, lo and hi, are the start and end values of an
+            interval.  Returns a triple of weights; the middle one is how much
+            of self's weight should be placed in the interval from lo to hi;
+            the other two are zero unless: lo != hi and self gives a delta
+            contribution at lo or hi.  Any such spike at an x with lo < x < hi
+            contributes its whole weight to the middle; when lo == hi, so does
+            any spike at this value.  When lo < hi, a spike at lo should
+            contribute half its weight each to the first and middle entries of
+            the triple; any spike at hi should contribute half its weight each
+            to middle and third entries.\n"""
+            raise NotImplementedError
+
+        def meets(self, lo, hi):
+            """Returns true if self has any weight between lo and hi.
+            """
+            raise NotImplementedError
+
+    class Spike (Tile):
+        @classmethod
+        def __len__(cls): return 1
+        def weigh(self, lo, hi):
+            here = self.start
+            if lo == hi == here or lo < here < hi:
+                return self.weight
+            # else: interval starts or ends at spike, but another interval
+            # matches the spike exactly - and we give all our weight to it.
+            return 0
+
+        def meets(self, lo, hi):
+            here = self.start
+            return lo < here < hi or lo == here == hi
+
+    class Interval (Tile):
+        @staticmethod
+        def linear(lo, hi, z, p, t):
+            """Triangle-slicer.
+
+            On the right triangle with elevation zero at z, rising to t at p,
+            then dropping to zero beyind, compute the area between lo and
+            hi. Caller should ensure lo < hi and z < p by negating all of
+            them, and swapping bounds, if the slope is reversed.\n"""
+            if p <= z: return 0
+            assert hi > z and p > lo, (lo, hi, z, p)
+
+            # (x, y) and (r, s) are points on the line from (z, 0) to (p, t);
+            # x is max(lo, z), r is min(hi, p).
+            g = t * 1. / (p - z)
+            if lo <= z: x, y = z, 0
+            else: x, y = lo, (lo - z) * g
+            if hi >= p: s, t = p, t
+            else: s, t = hi, (hi - z) * g
+            assert s >= x and t >= 0 and y >= 0, (lo, hi, z, p, t)
+            return (s - x) * .5 * (t + y)
+
+        def meets(self, lo, hi):
+            return lo < self.stop and self.start < hi
+    del Tile
+
+    class Flat (Interval):
+        @classmethod
+        def __len__(cls): return 2
+        def weigh(self, lo, hi):
+            l, h = self.kinks
+            if lo <= l and h <= hi: return self.weight
+            lo, hi = max(l, lo), min(h, hi)
+            return (hi - lo) * self.weight * 1. / (h - l)
+            
+    class UpDown (Interval):
+        @classmethod
+        def __len__(cls): return 3
+        def weigh(self, lo, hi):
+            l, m, h = self.kinks
+            tall = self.weight * 2. / (h - l) # height of middle of triangle
+            if lo < m: tot = self.linear(lo, hi, l, m, tall)
+            else: tot = 0
+            if hi > m: tot += self.linear(-hi, -lo, -h, -m, tall)
+            return tot
+
+    class UpAlongDown (Interval):
+        @classmethod
+        def __len__(cls): return 4
+        def weigh(self, lo, hi):
+            a, b, c, d = self.kinks
+            # if b == c we'll work just like UpDown, as it happens
+
+            # Central plateau has width c-b and contributes tall*(c-b) to
+            # weight; triangles at ends have widths d-c and b-a and
+            # contribute tall * half the sum of these to weight; and
+            # (c-b) + .5 * (d-c + b-a) = .5 * (d+c-b-a), so:
+            tall = self.weight * 2. / (d + c - b - a)
+            if lo < b: tot = self.linear(lo, hi, a, b, tall)
+            else: tot = 0
+            if lo < c and hi > b: tot += (min(hi, c) - max(lo, b)) * tall
+            if hi > c: tot += self.linear(-hi, -lo, -d, -c, tall)
+            return tot
+    del Interval
+
+    @staticmethod
+    def __join(f, my, yo, kink,
+               s=single, more=morebad,
+               form=(Spike, Flat, UpDown, UpAlongDown)):
+        """Combine my and yo according to f and update kink.
+
+        First argument, f, is a function taking two inputs; next two
+        arguments, my and yo, are triples (l, h, w) describing weight w in
+        interval {x: l <= x <= h}; f's first argument shall be drawn from my's
+        interval, second from yo's.  Fourth and last argument, kink, is a set
+        to which to .add() significant values returned by by f.  Returns a
+        Tile object which describes how the product of weights of my and yo
+        are distributed over a range of values obtained by such calls to
+        f.  Values added to kink are the ones at which the density, of the
+        distribution described by the returned object, isn't smooth.
+
+        Because intervals may be bounded by values at which f is ill-behaved,
+        ZeroDivisionError is handled specially; see single's doc.\n"""
+
+        row, bad = [], ()
+        a, b, x, y = my[0], my[1], yo[0], yo[1]
+        try: row.append(s(f, a, x, b, y))
+        except ZeroDivisionError, what: bad += what.args
+        try: row.append(s(f, a, y, b, x))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+        try: row.append(s(f, b, x, a, y))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+        try: row.append(s(f, b, y, a, x))
+        except ZeroDivisionError, what: bad += more(bad, what.args)
+
+        if len(row) < 2:
+            raise apply(ZeroDivisionError,
+                        bad + ('calling', f, 'on', (a, b), (x, y)))
+        all = set(row)
+        kink.update(all)
+        if len(all) == 1: cls, row = form[0], tuple(all)
+        else:
+            assert len(all) > 1, 'row is non-empty => so is all'
+            cls = form[len(row) - 1]
+            row.sort()
+
+        return cls(tuple(row), my[-1] * yo[-1])
+
+    del single, morebad, Spike, Flat, UpDown, UpAlongDown
+
+    def combine(self, func, other):
+        mix, kink, spike, join = [], set(), set(), self.__join
+        for m in self.filter():
+            for y in other.filter():
+                mix.append(join(func, m, y, kink))
+                if not mix[-1]: spike.add(mix[-1].start)
+
+        mix.sort()
+        # Duplicate entries at which there are spikes, so that every spike in
+        # our answers is preserved.  (Each spike of self combines with each
+        # spike of other to produce a spike in the result.)
+        kink = list(kink) + list(spike)
+        kink.sort()
+
+        cut = iter(kink)
+        try: lo = cut.next()
+        except StopIteration:
+            raise ValueError('No data to combine', self, other)
+        try: hi = cut.next()
+        except StopIteration:
+            return self.__interpolator__((lo, lo),
+                                         (self.total * other.total,))
+
+        zero = 0 * mix[0].weight # a zero weight
+        live, wait, step, part = [], [], False, zero
+        try:
+            while True:
+                assert lo <= hi
+                if live and not live[0].meets(lo, hi): live = live[1:]
+                elif mix and mix[0].meets(lo, hi):
+                    mix, b, i = mix[1:], mix[0], len(live)
+                    # life is ordered by live[i].stop
+                    if i:
+                        while i > 0:
+                            if live[i-1].stop <= b.stop: break
+                            i -= 1
+                        live.insert(i, b)
+                    else: live.append(b)
+                elif step: hi, step = cut.next(), False
+                else:
+                    tot = zero
+                    for tile in live:
+                        assert tile.meets(lo, hi)
+                        w = tile.weigh(lo, hi)
+                        assert w >= 0, (tile, lo, hi)
+                        tot += w
+
+                    wait.append(tot)
+                    step, lo = True, hi
+
+        except StopIteration:
+            # That was triggered by trying to step:
+            assert step and lo is hi
+            # We should have kept going, if we had more tiles:
+            assert not mix
+            # We should have drained live before trying to step:
+            assert not live or live[-1].stop == lo
+
+        return self.__interpolator__(kink, wait)
 
 del lazyprop, math

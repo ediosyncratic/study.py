@@ -55,9 +55,6 @@ class _baseWeighted:
     These are all alloyed together to build the final class, Weighted, which is
     what Sample actually uses. """
 
-    # These aren't ideal, but it's sometimes nice to know highest and lowest keys (see Sample.__div__).
-    def high(self): return max(self.keys())
-    def low(self): return min(self.keys())
     @classmethod
     def __weighted__(cls, *args, **what):
         """Method to over-ride to match common constructor signature"""
@@ -189,10 +186,13 @@ class curveWeighted (Lazy, _baseWeighted):
             except AttributeError:
                 mids = weigher.keys()
                 mids.sort()
+
             return cls.fromMidMass(mids, map(lambda k, w=weigher: w[k], mids))
 
         @classmethod
         def fromMidMass(cls, mids, mass):
+            if not mass or not mids:
+                raise ValueError('Too little data', mids, mass)
             return cls(cls.__cuts(mids), mass)
 
         @staticmethod
@@ -693,14 +693,17 @@ class joinWeighted (curveWeighted):
             # Those filtered out need the recursive calls to .add():
             smooth = filter(lambda (k,v): not isinstance(
                     k, (Sample, joinWeighted)), mites)
-            if func is not None:
-                smooth = map(lambda (k, v): (func(k), v))
-            smooth = self.Interpolator.fromSample(dict(smooth))
+            if smooth:
+                if func is not None:
+                    smooth = map(lambda (k, v), f=func: (f(k), v))
+                smooth = self.Interpolator.fromSample(dict(smooth))
 
-        smooth = smooth.scale(by=scale)
+        if smooth: smooth = smooth.scale(by=scale)
         try: prior = self.interpolator
         except AttributeError: pass
-        else: smooth += prior
+        else:
+            if smooth: smooth += prior
+            else: smooth = prior
 
         for key, val in mites:
             val = val * scale
@@ -712,7 +715,7 @@ class joinWeighted (curveWeighted):
                 if func is not None: key = func(key)
                 self[key] = self[key] + val
 
-        self.interpolator = smooth
+        if smooth: self.interpolator = smooth
 
     def cross(self, other):
         """Pointwise product of two distributions.
@@ -784,110 +787,16 @@ class joinWeighted (curveWeighted):
         else: count -= 2
 
         smooth = self.interpolator
-        cuts = smooth.split([ 1 ] + [ 2 ] * count + [ 1 ])
+        cuts = smooth.split([ 0, 1 ] + [ 2 ] * count + [ 1, 0 ])
         mass = smooth.weigh(cuts)
-        cuts = (smooth.cuts[0],) + cuts + (smooth.cuts[-1],)
-        return self.__weighted__(None, smooth=self.Interpolator(cuts, mass))
+        assert 1e-6 * smooth.total > max(mass[0], mass[-1])
+        return self.__weighted__(None,
+                                 smooth=self.Interpolator(cuts, mass[1:-1]))
 
-    def single(f, a, x): # tool-function for corners
-        try: return f(a, x)
-        except ZeroDivisionError:
-            if a: return 2 * f(2 * a, x)
-            elif x: return 2 * f(a, 2 * x)
-            else: raise
-
-    def morebad(prior, more): # tool-function for corners
-        """Helper for accumulating similar exceptions' .args values.
-
-        First argument, prior, is a (possibly empty) tuple of accumulated
-        .args entries from earlier errors.  Second argument, more, is the
-        .args of a new error.  Commonly, the first entry in this shall have
-        been seen in some earlier error, as most exceptions use a simple
-        string as their sole argument.  When more[0] is in prior, it is
-        omitted from the return; otherwise, more is returned.\n"""
-        if more and more[0] in prior: return more[1:]
-        return more
-
-    # tool-function for __combine
-    def corners(f, (a, b), (x, y), s=single, more=morebad):
-        """A function's values at the corners of a rectangle.
-
-        Tries to return the tuple of f(i, j) values with i in (a, b), j in (x,
-        y), coping as gracefully as it can when this leads f to divide by
-        zero.  Its strategy for dealing with that case is based on considering
-        the case where f(i, j) is i/j.  In this case, the error arises when x
-        or y is zero: if both are, we have a real error and should fail.
-
-        So the remaining case has one of x, y zero; the other is some z either
-        < 0 or > 0 and everything below has implicit 'give or take a sign'
-        applied to it.  First consider the case where a == b; when they
-        differ, we can average the result over variation between them; and
-        assume a != 0 for now.  So our answer is a variate V whose inverse U
-        is distributed over the interval between 0 and z/a.
-
-        If we assume U is uniformly distributed, V won't have a well-defined
-        mean, let alone variance; density du.a/z implies dv.a/z/v/v, whose
-        mean integrates d(log(v)).a/z and variance integrates dv.a/z, both
-        over the interval from z/a away from zero to a relevant infinity.  We
-        can still work out its median; it's where a/z/v is 1/2 so v = 2*a/z,
-        encouraging us to use uniform on the interval from a/z to 4*a/z (to
-        make the outer tail half as wide as the inward one, as usual).  But
-        let's look at possibilities with, at least, normalisable mean, too.
-
-        So suppose U's density is k*du*u**q for some q>0 but hopefully small;
-        integrating between 0 and z/a we get (z/a)**(1+q)*k/(1+q) so
-        normalisation makes k = (1+q)*(a/z)**(1+q).  Then density k*du*u**q =
-        k*d(u**(q+1))/(q+1) = k*d(v**(-q-1))/(q+1) = -k.dv/v**(q+2).  Its mean
-        integrates k.dv/v**(q+1) to get the change in k/v**q/q, which is
-        (1+q)*a/z/q, provided q > 0 (so k/v**q/q tends to zero as v tends to
-        the relevant infinity).  The variance integrates k.dv/v**q and needs q
-        > 1 to be bounded; it then gives the change in k/v**(q-1)/(q-1), which
-        is (1+q)*a*a/z/z/(q-1), so we'd like standard deviation roughly
-        (a/z)*sqrt(1 +2/(q-1)).  For median we integrate the density and get
-        the change in (a/z/v)**(q+1), which hits half when v is
-        (2**1./(1+q))*a/z; for small enough q, this is arbitrarily close below
-        2*a/z, that we saw when q = 0.  Integrating the density out from a/z
-        to the mean, (1+1/q)*a/z, we get 1 - 1/(1+1/q)**(q+1); for large q
-        this is going to be something like 1-exp(-1) but, for small q, it's
-        close below 1 (as we can expect from the unbounded integral for mean
-        when q is zero).
-
-        So the mean is close beyond (from 0's perspective) a/z for huge q but
-        tends to infinity as q tends towards zero; while the median is also
-        close beyond a/z for huge q but tends to 2*a/z as q tends towards
-        zero; which makes it much more tractable to work with.  In any case,
-        whatever we do about this shall also be applied to other functions
-        that divide by zero, so something robust is more important than
-        something over-optimised for _divide().  So let's go with 4*a/z in
-        place of the answer from whichever of x and y was zero.  Since I'm not
-        sure whether to read that as 4*f(a,z) or f(4*a,z), I'll read it as
-        2*f(2*a,z).  We can apply that for a and b separately to get
-        reasonable answers.  Aside from that, it just suffices to deal with
-        the case where f is actually _divide with its argument order reversed
-        (so a, b are denominators, x, y are numerators).\n"""
-
-        row, bad = [], ()
-        try: row.append(s(f, a, x))
-        except ZeroDivisionError, what: bad += what.args
-        try: row.append(s(f, a, y))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
-        try: row.append(s(f, b, x))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
-        try: row.append(s(f, b, y))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
-
-        if len(row) < 2:
-            raise apply(ZeroDivisionError,
-                        bad + ('calling', f, 'on', (a, b), (x, y)))
-
-        row.sort()
-        return tuple(row)
-    del single, morebad
-
-    def __combine(self, other, func, count, quad=corners):
+    def combine(self, other, func, count=None):
         """Generate a combined distribution.
 
-        Takes exactly three arguments:
+        Required arguments:
 
           other -- a second numeric entity; typically a weight-dictionary, but
                    anything that Weighted's constructor accepts will do; will
@@ -901,132 +810,38 @@ class joinWeighted (curveWeighted):
                   computed by interpolation from calls to func on values
                   interpolated from keys of self and other.
 
-          count -- target number of items to have in the result's weights
-                   dictionary; honoured only in so far as possible.
+        Optional third argument, count, is the target number of items to have
+        in the result's weights dictionary; honoured only in so far as
+        possible.  Defaults to None, in which case the result has whatever
+        number of weights comes naturally.
 
         For each interval of self's interpolator and each interval of other's,
-        the product of the weights of those intervals is taken to be uniformly
-        spread across the range from lowest to highest value of func(x, y) as
-        x varies over self's interval and y over other's.  Assumes the lowest
-        and highest values are taken at corners of the rectangle thus
-        described by the two intervals.  This gives a mess over overlapping
-        intervals; every end-point of any of these is then used as a
-        cut-point, between which to sum the various intervals' contributions
-        to obtain weights to place at the centre-points between
-        cut-points.  Hopefully this is somewhat more robust than placing the
-        product of two weights at the centre of each rectangle.
+        example values of func, at extreme values in the respective intervals,
+        are used to obtain a range of values of func over which to distribute
+        the product of the weights from self and other in the source
+        intervals.  This gives a mess of overlapping intervals; every
+        end-point of any of these is then used as a cut-point, between which
+        to sum the various intervals' contributions, to obtain weights to
+        place at the centre-points between cut-points.  Hopefully this is
+        somewhat more robust than placing the product of two weights at the
+        centre of each rectangle.\n"""
 
-        Could be improved by using all four of func's values at corners of
-        each rectangle, and ordering the corners by func's values at them, to
-        produce a piecewise linear block (roughly a trapezium) for each
-        rectangle (still to be integrated up to piecewise constant blocks on
-        each interval between corner-values).  But let's try an easier
-        approach first !\n"""
+        if not isinstance(other, _baseWeighted):
+            other = self.__weighted__(other)
 
-        me = self.interpolator
-        try: you = other.interpolator
-        except AttributeError:
-            you = Weighted(other).interpolator
+        mix = self.interpolator.combine(func, other.interpolator)
+        if count is None or count > len(mix): pass
+        else: mix = mix.simplify(count)
 
-        your, our, cuts = tuple(you.filter()), [], set()
-        for m in me.filter():
-            for y in your:
-                all = quad(func, m[:-1], y[:-1]) # it's .sort()ed.
-                our.append((all[0], all[-1], m[-1] * y[-1]))
-                assert our[-1][-1], "I filtered out the zero weights !"
-                cuts.add(all[0])
-                cuts.add(all[-1])
-
-        our.sort() # sorts by our[i][0] primarily
-        cuts = list(cuts)
-        cuts.sort()
-        if len(cuts) > 1:
-            # Deal with degenerate end-spikes:
-            if our[-1][0] == our[-1][1]:
-                cuts.append(2 * cuts[-1] - cuts[-2])
-            if our[0][0] == our[0][1]:
-                cuts.insert(0, 2 * cuts[0] - cuts[1])
-
-        spike = iter(cuts)
-        try: lo = hi = spike.next()
-        except StopIteration:
-            raise ValueError('No data to combine', self, other)
-        try: hi = spike.next()
-        except StopIteration:
-            return self.__weighted__({ lo: 1 },
-                                     smooth=self.Interpolator((lo, lo), (1,)))
-
-        live, wait, step, part = [], [], False, 0 * our[0][-1]
-        try:
-            while True:
-                assert lo <= hi
-                if live and live[0][1] < lo: live = live[1:]
-                elif our and our[0][0] <= hi:
-                    our, b, i = our[1:], our[0], len(live)
-                    # live is ordered by live[i][1]; insert b
-                    if i:
-                        while i > 0:
-                            if live[i-1][1] <= b[1]: break
-                            i -= 1
-                        live.insert(i, b)
-                    else: live.append(b)
-                elif step: hi, step = spike.next(), False
-                else:
-                    # TODO: encode as Interval.weigh() implementations
-                    tot, part, wide = part, 0 * part, hi - lo
-                    for (l, h, w) in live:
-                        assert lo <= h and l <= hi
-                        if l == h: # point spike
-                            assert l == lo or h == hi
-                            if l < hi: # spike at lo
-                                assert l == lo
-                                if not wait: tot += w # initial spike
-                                # else: already handled via part
-                            else: # spike at hi
-                                assert h == hi
-                                # give half to the interval on each side:
-                                half = w * .5
-                                tot += half
-                                part += half
-                        else: tot += wide * w * 1. / (h - l)
-                    wait.append(tot)
-                    lo, step = hi, True
-
-        except StopIteration:
-            # That was triggered by trying to step:
-            assert step and lo is hi
-            # We should have kept going, if we had more tiles:
-            assert not our
-            # We should have drained live before trying to step:
-            assert not live or live[-1][1] == lo
-            # Handle final spike, if we had one:
-            if part: wait[-1] += part
-
-        assert len(wait) + 1 == len(cuts) > 1
-        # We got total weight wait[i] between cuts[i] and cuts[i+1] (which are
-        # distinct) for each i < len(wait).  Now carve that up into count
-        # bands:
-        pol = self.Interpolator(cuts, wait)
-        # TODO: prune ans to c. count intervals, or .weigh() it out.
-
-        try: pol = pol.scale() # normalise
+        try: mix = mix.scale() # normalise
         except ValueError: pass
-        ans = self.__weighted__(None, smooth=pol)
-        ans.interpolator = pol
+        ans = self.__weighted__(None, smooth=mix)
+        ans.interpolator = mix
         return ans
-    del corners
-
-    def combine(self, other, func, count=None):
-        if count is None:
-            try: det = other.__detail
-            except AttributeError: count = self.__detail
-            else: count = max(det, self.__detail)
-
-        return self.__combine(other, func, count)
 
     # Comparison: which is probably greater ?
     def __cmp__(self, what):
-        sign = self.__combine(what, cmp, self.__detail)
+        sign = self.combine(what, cmp, 3)
         # cmp coerces -ve values to -1, positives to +1; thank you Guido.
         # Thus sign.keys() is [-1, 0, 1] in some order.
 
@@ -1183,20 +998,9 @@ class statWeighted (_baseWeighted):
         return self.copy(scale = 1. / sum)
 
     def total(self): return sum(self.values())
-    def _total(self): return self.total(), # analogue for _mean, _variance, ...
 
-    def _mean(self):
-        norm, sum = self._moments(1)
-        return norm, sum * 1. / norm
-
-    def mean(self): return self._mean()[1]
-
-    def _variance(self):
-        norm, sum, squares = self._moments(2)
-        mean = sum * 1. / norm
-        return norm, mean, squares * 1. / norm - mean**2
-
-    def variance(self): return self._variance()[2]
+    def mean(self): return self.interpolator.normal[0]
+    def variance(self): return self.interpolator.normal[1]
 
     def modes(self):  # in no particular order
         same = ()
@@ -1293,7 +1097,7 @@ class _Weighted (Object, _baseWeighted):
 
     # Override a method of self.__weights
     __obcopy = Object.copy
-    def copy(self, func=None, scale=None):
+    def copy(self, scale=None, func=None):
         """Copies a distribution.
 
         No arguments are required.  The new distribution is of the same class
@@ -1338,9 +1142,8 @@ class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     __joinit = joinWeighted.__init__
     __weinit = _Weighted.__init__
 
-    def __init__(self, weights=None, scale=1, detail=5, smooth=None,
-                 *args, **what):
-        self.__weinit(weights, scale, smooth=smooth, *args, **what)
+    def __init__(self, weights=None, scale=1, detail=5, *args, **what):
+        self.__weinit(weights, scale, *args, **what)
         self.__joinit(detail)
 
 # That's built Weighted; now to build Sample, its client.
@@ -1381,7 +1184,7 @@ class Sample (Object):
     _unborrowable_attributes_ = Object._unborrowable_attributes_ + ('best',)
 
     # Sub-classes can use bolt-in replacements for Weighted ...
-    def _weighted_(self, weights, scale=None, klaz=Weighted):
+    def _weighted_(self, weights, scale=None, smooth=None, cls=Weighted):
         if scale is None:
             try: weights[:]
             except TypeError:
@@ -1395,7 +1198,8 @@ class Sample (Object):
             else:
                 while y * tot > 1: scale, y = y, y * .5
 
-        return klaz(weights, scale)
+        if smooth is None: return cls(weights, scale)
+        return cls(weights, scale, smooth=smooth)
 
     __upinit = Object.__init__
     def __init__(self, weights=None, *args, **what):
@@ -1579,7 +1383,7 @@ class Sample (Object):
                 del bok[key]
 
         if func: bok['best'] = func(self.best)
-        return self._sampler_(self.__weigh.copy(func), **bok)
+        return self._sampler_(self.__weigh.copy(func=func), **bok)
 
     # Derived classes over-ride this to fiddle behaviour of sums, prods, etc.
     def _sampler_(self, *args, **what): return self.__class__(*args, **what)
@@ -1599,14 +1403,12 @@ class Sample (Object):
                  f=lambda x, w, m=_multiply: m(w, x)): return self.join(f, what)
 
     # Division is slightly messier, thanks to ZeroDivisionError
-    # In principle, we should use true .high and .low (which qSample deploys),
-    # but the following uses the ones from __weigh (if available) since they're
-    # all we need for the algorithms to work; this is moderately dodgy.
     def __div__(self, what, f=_divide):
         try:
             try: w = what.__weigh
-            except AttributeError: lo, hi = cmp(what.low, 0), cmp(what.high, 0)
-            else: lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
+            except AttributeError: lo, hi = what.low, what.high
+            else: lo, hi = w.bounds()
+            lo, hi = cmp(lo, 0), cmp(hi, 0)
         except AttributeError:
             if not what:
                 raise ZeroDivisionError('Dividing by zero', self, what)
@@ -1619,8 +1421,8 @@ class Sample (Object):
     __truediv__ = __div__
 
     def __rdiv__(self, what, f=lambda x, w, d=_divide: d(w, x)):
-        w = self.__weigh
-        lo, hi = cmp(w.low(), 0), cmp(w.high(), 0)
+        lo, hi = self.__weigh.bounds()
+        lo, hi = cmp(lo, 0), cmp(hi, 0)
         if lo == 0 == hi or lo * hi < 0:
             raise ZeroDivisionError('Dividing by interval about 0', what, self)
 
@@ -1745,13 +1547,8 @@ class Sample (Object):
         try: return self.__weigh.modes()
         except (ValueError, ZeroDivisionError): return (self.best,)
 
-    # lazy lookup of variance (and mean):
     def _lazy_get_variance_(self, ignored):
-        try: total, self.mean, vary = self.__weigh._variance()
-        except (ValueError, ZeroDivisionError):
-            raise ValueError('Seeking variance of degenerate distribution',
-                             self.__weigh)
-        return vary
+        return self.__weigh.variance()
 
     def _lazy_get_width_(self, ignored): return self.span[1] - self.span[0]
     def _lazy_get_mirror_(self, ignored): return self.__weigh.condense()
@@ -1761,8 +1558,8 @@ class Sample (Object):
     # self / self.dispersor is dimensionless (and its `entropoid' is zero, FAPP).
     def _lazy_get_dispersor_(self, ignored): return self.__weigh.dispersor()
 
-    def _lazy_get_low_(self, ignored): return self.__weigh.low()
-    def _lazy_get_high_(self, ignored): return self.__weigh.high()
+    def _lazy_get_low_(self, ignored): return self.__weigh.bounds()[0]
+    def _lazy_get_high_(self, ignored): return self.__weigh.bounds()[1]
     # but contrast (low, high) with:
     def _lazy_get_span_(self, ignored): return self.bounds()
     def bounds(self, frac=1):
