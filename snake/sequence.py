@@ -3,9 +3,9 @@
 Classes:
   Iterable -- mix-in to enrich iterable classes with functional tools
   WrapIterable -- simple wrapper to add Iterable's methods to an iterable
-  Dict -- dict with its iterators wrapped in WrapIterable
   ReadSeq -- mix-in extending Iterable to support most tuple methods
   Tuple -- mixes ReadSeq and tuple suitably
+  Dict -- dict with its sequence and iterator methods suitably wrapped
   List -- mixes ReadSeq and list suitably
   Ordered -- a List that maintains ordering of its entries
 
@@ -20,17 +20,22 @@ def iterable(func):
     """Decorator to wrap the iterables returned by a function in WrapIterable.
 
     Takes a single function argument, func, and returns a function which is
-    called as if it were func but the return from func is passed to WrapIterable
-    (q.v., below) and the return from *that* is the replacement function's
-    return.  When used to decorate a function that returns an iterable, this
-    just ensures that the iterable has the methods of Iterable (q.v., below).
+    called as if it were func but the return from func is wrapped as an
+    Iterable (see below).  If the first positional argument is an Iterable,
+    its .__iterable__() is used as wrapper (so that this automatically works
+    as a decorator for methods of any class based on Iterable); otherwise
+    WrapIterable (see below) is used.
 
     In particular, this can be used to wrap a generator (i.e. a function that
-    uses yield, instead of return; this implicitly returns an iterator over the
-    values its body yields) so that the resulting iterator supports the methods
-    of Iterable.  Naturally, it is used to decorate the generator methods of
-    Iterable itself.\n"""
-    return lambda *args, **kw: WrapIterable(func(*args, **kw))
+    uses yield, instead of return; this implicitly returns an iterator over
+    the values its body yields) so that the resulting iterator supports the
+    methods of Iterable.  Naturally, it is used to decorate the generator
+    methods of Iterable itself.\n"""
+    def ans(*args, **kw):
+        try: wrap = args[0].__iterable__
+        except AttributeError: wrap = WrapIterable
+        return wrap(func(*args, **kw))
+    return ans
 del mimicking
 
 class Iterable (object):
@@ -44,6 +49,24 @@ class Iterable (object):
     too).\n"""
 
     __slots__ = ()
+    @staticmethod
+    def __iterable__(what):
+        """Pseudo-constructor for iterable.
+
+        Takes one argument, an iterable (typically a generator function) to be
+        packaged with the infrastructure provided by Iterable. Derived classes
+        should over-ride this with something having the right signature, e.g.
+
+            @classmethod
+            def __iterable__(cls, what):
+                return cls(what)
+
+        for the usual pseudo-constructor pattern (so only the class that mixes
+        in Iterator usually needs to define this).  This method is mostly
+        accessed vai the @iterable decorator (see above).  This base version
+        uses WrapIterable, since Iterator itself has no constructor; it's only
+        a mix-in.\n"""
+        return WrapIterable(what)
 
     @iterable
     def map(self, *funcs):
@@ -126,34 +149,8 @@ class WrapIterable (Iterable):
         self.__seq = iter(seq)
     def __getattr__(self, key): return self.__get(key)
     def next(self): return self.__seq.next()
-
-class Dict (dict):
-    __iter = dict.__iter__
-    __itit, __itke, __itva = dict.iteritems, dict.iterkeys, dict.itervalues
-    # Can't use iterable: slot wrappers and method descriptors don't play nicely
-    # with mimicking, to let it know their signatures.
-    def __iter__(self,   Wrap=WrapIterable): return Wrap(self.__iter())
-    def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
-    def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
-    def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
-
     @classmethod
-    def __iterdict__(cls, what=()):
-        """Pseudo-constructor for derived classes to over-ride.
-
-        Where this class's methods need a new instance, they use this
-        method to create it; thus, by default, any derived class's use
-        of those methods will return instances of the derived
-        class.  Derived classes are encouraged to use this method
-        likewise, when then need to construct new instances, for the
-        sake of classes derived from *them*.  If a derived class has a
-        different constructor signature, or is for some other reason
-        unsuitable for use as the source of new instances, it can
-        over-ride this method with something suitable.\n"""
-        return cls(what)
-
-    __upcopy = dict.copy # returns a dict, even when exercised via a derived class
-    def copy(self): return self.__iterdict__(self.__upcopy())
+    def __iterable__(cls, what): return cls(what)
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
@@ -401,6 +398,8 @@ class Tuple (ReadOnlySeq, tuple):
         raises an error.  Otherwise, this uses the class of self to construct
         a new Tuple of suitable type.\n"""
         return cls(val)
+    __iterable__ = __tuple__
+    __hash__ = tuple.__hash__
 
     __upmul = tuple.__mul__
     def __mul__(self, other): return self.__tuple__(self.__upmul(other))
@@ -419,6 +418,39 @@ class Tuple (ReadOnlySeq, tuple):
                 return self.__tpget(key)
 
         return self.__tuple__(self.__rsget(key))
+
+class Dict (dict):
+    # Can't use iterable: slot wrappers and method descriptors don't play
+    # nicely with mimicking, to let it know their signatures.
+    __iter = dict.__iter__
+    def __iter__(self,   Wrap=WrapIterable): return Wrap(self.__iter())
+
+    __itit, __itke, __itva = dict.iteritems, dict.iterkeys, dict.itervalues
+    def iterkeys(self,   Wrap=WrapIterable): return Wrap(self.__itke())
+    def iteritems(self,  Wrap=WrapIterable): return Wrap(self.__itit())
+    def itervalues(self, Wrap=WrapIterable): return Wrap(self.__itva())
+
+    __sqit, __sqke, __sqva = dict.items, dict.keys, dict.values
+    def keys(self,   Wrap=Tuple): return Wrap(self.__sqke())
+    def items(self,  Wrap=Tuple): return Wrap(self.__sqit())
+    def values(self, Wrap=Tuple): return Wrap(self.__sqva())
+
+    @classmethod
+    def __iterdict__(cls, what=()):
+        """Pseudo-constructor for derived classes to over-ride.
+
+        Where this class's methods need a new instance, they use this method
+        to create it; thus, by default, any derived class's use of those
+        methods will return instances of the derived class.  Derived classes
+        are encouraged to use this method likewise, when then need to
+        construct new instances, for the sake of classes derived from
+        *them*.  If a derived class has a different constructor signature, or
+        is for some other reason unsuitable for use as the source of new
+        instances, it can over-ride this method with something suitable.\n"""
+        return cls(what)
+
+    __upcopy = dict.copy # returns a dict, even when used via a derived class
+    def copy(self): return self.__iterdict__(self.__upcopy())
 
 class List (ReadSeq, list): # list as base => can't use __slots__
 
