@@ -13,11 +13,11 @@ class Spread (Dict, Cached):
 
     An instance of this class is a mapping from possible values to relative
     frequency of each.  Lookup on a non-key never raises KeyError: instead, it
-    returns 0.  Typically, the keys shall be possible outcomes of some discrete
-    random variate with rationally commensurate probabilities, such as arises
-    from looking at the outcomes of fair die rolls.  When considered as a
-    distribution, the relative frequencies are divided by their sum to get a
-    probability distribution.
+    returns 0.  Typically, the keys shall be possible outcomes of some
+    discrete random variate with rationally commensurate probabilities, such
+    as arises from looking at the outcomes of fair die rolls.  When considered
+    as a distribution, the relative frequencies are divided by their sum to
+    get a probability distribution.
 
     Default constructor behaves as dict (q.v.), accepting arbitrary keys and
     values.  Class methods provided for specific cases:
@@ -26,13 +26,13 @@ class Spread (Dict, Cached):
       dice(i [, j, ...]) -- outcome of a roll of diverse dice
 
     Existing Spread objects may be combined to produce more, most generally by
-    the class method join(f, [spreads...]), q.v.  In particular, this is used to
-    support arithmetic between spread objects, combining keys using the given
-    arithmetic operators and giving relative frequencies obtained by multiplying
-    the relative frequencies associated, by operands, with the keys
-    combined.  Thus die(6)+die(6) shall give the distribution for the sum of two
-    fair six-sided die rolls.  Further transformations of existing Spread
-    objects are provided by:
+    the class method join(f, [spreads...]), q.v.  In particular, this is used
+    to support arithmetic between spread objects, combining keys using the
+    given arithmetic operators and giving relative frequencies obtained by
+    multiplying the relative frequencies associated, by operands, with the
+    keys combined.  Thus die(6)+die(6) shall give the distribution for the sum
+    of two fair six-sided die rolls.  Further transformations of existing
+    Spread objects are provided by:
       filter(test) -- restrict self to keys k for which test(k) is true
       vector(n) -- outcomes of n instances of self
       map(func) -- apply func to each key of self, preserving value
@@ -47,8 +47,8 @@ class Spread (Dict, Cached):
       mean -- E(lambda (x,w): x*w)
       variance -- E(lambda (x,w), m=mean: (x-m)**2 * w)
       median -- split(2)[0]
-    are also supported lazily, provided self's keys support addition (for mean,
-    variance) and/or ordering (for median).\n"""
+    are also supported lazily, provided self's keys support addition (for
+    mean, variance) and/or ordering (for median).\n"""
     __upget = Dict.__getitem__
     def __getitem__(self, key):
         # Make all missing keys appear to exist with value 0:
@@ -81,11 +81,11 @@ class Spread (Dict, Cached):
     def dice(cls, *ns):
         """Vector with each component a separate die-roll.
 
-        Each argument should be a positive integer; if all are equal to some n,
-        die(n).vector() will produce the same result.  Otherwise, each is used
-        as if with die (q.v.) to produce one component of a vector, as for
-        vector (q.v.).  Thus dice(4, 6, 8) shall describe a variate whose first
-        component is uniformly distributed on 1 through 4 and so on.\n"""
+        Each argument should be a positive integer; if all are equal to some
+        n, die(n).vector() will produce the same result.  Otherwise, each is
+        used as if with die (q.v.) to produce one component of a vector, as
+        for vector (q.v.).  Thus dice(4, 6, 8) shall describe a variate whose
+        first component is uniformly distributed on 1 through 4 and so on.\n"""
 
         return cls.join(None, *map(cls.die, ns)).freeze()
 
@@ -94,25 +94,25 @@ class Spread (Dict, Cached):
     def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
 
-        First argument, func, is a callable that takes a two-ple as input: a key
-        of self and a rational representing that key's probability.  Its default
-        just multiplies the two together (assuming this to be possible).  Second
-        argument is a function that adds either two outputs of func or one
-        output of func and an output of an earlier call to itself; its default
-        is simple addition.\n"""
+        First argument, func, is a callable that takes a two-ple as input: a
+        key of self and a rational representing that key's probability.  Its
+        default just multiplies the two together (assuming this to be
+        possible).  Second argument is a function that adds either two outputs
+        of func or one output of func and an output of an earlier call to
+        itself; its default is simple addition.\n"""
         return self.iteritems().map(func).reduce(add) * self.__rat(1, self.sum())
 
     @staticmethod
     def indicator(start=None, stop=None):
         """Convenience method to return an indicator function.
 
-        Optional arguments start and stop define a range; for stop > x
-        >= start, x is in the range; if either start or stop is omitted
-        (or None, their default value) its constraint on x is
-        elided.  Returns a function which returns 1 for inputs in the
-        interval, 0 otherwise.  Note that start is in the interval but
-        stop is not.  Indicator functions can be useful with .E() to
-        obtain the probability of being in an interval.\n"""
+        Optional arguments start and stop define a range; for stop > x >=
+        start, x is in the range; if either start or stop is omitted (or None,
+        their default value) its constraint on x is elided.  Returns a
+        function which returns 1 for inputs in the interval, 0
+        otherwise.  Note that start is in the interval but stop is
+        not.  Indicator functions can be useful with .E() to obtain the
+        probability of being in an interval.\n"""
         def func(x):
             if start is None or x >= start:
                 if stop is None or x < stop:
@@ -135,12 +135,12 @@ class Spread (Dict, Cached):
     def rescale(self, num=1, den=1, gcd=hcf):
         """Rescale values by ratio q*num/den and return q.
 
-        Takes two arguments, num and den; finds the least positive
-        integer q for which, for every value v of self, v * num * q is a
-        multiple of den; changes each value v to v * num * q / den and
-        returns q.  For example, before using x.update() to obtain its
-        union with y, y.rescale(x.rescale(y.sum(), x.sum())) will ensure
-        that x and y have equal total weight.\n"""
+        Takes two arguments, num and den; finds the least positive integer q
+        for which, for every value v of self, v * num * q is a multiple of
+        den; changes each value v to v * num * q / den and returns q.  For
+        example, before using x.update() to obtain its union with y,
+        y.rescale(x.rescale(y.sum(), x.sum())) will ensure that x and y have
+        equal total weight.\n"""
         if num * den == 0:
             raise ValueError("Rescaling will zero all values !", num, den)
         q = den / gcd(num * gcd(*self.values()), den)
@@ -167,10 +167,9 @@ class Spread (Dict, Cached):
     def freeze(self):
         """Lock self against further key/value modifications.
 
-        After this has been called, you can't modify self; in
-        particular, you can't use simplify() or rescale().  You can
-        obtain an unfrozen version from .copy() if you need it
-        subseqeuntly.\n"""
+        After this has been called, you can't modify self; in particular, you
+        can't use simplify() or rescale().  You can obtain an unfrozen version
+        from .copy() if you need it subseqeuntly.\n"""
         self.clear_propstore_cache()
         self.__readonly = True
         return self
@@ -217,19 +216,19 @@ class Spread (Dict, Cached):
     def split(self, n, par=cmp, mid=None):
         """Tuple of split-points between n-iles of distribution.
 
-        Single required parameter, n, is the number of sub-divisions into which
-        to split the range of self.keys(), such that each subdivision has (as
-        nearly as possible) equal sum of values.
+        Single required parameter, n, is the number of sub-divisions into
+        which to split the range of self.keys(), such that each subdivision
+        has (as nearly as possible) equal sum of values.
 
         Optional arguments are:
           par -- a comparison operator to use when deciding the order of
                  self.keys(); it defaults to cmp, which will only work if the
                  keys have a defined ordering.
-          mid -- a function taking two keys of self and returning the mid-point
-                 between them; or None (the default) to use study.maths.ratio's
-                 Rational class, unless self's keys are vectors, in which case
-                 Rational is used on each co-ordinate, to halve the sum of the
-                 two keys.
+          mid -- a function taking two keys of self and returning the
+                 mid-point between them; or None (the default) to use
+                 study.maths.ratio's Rational class, unless self's keys are
+                 vectors, in which case Rational is used on each co-ordinate,
+                 to halve the sum of the two keys.
 
         Returns an (n-1)-tuple, each entry in which is either a key of self or
         an output of mid() given two keys; for each integer i with 0 < i < n,
@@ -305,12 +304,11 @@ class Spread (Dict, Cached):
     def clip(self, start=0, stop=None):
         """Pull keys outside a range to its nearest end-point.
 
-        Optional arguments, start (default: 0) and stop (default: None)
-        take values None (for no limit) or a bound on the keys of
-        self.  If start is not None, all keys < start are mapped to
-        start; if stop is not None, all keys > stop are mapped to
-        stop.  Returns a new clip object with the duly-modified keys of
-        self, or self if no clipping happens.\n"""
+        Optional arguments, start (default: 0) and stop (default: None) take
+        values None (for no limit) or a bound on the keys of self.  If start
+        is not None, all keys < start are mapped to start; if stop is not
+        None, all keys > stop are mapped to stop.  Returns a new clip object
+        with the duly-modified keys of self, or self if no clipping happens.\n"""
 
         if start is None or start <= min(self.keys()):
             if stop is None or stop > max(self.keys()): return self
@@ -329,42 +327,44 @@ class Spread (Dict, Cached):
     def vector(self, n):
         """Multiplex a distribution.
 
-        Single argument, n, must be a natural number.  Each key of the result is
-        a study.maths.vector.Vector of n keys of self; its value is the result
-        of multiplying self's values for the entries in the Vector.  When self
-        represents some random process, self.vector(n) represents the outcome of
-        n independent samples from that random process.\n"""
+        Single argument, n, must be a natural number.  Each key of the result
+        is a study.maths.vector.Vector of n keys of self; its value is the
+        result of multiplying self's values for the entries in the
+        Vector.  When self represents some random process, self.vector(n)
+        represents the outcome of n independent samples from that random
+        process.\n"""
         return self.join(None, * (self,) * n)
 
     def map(self, func):
         """Transform a distribution.
 
-        Single argument, func, is a function that accepts self's keys as inputs;
-        its outputs shall be used as keys of the result distribution, each with
-        the value of the key of self that produced it (or the sum of all such
-        values, if func maps several of self's keys to the same output).\n"""
+        Single argument, func, is a function that accepts self's keys as
+        inputs; its outputs shall be used as keys of the result distribution,
+        each with the value of the key of self that produced it (or the sum of
+        all such values, if func maps several of self's keys to the same
+        output).\n"""
         return self.join(func, self)
 
     @classmethod
     def join(cls, func=None, *what):
         """Build a new Spread object out of some existing ones.
 
-        Generally, other methods of this class package this one more usably (see
-        map(func) and vector(n); also arithmetic operations); but this is the
-        sledgehammer that should be able to crack every nut ...
+        Generally, other methods of this class package this one more usably
+        (see map(func) and vector(n); also arithmetic operations); but this is
+        the sledgehammer that should be able to crack every nut ...
 
-        First argument, func, is None (the default) or a function whose outputs
-        shall be used as keys of the new object; if func is None, lambda *a:
-        Vector(a) is used (study.maths.vector.Vector extends tuple with
-        entry-wise arithmetic).  All subsequent arguments (there must be some)
-        should be Spread objects (but may be dict objects whose values are all
-        numeric).
+        First argument, func, is None (the default) or a function whose
+        outputs shall be used as keys of the new object; if func is None,
+        lambda *a: Vector(a) is used (study.maths.vector.Vector extends tuple
+        with entry-wise arithmetic).  All subsequent arguments (there must be
+        some) should be Spread objects (but may be dict objects whose values
+        are all numeric).
 
         Each call to func receives, as parameters, one key from each of these
         objects, in the same order as the objects are passed to join().  The
-        return from func is used as a key of the new object, whose value is the
-        product of the values each of join()'s argument objects associates to
-        the one of its keys that was used as parameter.
+        return from func is used as a key of the new object, whose value is
+        the product of the values each of join()'s argument objects associates
+        to the one of its keys that was used as parameter.
 
         A given Spread object may be used repeatedly as an argument to join();
         it shall be handled as if each use of it was a separate copy of the
@@ -430,4 +430,4 @@ class Spread (Dict, Cached):
         if rest: return cls.__product(one, cls.__renee(*rest))
         return cls.__product(one)
 
-del Dict, lazyprop
+del Dict, lazyprop, Cached, postcompose
