@@ -2,7 +2,7 @@
 """
 from study.cache.property import Cached, lazyprop
 from study.snake.decorate import postcompose
-from study.snake.sequence import iterable
+from study.snake.sequence import iterable, Tuple
 import math
 
 class Interpolator (Cached):
@@ -54,10 +54,10 @@ class Interpolator (Cached):
         doesn't, the one at half wins; otherwise, call it a draw.\n"""
         split = self.combine(cmp, other)
         assert set(split.cuts).issubset([-1, 0, 1])
-        low, mid, hie = self.weigh((-.5, .5), 1)
-        if low < .5: b = 0
+        low, mid, hie = self.weigh((-.5, .5), 2)
+        if low < 1: b = 0
         else: b = -1
-        if hie < .5: return b
+        if hie < 1: return b
         return b + 1
 
     @lazyprop
@@ -246,6 +246,27 @@ class Interpolator (Cached):
         try: return log(a / self.normal[1]**.5) - self.entropoid / a
         except (ZeroDivisionError, ValueError): return 1
 
+    __munge = Tuple.cartesian
+    @classmethod
+    def _combine(cls, *whom):
+        """Tool for use by implementations of combine().
+
+        Each argument should be an Interpolator.  Note that this is a class
+        method, so calling it on an instance *doesn't* automagically include
+        the instance as first argument; pass it explicitly if you want it
+        (which you probably do).
+
+        Returns an iterator over (box, weight) twoples, where box is a tuple -
+        with each box[i] being a (lo, hi) twople of bounds of an interval of
+        whom[i] - and weight is the product of the weights of the respective
+        intervals.  (Intervals with zero weight are skipped, using .filter(),
+        so each box should have non-zero weight.)  These yields are the atoms
+        from which combine() must build up its results.\n"""
+        return apply(cls.__munge,
+                     (tuple,) + tuple(x.filter() for x in whom)
+                     ).map(lambda ts: (tuple(ts.map(lambda x: x[:-1])),
+                                       ts.map(lambda x: x[-1]).product()))
+
     # API to be implemented by derived classes:
 
     @classmethod
@@ -386,21 +407,22 @@ class Interpolator (Cached):
         adapt sensibly when any of the spans in question is zero.\n"""
         raise NotImplementedError
 
-    def combine(self, func, other):
+    def combine(self, func, *others):
         """Combine two interpolators.
 
-        Required arguments:
-          func -- a callable; see below
-          other -- a second interpolator
-
-        For various values of x drawn from self's range of values and y from
-        other's, func(x, y) shall be called; what it returns shall be used to
-        select cut-points for the result and to compute the weights between
+        First argument, func, is a function to use in combining self with the
+        rest.  Each subsequent argument should be an Interpolator.  The number
+        of such other arguments, plus one for self, is the number of arguments
+        that shall be passed to func; its first argument shall be drawn from
+        self's range of values and each of its subsequent arguments from that
+        of successive other arguments.  (Implementations may find ._combine()
+        useful in packaging that.)  The returns from such calls shall be used
+        to select cut-points for the result and to divide up weight between
         them.
 
-        The result may well have many more cut-points than self or other;
-        callers may benefit from calling .simplify(n) on the result, for some
-        suitable n.\n"""
+        The result's length is the product of the lengths of self and all
+        others; this is apt to be quite large.  Callers may benefit from
+        calling .simplify(n) on the result, for some suitable n.\n"""
         raise NotImplementedError
 
 del Cached, postcompose
@@ -691,72 +713,119 @@ class PiecewiseConstant (Interpolator):
         cuts, mass = self.__clean(cuts, mass)
         return self.__interpolator__(cuts, mass)
 
+    # <tools for="combine">
+    @iterable
+    def plane(m, n, T=Tuple): # tool-function for slices
+        """Return iterator over equal-sum corners of a cube.
 
-    def single(f, a, x, b, y): # tool-function for __join
+        See slices(), below, for details; this provides the individual
+        iterators it yields.  Each yield is in fact a Tuple() so that one can
+        .map() it usefully.\n"""
+
+        # Used to map a set to a sequence with 1 at each index in the set, 0
+        # everywhere else (see yield):
+        each = T(range(n)).map
+
+        # Iterate over subsets of range(n) of size n-m:
+        ks = range(m, n)
+        try:
+            while True:
+                yield T(each(ks.__contains__))
+                i = 0
+                # This shall IndexError when we're done:
+                while ks[i] <= i: i += 1
+                last = ks[i] = ks[i] - 1
+                while i > 0:
+                    i -= 1
+                    ks[i] = last = last - 1
+                assert last >= 0
+                assert ks[-1] + 1 + m >= n
+        except IndexError: pass
+
+    @iterable
+    def slices(n, cut=plane): # tool-function for single(), evaluate()
+        """Returns an iterator over iterators over corners of a cube.
+
+        Single argument, n, is a positive integer.  Each 'corner of a cube' is
+        a tuple of length n whose entries are either 0 or 1.  The return from
+        planes(n) is an iterator; for each m from 1 through n-1, it yields an
+        iterator over the corners whose sum is m.  Note that the diametrically
+        opposite corners that are all 0 or all 1 are skipped.\n"""
+
+        m = n # number of zero co-ordinates of each corner
+        while m >= 0:
+            yield cut(m, n)
+            m -= 1
+    del plane
+
+    def single(f, xs, ys, traverse=slices): # tool-function for evaluate()
         """Kludge round divide-by-zero errors.
 
-        First argument, f, is a function; subsequent arguments a, x, b, y are
-        interval end-point values; we want to compute f(a, x) and but this may
-        divide by zero.  When it does, we invent a suitable replacement value,
-        for a relevant bound of f's values with first input ranging from a to
-        b and second ranging from x to y.
+        First argument, f, is a function; second is a tuple of arguments
+        suitable for passing to it, as apply(f, xs); third is another tuple,
+        ys, of partners for the xs, for use if that divides by zero.
 
-        Consider (first) what would happen if f(a, x) were a/x and x were
-        0.  For simplicity, suppose a and b are equal, in this case.  So we
-        want the range of values of a/z with x = 0 < z <= y (or y >= z > 0 =
-        x).  We're really modelling a random variate, Z, distributed over the
-        interval between x and y; and want to model the variate a/Z; and we'll
-        be modelling this last by a uniform density on some range.  That range
-        can't be infinite in width, so we have to clip it, effectively
-        relacing x with some value a little closer to y, to avoid dividing by
-        zero.  If Z is uniformly distributed between x = 0 and y, a/Z shall
-        have its nearer-zero bound at a/y and median at 2*a/y, so one obvious
-        candidate representation is to use 3*a/y as the far-from-zero bound.
+        Consider (first) the simple case of f(x) = 1/x with x = 0; you call
+        this function as single(f, (x,), (y,)), where we're interested in f's
+        range of outputs for inputs between x and y.  So we want the range of
+        values of 1/z with x = 0 < z <= y (or y >= z > 0 = x).  We're really
+        modelling a random variate, Z, distributed over the interval between x
+        and y; and want to model the variate 1/Z; and we'll be modelling this
+        last by a uniform density on some range.  That range can't be infinite
+        in width, so we have to clip it, effectively relacing x with some
+        value a little closer to y, to avoid dividing by zero.  If Z is
+        uniformly distributed between x = 0 and y, 1/Z shall have its
+        nearer-zero bound at 1/y and median at 2/y, so one obvious candidate
+        representation is to use 3/y as the far-from-zero bound.
 
         The reader is welcome to consider what happens if Z's density is z**u
         for some u > 0, so as to give density zero at x = 0.  I find that this
-        gives mean and median close beyond a/y for huge u, tending to infinity
-        and 2*a/y, respectively, as u tends to 0 from above.  This leaves no
+        gives mean and median close beyond 1/y for huge u, tending to infinity
+        and 2/y, respectively, as u tends to 0 from above.  This leaves no
         useful way to use the mean to suggest a half-way sensible answer,
         while median encourages the answer above.  However, this analysis does
         reveal that, for a near-uniform distribution between x and y, the mean
         is further out than the median would suggest, encouraging us to make
-        the interval wider than we otherwise would.  So I chose to use 4*a/y
-        as the far bound, interpreted as f(a, (3*x+y)/4); replace x with the
+        the interval wider than we otherwise would.  So I chose to use 4/y
+        as the far bound, interpreted as f((3*x+y)/4); replace x with the
         point in its interval a quarter of the way towards y.
 
-        When a and b are different, we're going to get a/y and b/y at two
-        corners of our square and it makes sense to use (3*x+y)/4 in place of
-        x as the other end of the x-to-y interval.
+        When we have several parameters, we don't necessarily know which of
+        them are responsible for the division by zero; but we can try
+        substituting for each and see what we get.  If that still gets
+        nothing, we can try substituting in each possible pair of parameters;
+        and so on for steadily more parameters substituted.  If substituting
+        for all parameters still fails, fall back on actually re-raising the
+        divide-by-zero error we originally got from apply(f, xs).\n"""
 
-        It then remains to deal with the fact that f(a, x) would equally
-        divide by zero if f were x/a and a were zero; so f((3*a+b)/4, x) is as
-        apt to be what we need as f(a, (3*x+y)/4).  Of course, if f(a,x)
-        really is a/x or x/a, the wrong one of these shall also divide by
-        zero, which shall tell us which to use.  If we're able to evaluate
-        both, I chose to use their mean; if only one, use it; and, if neither,
-        fall back on f((3*a+b)/4, (3*x+y)/4), allowing any divide-by-zero
-        there to finally be accepted as unavoidable (re-raising the original
-        error from calling f(a, x), not this final error).\n"""
+        assert len(xs) == len(ys)
+        first = True # defer adjusting ys; we probably don't need to
 
-        try: return f(a, x)
-        except ZeroDivisionError, what:
-            b, y = (3 * a + b) * .25, (3 * x + y) * .25
+        # Scan over index subsets, of increasing size, on which to use ys:
+        for seq in traverse(len(xs)):
             row = []
-            try: row.append(f(a, y))
-            except ZeroDivisionError: pass
-            try: row.append(f(b, x))
-            except ZeroDivisionError: pass
+            for ks in seq:
+                assert set(ks).issubset([0, 1])
+                try: row.append(apply(
+                        f, ks.mapwith(lambda k, *vs: vs[k], xs, ys)))
+                except ZeroDivisionError, err: pass
 
-            if len(row) == 2: return 0.5 * sum(row)
+            # Use average over first size to give any results:
+            if len(row) > 1: return sum(row) * 1. / len(row)
             try: return row[0]
             except IndexError: pass
 
-            try: return f(b, y)
-            # Final fall-back, re-using original error on failure:
-            except ZeroDivisionError: raise what
+            if first:
+                assert ks == (0,) * len(xs) # so we didn't use ys yet
+                what = err # seq only gave us one ks; save its error
+                ys = map(lambda x, y: (3 * x + y) * .25, xs, ys)
+                first = False # don't do this again
 
-    def morebad(prior, more): # tool-function for __join
+        assert not first # i.e. traversal gave us at least *something*
+        # Final fall-back, re-using original error on failure:
+        raise what
+
+    def morebad(prior, more): # tool-function for evaluate
         """Helper for accumulating similar exceptions' .args values.
 
         First argument, prior, is a (possibly empty) tuple of accumulated
@@ -768,6 +837,48 @@ class PiecewiseConstant (Interpolator):
         if more and more[0] in prior: return more[1:]
         return more
 
+    # tool-function for __join:
+    def evaluate(f, box,
+                 s=single, more=morebad, all=slices):
+        """Evaluate a function at corners of a cuboid.
+
+        First argument, f, is a call; second, box, is a sequence of twoples
+        (lo, hi) of bounds of intervals; len(box) is the number of parameters
+        f shall be passed; f is expected to return values that behave like
+        numbers.  The cartesian product of the intervals described by box's
+        entries constitutes a cuboid in a len(box)-dimensional space; this
+        function returns f's values at or near as many as possible of the
+        corners of this cuboid.
+
+        Some intervals may abut values, for the relevant input to f, at which
+        f grows without bounded (expected to be manifest as division by zero);
+        when this happens, there are corners of the cuboid (quite possibly
+        whole faces) on which f raises ZeroDivisionError.  When this arises
+        for a corner, points inside the cuboid or on its boundary are sought
+        near the corner, at which to evaluate f; if none such can be found,
+        the exception is remembered.  Otherwise, a representative value from
+        some such values shall be used as f's value 'at' the corner.
+
+        If values can be found for at least two corners, a list of the values
+        found is returned; otherwise, a ZeroDivisionError is raised, using
+        information from the exceptions at all corners that failed.\n"""
+
+        row, bad = [], ()
+        for seq in all(len(box)):
+            for ks in seq:
+                xs = tuple(map(lambda p, i: p[i], box, ks))
+                ys = tuple(map(lambda p, i: p[1-i], box, ks))
+                try: row.append(s(f, xs, ys))
+                except ZeroDivisionError, what:
+                    bad += more(bad, what.args)
+
+        if len(row) < 2:
+            if not bad: bad = ('Division by zero',)
+            raise apply(ZeroDivisionError, bad + ('calling', f, 'on', box))
+        return row
+    del slices, single, morebad
+
+    # tool-classes for __join
     class Tile (object):
         def __init__(self, xs, wt):
             assert wt, 'non-empty'
@@ -892,72 +1003,64 @@ class PiecewiseConstant (Interpolator):
     del Interval
 
     @staticmethod
-    def __join(f, my, yo, kink,
-               s=single, more=morebad,
-               form=(Spike, Flat, UpDown, UpAlongDown)):
+    def __join(f, box, mass,
+               each=evaluate, form=(Spike, Flat, UpDown, UpAlongDown)):
         """Combine my and yo according to f and update kink.
 
         First argument, f, is a function taking two inputs; next two
         arguments, my and yo, are triples (l, h, w) describing weight w in
         interval {x: l <= x <= h}; f's first argument shall be drawn from my's
-        interval, second from yo's.  Fourth and last argument, kink, is a set
-        to which to .add() significant values returned by by f.  Returns a
-        Tile object which describes how the product of weights of my and yo
-        are distributed over a range of values obtained by such calls to
-        f.  Values added to kink are the ones at which the density, of the
-        distribution described by the returned object, isn't smooth.
+        interval, second from yo's.  Returns a Tile object which describes how
+        the product of weights of my and yo are distributed over a range of
+        values obtained by such calls to f.  Values added to kink are the ones
+        at which the density, of the distribution described by the returned
+        object, isn't smooth.
 
         Because intervals may be bounded by values at which f is ill-behaved,
         ZeroDivisionError is handled specially; see single's doc.\n"""
 
-        row, bad = [], ()
-        a, b, x, y = my[0], my[1], yo[0], yo[1]
-        try: row.append(s(f, a, x, b, y))
-        except ZeroDivisionError, what: bad += what.args
-        try: row.append(s(f, a, y, b, x))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
-        try: row.append(s(f, b, x, a, y))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
-        try: row.append(s(f, b, y, a, x))
-        except ZeroDivisionError, what: bad += more(bad, what.args)
+        row = each(f, box)
 
         if len(row) < 2:
             raise apply(ZeroDivisionError,
                         bad + ('calling', f, 'on', (a, b), (x, y)))
         all = set(row)
-        kink.update(all)
         if len(all) == 1: cls, row = form[0], tuple(all)
         else:
             assert len(all) > 1, 'row is non-empty => so is all'
-            cls = form[len(row) - 1]
             row.sort()
+            if len(row) > len(form):
+                # Ditch middle entries (except maybe one):
+                n, r = divmod(len(form), 2)
+                if r: row = row[:n] + [ row[len(row)/2] ] + row[-n:]
+                else: row = row[:n] + row[-n:]
+            cls = form[len(row) - 1]
 
-        return cls(tuple(row), my[-1] * yo[-1])
+        return cls(tuple(row), mass)
+    del evaluate, Spike, Flat, UpDown, UpAlongDown
 
-    del single, morebad, Spike, Flat, UpDown, UpAlongDown
-
-    def combine(self, func, other):
+    def combine(self, func, *others):
         mix, kink, spike, join = [], set(), set(), self.__join
-        for m in self.filter():
-            for y in other.filter():
-                mix.append(join(func, m, y, kink))
-                if not mix[-1]: spike.add(mix[-1].start)
+        for s, m in self._combine(self, *others):
+            here = join(func, s, m)
+            mix.append(here)
+            kink.update(here.kinks)
+            if not here: spike.add(here.start)
 
         mix.sort()
         # Duplicate entries at which there are spikes, so that every spike in
         # our answers is preserved.  (Each spike of self combines with each
-        # spike of other to produce a spike in the result.)
+        # spike of each other to produce a spike in the result.)
         kink = list(kink) + list(spike)
         kink.sort()
 
         cut = iter(kink)
         try: lo = cut.next()
         except StopIteration:
-            raise ValueError('No data to combine', self, other)
+            raise apply(ValueError, ('No data to combine', self) + others)
         try: hi = cut.next()
         except StopIteration:
-            return self.__interpolator__((lo, lo),
-                                         (self.total * other.total,))
+            return self.__interpolator__((lo, lo), 1)
 
         zero = 0 * mix[0].weight # a zero weight
         live, wait, step, part = [], [], False, zero
@@ -995,5 +1098,6 @@ class PiecewiseConstant (Interpolator):
             assert not live or live[-1].stop == lo
 
         return self.__interpolator__(kink, wait)
+    # </tools>
 
-del lazyprop, math, iterable
+del lazyprop, math, iterable, Tuple
