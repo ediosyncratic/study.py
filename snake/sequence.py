@@ -98,7 +98,7 @@ class Iterable (object):
         as first parameter and each subsequent parameter drawn from the
         matching iterable; the function's return is yielded.  The result is
         thus similar to using the builtin map(self, *others), except that it
-        returns an iterator over the values.\n"""
+        returns an iterator over the values.  Contrast with cartesian().\n"""
 
         others = map(self.__endless, others)
 	if func is None: func = lambda *args: args
@@ -140,7 +140,47 @@ class Iterable (object):
         for it in self:
             yield i, it
             i += 1
-
+
+    @staticmethod
+    def __descartes(o, r=((),)): # helper for __renee()
+        """Iterate over product of o with r.
+
+        Required argument, o, is an iteratble (and not an iterator).  Optional
+        argument, r, defaults to ((),), a sequence whose sole entry is the
+        empty tuple; if given, it should be an iterable (it may be an
+        iterator: it is fully iterated exactly once) over tuples.  For each
+        tuple in r, this method yields each result of adding an entry in o to
+        the start of the tuple.\n"""
+        for em in r:
+            for it in o:
+                yield (it,) + em
+
+    @classmethod
+    def __renee(cls, func, one, *rest): # helper for cartesian()
+        """Raw cartesian product of iterators.
+
+        Has to be separate from .__descartes() since its recursive call to
+        itself needs it to be a function, not a generator.  Is separate from
+        cartesian so as to use raw tuples as keys for efficiency in the
+        recursion, leaving cartesian to Tuple()ify the final results.\n"""
+        if func is not None: one = func(one)
+        if rest: return cls.__descartes(one, cls.__renee(func, *rest))
+        return cls.__descartes(one)
+
+    @classmethod
+    def cartesian(cls, func, *whom):
+        """Cartesian product on iterators.
+
+        First argument, func, must be a callable (e.g. tuple) or None (in
+        which case lambda x: x is implicitly used).  All subsequent arguments
+        must be iterables; there must be at least one.  Calls func on each of
+        these iterables; it is important that func's return *not* be an
+        iterator, as it is apt to be iterated repeatedly (and an iterable
+        would be exhausted after the first time). Let seq refer to the returns
+        from func; each yield of the returned iterator is a Tuple res for
+        which res[i] is an entry in seq[i].\n"""
+        return cls.__iterable__(cls.__renee(func, *whom)).map(Tuple)
+
 class WrapIterable (Iterable):
     # For when you aren't defining a class to mix in with:
     def __iter__(self): return self
@@ -451,6 +491,25 @@ class Dict (dict):
 
     __upcopy = dict.copy # returns a dict, even when used via a derived class
     def copy(self): return self.__iterdict__(self.__upcopy())
+
+    @staticmethod
+    def __unterleave(args, T=Tuple):
+        return tuple(map(T, map(lambda *kv: kv, *args)))
+
+    @classmethod
+    def cartesian(cls, *what):
+        """Cartesian product of dictionaries.
+
+        Each argument should be a mapping.  With seq = (self, *others), this
+        method returns an iterator over (key, val) pairs, in which key and val
+        are Tuples with seq[i][key[i]] == val[i] for each valid index i into
+        seq.  Passing the result to self.__iterdict__() will get you a
+        suitable mapping object with these keys and values; that isn't done
+        here, since you're likely to want, first, to appply some mapping to
+        the key or value tuples.\n"""
+        return apply(Tuple.cartesian,
+                     (tuple,) + tuple(map(lambda o: o.items(), what))
+                     ).map(cls.__unterleave)
 
 class List (ReadSeq, list): # list as base => can't use __slots__
 

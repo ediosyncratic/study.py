@@ -373,7 +373,7 @@ class Spread (Dict, Cached):
         if func is None: func = cls.__tor
         assert what
         ans = cls.__iterdict__()
-        for t, n in cls.__renee(*what):
+        for t, n in cls.cartesian(*what).map(lambda (k, v): (k, v.product())):
             if n: ans[func(*t)] += n
         return ans.freeze()
 
@@ -392,42 +392,5 @@ class Spread (Dict, Cached):
         try: return lo.map(cls.__mid, hi)
         except AttributeError:
             return tuple(map(cls.__mid, lo, hi))
-
-    @staticmethod
-    def __product(o, r=None):
-        """Iterate over key-tuple, weight pairs of o's product with r.
-
-        Required argument, o, is a Spread object (or a mapping with numeric
-        values).  Optional argument, r, is an iterator, each yield of which is a
-        pair of a tuple and a weight; if omitted, the result is as if r yielded
-        one pair, ((), 1).  The result yields, for each tuple, weight from r and
-        each key and value of o, a pair of: a tuple that prepends o's key to r's
-        tuple; a weight that's the product of r's weight and o's value.  This is
-        used by __renee (q.v.) to build a cartesian product of keys, with
-        numeric products for values.\n"""
-        if r is None:
-            for i, n in o.iteritems():
-                yield (i,), n
-        else:
-            for s, m in r:
-                for i, n in o.iteritems():
-                    yield (i,) + s, n * m
-
-    @classmethod
-    def __renee(cls, one, *rest):
-        """Cartesian iterator.
-
-        All arguments should normally be Spread objects (but they can,
-        alternatively, be dict objects whose values are numeric); takes at least
-        one, plus arbitrarily many more.  Returns an iterator, each yield of
-        which is a pair of a tuple and a count; the tuple's length is equal to
-        the number of dict objects passed as arguments to cls.__renee().  Each
-        entry in the tuple is a key of the corresponding dict object; the count
-        is the product, over entries in the tuple, of their values in their
-        corresponding dict objects.  The iterator traverses every possible tuple
-        and count conforming to this spec.\n"""
-
-        if rest: return cls.__product(one, cls.__renee(*rest))
-        return cls.__product(one)
 
 del Dict, lazyprop, Cached, postcompose
