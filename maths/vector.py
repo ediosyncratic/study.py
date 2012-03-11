@@ -1,9 +1,9 @@
 """Vectors (and tensors).
 """
 from study.cache.property import lazyprop
-from study.snake.sequence import ReadSeq
+from study.snake.sequence import Tuple
 
-class Vector (ReadSeq, tuple):
+class Vector (Tuple):
     """Simple tuple type supporting basic arithmetic.
 
     Supports entry-wise addition and subtraction (i.e. (x+y)[i] = x[i]+y[i],
@@ -426,4 +426,4 @@ class Vector (ReadSeq, tuple):
 
     del Permutation, Rational
 
-del lazyprop, ReadSeq
+del lazyprop, Tuple
