@@ -288,10 +288,12 @@ class curveWeighted (Lazy, _baseWeighted):
         i = self.interpolator
 
         if 1./i.total == 0:
+            assert False, 'Does this ever even happen ?'
             # cope with infinity by going via a half-way house:
             self = self.copy(scale = 1./max(self.values()))
             i = self.interpolator
         elif 1./(1./i.total) == 0:
+            assert False, 'Does this ever even happen ?'
             # cope with infinitessimals by going via two half-way houses:
             s = pow(max(self.values()), -.5)
             self = self.copy(scale=s).copy(scale=s)
@@ -962,15 +964,19 @@ class _Weighted (Object, _baseWeighted):
           distribution.  Default is, strictly, None: if func is None, the
           identity, lambda x: x, is (implicitly) used.
 
-        see, e.g., negation and copying of Samples (below). """
+        See, e.g., negation and copying of Samples (below).\n"""
 
+        smooth = self.interpolator
         if scale is None:
             sum = self.total()
             if sum: scale = 1. / sum
+            smooth = smooth.scale()
+        else: smooth = smooth.scale(by=scale)
 
         bok = {}
-        if scale:
+        if scale: # (else: result is degenerate)
             if func:
+                smooth = smooth.combine(func)
                 for k, v in self.items():
                     h = func(k)
                     # watch out - func might not be monic;
@@ -982,7 +988,7 @@ class _Weighted (Object, _baseWeighted):
                 for k, v in self.items():
                     bok[k] = v * scale
 
-        return self.__obcopy(bok)
+        return self.__obcopy(bok, smooth=smooth)
 
 class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     __joinit = joinWeighted.__init__
