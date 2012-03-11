@@ -2,6 +2,7 @@
 """
 from study.cache.property import Cached, lazyprop
 from study.snake.decorate import postcompose
+from study.snake.sequence import iterable
 import math
 
 class Interpolator (Cached):
@@ -32,7 +33,6 @@ class Interpolator (Cached):
         assert not filter(None, self.map(lambda x, y, w: y < x)), \
             ("Cuts should be sorted", self.cuts)
 
-    def __len__(self): return len(self.mass)
     @classmethod
     def __interpolator__(cls, cuts, mass):
         """Construct something like self from given cuts and mass.
@@ -41,6 +41,24 @@ class Interpolator (Cached):
         this base class should over-ride this method to support the base-class
         signature as best it can.\n"""
         return cls(cuts, mass)
+
+    def __len__(self): return len(self.mass)
+    def __cmp__(self, other):
+        """Comparison: which is probably greater ?
+
+        Uses self.combine(cmp, other), relying on cmp()'s sensible habit of
+        returning -1, 0 or 1 to give fairly sensible results, so that we can
+        .weigh((-.5, .5)) and get probabilities for the three answers for
+        comparison of self vs others.  If either < or > has probability better
+        than a half, it wins; otherwise, if one hits half and the other
+        doesn't, the one at half wins; otherwise, call it a draw.\n"""
+        split = self.combine(cmp, other)
+        assert set(split.cuts).issubset([-1, 0, 1])
+        low, mid, hie = self.weigh((-.5, .5), 1)
+        if low < .5: b = 0
+        else: b = -1
+        if hie < .5: return b
+        return b + 1
 
     @lazyprop
     def total(self, cls=None): return sum(self.mass)
@@ -73,6 +91,7 @@ class Interpolator (Cached):
         assert not mass[0] and not mass[-1]
         return self.__interpolator__(cuts, mass[1:-1])
 
+    @iterable
     def filter(self, test=lambda l, h, w: w):
         """Express self as a sequence of non-empty intervals.
 
@@ -87,6 +106,7 @@ class Interpolator (Cached):
         for l, h, w in self:
             if test(l, h, w): yield l, h, w
 
+    @iterable
     def __iter__(self):
         for (l, h, w) in self.map(lambda *args: args):
             yield l, h, w
@@ -102,6 +122,7 @@ class Interpolator (Cached):
         if lo == hi: return None
         return wt / (hi - lo)
 
+    @iterable
     def map(self, func, *more):
         """Gather up results of func applied to self's intervals.
 
@@ -588,7 +609,7 @@ class PiecewiseConstant (Interpolator):
         It is not immediately clear what to do with a delta function, or a
         distribution including any such spikes; this shall divide by zero on
         such distributions.\n"""
-        return sum(self.map(each))
+        return self.map(each).sum()
 
     def __add__(self, other):
         spikes = set(self.spikes + other.spikes)
@@ -975,4 +996,4 @@ class PiecewiseConstant (Interpolator):
 
         return self.__interpolator__(kink, wait)
 
-del lazyprop, math
+del lazyprop, math, iterable

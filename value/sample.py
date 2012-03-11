@@ -87,8 +87,8 @@ class curveWeighted (Lazy, _baseWeighted):
     you need to over-ride is (well, should be) interpolator; curveWeighted's
     cliends *should* assume nothing about the curve (but repWeighted's rounding
     infrastructure may still be entanged).  Your interpolator must support
-    .weigh(), .split(), cross() with the same semantics as here and have a .cuts
-    attribute with a suitable meaning. """
+    .weigh(), .split() with the same semantics as here and have a .cuts
+    attribute with a suitable meaning.\n"""
 
     # Approximate a gaussian with mean 0 and standard deviation 1:
     gaussish = { 0: .382,
@@ -96,47 +96,6 @@ class curveWeighted (Lazy, _baseWeighted):
                  2: .0608, -2: .0608,
                  3: .0062, -3: .0062 }
     # Variance is 1.082, which is a fraction wide, but endurable.
-
-    def reach(self, low=None, high=None, share=1e-6):
-        """Ensure self's weights stretch as far as low and high, if non-None.
-
-        Arguments:
-          low -- None, or a lower bound that self should reach
-          high -- None, or an upper bound that self should reach
-          share -- fraction of self's total weight available to reach bounds
-
-        Note that if low or high is None, or is already within self's range, it
-        will be ignored.\n"""
-
-        if len(self) < 1:
-            # ignore share; low and high shall be our only weights
-            if high is None:
-                if low is not None: self.add({low: 1})
-            elif low is None: self.add({high: 1})
-            else: self.add({(low * 2 + high) / 3.: 1,
-                            (low + 2 * high) / 3.: 1})
-
-        else:
-            bok, smooth = {}, self.interpolator
-            cut, sum = smooth.cuts, smooth.total * share
-            if low is not None and low < cut[0]:
-                # arrange for low to be new cut[0]
-                bok[.5 * (low + self.sortedkeys[0])] = sum
-
-            if high is not None and high > cut[-1]:
-                bok[.5 * (self.sortedkeys[-1] + high)] = sum
-
-            if len(bok) > 1:
-                for k in bok.keys(): bok[k] = bok[k] / 2
-
-            if bok: self.add(bok)
-
-        # that invalidates some attributes:
-        try: del self.interpolator
-        except AttributeError: pass
-
-        try: del self.sortedkeys
-        except AttributeError: pass
 
     # Support tool: interpolator to interpret the dictionary as a curve.
     from study.maths.interpolator import PiecewiseConstant as Interpolator
@@ -216,6 +175,41 @@ class curveWeighted (Lazy, _baseWeighted):
 
             return ( bot, ) + tuple(map(mean, row[:-1], row[1:])) + ( top, )
 
+        def reach(self, low=None, high=None, share=1e-6):
+            """Return self extended to span given values.
+
+            Arguments:
+               low -- None, or a lower bound that self should reach
+               high -- None, or an upper bound that self should reach
+               share -- fraction of self's total weight available to reach
+                        bounds
+
+            Note that if low or high is None, or is already within self's
+            range, it will be ignored; if self is empty, share will be
+            ignored.\n"""
+            if self:
+                cuts, mass, n = self.cuts, self.mass, 0
+                if low is not None:
+                    if low >= cuts[0]: low = None
+                    else: n += 1
+                if high is not None:
+                    if high <= cuts[-1]: high = None
+                    else: n += 1
+                if n: way = self.total * share * 1. / n
+                else: return self
+
+                if low is not None: cuts, mass = (low,) + cuts, (way,) + mass
+                if high is not None: cuts, mass = cuts + (high,), mass + (way,)
+                return self.__interpolator__(cuts, mass)
+
+            # else: ignore share - low and high shall be our only points !
+            if high is None:
+                if low is None: return self
+                return self.__interpolator__((low, low), 1)
+
+            if low is None: return self.__interpolator__((high, high), 1)
+            return self.__interpolator__((low, high), 1)
+
         @classmethod
         def gaussian(cls, mean=0, variance=1, count=None, fudge=1.082):
             # Ignores count.
@@ -225,32 +219,6 @@ class curveWeighted (Lazy, _baseWeighted):
             mass = map(lambda k, b=bok: b[k], mids)
             mids = map(lambda k, m=mean, s=variance**.5/fudge: m + k * s, mids)
             return cls.fromMidMass(mids, mass)
-
-        def cross(self, other):
-            """Compute a consensus from two distributions.
-
-            Extends base's .__mul__ to handle poorly-overlapped sources and
-            return a weighted-value dictionary.
-
-            If the distributions were gaussians, the new distribution would
-            also be gaussian; its mean would be the weighted average of the
-            old means, each weighted by the other's variance; and the new
-            variance would be the inverse of the sum of inverses of variances.
-
-            In practice, our piecewise constant distributions might not
-            overlap, so it's expeditious to mix the straight piecewise product
-            of the distributions with (an approximation to) the gaussian that
-            we'd get if both source distributions had been gaussians.\n"""
-
-            prod = self * other
-            if prod.total < 1:
-                # Model each as gaussian, determine interpolator of product gaussian:
-                (mym, mys), (yom, yos) = self.normal, other.normal
-                v = 1/(1/mys +1/yos)
-                gaus = self.gaussian((mym / mys + yom / yos) * v, v)
-                prod += gaus.scale(to = 1 - prod.total)
-
-            return prod
 
         def toWeights(self, mean=lambda x, y: .5 * (x + y)):
             # Turn a distribution into a weight dictionary:
@@ -381,32 +349,6 @@ class repWeighted (curveWeighted):
 
         cut = self.interpolator.cuts
         return cut[0], cut[-1]
-
-    def niles(self, n, mid=False):
-        """Subdivides distribution into n equal bands.
-
-        First argument, n, is the number of bands into which to divide self's
-        distribution.  Second argument, mid (default false), selects the
-        mid-points of the bands, instead of their ends; this, in fact, still
-        delivers the ends of bands but starts (and ends) with half-bands.
-
-        Returns a tuple of sample points (n+1 of them if mid is false, n if it
-        is true) for self's distribution: between any two adjacent entries in
-        the tuple, self.between() finds weight self.total()/n.  If mid is
-        false (default) the first and last entries in the tuple are the top
-        and bottom of self's distribution's tails (which may be further apart
-        than self's highest and lowest keys).
-
-        Contrast statWeighted.median(), which always returns a sample-point of
-        the distribution, and joinWeighted.condense(), which uses
-        sample-points for the equivalent of niles with mid = true.  Note that
-        self's median can be obtained as the single entry in self.niles(1,
-        True) or as the middle entry of self.niles(2)."""
-
-        if n < 1: raise ValueError(
-            'Can only subdivide range into positive number of parts', n)
-        if mid: return self.interpolator.split([ 1 ] + [ 2 ] * n + [ 1 ])
-        else:   return self.interpolator.split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
     # TODO: this looks like interpolator-work
     def __embrace(self, total, about):
@@ -720,51 +662,35 @@ class joinWeighted (curveWeighted):
     def cross(self, other):
         """Pointwise product of two distributions.
 
-        This models set intersection and the inference of a combined likelihood
-        distribution from those due to two separate data-sets.\n"""
+        This models set intersection and the inference of a combined
+        likelihood distribution from those due to two separate data-sets, with
+        some gentle munging to cope with poorly-overlapped sources.
+
+        If the distributions were gaussians, the new distribution would also
+        be gaussian; its mean would be the weighted average of the old means,
+        each weighted by the other's variance; and the new variance would be
+        the inverse of the sum of inverses of variances.
+
+        In practice, our piecewise constant distributions might not overlap,
+        so it's expeditious to mix the straight piecewise product of the
+        distributions with (an approximation to) the gaussian that we'd get if
+        both source distributions had been gaussians.\n"""
         assert len(self) > 1 < len(other), "delta functions aren't nice here"
-        prod = self.interpolator.cross(other.interpolator)
-        return self.__weighted__(None,
-                                 detail=max(self.__detail, other.__detail),
-                                 smooth=prod)
 
-    def decompose(self, new, mean=lambda a, b: (a+b)/2.):
-        """Decomposes self.
+        me, yo = self.interpolator, other.interpolator
+        prod = me * yo
+        if prod.total < 1:
+            # Model each as gaussian:
+            (mym, mys), (yom, yos) = me.normal, yo.normal
+            # Determine interpolator of product gaussian:
+            v = 1/(1/mys +1/yos)
+            gaus = self.interpolator.gaussian((mym / mys + yom / yos) * v, v)
+            gaus = gaus.scale(to = 1 - prod.total)
+            if prod.total > 0: prod += gaus
+            else: prod = gaus
 
-        Argument, new, is a sorted sequence of keys to use.  Only keys in new
-        which lie between self's bounds will actually be used. """
-
-        if not self.sortedkeys: return self.copy() # trivial/bogus case
-        # assert: new is sorted (but may have some repeated entries)
-
-        # Flush out any repeats and out-of-range:
-        run = filter(lambda k, (l,h)=self.bounds(): l < k < h, set(new))
-        run.sort()
-
-        # Share self's weights out correctly between run's entries:
-        result, smooth, fresh = {}, self.interpolator, None
-        if len(run) == 1:
-            result[run[0]] = self.total
-            if run[0] < smooth.cuts[0]: cuts = (run[0], smooth.cuts[-1])
-            elif run[0] > smoooth.cuts[-1]: cuts = (smooth.cuts[0], run[0])
-            else: cuts = (smooth.cuts[0], smooth.cuts[-1])
-            fresh = self.Interpolator(cuts, (self.total,))
-        elif run:
-            cuts = map(mean, run[:-1], run[1:])
-            mass = smooth.weigh(cuts)
-            if smooth.cuts[0] < run[0]:
-                lo = smooth.cuts[0]
-            else: lo = 2 * run[0] - run[1]
-            cuts.insert(0, lo)
-            if smooth.cuts[-1] > run[-1]:
-                hi = smooth.cuts[-1]
-            else: hi = 2 * run[-1] - run[-2]
-            cuts.append(hi)
-            load, fresh = iter(mass), self.Interpolator(cuts, mass)
-            for k in run: result[k] = load.next()
-
-        # Build a new distribution with this weighting:
-        return self.__weighted__(result, detail=len(result), smooth=fresh)
+        return self.__weighted__(None, smooth=prod).condense(
+            max(self.__detail, other.__detail))
 
     def condense(self, count=None, middle=lambda i: i.median()):
         """Simplifies a messy distribution.
@@ -840,21 +766,11 @@ class joinWeighted (curveWeighted):
         return ans
 
     # Comparison: which is probably greater ?
-    def __cmp__(self, what):
-        sign = self.combine(what, cmp, 3)
-        # cmp coerces -ve values to -1, positives to +1; thank you Guido.
-        # Thus sign.keys() is [-1, 0, 1] in some order.
+    def __cmp__(self, other):
+        if not isinstance(other, _baseWeighted):
+            other = self.__weighted__(other)
 
-        half = sign.total() / 2.
-        # if either -1 or +1 has more than half the weight, it wins
-        # otherwise, if one is less than half and the other equals half, the latter wins
-        # otherwise, it's a draw.
-
-        if sign[-1] < half: b = 0
-        else: b = -1
-
-        if sign[1] < half: return b
-        return b + 1
+        return self.interpolator < other.interpolator
 
 # Various statistical computations.
 
@@ -880,100 +796,30 @@ class statWeighted (_baseWeighted):
         that up to n+1 by regarding the top and bottom of the distribution as
         `boundary' n-iles for all n).
 
-        See, for comparison, joinWeighted.condense() and repWeighted.niles(). """
+        See, for comparison, joinWeighted.condense() and Sample.fractiles(). """
 
         if not self: raise ValueError('Taking median of an empty population')
-        if len(self) == 1: return self.keys()[0] # trivial case
 
-        row = self.sortedkeys
-        lo, hi = 0, len(row)
-        top = bot = .5 * self.total()
-        # I'll call this half-total simply `half', below.
-        # half - top and half - bot are sum(self[row[hi:]]) and sum(self[row[:lo]])
-
-        while bot > self[row[lo]]:
-            bot = bot - self[row[lo]]
-            lo = lo + 1
-        # assert: self[row[lo]] >= bot > 0, so
-        # infer: sum(self[row[:lo+1]]) >= half > sum(self[row[:lo]])
-        # and, subtracting each from total,
-        # infer: sum(self[row[lo+1:]]) <= half < sum(self[row[lo:]])
-
-        while top > self[row[hi - 1]]:
-            hi = hi - 1
-            top = top - self[row[hi]]
-        # assert: 0 < top <= self[row[hi-1]]
-        # as above, 
-        # sum(self[row[hi:]]) < half <= sum(self[row[hi-1:]])
-        # sum(self[row[:hi]]) > half >= sum(self[row[:hi-1]])
-        # comparison with the above tells us hi-1 >= lo, so hi > lo ;^>
-
-        # Each end has been claiming territory up to, but never quite reaching,
-        # the half-way mark on an imaginary line, which we can mark out into
-        # contiguous chunks, each labelled with a key of self, with length that
-        # key's value in self, ordering the chunks by the order of their labels
-        # in row.  Any chunk wholly to one side or the other of the half-way
-        # mark will be claimed by its end of the line.  So an unclaimed chunk
-        # must either have the half-way mark as one of its end-points, or
-        # actually stradle it.  Likewise, either the half-way mark lies on a
-        # boundary between chunks or within a chunk.  We thus have two cases:
-
-        # i) half-way line falls in a chunk, so it is the only one unclaimed:
-        if lo + 1 == hi: return row[lo]     # the one entry in row[lo:hi]
-
-        # ii) the half-way line fell at the boundary of two chunks.  This case
-        # should be rare, so I don't mind it being computationally expensive.
-
-        # Clearly, in this case, there's a risk that the loop tests might just
-        # get arithmitis and find almost-equality to be >, so an end might claim
-        # a piece which abuts the half-way line.  If that happens to one but not
-        # the other, I'm happy that the i) case has succeeded here: if to both,
-        # however, we should re-wind to what ii) expects.
-
-        # On the other hand, hereafter we want hi-1 rather than hi, so ...
-        if lo == hi: lo = lo - 1
-        else: hi = hi - 1
-        # assert: hi is lo + 1
-
-        # Now, decide between lo and hi, or (rather) between
-        low, hie = row[lo], row[hi]
-
-        # low represents an interval whose
-        # width is roughly (row[lo+1] - row[lo-1]) / 2
-        # total integral of the density is self[low]
-        # typical density is thus 2 * self[low] / (row[lo+1] - row[lo-1])
-        # so try to pick the candidate who has higher typical density
-        try:
-            left = self[low] * (row[hi+1] - row[hi-1])
-            rite = self[hie] * (row[lo+1] - row[lo-1])
-            # so ratio left:rite is same as typical density in lo:hi intervals.
-        except IndexError: pass
-        else:
-            if left < rite: return hie
-            if rite < left: return low
-
-        # well, if I can't compute typical densities, or if the densities agree,
-        # I'll just have to make do with totals:
-
-        if self[hie] < self[low]: return low
-        # err high in the event of a tie.
-        return hie
-
-    def _moments(self, n):
-        """Returns a tuple of moments of the given distribution.
-
-        Argument, n, is the highest order for which moments are desired.
-        Returns a tuple with 1+n entries: for i running from 0 to n, result[i]
-        is the sum, over (key, val) in self.items(), of val * pow(key, i). """
-
-        row = (n + 1) * [ 0 ]
-        for key, val in self.items():
-            for i in range(n):
-                row[i] = val + row[i]
-                val = val * key
-            row[n] = val + row[n]
-
-        return tuple(row)
+        smooth, row = self.interpolator, self.sortedkeys
+        assert len(smooth) == len(row)
+        assert not filter(
+            None, smooth.map(lambda l, h, w, m: l > m or m > h, row))
+        i, j = 0, len(smooth) - 1
+        lo, hi = smooth.mass[i], smooth.mass[j]
+        while i + 1 < j:
+            up, dn = lo <= hi, hi <= lo
+            if up:
+                i += 1
+                lo += smooth.mass[i]
+            if dn:
+                j -= 1
+                hi += smooth.mass[j]
+        if i == j or hi < lo: return row[i]
+        if lo < hi: return row[j]
+        cut = smooth.cuts[j]
+        assert row[i] <= cut <= row[j]
+        if cut - row[i] < row[j] - cut: return row[i]
+        return row[j]
 
     def normalise(self):
         """Returns variant on self normalised to have .total() equal to 1."""
@@ -1253,11 +1099,16 @@ class Sample (Object):
 
         # Finished massaging inputs: initialise self.
         self.__upinit(*args, **what)
-        self.__weigh = self._weighted_(weights)
-        self.__weigh.reach(what.get('low', None), what.get('high', None))
+        weights = self._weighted_(weights)
+        if what.has_key('low') or what.has_key('high'):
+            self.__weigh = self._weighted_(
+                None,
+                smooth=weights.interpolator.reach(
+                    what.get('low', None), what.get('high', None)))
+        else: self.__weigh = weights
 
     def __update(self, weights):
-        """Take note of what looks like a distribution.
+        """Take note of another witness of our value.
 
         Single argument should be a Weighted (or, at least, curveWeighted)
         object.  If this has more than one weight, it's interpreted as a
@@ -1588,7 +1439,11 @@ class Sample (Object):
         the nominal extremes of the distribution and there are 1+n entries in
         the tuple."""
 
-        return self.__weigh.niles(n, mid)
+        if n < 1: raise ValueError(
+            'Can only subdivide range into positive number of parts', n)
+        split = self.__weigh.interpolator.split
+        if mid: return split([ 1 ] + [ 2 ] * n + [ 1 ])
+        return split([ 0 ] + [ 1 ] * (1+n) + [ 0 ])
 
     @staticmethod
     def flat(lo, hi, best=None, *args, **what):
