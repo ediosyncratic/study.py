@@ -226,7 +226,8 @@ assorted fractions of the whole.
 The classical unit of arc, the degree, is one 360th of a turn.  This dates
 back to the Babylonians, who (probably didn't actually suffer the delusion
 that the year was tidily 360 days long, whatever popular myth may say, but)
-liked factors of 60 and 6.
+liked factors of 60 and 6.  The word 'degree' just means one step; the circle
+is divided into 360 equal 'steps'.
 
 The separation of two distant objects, as seen in the sky, may sensibly be
 described by the angle between the rays from the observer to the objects.  If
@@ -239,13 +240,16 @@ visible to the unaided human eye is sufficiently distant, for these purposes.
 Once astronomers had half-way-decent telescopes, they could resolve angles
 (between objects they could see) on much finer scales than the degree (and
 could see much fainter objects), so it became meaningful to sub-divide the
-degree.  A first subdivision by a factor of sixty giave a 'minute' (synonym of
-tiny) unit, which became known as a 'minute' (pronounced differently).
+degree.  A first subdivision by a factor of sixty gave a 'minute' (synonym of
+tiny; pronounced almost like 'my newt') subdivision of the familiar steps of
+arc, which became known as a 'minute' (pronounced more like 'min-it'), 'minute
+of arc' or 'arc-minute'.
 
 Once telescopes became sufficiently better to enable astronomers to resolve
 angles significantly smaller than the minute of arc, it became necessary to
 sub-divide the minute.  Subdividing again by a factor of sixty was a 'second'
-(minute, in the 'tiny' sense) sub-division so it's known as the second of
+(minute, in the 'tiny' sense) sub-division so it's known as the 'second of
+arc' or 'arc-second'; it's the second tiny sub-division of the ancient step of
 arc.  (The exact same operation applied to an hour subdivided it into a minute
 sub-division and a second minute sub-division to produce the units of time
 with the same names.)
@@ -309,18 +313,18 @@ Bq = Becquerel = Hz             # Activity of a radionuclide (events / s)
 Ci = Curie = 37 * giga * Becquerel
 
 R = Roentgen = Quantity(258, micro * Coulomb / kilogramme,
-                        """The Röentgen, a unit of ionising radiation.
+                        """The Röntgen, a unit of ionising radiation.
 
-This measures the intensity of of ionising radiation in terms of amount of
-charge separated per unit mass of exposed material.  Its definition is: the
-amount of radiation required to liberate 1 esu of charge of each polarity in 1
-cubic centimeter of dry air.  Here, the esu - electro-static unit,
-a.k.a. franklin (Fr) or statcoulomb (statC) - is (in some sense) 1/2997924580
-Coulombs (but normally expressed in the Coulomb-cgs system, which takes 4*pi
-times the permittivity of free space as a dimensionless unit, so charge has
-units length*sqrt(force)).
+This measures the intensity of ionising radiation in terms of amount of charge
+separated per unit mass of exposed material.  Its definition is: the amount of
+radiation required to liberate 1 esu of charge of each polarity in 1 cubic
+centimeter of dry air.  Here, the esu - electro-static unit, a.k.a. franklin
+(Fr) or statcoulomb (statC) - is (in some sense) 1/2997924580 Coulombs (but
+normally expressed in the Coulomb-cgs system, which takes 4*pi times the
+permittivity of free space as a dimensionless unit, so charge has units
+length*sqrt(force)).
 """,
-                        fullname='Röentgen')
+                        fullname='Röntgen')
 
 Gy = Gray = Quantity(1, Joule / kilogramme,
                      """Absorbed dose of radiation.
@@ -374,7 +378,7 @@ Food contributes around 0.4 mSv/yr to the total.  Flight crews on air-craft
 typically experience an extra 2.2 mSv/yr from increased exposure to cosmic
 rays, effectively doubling their exposure; passengers take a proportionate
 increase dependent on how often they fly.  Those who live in airtight homes in
-regions of high Radon-prudiction (notably granite hills) can be subject to as
+regions of high Radon-production (notably granite hills) can be subject to as
 much as 10 mSv/yr extra from Radon; and can endu up suffocating, regardless of
 the radioactivity - ventilate your cellar !
 
