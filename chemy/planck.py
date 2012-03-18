@@ -102,11 +102,11 @@ scale' this needn't be the relevant Planck unit.
 It should also be noted that one has some choice in the quantities used; hence
 the `of order' clauses above.  The speed of light is well established, but:
 for the action one may use Planck's constant, h, or Dirac's, h/2/pi, or even
-argue for half this (the spin of a fermion); for the constants governing
-inverse square laws, one has a choice of a factor of 4*pi according as one
-uses the constant from the central-force law or the constant from the equation
-of proportionality between divergence and source density (the field
-equation). Indeed, as concerns the latter, G is selected from gravity's
+argue for half this (the spin of a fermion); for the constants governing an
+inverse square law, one has a choice of a factor of 4*pi according as one uses
+the constant from the central-force law or the constant from the equation of
+proportionality between divergence and source density (the field
+equation).  Indeed, as concerns the latter, G is selected from gravity's
 inverse square law, so a petty consistency encourages me to select the
 matching constant from Coulomb's law, 1/4/pi/epsilon0 = Z0 * c / 4 / pi.
 
@@ -126,10 +126,13 @@ to use the Einstein-Maxwell charge-to-mass ratio (Cosmos.qperm, above) in
 place of G, along with Z0 as just justified (in terms of q = sqrt(h/Z0) as
 unit of charge); which would be equivalent to replacing G, in the system
 actually used here, with its matching Newtonian field-equation unit, 4*pi*G,
-and using Z0 rather than Z0/4/pi.  However, Planck chose G.  The resulting
-system yields a charge equal to 29.3446 times that on a positron, a momentum
-of 8.451 stone foot / second, and very tiny length and time - a mole of the
-lengths add up to almost a quarter of an Ångstrøm.\n""")
+and using Z0 rather than Z0/4/pi.  However, Planck chose G and, to the best of
+my knowledge, stuck to quantities derived from length, mass and time; the most
+faithful way to extend his system is by making a reasonable choice for what he
+didn't include.  The resulting system yields a charge equal to 29.3446 times
+that on a positron, a momentum of 8.451 stone foot / second, and very tiny
+length and time - a mole of the lengths add up to almost a quarter of an
+Ångstrøm.\n""")
 
 Planck.mass.also(__doc__="""The Planck mass.
 
