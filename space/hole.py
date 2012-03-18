@@ -131,8 +131,33 @@ century, a black hole would need to have mass at most a third of a million
 tonnes; with a radius less than half an atto-metre, this would be a very good
 approximation to a point mass.
 """)
-    VolumeRate = Quantity(-.1 / 768 / pi**2, Quantum.h * Cosmos.kappa * Vacuum.c,
-                          """Rate of decrease of volume of a black hole.
+
+    def _lazy_get_lifespan_(self, ig, rate=-MassCubedRate):
+        """How long it'll take this black hole to evaporate.
+
+        Assumes the black hole is isolated in a universe whose cosmic
+        microwave background, if any, has an effective temperature
+        significantly lower than that of the black hole.  This condition is
+        not met by most known black holes; it would only be met, in the known
+        universe, by a black hole whose mass is significantly smaller than
+        that of the Moon.
+
+        A black hole, with temperature equal to that of our observed cosmic
+        microwave background, would have mass .6127 times that of the
+        Moon.  It would be in thermal equilibrium, if otherwise isolated, so
+        would not be shrinking at all.  However, the cosmic microwave
+        background cools adiabatically as the universe expands, so its
+        temperature will eventually fall below that of the black hole, causing
+        it to evaporate (albeit slowly), so warm, hence evaporate faster and
+        duly decay; so it would not last for ever - but, even if fully
+        isolated as assumed here, its .lifespan is more than 17e33 times the
+        present age of our universe; which is a respectably good approximation
+        to 'for ever' !\n"""
+        return self.mass**3 / rate
+
+    VolumeRate = Quantity(
+        -.1 / 768 / pi**2, Quantum.h * Cosmos.kappa * Vacuum.c,
+          """Rate of decrease of volume of a black hole.
 
 Given that r = 2.G.m/c/c is proportional to m, we can infer (from
 MassCubedRate, q.v.) that r**3 also decreases at the constant rate h kappa c N
@@ -157,7 +182,7 @@ around the second, which is only five times as big.  A half peta Kelvin black
 hole has mass just over a quarter of a million tonnes and radius under 0.4e-18
 metres; with N=14 this will take about 7 years to evaporate.
 
-It seems reasonable to guess that nothing but the neutrinos has less mass than
+It seems reasonable to guess that nothing but neutrinos have less mass than
 the electron.  On that assumption, N is at most 5 for temperatures below 5.9
 giga Kelvin, radii above 31 femto metres (of order the size of nuclei), masses
 above 21 giga tonne.  Even if we (conservatively) suppose N jumps to infinity
