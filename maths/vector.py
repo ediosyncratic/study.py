@@ -5,6 +5,7 @@ See its documentation for more.
 """
 from study.cache.property import lazyprop
 from study.snake.sequence import Tuple
+from study.snake.decorate import postcompose
 
 class Vector (Tuple):
     """Tuple type supporting entry-by-entry arithmetic.
@@ -153,6 +154,7 @@ class Vector (Tuple):
        This method exists so that repr() can avoid repeating this class's name
        a whole lot !  It is, hopefully, also useful generally.\n"""
 
+        assert None not in seq, 'Vector entries should be numeric'
         if isinstance(seq, Vector):
             if dim is not None and seq.dimension != dim:
                 raise ValueError('Mismatched dimensions', dim, seq)
@@ -465,6 +467,9 @@ class Vector (Tuple):
 
         return row
 
+    # TODO: can this be more efficient ?
+    # __mul__ is quite heavy-weight; can we short-cut it ?
+    # Is it worth it ?
     def dot(self, other, n=1, out=True):
         """Contracts self with other.
 
@@ -488,10 +493,29 @@ class Vector (Tuple):
 
         Returns what's left of the product after all this tracing has been
         applied.\n"""
-        r = self.rank
-        if out: pairs = map(lambda *a: a, range(r-1, r-1-n, -1), range(r, n+r))
-        else: pairs = map(lambda *a: a, range(r-n, r), range(r, n+r))
-        return apply((self * other).permutrace, ((),) + tuple(pairs))
+        return apply((self * other).permutrace,
+                     self.__derange(out, n, self.rank))
+
+    @staticmethod
+    @postcompose(lambda x: ((),) + tuple(x))
+    def __derange(out, n, r):
+        """Returns pairs of indices for contraction.
+
+        Arguments out and n are as for .dot() and .rdot(); r is the index of
+        the first rank of the right operand.  We thus pair up the indices from
+        r to n+r-1 with those from r-n to r-1, either in same order or reverse
+        order according to out.  Since both callers use the sequence of pairs
+        after an empty tuple as parameters to .permutrace(), package it thus
+        by use of @postcompose.\n"""
+
+        i = n + r
+        if out: j, s = r - n, 1
+        else: j, s = r - 1, -1
+
+        while i > r:
+            i -= 1
+            yield j, i
+            j += s
 
     def rdot(self, other, n=1, out=True):
         """Reverse contraction; c.f. .dot()
@@ -502,10 +526,8 @@ class Vector (Tuple):
         is not (so is mildly less efficient than other.dot(self) when other is
         a Vector or Tensor).\n"""
         prod = other * self
-        r = prod.rank - self.rank
-        if out: pairs = map(lambda *a: a, range(r-1, r-1-n, -1), range(n, n+r))
-        else: pairs = map(lambda *a: a, range(r-n, n), range(n, n+r))
-        return apply(prod.permutrace, ((),) + tuple(pairs))
+        return apply(prod.permutrace,
+                     self.__derange(out, n, prod.rank - self.rank))
 
     def tau(self, pattern):
         """Generalised trace-permutation operator.
@@ -637,32 +659,27 @@ class Vector (Tuple):
         if self.rank < 2: return list(self)
         return map(lambda x: x.__listify(), self)
 
-    def __vectorise(self, grid):
-        # *not* a classmethod, as derived classes might make __vector__
-        # an instance method
-        try: grid[0][:]
-        except TypeError: return self.__vector__(grid)
-        return self.__vector__(map(self.__vectorise, grid))
-
     @classmethod
     def __ranger(cls, ms):
         """Iterator over index tuples.
 
-        Single argument, ms, is a dimension tuple.  Yields every tuple
-        s, of the same length as ms, for which, for every 0 <= i <
+        Single argument, ms, is an iterator over dimensions.  Yields every
+        tuple s, of the same length as ms, for which, for every 0 <= i <
         len(ms), 0 <= s[i] < ms[i].\n"""
 
-        if len(ms) < 1: yield ()
+        try: m = ms.next()
+        except StopIteration: yield ()
         else:
-            for s in cls.__ranger(ms[1:]):
-                i = ms[0]
+            for s in cls.__ranger(ms):
+                i = m
                 while i > 0:
                     i -= 1
                     yield (i,) + s
 
     def __indices(self, tmpl, pairs):
-        if pairs:
-            (i, j), pairs = pairs[0], pairs[1:]
+        try: i, j = pairs.next()
+        except StopIteration: yield tuple(tmpl)
+        else:
             assert self.dimension[i] == self.dimension[j]
             assert tmpl[i] is None is tmpl[j]
             if i > j: i, j = j, i
@@ -671,10 +688,20 @@ class Vector (Tuple):
                 while m > 0:
                     m -= 1
                     yield s[:i] + (m,) + s[i+1:j] + (m,) + s[j+1:]
-        else:
-            yield tuple(tmpl)
 
-    def __trace_permute(self, shuffle, pairs):
+    def __total(self, tmpl, pairs):
+        es = self.__indices(tmpl, iter(pairs))
+        tot = self[es.next()]
+        for e in es: tot += self[e]
+        return tot
+
+    def setcell(grid, key, val): # tool function for __trace_permute
+        old = key.next()
+        for it in key: grid, old = grid[old], it
+        assert grid[old] is None
+        grid[old] = val
+
+    def __trace_permute(self, shuffle, pairs, store=setcell):
         """Implementation of tau and permutrace, q.v.
 
         Takes two arguments, a permutation optionally padded with None
@@ -705,38 +732,22 @@ class Vector (Tuple):
                 rev[shuffle[i]] = i
         assert None not in rev, (rev, shuffle)
 
-        def plate(s, r=rev, n=len(shuffle)):
-            ans = [None] * n
-            for i, a in enumerate(r):
-                ans[a] = s[i]
-            return tuple(ans)
-
-        # Construct answer collector:
-        grid, i = 0, len(rev)
-        while i > 0:
-            i -= 1
-            grid = Vector([0] * self.dimension[rev[i]]) * grid
-
+        # Perform contraction:
+        slab, total = (None,) * len(shuffle), self.__total
         if rev:
-            dim = grid.dimension
-            grid = grid.__listify()
+            dim = tuple( self.dimension[r] for r in rev )
+            grid = self.xerox(dim, None).__listify()
 
-            for s in self.__ranger(dim):
-                es = self.__indices(plate(s), pairs)
-                cell = self[es.next()]
-                for e in es: cell = cell + self[e]
-                g = grid
-                for i in s[:-1]: g = g[i]
-                g[s[-1]] = cell
+            for s in self.__ranger(iter(dim)):
+                tmpl = list(slab)
+                for i, a in enumerate(rev): tmpl[a] = s[i]
+                store(grid, iter(s), total(tmpl, pairs))
 
-            grid = self.__vectorise(grid)
+            # Don't pass dim; may lack a few late entries:
+            return self.fromSeq(grid)
 
-        else:
-            es = self.__indices(plate(()), pairs)
-            grid = self[es.next()]
-            for e in es: grid = grid + self[e]
-
-        return grid
+        return total(slab, pairs)
+    del setcell
 
     # Further implementation details
     from study.maths.permute import Permutation
@@ -763,4 +774,4 @@ class Vector (Tuple):
 
 Tensor = Vector # alias
 
-del lazyprop, Tuple
+del lazyprop, Tuple, postcompose
