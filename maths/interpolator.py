@@ -175,6 +175,113 @@ class Interpolator (Cached):
         return self.__interpolator__(self.cuts,
                                      map(lambda x, b=by: x * b, self.mass))
 
+    # Tools for round():
+    @staticmethod
+    def __log(val, base):
+        # We only care about abs(val); and want it as a non-integral type:
+        if   val < 0: val *= -1.
+        elif val > 0: val *= 1.
+        else: return None # surrogate for minus infinity
+
+        # If < 1, return -log(1/val) to simplify computation:
+        if val < 1: val, sign = 1 / val, -1
+        elif val > 1: sign = 1
+        else: return 0
+
+        ps = [ base ] # ps[i] = base**(2**i)
+        while ps[-1] < val: ps.append(ps[-1]**2)
+        bit, ans = 1 << len(ps), 0
+        while ps:
+            bit >>= 1
+            b = ps.pop() # base**bit
+            if val >= b:
+                ans |= bit
+                val /= b
+            assert val < b
+
+        assert base > val >= 1
+        if sign > 0: return 1 + ans * sign # round up
+        return ans * sign # effectively rounded up already
+
+    @staticmethod
+    def __whole(val): # round to nearest, preferring even on a tie
+        ans = int((.5 + val) // 1)
+        if ans % 2 and ans == .5 + val: return ans - 1
+        return ans
+
+    def round(self, best=None, base=10, spike=3e7):
+        """Representation by rounding-to-nearest.
+
+        Arguments are optional:
+          best -- representation shall be a valid rounding-to-nearest of this
+                  value; default, None, means to use the median of self's
+                  distribution.
+          base -- the number base to use; defaults to ten; must be an integer
+                  and at least two.
+          spike -- scale factor for use when best hits a big spike; defaults
+                   to 3e8 (see below).
+
+        Finds two integers, n and e, for which n*base**e is a suitable
+        rounding of best.  For these purposes: n*base**e is representative of
+        all values x for which n-.5 < x/base**e < n+.5 and, when n is even,
+        also of the values at the boundary of this range.  For any given
+        integer e, there is exactly one integer n for which n*base**e is
+        representative of best.  The suitable rounding of best chosen is
+        usually that for the greatest e for which less than half of self's
+        weight falls in the interval of values for which n*base**e is
+        representative.  However, if self's distribution has a spike at best,
+        carrying at least half self's weight, there is no such e.
+
+        In that case (and *only* in that case): if best == 0, we use e = None;
+        otherwise, let c be the least integer for which base**c >
+        abs(best)/spike; if there is any e >= c-len(self) for which
+        best/base**e is an exact integer, the highest such e is chosen;
+        otherwise, e = c is used (to avoid giving huge numbers of digits,
+        particularly in the case where self is a simple spike).
+
+            The choice of 3e7 as default for spike arises because the metre is
+            (now) so defined that the speed of light (in vacuum) is an exact
+            integer in m/s; this integer is slightly less than 3e8 and the
+            len() of a simple spike at it is 1, so the above rule selects
+            c-len(self) = 0 in base 10 and allows for precise representation
+            of the speed of light.  I may change this default if we ever
+            redefine the kg to make either Newton's or Planck's constant take
+            some exact value.
+
+        Returns a tuple (best, e) where e is the chosen exponent.\n"""
+
+        if base < 2 or long(base) != base:
+            raise ValueError("Unworkable number base", base)
+
+        if best is None: best = self.split((1, 1))[0] # median
+        best *= 1. # make sure it's not of an integral type
+        if self.weigh((best, best), 2)[1] >= 1:
+            ent = self.__log(best / spike, base)
+            if ent is None: return best, None
+            ent -= len(self.mass)
+            scale = base**ent
+            near = int(best / scale)
+            if scale * near == best:
+                while near:
+                    near, r = divmod(near, base)
+                    if r: break
+                    ent += 1
+            return best, ent
+
+        lo, hi = self.cuts[0], self.cuts[-1]
+        if lo > best: lo = best
+        if hi < best: hi = best
+
+        ent = self.__log(hi - lo, base) # expon-ent
+        assert ent is not None, "lo, hi and best don't all coincide"
+        scale = base ** ent
+        while True:
+            near = self.__whole(best / scale)
+            if self.weigh((scale * (near-.5), (near+.5) * scale), 2)[1] < 1:
+                return best, ent
+            ent -= 1
+            scale /= base
+
     @property
     def dispersal(self, cls=None, log=math.log):
         """Computes an entropy-related shape property of the distribution.
