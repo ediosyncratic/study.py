@@ -307,8 +307,7 @@ del math, Lazy
 # Makes heavy use of baseWeighted's interpolator.
 
 class repWeighted (curveWeighted):
-    """Base-class for rounding (whence representation) and integration.
-    """
+    """Base-class for rounding (whence representation) and integration.\n"""
 
     def weights(self, seq): return self.interpolator.weigh(seq)
 
@@ -352,89 +351,19 @@ class repWeighted (curveWeighted):
         cut = self.interpolator.cuts
         return cut[0], cut[-1]
 
-    # TODO: this looks like interpolator-work
-    def __embrace(self, total, about):
-        """Finds a slice of self, returns its weight and width.
-
-        Arguments:
-          total -- lower-bound on total weight of the slice.
-          about -- slice will span this value
-
-        Finds a pair of values left, right for which left <= about <= right
-        and weight = self.between(left, right) gives weight >= total, if
-        possible; this fails if total exceeds self.total(), in which case
-        left, right = self.bounds().  Returns (weight, right - left).\n"""
-
-        row = self.sortedkeys
-        hi = top = len(row)
-        while hi > 0 and row[hi-1] > about: hi = hi - 1
-        # assert hi is 0 or row[hi] > about >= row[hi-1]
-        lo = hi
-
-        # Expand [lo:hi] until it embraces more weight than total:
-        weight = 0      # sum, for key in row[lo:hi], of self[key]
-        while weight <= total:
-            # Chose an end at which to expand [lo:hi]
-
-            if lo <= 0: # we can only grow upwards
-                if hi >= top: break
-                sign = +1
-            elif hi >= top: sign = -1 # we can only grow downwards
-            else:
-                # cmp(about, midpoint), but dodge int/2 gotcha
-                sign = 2 * about - row[hi] - row[lo-1]
-
-            if sign < 0:        # grow down
-                lo = lo - 1
-                weight = weight + self[row[lo]]
-            else:               # grow up
-                weight = weight + self[row[hi]]
-                hi = hi + 1
-
-        # assert weight > total or (lo, hi) == (0, top), 'while loop exit'
-
-        # So, how wide is this range ?  Identify nominal end-points:
-        if hi+1 < top: right = .5 * (row[hi] + row[hi+1])
-        elif top > 1: right = 2 * row[-1] - row[-2]
-        else: right = row[-1]
-
-        if lo > 0: left = .5 * (row[lo] + row[lo-1])
-        elif top > 1: left = 2 * row[0] - row[1]
-        else: left = row[lo]
-
-        # Expand to embrace about:
-        assert left <= right
-        if right < about: right = about
-        elif left > about: left = about
-
-        return weight, right - left
-
-    def __unit(self, hat):
-        """Returns a suitable power of 10 for examining hat."""
-
-        if hat: what = hat
-        else: what = 1
-        decade = 0
-
-        while what >= 10: what, decade = what / 10., decade + 1
-        while what < 1: what, decade = what * 10, decade - 1
-
-        ans = pow(10. + what * 0, decade)
-        # rounding errors can produce weird effects ...
-        if int(hat / ans) is 10: return 10 * ans
-        return ans
-
-    # How far can we get with separating this from the interpolation kit ?
-    # TODO: allow specification of a number format; may include the "use
-    # multiples of three as exponents" magic from qSample; and/or base.
-    def round(self, estim=None):
+    def round(self, estim=None, group=3):
         """Returns a rounding-string for estim.
 
-        Argument, estim, is optional: if omitted, the distribution's median
-        (if available) or mean (likewise) will be used.  Result is a string
-        representing this value to some accuracy, in %e-style (or %E-style)
-        format.  This implicity represents an interval, given by `plus or
-        minus a half in the last digit'.  This interval will contain estim.
+        Arguments are optional:
+          estim -- value to be represented; or None, meaning the distribution's
+                   median should be used.
+          group -- if an exponent is included in the number, it should be a
+                   multiple of this; defaults to 3.
+
+        Result is a string representing estim to some accuracy, in %e-style
+        (or %E-style) format.  This implicity represents an interval, given by
+        `plus or minus a half in the last digit'.  This interval will contain
+        estim.
 
         Normally, the interval denoted by the result string will contain less
         than half the weight of self's distribution and is the shortest such
@@ -442,10 +371,10 @@ class repWeighted (curveWeighted):
         self.between(3.135, 3.145) then self.round(pi) will return '3.14'.
 
         That would yield an infinite string if half (or more) of self's weight
-        sat at estim, i.e. self's half-width about estim were zero.  In this
-        case, the number of significant digits of estim given in the result
-        string will be eight more than the number of sample-points of self
-        (the speed of light, in m/s, is a nine-digit integer with one
+        sat at estim, i.e. self's half-width about estim were zero.  In (only)
+        this case, the number of significant digits of estim given in the
+        result string will be eight more than the number of sample-points of
+        self (the speed of light, in m/s, is a nine-digit integer with one
         sample-point; eight is the offset needed for it to display neatly);
         and if the next five digits would all have been 0, any trailing zeros
         will be elided from the ones given [for various sanity
@@ -453,135 +382,33 @@ class repWeighted (curveWeighted):
         E rather than e (thus 1.2E1 for 12); and if no digits appear after the
         '.'  in an exact representation, the '.' is omitted.\n"""
 
-        # Handle argument default:
-        if estim is None:
-            try: estim = self.median()
-            except (AttributeError, ValueError): estim = self.mean()
-
-        # if self's keys include a non-numeric, e.g. Quantity(1,metre),
-        # what should happen ?
-
-        # Deal with dumb case:
-        if len(self) < 1: return `estim`
-        # Deal with infinity:
-        if estim and estim / 10. == estim: return `estim`
-
-        # Compute half-weight:
-        threshold = .5 * self.total()
-        assert threshold > 0, ('Weights need to be positive for rounding algorithm',
-                               threshold, self.values())
-
-        # Find half-width of self:
-        weight, width = self.__embrace(threshold, estim)
-
-        # Last pieces of initialisation:
-        if estim < 0: head, sign = '-', -1
-        else: head, sign = '', +1
-        body, tweak, aim = '', 0, 0
-        # head: sign
-        # body: mantissa, the bit between sign and exponent, with its '.'
-        #  omitted; the '.' is later added between body[0] and body[1].
-        # tail: exponent, the trailing 'e+07' part, if any
-        # tweak: tells us whether we need to do carrying.
-        # unit: value of a 1 in the next position of the mantissa
-        unit = self.__unit(max(abs(estim), width))
-
-        if width <= 0:
-            # Single-point distribution: special treatment.
-            # No interval contains less than half the distribution ... so the
-            # loop will not terminate without intervention !  Impose an upper
-            # limit on how many digits we'll produce: consider 1/3.
-
-            stop = 7 + len(self.sortedkeys) # How many keys we have, +7
-            # I'll actually produce up to one more than this (why 7 ? because
-            # the speed of light is exact in nine digits; when obtained from a
-            # single-point distribution, the following will give us exactly all
-            # nine digits).
-
-            # Our representation may get so close to exact that, to show the
-            # difference, we'd need more than twice as many digits as that
-            # allows: in such a case, truncate it - i.e. skip the long chain of
-            # 0 that would follow.
-            tiny = unit * pow(.1, stop + 5)
-
-        else: tiny = 0 # suppress the special treatment
-
-        # what to do here if unit is a Quantity() ?
-        if unit == 1: tail = ''
+        estim, ent = self.interpolator.round(estim) # expon-ent
+        if ent is None: return `estim`
+        digits = '%.0f' % (estim / 10. ** ent)
+        if digits.isdigit(): sign = ''
         else:
-            tail = str(unit)
-            if tail[:2] == '1.' and 'e' in tail:
-                tail = 'e' + tail.split('e')[1]
-            else:
-                tail = ('%.0e' % unit)[1:] # '1e93'[1:]
-        # First, work out the un-rounded body (main loop); then round.
+            sign, digits = digits[0], digits[1:]
+            assert digits.isdigit()
 
-        # Loop until over-long string or as precise as we'll allow:
-        while unit > width or weight > threshold:
-            # Compute unrounded digit for present:
-            dig = int((estim - aim) / unit / sign)
-            # Compute unrounded approximation thereby implied:
-            aim, body = aim + sign * unit * dig, body + `dig`
+        ent += len(digits)
+        # so now 1 > estim / 10**ent >= .1;
+        # thus sign + '.' + digits + 'e%d' % ent would be a valid answer
 
-            # Determine whether to round:
-            tweak = cmp((estim - aim) * sign, .5 * unit)
-            # on exact half, round to even (c.f. IEEE):
-            if tweak == 0: tweak = { 1: +1, 0: -1 } [dig % 2]
+        q, r = divmod(ent, group) # ent = group*q +r
+        if r * 3 > 2 * group: # i.e. r > group*2/3
+            # Rather than many digits before the decimal point, have a few
+            # zeros immediately after it:
+            q, r = q + 1, group - r
+            digits = '0' * r + digits
+            r = 0
 
-            # If rounding, use next digit up as mid-point: otherwise, use unrounded.
-            if tweak < 0: mid = aim
-            else: mid = aim + sign * unit
+        if q:
+            if self.interpolator.weigh((estim, estim), 2)[1] < 1: e = 'e'
+            else: e = 'E'
+            tail = e + '%d' % (group * q)
+        else: tail = ''
 
-            if tiny:
-                # Special treatment for single-point distributions:
-                if abs(mid - estim) < tiny:
-                    # So close to an exact match we should regard it as a rounding
-                    # glitch: our representation is faithful
-                    if tail:
-                        # Use %E to flag exact match, %e otherwise ...
-                        assert tail[0] == 'e', tail
-                        tail = 'E' + tail[1:]
-
-                    adddot = len(body) > 1
-                    break
-
-                if len(body) > stop:
-                    adddot = True
-                    break
-
-            # Compute weight in interval implied by suitably-rounded value:
-            weight = self.between(mid - .5 * unit, mid + .5 * unit)
-
-            # Prepare for next digit:
-            unit = .1 * unit
-
-        else:
-            # didn't break out of the while loop:
-            adddot = len(body) > 1 or width > 0 or estim != mid
-
-        # Propagate rounding if necessary:
-        try:
-            # (if tweak > 0: while tweak: contracted to ...)
-            while tweak > 0:
-                # Take last character off body, transfer to tail, rounding up.
-                last = body[-1]         # may fall off left end here ...
-                body = body[:-1]
-
-                try: tail = { '0': '1', '1': '2', '2': '3',
-                              '3': '4', '4': '5', '5': '6',
-                              '6': '7', '7': '8', '8': '9' }[last] + tail
-                except KeyError: tail = '0' + tail # still rounding
-                else: tweak = 0 # done !
-
-        except IndexError: head = head + '1'    # ... fell off left end !
-        # (added to right of head so '.' stays put within body)
-
-        # Join body to tail and punctuate:
-        body = body + tail
-        if body and adddot: body = body[:1] + '.' + body[1:]
-
-        # Join head to body and return:
-        return head + body
+        return sign + digits[:r] + '.' + digits[r:] + tail
 
 # Combining two (whence several) distributions; adding to a distribution:
 
