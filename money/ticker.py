@@ -11,22 +11,64 @@ one stock at a time.
 """
 
 # Parser for Oslo Børs ticker pages:
-from urllib2 import urlopen, Request
+from urllib2 import urlopen, Request, HTTPError
 from HTMLParser import HTMLParser
 
 class StockPageParser (HTMLParser):
+    @staticmethod
+    def __error_munger(name, what, BadHTTP=HTTPError,
+                       nomen=lambda k: '.'.join((k.__module__, k.__name__)),
+                       stem='Failed to fetch stock ticker web-page for '):
+        """Digest urllib2 errors to give something easy to print.
+
+        Calling urlopen on a Request, in process(), can fail in various ways,
+        which all end up as URLError()s, based on the global IOError.  In some
+        cases (e.g. failed DNS) the .args of the error may have something
+        else's error object as its single entry; or URLError's derived class
+        HTTPError may be used to package HTTP errors.  Clients, however, just
+        want to tell their users why this stock ticker can't currently be
+        processed; so this method returns (for .process() to raise) a simple
+        IOError whose .args can be '\n'.join()ed to produce something that'll
+        tell the user what went wrong.\n"""
+
+        first, wrap, last = stem + name, [ nomen(what.__class__) ], None
+        while len(what.args) == 1 and isinstance(what.args[0], IOError):
+            what = what.args[0]
+            wrap.append(nomen(what.__class__))
+
+        ans = map(repr, what.args)
+        if isinstance(what, BadHTTP):
+            ans.append('HTTP error %d: %s' % (what.code, what.msg))
+            last = what.read() or None
+
+        mid = ', '.join(ans)
+        if wrap: mid = '('.join(wrap + [ mid ]) + ')' * len(wrap)
+        # IOError is based on EnvironmentError, which handles the case of
+        # three inputs specially !  So avoid passing exactly three ...
+        if last is None: return IOError(stem + name, mid)
+        return IOError(stem, name, mid, last)
+
     def process(self, name, wget=urlopen, req=Request,
                 url='http://www.oslobors.no/markedsaktivitet/stockOverview'):
-        self.__stack, self.__keys, self.data = [], [], None
-        fd = wget(req(url + '?newt__ticker=' + name, None,
-                      { 'Accept-Language':
+        """Fetch the stock ticker URL and parse its content.
+
+        Returns a dictionary mapping column headings (translated to English,
+        where recognised) to their corresponding values.\n"""
+
+        try: fd = wget(req(url + '?newt__ticker=' + name, None, {
+                    'Accept-Language':
+                        # I probably shouldn't hard-code this !
                         'en-GB;q=1.0, en;q=0.9, no-nb;0.5, no-nn;0.4' }))
+        except IOError, what:
+            raise self.__error_munger(name, what)
+
+        self.__stack, self.__keys, self.data = [], [], None
         try:
             try:
                 while True:
                     line = fd.readline()
                     if not line: break
-                    # <bodge> work round broken attributes in generated page ...
+                    # <bodge round="broken attributes in generated page">
                     ind = line.find('"colspan=') + 1
                     if ind > 0: line = line[:ind] + ' ' + line[ind:]
                     # </bodge>
@@ -109,7 +151,7 @@ class StockPageParser (HTMLParser):
                 except UnicodeDecodeError: pass
                 else: self.data[key] = self.data.get(key, '') + data
 
-del HTMLParser, urlopen, Request
+del HTMLParser, urlopen, Request, HTTPError
 def report(ticker, parser=StockPageParser()):
     """Return summary data for the selected stock.
 
