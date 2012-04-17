@@ -41,7 +41,7 @@ _quantifier_dictionary = {
 _exponent_to_quantifier = {} # needed for qSample._repr
 for _key, _val in _quantifier_dictionary.items():
     exec '%s = 1e%d' % (_val, _key)
-    _exponent_to_quantifier['e%+d' % _key] = _val
+    _exponent_to_quantifier['e%d' % _key] = _val
 
 deka = deca
 
@@ -89,60 +89,27 @@ def massage_text(text, times,
     Exact numbers will also elide their decimal point if it is the last
     character of the mantissa, rough ones are less likely to.\n"""
 
-    # Extract the sign, if present, and set it aside; we'll put it back as we return
+    # Extract any sign and set it aside; we'll put it back as we return:
     if text[:1] in '-+': sign, text = text[:1], text[1:]
     else: sign = ''
 
     # Snip apart mantissa (head) and exponent (tail):
     glue = 'e'
-    try: head, tail = text.split('e')
+    try: head, tail = text.split('e', 1)
     except ValueError:
-        try: head, tail = text.split('E')
-        except ValueError: head, tail = text, '0'
+        try: head, tail = text.split('E', 1)
+        except ValueError: head, tail = text, ''
         else: glue = 'E' # value is exact
-
-    # Decode (string) tail as an (integer) exponent:
-    exponent = int(tail)
-    # Snip apart the mantissa (head) at the dot (if any):
-    try: up, down = head.split('.')
-    except ValueError: up, down = head, ''
-    # up is the whole part, down the fractional part
-
-    # Roll the dot left or right to make exponent a multiple of 3:
-    if exponent % 3 in (-2, 1):
-        exponent = exponent - 1
-        if up == '0': up = ''
-        if down: head = up + down[:1] + '.' + down[1:]
-        else: head = up + '0'
-    elif exponent % 3 in (-1, 2):
-        exponent = exponent + 1
-        if up: head = up[:-1] + '.' + up[-1:] + down
-        else: head = '.0' + down
-
-    # Now, about the exception for 400 rather than .400e3 (but .40e3 is .40 * kilo)
-    if exponent == 3 and head[0] == '.':
-        if len(head) > 3:
-            # head is '.ddd' or longer with 'e3' to follow
-            head = head[1:4] + '.' + head[4:]
-            exponent = 0
-        # if value is exact, we can treat implicit trailing zeros as significant ...
-        elif glue == 'E':
-            # head is '.dd' or shorter with 'E3' to follow
-            head = head[1:] + '0' * (4 - len(head)) # + '.' elided; about to be ditched.
-            exponent = 0
 
     # Ditch trailing '.' if value is exact:
     if head[-1] == '.' and glue == 'E': head = head[:-1]
 
     # Finally, transform 'e[sign]prial' into a name, if we have one for it:
     # e.g. 'e6' -> ' mega'
-    if exponent:
-        tail = 'e%+d' % exponent
-        try: mul = _e2q[tail]
-        except KeyError: tail = glue + `exponent`
+    if tail:
+        try: mul = _e2q['e' + tail]
+        except KeyError: tail = glue + tail
         else: tail = times + mul
-    else:
-        tail = ''
 
     return sign + head + tail
 
@@ -157,10 +124,6 @@ class qSample (Sample):
         return mash(self._sample_repr, ' * ')
     def _lazy_get__str_(self, ignored, mash=massage_text):
         return mash(self._sample_repr, ' ')
-
-    # Sample's .low and .high are boundary weights, decidedly *inside* true bounds.
-    def _lazy_get_high_(self, ignored): return self.span[1]
-    def _lazy_get_low_(self, ignored): return self.span[0]
 
 del massage_text
 
