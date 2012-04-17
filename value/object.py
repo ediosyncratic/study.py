@@ -1,6 +1,4 @@
 """Objects to describe values with namespaces.
-
-$Id: object.py,v 1.12 2008-05-11 19:56:51 eddy Exp $
 """
 
 def aslookup(whom):
@@ -44,7 +42,7 @@ class Object (Lazy):
       use as a lookup, it is taken to be an object on which attribute lookup
       should be performed to achieve lookup.
 
-    along with a __call__ method which ensures that a Object is a callable of
+    along with a __call__ method which ensures that an Object is a callable of
     the right kind to be used as a lookup - this method just does attribute
     lookup on the object.
 
@@ -115,7 +113,9 @@ class Object (Lazy):
             _row.insert(-1, aslookup(where))
 
 	def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
-            if key in _inalien or (key[:1] == '_' and not (key[:2] == '__' == key[-2:])):
+            if key in _inalien or ( # Don't borrow if unborrowable
+                # or if private (but magic doesn't count as private):
+                key[:1] == '_' and not (key[:2] == '__' == key[-2:])):
                 row = (_row[-1],)
             else: row = _row
 
