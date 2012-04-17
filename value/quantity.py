@@ -1,6 +1,4 @@
 """Objects to describe real quantities (with units of measurement).
-
-$Id: quantity.py,v 1.56 2010-07-08 19:22:09 eddy Exp $
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
@@ -659,9 +657,20 @@ class Quantity (Object):
 
     # multiplicative stuff is easier than additive stuff !
     def unpack(other):
-        if isinstance(other, Quantity):
-            return other.__scale, other.__units
+        # Using try lets an Object that borrow()s from a Quantity work
+        try: return other.__scale_units__()
+        except AttributeError: pass # not a Quantity
         return other, Prodict()
+
+    def __scale_units__(self):
+        """Provide borrowable access to privates.
+
+        Object restricts borrowing to public attributes; but this prevents an
+        Object from behaving numerically like a Quantity from which it
+        borrows; so work around that by providing this method, to tunnel
+        between unpack and the Quantity from which its argument is
+        borrowing.\n"""
+        return self.__scale, self.__units
 
     def __mul__(self, other, grab=unpack):
         ot, her = grab(other)
