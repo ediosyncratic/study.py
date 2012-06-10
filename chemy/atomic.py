@@ -1,9 +1,12 @@
 """Atomic energy levels.
+
+A good reference for these is Leonard I. Schiff's 'quantum mechanics'; page
+numbers quoted here are for the third edition.
 """
 from study.maths.polynomial import Polynomial
 from study.maths.natural import hcf
 
-class SHOpoly (Polynomial):
+class Hermite (Polynomial):
     __upinit = Polynomial.__init__
     def __init__(self, n):
         """Polynomial for quantum simple harmonic oscillators.
@@ -12,7 +15,8 @@ class SHOpoly (Polynomial):
         polynomial has positive leading order term with integers for all
         coefficients, sharing no common factor among them.
 
-        See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml\n"""
+        See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml
+        or Schiff p. 69.\n"""
 
         self.__upinit(self.__coefs(n))
 
@@ -46,7 +50,8 @@ class SHOpoly (Polynomial):
 class Laguerre (Polynomial):
     """The Laguerre polynomials.
 
-    See http://www.chaos.org.uk/~eddy/physics/atom.xhtml\n"""
+    See http://www.chaos.org.uk/~eddy/physics/atom.xhtml
+    or Schiff p. 92.\n"""
     __upinit = Polynomial.__init__
     def __init__(self, n, b):
         if b < 0 or n <= b or b != int(b) or n != int(n):
