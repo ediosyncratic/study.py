@@ -280,7 +280,8 @@ class Interpolator (Cached):
             if self.weigh((scale * (near-.5), (near+.5) * scale), 2)[1] < 1:
                 return best, ent
             ent -= 1
-            scale /= base
+            if scale == 1: scale = 1. / base # force float
+            else: scale /= base
 
     @property
     def dispersal(self, cls=None, log=math.log):
@@ -746,7 +747,7 @@ class PiecewiseConstant (Interpolator):
         cuts = list(set(self.cuts + other.cuts)) + list(spikes)
         cuts.sort()
         me, yo = self.weigh(cuts), other.weigh(cuts)
-        assert 1e-6 * self.total > max(me[0], me[-1])
+        assert 1e-6 * self.total > max(me[0], me[-1]), (self, other, cuts)
         assert 1e-6 * other.total > max(yo[0], yo[-1]), (self, other, cuts)
         me, yo = me[1:-1], yo[1:-1]
         assert len(cuts) - 1 == len(me) == len(yo) > 0
