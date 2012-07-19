@@ -771,7 +771,6 @@ class _Weighted (Object, _baseWeighted):
             except AttributeError: pass
 
     # Override a method of self.__weights
-    __obcopy = Object.copy
     def copy(self, scale=None, func=None):
         """Copies a distribution.
 
@@ -815,7 +814,9 @@ class _Weighted (Object, _baseWeighted):
                 for k, v in self.items():
                     bok[k] = v * scale
 
-        return self.__obcopy(bok, smooth=smooth)
+        dir = self.dir.copy()
+        dir['smooth'] = smooth
+        return self.__class__(bok, **dir)
 
 class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
     __joinit = joinWeighted.__init__
