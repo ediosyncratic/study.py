@@ -1,12 +1,12 @@
-"""Lazily-evaluated and cache-aware mappings.
+"""Lazily-evaluated and cache-aware mappings and functions.
 
 Contents:
   LazyDict -- mapping populated with data only when needed
-
-$Id: mapping.py,v 1.2 2009-01-28 08:35:46 eddy Exp $
+  LazyFunc -- callable that caches responses for an underlying callable
 """
-
-class LazyDict (dict):
+from study.snake.sequence import Dict, List
+
+class LazyDict (Dict):
     def __init__(self, each=None, fill=None):
 	"""Initialize a lazilly-filled dictionary.
 
@@ -46,3 +46,56 @@ class LazyDict (dict):
 
 	self[key] = ans = e(key)
 	return ans
+
+class LazyFunc (object):
+    """Wrapper for a function, to cache its values.
+
+    Use class method wrap() to wrap a function unless you know the function
+    isn't already cached; otherwise, you'll duplicate the cache !\n"""
+    @classmethod
+    def wrap(cls, func):
+        """Use this in preference to direct construction."""
+        return func if isinstance(func, cls) else cls(func)
+
+    def __init__(self, func):
+        self.__func = func
+        self.__cache = self.__bok()
+
+    @staticmethod
+    def __bok(D=Dict): return D()
+    def __seq(self, S=List): return S(self.__cache.iteritems())
+
+    def __call__(self, *args, **what):
+        key = (args, tuple(what.items()))
+        try: ans = self.__cache[key]
+        except KeyError:
+            ans = self.__cache[key] = apply(self.__func, args, what)
+        return ans
+
+    def known(self):
+        """Returns an iterator over known (key, value) pairs.
+
+        Note that the keys are (args, tuple(kws.items())) twoples from calls
+        to func(*args, **kws), where the caller likely thinks of args[0], or
+        args[:n] for some small n, as the input to the cached function,
+        func.  If so, client code should wrap this method and use the .map()
+        method the returned study.snake.sequence.Iterable supports.\n"""
+        return self.__cache.iteritems()
+
+    def flush(self, keep=0, are=lambda (k, v), (h, u): cmp(abs(v), abs(u))):
+        """Forget surplus cached values.
+
+        Arguments are optional:
+          keep -- number of cache entries; defaults to 0
+          are - comparison function, taking two (input, output) pairs; should
+                return -1 if you'd sooner remeber the first pair, +1 if you'd
+                sooner keep the later pair or 0 if you don't care.
+
+        After a call to .flush(keep), previously-evaluated calls to the
+        function self packages shall be evaluated again, if needed.\n"""
+        if len(self.__cache) > keep:
+            for (k, v) in self.__seq().sorted(are):
+                if keep > 0: keep -= 1
+                else: del self.__cache[k]
+
+del List, Dict
