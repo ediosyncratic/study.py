@@ -111,10 +111,10 @@ class Iterable (object):
         for p in it: init = func(init, p)
         return init
 
-    def sum(self, zero=0, add=lambda x, y: x + y):
-        return self.reduce(add, zero)
-    def product(self, one=1, mul=lambda x, y: x * y):
-        return self.reduce(mul, one)
+    def sum(self, zero=0, add=lambda x, y: x + y): return self.reduce(add, zero)
+    def product(self, one=1, mul=lambda x, y: x * y): return self.reduce(mul, one)
+    def mean(self): return self.sum() * 1. / len(self)
+    def geomean(self): return self.product() ** (1. / len(self))
 
     @iterable
     def filter(self, *tests):
@@ -176,9 +176,11 @@ class Iterable (object):
         must be iterables; there must be at least one.  Calls func on each of
         these iterables; it is important that func's return *not* be an
         iterator, as it is apt to be iterated repeatedly (and an iterable
-        would be exhausted after the first time). Let seq refer to the returns
+        would be exhausted after the first time).  Let seq refer to the returns
         from func; each yield of the returned iterator is a Tuple res for
-        which res[i] is an entry in seq[i].\n"""
+        which res[i] is an entry in seq[i]; and every such tuple arises.  Thus
+        the iterable returned by this method has, as number of entries, the
+        number of entries in\n"""
         return cls.__iterable__(cls.__renee(func, *whom)).map(Tuple)
 
 class WrapIterable (Iterable):
@@ -426,6 +428,11 @@ class Tuple (ReadOnlySeq, tuple):
     Note that classes based on this need to over-ride __new__(), which
     *returns* the newly created object (obtained by calling base-class's
     __new__(), of course), instead of (or as well as) __init__().\n"""
+
+    # Reminder, since I keep needing it: bt.__new__() must be passed, as first
+    # argument, the type based on bt that's to be instantiated, followed by
+    # the other args normally passed overtly to bt(); and __new__() is
+    # automagically an @staticmethod (whether you like that or not).
 
     @classmethod
     def __tuple__(cls, val):
