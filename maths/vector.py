@@ -476,7 +476,7 @@ class Vector (Tuple):
         Required argument, other, should be a Vector.  Optional arguments:
           n -- number of ranks of self to contract out with equally many of
                other; defaults to 1.
-          out -- when n is 1, determines how ranks of self are matched up with
+          out -- when n > 1, determines how ranks of self are matched up with
                  ranks of other; see below.
 
         This method first computes self * other, then traces away some ranks
