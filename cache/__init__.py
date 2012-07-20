@@ -8,7 +8,7 @@ Provides:
   whole -- saving, to disk, data about integer-bounded ranges of the number line
 """
 import lockdir
-import mapping
+# import mapping # cycle with study.snake.sequence
 import property
 import weak
 #import whole # not until it's stable ...
