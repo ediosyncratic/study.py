@@ -9,8 +9,6 @@ class Single (object):
     regarding the complex plane as a two-dimensional vector space over the
     reals.  This class is not suitable for such a case: use a vector
     derivative class instead.\n"""
-    from study.snake.sequence import Dict as __bok
-    from study.snake.sequence import List as __seq
 
     def __init__(self, func, complex=False, scale=1):
         """Prepare for differentiation.
@@ -24,10 +22,18 @@ class Single (object):
         When called on an input, assorted values of func within scale of the
         given input, mostly closer to it, shall be evaluated and used to
         compute estimates at the derivative.\n"""
-        self.__f, self.__scale, self.__cache = func, scale, self.__bok()
-        self.__dust, self.__moment = (
+        self.__f, self.__scale = self.__lazy(func), scale
+        self.__dust, self.__variance = (
             tuple(self.__swirly()), self.__messy) if complex else (
             tuple(self.__dusty()), self.__simple)
+
+    from study.cache.mapping import LazyFunc
+    @staticmethod
+    def __lazy(f, w=LazyFunc.wrap): return w(f)
+    del LazyFunc
+    def __known(self):
+        """Unpack LazyFunc's generic key to obtain our simple input"""
+        return self.__f.known().map(lambda (k, v): (k[0][0], v))
 
     @staticmethod
     def __dusty(scale=1, count=15, step=-.5):
@@ -41,8 +47,7 @@ class Single (object):
     @staticmethod
     def __simple(vals):
         # See __messy
-        mean = vals.mean()
-        return mean, vals.map(lambda v, m=mean: v-m).map(
+        return vals.map(lambda v, m=vals.mean(): v-m).map(
             lambda v: v*v).sum() / (len(vals) - 1.)
 
     import cmath
@@ -69,44 +74,60 @@ class Single (object):
     from study.maths.vector import Vector
     @staticmethod
     def __messy(vals, V=Vector, zero=Vector.fromSeq(((0, 0), (0, 0)))):
+        """Compute (real) variance of vals.
+
+        The instance's .__variance() takes a list of candidate derivatives and
+        returns its variance.  For the real case, this is trivial, see
+        .__simple(); for the complex case, since we want a real variance and
+        (in any case) the usual variance doesn't make so much sense, I treat
+        the complex values as real 2-vectors, compute their covariance matrix
+        and return the square root of its determinant (i.e. the geometric mean
+        of the two diagonal entries, when it's put into diagonal form).\n"""
         mean = vals.mean()
-        vary = vals.map(lambda z, vec=V: vec((z.real, z.imag))).map(
-            lambda v, m=V((mean.real, mean.imag)): v-m).map(
+        vary = vals.map(lambda z, m=mean: z-m).map(
+            lambda z, vec=V: vec((z.real, z.imag))).map(
             lambda v: v*v).sum(zero) * (1. / (len(vals) - 1))
-        # That's a quadratic form, the covariance matrix: use the square root
-        # of its determinant (the geometric mean of its two diagonal entries,
-        # when diagonalised) as variance:
-        return mean, (vary[0][0] * vary[1][1] -vary[0][1] * vary[1][0])**.5
 
-    def __eval(self, val):
-        try: ans = self.__cache[val]
-        except KeyError:
-            ans = self.__cache[val] = self.__f(val)
-        return ans
+        return (vary[0][0] * vary[1][1] -vary[0][1] * vary[1][0])**.5
 
-    def __call__(self, val, scale=None):
-        if scale is None: scale = self.__scale
-        # Populate cache with data near val:
-        self.__eval(val)
-        map(lambda x, v=val, s=scale, f=self.__eval: f(v + x * s), self.__dust)
-        # Find all cached data within scale of val:
-        data = self.__seq(self.__cache.iteritems().filter(
-                lambda (k, v), a=val, s=abs(scale): abs(k -a) <= s))
-        # Find gradients of all non-empty chords between these, tagged with
-        # max distance from val:
-        data = self.__seq(self.__seq(data.enumerate().map(
+    from study.snake.sequence import List
+    @staticmethod
+    def __gradients(val, near, Seq=List):
+        """Return a list of gradients from an iterable over data.
+
+        Requires (exactly) two arguments:
+          val -- an input to self.__f
+          near -- an iterable over (x, self.__f(x)) pairs
+
+        The latter should include plenty of x values near val.  Constructs all
+        chords between points therein, sorted by closeness of each chord's end
+        furthest from val and returns a list of gradients of chords.\n"""
+
+        data = Seq(near)
+        return Seq(Seq(data.enumerate().map(
             # For each pair of a point in data and an earlier point in data:
             lambda (i, p), d=data, m=val: d[:i].map(
                 # Compute chord between points, along with max distance from val:
                 lambda (q, r), (k, v)=p, m=m: (max(abs(k-m), abs(q-m)), q-k, r-v)
-                # Join sub-lists (one per point and list of earlier points),
-                )).sum(self.__seq()).filter(
+                # Join sub-lists (one per point and list-of-earlier-points):
+                )).sum(Seq()).filter(
             # Filter out empty chords, convert each to its gradient:
             lambda (m, x, y): x).map(lambda (m, x, y): (m, y/x))).sorted(
             # Sort by closeness of chords about val:
             lambda (m, w), (n, z): cmp(m, n)
             # and discard the closeness data, that we no longer need:
             ).map(lambda (m, z): z))
+    del List
+
+    def __call__(self, val, scale=None):
+        if scale is None: scale = self.__scale
+        # Populate cache with data near val:
+        self.__f(val)
+        map(lambda x, v=val, s=scale, f=self.__f: f(v + x * s), self.__dust)
+        # Get available chord-gradients near val:
+        data = self.__gradients(val, self.__known().filter(
+                # All cached data within scale of val:
+                lambda (k, v), a=val, s=abs(scale): abs(k -a) <= s))
 
         # Now select a good gradient from data, preferring gradients obtained
         # from chords close about val but mistrusting those too close if
@@ -134,4 +155,4 @@ class Single (object):
             assert len(data) > 3
 
         # Now select the mean of the low-variance sub-list we settled on:
-        return self.__moment(data)[0]
+        return data.mean()
