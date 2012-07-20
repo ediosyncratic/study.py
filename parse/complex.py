@@ -12,13 +12,20 @@ class Meromorph (object):
     dislacement out from some significant point, draw one cycle of a slowly
     expanding spiral, at about some chosen radius from the given centre; and
     draw the image of that spiral under the function.  Ideally, vary colour
-    along the spiral in a rainbow fashion, and correspondingly on its
-    image.  Because the source is a spiral, we can distinguish its ends (hence
-    see the gross rotation of the source neighbourhood being mapped to
-    destination) and, if it ends up going round several times once mapped, the
-    variation in radius will avoid having the different cycles overlap, making
-    it possible to see that the function goes round more times than it used
-    to.\n"""
+    along the spiral in a rainbow fashion, and correspondingly on its image
+    (but I don't see a way to do that in SVG).  Because the source is a
+    spiral, we can distinguish its ends (hence see the gross rotation of the
+    source neighbourhood being mapped to destination) and, if it ends up going
+    round several times once mapped, the variation in radius will avoid having
+    the different cycles overlap, making it possible to see that the function
+    goes round more times than it used to.\n"""
+
+    from study.parse.svgtools import Transform
+    @staticmethod
+    def __tfm(text, tfm=Transform.parse, idtt=Transform()):
+        if text: return tfm(text)
+        return idtt # the identity transform
+    del Transform
 
     def __init__(self, func, deriv=None, fmt="%.2f", transform=None, output=None):
         """Initialise for depiction.
@@ -38,31 +45,31 @@ class Meromorph (object):
           output -- output transform (see below); defaults to None, meaning
                     the input transform should be used also for output.
 
-        The input and output transformations aren't yet supported; but shall
-        represent how z = x +1j*y co-ordinates in the complex plane map to
-        display co-ordinates.  If the function is depicted 'in place', with
-        inputs and outputs in the same space, output=None is what you want;
-        but, when depicting fixed points of the function, this is unlikely to
-        display well, so you may prefer to have separate areas in the SVG for
-        input and output spaces.\n"""
-        if transform is not None or output is not None:
-            # TODO: invent a base-class to handle SVG transform attribute parsing
-            raise NotImplementedError
+        The input and output transformations represent how z = x +1j*y
+        co-ordinates in the complex plane map to display co-ordinates.  If the
+        function is depicted 'in place', with inputs and outputs in the same
+        display area, output=None is what you want; but, when depicting fixed
+        points of the function, this is unlikely to display well, so you may
+        prefer to have separate display areas in the SVG for input and output
+        spaces.\n"""
+
+        self.__inxfm = self.__tfm(transform)
+        self.__outfm = self.__inxfm if output is None else self.__tfm(output)
         self.__func = func
         if deriv is None: self.__deriv = self.__rate
         else: self.__deriv = deriv
         self.__fmt = lambda x: fmt % x
 
-    def __format(self, z):
-        return self.__fmt(z.real), self.__fmt(z.imag)
+    def __format(self, x, y):
+        return self.__fmt(x), self.__fmt(y)
 
     def __in(self, z):
-        # TODO: take into account input transform
-        return self.__format(z)
+        x, y = self.__inxfm((z.real, z.imag))
+        return self.__format(x, y)
 
     def __out(self, z):
-        # TODO: take into account output transform
-        return self.__format(z)
+        x, y = self.__outfm((z.real, z.imag))
+        return self.__format(x, y)
 
     def __rate(self, z):
         """Brute-force derivative, for use when not supplied to constructor.
