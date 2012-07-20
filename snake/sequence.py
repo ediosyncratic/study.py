@@ -221,13 +221,24 @@ class ReadSeq (Iterable):
             if ind == i: return it
 
         raise IndexError(ind)
-    del Slice
 
     @iterable
-    def __get(self, ind):
+    def __get(self, ind, S=Slice):
 	for i in ind:
 	    try: yield self[i]
-	    except IndexError: pass
+	    except IndexError:
+                # A [:]'s slice has become a Slice(0, maxint), which isn't a
+                # happy thing to iterate, merely to ignore the out-of-bounds
+                # entries.  To support arbitrary sequences as ind, or a slice
+                # that starts outside self's range but works its way in, yet
+                # avoid spinning on maxint, apply a Slice-specific check:
+                if isinstance(ind, S):
+                    if ind.step > 0:
+                        if i > len(self): break
+                    elif ind.step < 0:
+                        if i < 0: break
+                    else: break # not getting any different i hereafter !
+    del Slice
 
     def __repr__(self):
         row = []
