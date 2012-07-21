@@ -2,27 +2,42 @@
 
 See search.Search for 2 dimensions (represented by complex).
 """
+from study.cache.property import Cached, lazyprop
 
-class Search:
+class Search (Cached):
     """Searching for roots of a real function.
     """
-
     def __init__(self, func, guess, goal=abs, stride=1):
-        self.__func, self.goal, self.stride = func, goal, stride
+        self.goal, self.stride = goal, stride
+        self.__func = self.__wrap(func, self.__notice)
 
-        # Initialise cache, best
-        self.__cache = {}
+        # Initialise best
         self.__best = (None, 1e1024)
         self.func(guess)
         assert self.__best[0] is not None, "Whacky goal function you've got there ..."
 
-    def __call_func(self, val):
-        try: return self.__cache[val]
-        except KeyError: pass
-        ans = self.__func(val)
-        self.__cache[val], score = ans, self.goal(ans)
-        if score < self.__best[1]: self.__best = (val, score)
+    from study.cache.mapping import LazyFunc
+    @staticmethod
+    def __wrap(func, notice, w=LazyFunc.wrap):
+        def check(val, f=func, n=notice):
+            return n(val, f(val))
+        return w(check)
+    del LazyFunc
+
+    def __notice(self, val, ans):
+        score = self.goal(ans)
+        if score < self.__best[1]: self.__best = val, score
         return ans
+
+    def __known(self):
+        return self.__func.known().map(lambda (k, v): (k[0][0], v))
+
+    from study.maths.differentiate import Single
+    @lazyprop
+    def gradient(self, cls=None, S=Single):
+        assert cls is None
+        return S(self.__func)
+    del Single
 
     def __getattr__(self, key):
         if key == 'best': return self.__best[0]
@@ -31,42 +46,17 @@ class Search:
         raise AttributeError, key
 
     def func(self, val):
-        try: return val.evaluate(self.__call_func)
-        except AttributeError: return self.__call_func(val)
+        try: return val.evaluate(self.__func)
+        except AttributeError: return self.__func(val)
+
+    def __like(self, (k, v), (h, u)):
+        g = self.goal
+        k, h = k[0][0], h[0][0]
+        return cmp(g(v), g(u)) or cmp(abs(k), abs(h)) or cmp(h, k)
 
     def __flush(self, keep=10):
-        if len(self.__cache) > keep:
-            row = map(lambda (k,v), g=self.goal: (g(v), k), self.__cache.items())
-            row.sort()
-            for (s,k) in row[keep:]: del self.__cache[k]
+        self.__func.flush(keep, self.__like)
 
-    def logrange(scale=1, count=10, step=-.5): # local function, not method
-        row = [ scale ]
-        while count > 0:
-            scale, count = scale * step, count - 1
-            row.append(scale)
-        return tuple(row)
-
-    def gradient(self, val, scale=None, dust=logrange()):
-        if not scale: scale = self.stride
-        map(lambda x, v=val, s=scale, f=self.func: f(v + x * s), dust) # populate cache
-        data = map(lambda (k,v), a=val, b=self.func(val): ((k-a), (v-b)),
-                   filter(lambda (k,v), a=val, s=scale: 0 < abs(k-a) <= abs(s),
-                          self.__cache.items()))
-
-        # filter out short base-lines on which rounding is negligible:
-        data.sort(lambda (x,u), (y,v): cmp(abs(x), abs(y)) or cmp(abs(u), abs(v)))
-        if filter(None, data):
-            while data and not data[0][0]: data = data[1:]
-
-        # convert to slopes and find median:
-        data = map(lambda (k,v): v/k, data)
-        data.sort()
-        mid, bit = divmod(len(data), 2)
-        if bit: return data[mid]
-        else: return (data[mid] + data[mid-1]) * .5
-
-    del logrange
     def exact(val): # local function, not method.
         try: zero = val.copy(lambda x: 0)
         except AttributeError: zero = val * 0
@@ -87,7 +77,7 @@ class Search:
         if not step: step = self.stride
         self.func(val), self.func(val + step)
 
-        data = self.__cache.items()
+        data = list(self.__known())
         data.sort()
         (x, y), cut = data[0], []
         for (k,v) in data[1:]:
@@ -117,7 +107,7 @@ class Search:
     def __broaden(self):
         while 1:
             self.func(self.best + self.stride)
-            vals = map(lambda (k,v): (v,k), self.__cache.items())
+            vals = tuple(self.__known().map(lambda (k,v): (v,k)))
             hi, lo = max(vals), min(vals)
             if hi[0] != lo[0]: break
             gap = hi[1] - lo[1]
@@ -143,3 +133,5 @@ class Search:
                 good = self.score
 
         self.__flush(16)
+
+del Cached, lazyprop
