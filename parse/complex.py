@@ -20,13 +20,6 @@ class Meromorph (object):
     the different cycles overlap, making it possible to see that the function
     goes round more times than it used to.\n"""
 
-    from study.parse.svgtools import Transform
-    @staticmethod
-    def __tfm(text, tfm=Transform.parse, idtt=Transform()):
-        if text: return tfm(text)
-        return idtt # the identity transform
-    del Transform
-
     def __init__(self, func, deriv=None, fmt="%.2f", transform=None, output=None):
         """Initialise for depiction.
 
@@ -56,9 +49,9 @@ class Meromorph (object):
         self.__inxfm = self.__tfm(transform)
         self.__outfm = self.__inxfm if output is None else self.__tfm(output)
         self.__func = func
-        if deriv is None: self.__deriv = self.__rate
+        if deriv is None: self.__deriv = self.__rate(func)
         else: self.__deriv = deriv
-        self.__fmt = lambda x: fmt % x
+        self.__fmt = lambda x, f=fmt: f % x
 
     def __format(self, x, y):
         return self.__fmt(x), self.__fmt(y)
@@ -70,14 +63,6 @@ class Meromorph (object):
     def __out(self, z):
         x, y = self.__outfm((z.real, z.imag))
         return self.__format(x, y)
-
-    def __rate(self, z):
-        """Brute-force derivative, for use when not supplied to constructor.
-        """
-        f = self.__func()
-
-        # TODO: infer by lots of calls to f() near z.
-        raise NotImplementedError
 
     def show(self, z, r=1, phi=0, n=6, g=.1, sweep=1):
         """Depict the mapping near z.
@@ -183,4 +168,16 @@ class Meromorph (object):
             point *= each
             step *= each
             yield point, step
+
     del cmath
+
+    from study.maths.differentiate import Single
+    def __rate(self, func, brute=Single): return brute(func, True)
+    del Single
+
+    from study.parse.svgtools import Transform
+    @staticmethod
+    def __tfm(text, tfm=Transform.parse, idtt=Transform()):
+        if text: return tfm(text)
+        return idtt # the identity transform
+    del Transform
