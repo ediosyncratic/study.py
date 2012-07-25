@@ -255,7 +255,8 @@ Heliosphere = Shell("The Heliosphere", Sun, (.5 + tophat) * 230 * AU,
                                        (11 + tophat) * 10 * AU, # "about 110"
                                        # c. Bode index 11
                                        __doc__ = "Where solar wind ions meet galactic ions"),
-                    BowShock = Shell("Sol's Bow Shock", Sun, (23 + tophat) * 10 * AU, # 'near 230'
+                    BowShock = Shell("Sol's Bow Shock", Sun,
+                                     (23 + tophat) * 10 * AU, # 'near 230'
                                      # c. Bode index 11.6
                                      __doc__="The Bow Wave of the Heliosphere"),
                     __doc__ = """Our Sun's sphere of influence.
