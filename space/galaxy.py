@@ -6,12 +6,9 @@ http://www.atlasoftheuniverse.com/galaxies.html
 
 For the Canes I group:
 http://www.atlasoftheuniverse.com/galgrps/cvni.html
-
-$Id: galaxy.py,v 1.7 2007-12-02 21:10:30 eddy Exp $
 """
 
-from study.value.units import Quantity, tophat, \
-     kilo, arc, year, second, metre
+from study.value.units import kilo, year
 from home import MilkyWay, LocalGroup
 from common import Orbit, Discovery
 from body import Galaxy, Group
@@ -80,5 +77,4 @@ del MilkyOrbit
 
 # TODO: Andromeda, its satellites, the rest of the LocalGroup
 
-del Quantity, tophat, kilo, arc, year, second, metre, \
-    Orbit, Discovery, Galaxy, Group
+del kilo, year, Orbit, Discovery, Galaxy, Group
