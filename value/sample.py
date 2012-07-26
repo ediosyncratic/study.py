@@ -1116,7 +1116,8 @@ class Sample (Object):
 
     # For pow, expect simple argument:
     def __pow__(self, what, mod=None, f=_power):
-        assert mod is None
+        assert mod is None, "Modular power only makes sense for whole things"
+        # ... and Sample()s are implicitly real-blurry, not discrete
         return self.join(f, what)
     # officially: (self, what [, modulo ]) ... for ternary pow().
     def __abs__(self): return self.copy(abs)
