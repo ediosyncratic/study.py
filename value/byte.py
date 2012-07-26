@@ -1,12 +1,14 @@
 """Description of bytes, including the kilo = 1024 twist ...
 
-but note kibi, mibi etc. should obsolete these; see quantity.py
+... but note kibi, mibi etc. should obsolete these; see quantity.py
 
 See also: units.py
 """
 from quantity import base_unit, Quantity, qSample, _quantifier_dictionary
 
 class bQuantity (Quantity):
+    # TODO: fold back into Quantity somehow
+    # FIXME: probably doesn't work at present !  e.g. _quantade_split_() doesn't exist.
     def __quantity__(self, what, units):
         try: order = units['bit']
         except KeyError: order = 0
@@ -19,8 +21,7 @@ class bQuantity (Quantity):
 
         if factor < 1: factor, mul = 1, ''
         tail = self / pow(factor * byte, order)
-        tail = tail._primitive()
-        num, uni = tail._number_str, tail._unit_str
+        num, uni = tail._str_frags()
 
         if order > 0:
             if order == 1: here = mul + 'byte'
@@ -67,12 +68,14 @@ Groups of (typically 2, 4, 8 and sometimes higher powers of two) bytes tend to
 have special significance to the machine, and form the building blocks out of
 which one builds data structures.
 
-On the large scale, one tends to measure amounts of data in units of kilobytes,
-megabytes, gigabytes, ... in which the factor by which each is a multiple of its
-predecessor is 1024, rather than the 1000 normally used in kilo, mega, giga ...
-So I also define Kb, Mb, Gb, along with the full swath of positive-exponent
-quantifiers applied to byte, as kilobyte etc. above.  Indeed, it is mainly in
-order to do this that I bother defining the byte ...
+On the large scale, one tends to measure amounts of data in units of
+kibibytes, mibibytes, gibibytes, ... (commonly called kilobytes, megabytes,
+gigabytes, etc.) in which the factor by which each is a multiple of its
+predecessor is 1024, rather than the 1000 normally used in kilo, mega, giga
+and so on.  So I also define Kib, Mib, Gib, along with the full swath of
+positive-exponent quantifiers applied to byte, as kibibyte
+etc. above.  Indeed, it is mainly in order to do this that I bother defining
+the byte ...
 """,
                 _name)
 

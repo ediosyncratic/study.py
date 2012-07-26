@@ -428,18 +428,17 @@ class Quantity (Object):
             if text: return text + '\n'
         # else: implicitly return None.
 
-    def _primitive(self):
-        """Returns a quantity in a primitive form.
+    def _str_frags(self):
+        """Returns a quantity's raw strings for scale and units.
 
         The primitive form doesn't try to use quantifiers when printing itself,
         or other fancy stuff.  This is intended for use by derived classes when
         sorting out their representations ... """
 
-        what, units = self.__scale, self.__units
-        if isinstance(what, qSample):
-            what = Sample(what.mirror, **what.dir)
-        # FIXME: given that Quantity will qSample() it, what's the point ?
-        return Quantity(what, units)
+        what, unitstr = self.__scale, self._unit_str
+        assert isinstance(what, qSample)
+        what = str(Sample(what.mirror, **what.dir))
+        return what, unitstr
 
     def __name(self, nom=None, fullname=None):
         if nom: self._short_name_ = nom
