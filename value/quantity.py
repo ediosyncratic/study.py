@@ -890,10 +890,10 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def __quantity__(self, what, units): return self.__class__(what, units)
 
+    # Be sure to keep argument defaults in sync with __init__():
     @classmethod
     def flat(cls, lo, hi, best=None,
-             # Be sure to keep defaults in sync with __init__():
-             units=Prodict(), doc=None, nom=None, fullname=None, sample=None,
+             units=Prodict(), doc=None, rescale=None,
              *args, **what):
         """Describe a value with a flat distribution.
 
@@ -901,11 +901,13 @@ class Quantity (Object):
           lo -- lower bound on value
           hi -- upper bound on value
 
-        Next positional parameter, or keyword best, is taken as the best
-        estimate value in the interval, or None if no best estimate is
-        available.  Subsequent optional arguments units, doc, nom, fullname
-        and sample are as for Quantity's constructor (q.v.).  Be sure to pass
-        None as best if supplying any of these but no best estimate.
+        Optional arguments:
+          best -- best estimate value in the interval, or None (the default)
+                  if no best estimate is available
+          units -- as for Quantity.
+          doc -- as for Quantity.
+          rescale -- scaling to apply to all of lo, hi and (if given) best; or
+                     None to leave them alone.
 
         Values of lo, hi and (when given) best must all be of the same kind
         (i.e. have the same units), although mixing dimensionless Quantity()s
@@ -923,8 +925,180 @@ class Quantity (Object):
         if best is not None:
             best = cls.__get_scale(best, un)
 
-        return Quantity(Sample.flat(lo, hi, best),
-                        units, doc, nom, fullname, sample, *args, **what)
+        scale = Sample.flat(lo, hi, best)
+        if rescale:
+            if isinstance(rescale, Quantity): scale = rescale * scale
+            else: scale *= rescale
+
+        return cls(scale, units, doc, *args, **what)
+
+    @classmethod
+    def within(cls, best, tol, *args, **what):
+        """Convenience constructor for mid-point and half-width.
+
+        Required arguments:
+          best -- mid-point of the range of values, also used as best estimate
+          tol -- half-width of the interval of values
+
+        If either has units, both must and their units must agree; also, tol
+        should be positive.  The range best +/- tol is what these values
+        describe.
+
+        All other arguments (positional or keyword) are forwarded to .flat(),
+        hence possibly to Quantity().\n"""
+        return cls.flat(best - tol, best + tol, best, *args, **what)
+
+    @classmethod
+    def below(cls, top, units=Prodict(), *args, **what):
+        """A quantity known to be nearer to zero than some given value.
+
+        Required value, top, is the biggest value the quantity could have,
+        with the sign that the quantity is known to have.  Result is bounded
+        away from zero and at most the given value.  Optional argument units
+        is as for Quantity.
+
+        All other arguments (positional or keyword) are forwarded to .flat(),
+        hence possibly to Quantity().\n"""
+
+        try: un, top = top.__units, top.__scale
+        except AttributeError: pass
+        else: units = un * units
+
+        # TODO: pick a better distribution
+        return cls.flat(top * femto, top, None, units, *args, **what)
+
+    @classmethod
+    def fromSpread(cls, best, down, up, *args, **what):
+        """Convenience constructor for value with specified error-bar.
+
+        Required arguments:
+          best -- the best estimate, not necessarily central in the range
+          down -- difference between best and lower bound
+          up -- difference between best and upper bound
+
+        If any has units, all must have the same units.  Both down and up
+        should be positive; the range of values specified is from best-down to
+        best+up.
+
+        All other arguments (positional or keyword) are forwarded to .flat(),
+        hence possibly to Quantity().\n"""
+        return cls.flat(best - down, best + up, best, *args, **what)
+
+    @classmethod
+    def fromDecimal(cls, best, decimals, exponent=None, *args, **what):
+        """Convenience constructor for value given number of decimal places.
+
+        Supports a value recorded to some specific number of digits past the
+        decimal point.  Requireds two arguments
+          best -- the best estimate of the value, i.e. the value published.
+          decimals -- the number of digits specified after the decimal point.
+
+        Best is expected to be dimensionless (in fact, a simple number);
+        decimals should be an integer.  (Technically, even a negative value
+        for decimals is meaningful; passing -2 as decimals means +/- 50 on
+        best; the two digits to the left of the decimal point aren't
+        known.  Such situations may, however, be better expressed by use of
+        exponent, see below.)  Note that leading zeros after the decimal point
+        in best should be included in decimals; if best is 0.00314 then
+        decimals should be 5.  Likewise, trailing zeros should normally be
+        understood to be significant; if 0.003140 is what was published, then
+        decimals should be 6.
+
+        Note that some publications typeset a number such that the
+        'confidently correct' digits are distinct from subsequent digits
+        indicating a best estimate; in such a case, the number of confidently
+        correct digits after the decimal point is what you should pass as
+        decimal (and it's perfectly fine to include the others in the value
+        given for best).  For example, 3.141(59) might be used to indicate the
+        3.141 part is confidently known and 59 is the best estimate at the
+        next two digits; passing best=3.14159, decimals=3 represents this
+        faithfully.  Note, however, that similar typesetting might indicate an
+        error bar on the last few digits, e.g. 3.141(59) might mean 3.141 +/-
+        0.059; be sure to actually know what notation is in use.
+
+        Optional argument exponent defaults to None; otherwise, it should be
+        an integer and the values of best and the bounds implied by decimals
+        are scaled by ten**exponent (after the bounds have been
+        computed).  Thus .fromDecimal(best, d, n) has the same meaning as
+        .fromDecimal(best / 10**i, d-i, n+i) for any integer i <= d.
+
+        All other arguments (positional or keyword) are forwarded to .flat(),
+        hence possibly to Quantity().\n"""
+        if exponent: what['rescale'] = what.get('rescale', 1) * 10 ** exponent
+        return cls.within(best, 0.5 / 10 ** decimals, *args, **what)
+
+    @classmethod
+    def fromSigFigs(cls, best, sigfig, base=10, units=Prodict(), *args, **what):
+        """Convenience constructor in terms of number of significant figures.
+
+        Required arguments:
+          best -- the given value, used as best estimate
+          sigfig -- number of significant digits of best that are confidently
+                    known; this counts digits from the left-most non-zero
+                    digit to the right-most digit (including zeros) given in
+                    the published value of best - give or take a few at the end
+                    if the publication indicates these are not confidently
+                    known; and ignoring any exponent.
+
+        For example, in 03.140e27, the leading 0 of 03 is ignored, as is the
+        exponent e27, but the 0 following 4 is included, so we have four
+        significant figures, 3140 (we also ignore the decimal point).  If the
+        publication uses 3.141(59) to mean 3.14159 is their best estimate but
+        the last two digits are uncertain, only the four digits in 3.141 are
+        confidently known, so sigfig is 4, but it is perfectly fine to pass
+        3.14159 as the value for best.  (Note, however, that you should check
+        the notation actually in use; 3.141(59) may mean other things.)  See
+        also the discussion in fromDecimal().
+
+        Optional arguments (may be provided positionally, in this order, or as
+        keywords):
+          base -- number base used in the representation in which sigfig was
+                  counted; defaults to ten; must be > 1.
+          units -- as for Quantity.
+
+        All other arguments (positional or keyword) are forwarded to .flat(),
+        hence possibly to Quantity().\n"""
+
+        try: un, scale = best.__units, best.__scale
+        except AttributeError: scale = best
+        else: units, best = un * units, scale
+
+        assert base > 1, 'Silly number base'
+        tol = cls.__magnitude(scale, base) * base ** sigfig
+
+        return cls.within(best, 0.5 * tol, units, *args, **what)
+
+    @staticmethod
+    def __magnitude(scale, base, tonum=tonumber):
+        tol, scale = 1, abs(tonum(scale))
+        while tol < scale: tol *= base
+        while tol > scale: tol /= base
+        return tol
+
+    @classmethod
+    def gaussian(cls, best, sigma, units=Prodict(), *args, **what):
+        """Convenience constructor in terms of mean and standard deviation.
+
+        Required arguments:
+          best -- best estimate at value (mean of distribution)
+          sigma -- standard deviation of error distribution
+
+        If either has units, both must (counting dimensionless as not having
+        units); and their units must agree.  After these, optional argument
+        units may be supplied, with the same meaning and default as for
+        Quantity; if given, it may be a Quantity or a mapping from (short)
+        names of units to powers of each; in such a case, it shall be
+        multiplied by the units of best (or equally of sigma), if any.
+
+        All other arguments (positional or keyword) are forwarded to
+        Quantity().\n"""
+
+        try: un, mid = best.__units, best.__scale
+        except AttributeError: un, mid = {}, best
+        else: units = un * units
+        sigma = cls.__get_scale(sigma, un)
+
+        return cls(Sample.gaussish * sigma + mid, units, *args, **what)
 
 del kind_prop_lookup, tonumber
 
@@ -934,11 +1108,11 @@ def base_unit(nom, fullname, doc, **what):
     _terse_dict[nom] = result
     return result
 
+# Deprecated: use Quantity.gaussian() instead
 gaussish = Quantity(Sample.gaussish, doc=Sample.gaussish.__doc__)
 
 # Deprecated: use Quantity.flat() instead:
-tophat = Quantity.flat(-.5, +.5, 0,
-                       doc="""Unit width zero-centred error bar.
+tophat = Quantity.within(0, .5, doc="""Unit width zero-centred error bar.
 
 Also known as 0 +/- .5, which can readily be used as a simple way to implement
 a+/-b as a + 2*b*tophat.  For error bars where the lower bound is the best
@@ -948,5 +1122,5 @@ flat error bars, use Quantity.flat (q.v.).
 """)
 # Deprecated: use Quantity.flat
 upward = Quantity.flat(0, 1, 0)
-# 0 +/- .5: scale and add offset to taste, e.g.:
-def sample(mid, tol): return Quantity.flat(mid - tol, mid + tol)
+# Deprecated: use Quantity.within() instead
+sample = Quantity.within
