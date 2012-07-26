@@ -567,8 +567,8 @@ class joinWeighted (curveWeighted):
 
         Optional third argument, count, is the target number of items to have
         in the result's weights dictionary; honoured only in so far as
-        possible.  Defaults to None, in which case the result has whatever
-        number of weights comes naturally.
+        possible.  Defaults to None, in which case the level of detail in self
+        and other are consulted to provide a sensible default.
 
         For each interval of self's interpolator and each interval of other's,
         example values of func, at extreme values in the respective intervals,
@@ -585,8 +585,15 @@ class joinWeighted (curveWeighted):
             other = self.__weighted__(other)
 
         mix = self.interpolator.combine(func, other.interpolator)
-        if count is None or count > len(mix): pass
-        else: mix = mix.simplify(count)
+
+        if count is None:
+            # Pick a sensible default:
+            try: you = other.__detail
+            except AttributeError: count = self.__detail
+            else: count = max(you, self.__detail)
+            count = max(count, min(12, len(mix)))
+
+        if len(mix) > count: mix = mix.simplify(count)
 
         try: mix = mix.scale() # normalise
         except ValueError: pass
