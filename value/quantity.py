@@ -211,15 +211,19 @@ def speed():
     return { 'Lorentz': lambda v, c=second.light / second: (v / c).arctanh,
              'Doppler': lambda v: v.Lorentz.exp }
 
+def acceleration():
+    from study.chemy.physics import Thermal
+    return { 'Unruh': lambda a, U=Thermal.Unruh: a / U }
+
 def mass():
     from SI import second, metre
-    from study.chemy.physics import Cosmos
-    def hole(m, s=Cosmos.Schwarzschild): return s * m
+    from study.chemy.physics import Cosmos, Thermal
     def weigh(v, g = 9.80665 * metre / second**2): return v * g
     return { 'weight': weigh, 'force': weigh,
              'energy': lambda v, cc = (second.light / second)**2: v * cc,
              'wavelength': lambda m: m.energy.frequency.wavelength,
-             'Schwarzschild': hole, 'hole': hole }
+             'Schwarzschild': lambda m, S=Cosmos.Schwarzschild: S * m,
+             'Hawking': lambda m, H=Thermal.Hawking: H / m }
 
 def energy():
     from SI import second, Joule
@@ -249,33 +253,53 @@ def frequency():
              'energy': lambda f, h=Quantum.h: f * h }
 
 def length():
-    from study.chemy.physics import Quantum, Cosmos
-    from SI import second
+    from study.chemy.physics import Quantum, Cosmos, Vacuum
     def hole(r, k=Cosmos.Schwarzschild): return k * r
-    c = second.light / second
     return { 'momentum': lambda d, h=Quantum.h: h / d,
-             'mass': lambda d, h=Quantum.h / c: h / d,
-             'frequency': lambda d, v=c: v / d,
-             'time': lambda d, v=c: d / v,
+             'mass': lambda d, h=Quantum.h / Vacuum.c: h / d,
+             'frequency': lambda d, c=Vacuum.c: c / d,
+             'time': lambda d, c=Vacuum.c: d / c,
              'Schwarzschild': hole, 'hole': hole }
 
 def time():
     # NB: must control imports - broken if they evaluate .light !
     from SI import second, metre
-    return { 'light': lambda v, c=299792458 * metre / second: v * c,
-             'frequency': lambda t: 1/t }
-# It would also be nice to give time a print-format that breaks it up into
-# years, days, hours, minutes, seconds.
+    from units import year
+    def split(t, y=year.sidereal, zero=0*second, s=second):
+        """Broken-down time, in years, days, hours, minutes and seconds.
 
-def thermal():
+        Returns a tuple: first member is '+' or '-' according as t is positive
+        or negative; the rest describe its value, giving whole years, days,
+        hours and minutes, ending with the remainder in seconds, which may
+        have a fractional part.  The year used is sidereal (the period of the
+        Earth's orbit around The Sun), since I have no idea what calender was
+        in force at either end of the interval that the time in question
+        implicitly is.\n"""
+        if t < zero: sign, t = '-', -t
+        else: sign = '+'
+        ny, t = divmod(t, y)
+        t, ns = divmod(t, 60 * s)
+        assert t == int(t)
+        t, nm = divmod(t, 60)
+        t, nh = divmod(t, 24)
+        assert 0 <= t < 366
+        return (sign, ny, t, nh, nm, ns)
+
+    return { 'light': lambda v, c=299792458 * metre / second: v * c,
+             'frequency': lambda t: 1/t, 'parts': split }
+
+def thermal(): # temperature
     from SI import Kelvin, mol
+    # See Centigrade() and Fahrenheit() in units.py for inverses of these:
     def C(v, K=Kelvin): return v/K - 273.16
     def F(v): return v.Celsius * 1.8 + 32
 
     from study.chemy.physics import Thermal
-    def k(v, B=Thermal.k): return v * B
+    def k(v, B=Thermal.k): return v * B # Energy
 
     return { 'R': lambda v, R=mol.R: v * R,
+             'Unruh': lambda v, U=Thermal.Unruh: v * U,  # accelleration
+             'hole': lambda v, H=Thermal.Hawking: H / v, # mass of black hole
              'Boltzmann':  k, 'k': k, 'energy':  k,
              'Centigrade': C, 'C': C, 'Celsius': C,
              'Fahrenheit': F, 'F': F  }
@@ -283,8 +307,8 @@ def thermal():
 kind_prop_lookup = { # { ._unit_str: function }
     '': scalar, 'rad': angle, 'm/s': speed,
     'kg': mass, 's': time, 'm': length, 'K': thermal,
-    '/s': frequency, '(m/s)**2.kg': energy }
-del scalar, angle, speed, mass, energy, frequency, length, time, thermal
+    '/s': frequency, 'm/s**2': acceleration, '(m/s)**2.kg': energy }
+del scalar, angle, speed, acceleration, mass, energy, frequency, length, time, thermal
 
 def tonumber(value): # tool function
     while True:
