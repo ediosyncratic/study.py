@@ -286,20 +286,21 @@ kind_prop_lookup = { # { ._unit_str: function }
     '/s': frequency, '(m/s)**2.kg': energy }
 del scalar, angle, speed, mass, energy, frequency, length, time, thermal
 
+def tonumber(value): # tool function
+    while True:
+        for k in ( 'best', 'median' ):
+            try: value = getattr(value, k)
+            except AttributeError: pass
+            else: break
+        else: break
+    return value
+
 from study.snake import prodict
 class Prodict (prodict.Prodict):
-    def __pow__(self, n, mod=None, up=prodict.Prodict.__pow__):
+    def __pow__(self, n, mod=None, up=prodict.Prodict.__pow__, tonum=tonumber):
         assert mod is None
-        # Raising to zero power yields dimensionless 1
-        if n:
-            # Try to avoid fancy numbers as exponents for units ...
-            while True:
-                for k in ( 'best', 'median' ):
-                    try: n = getattr(n, k)
-                    except AttributeError: pass
-                    else: break
-                else: break
-
+        # Prefer simple numbers as exponents for units ...
+        if n: n = tonum(n)
         return up(self, n)
 del prodict
 
@@ -392,13 +393,11 @@ class Quantity (Object):
             else: scale, units = scale * s, u
 
         try: u, s = scale.__units, scale.__scale
-        except AttributeError: pass
+        except AttributeError:
+            if not isinstance(units, Bok): units = Bok(units)
         else: units, scale = u * units, s
 
-        if not isinstance(units, Bok):
-            units = Bok(units)
-
-        # massaging scale as a sample (so we can trust its str() to work).
+        # Massaging scale as a sample (so we can trust its str() to work).
         if not isinstance(scale, Spread):
             scale = Nice(best=scale)
         elif not isinstance(scale, Nice):
@@ -722,12 +721,12 @@ class Quantity (Object):
 
     def _lazy_get_span_(self, ig):
         lo, hi = self.__scale.span
-        return Quantity(lo, self.__units), Quantity(hi, self.__units)
+        return self.__kin(lo), self.__kin(hi)
 
     def _lazy_get_best_(self, which):
         """generic method for statistics, packaging those for __scale with __units """
         stat = getattr(self.__scale, which) # the statistic (e.g. best estimate) of scale
-        return Quantity(stat, self.__units) # with the same units as self.
+        return self.__kin(stat) # with the same units as self.
 
     _lazy_get_low_ = _lazy_get_high_ = _lazy_get_width_ = _lazy_get_errors_ \
                    = _lazy_get_median_ = _lazy_get_mean_ = _lazy_get_mode_ \
@@ -918,7 +917,7 @@ class Quantity (Object):
 
         try: un, lo = lo.__units, lo.__scale
         except AttributeError: un = {}
-        else: units = units * un
+        else: units = un * units
 
         hi = cls.__get_scale(hi, un)
         if best is not None:
@@ -927,8 +926,9 @@ class Quantity (Object):
         return Quantity(Sample.flat(lo, hi, best),
                         units, doc, nom, fullname, sample, *args, **what)
 
-del kind_prop_lookup
+del kind_prop_lookup, tonumber
 
+# TODO: make _terse_dict private; make this an @classmethod
 def base_unit(nom, fullname, doc, **what):
     result = Quantity(1, {nom:1}, doc, nom, fullname, **what)
     _terse_dict[nom] = result
@@ -946,6 +946,7 @@ estimate, use upward, which has best estimate zero, like tophat, but is
 uniformly distributed on the interval from zero to one.  For general asymmetric
 flat error bars, use Quantity.flat (q.v.).
 """)
+# Deprecated: use Quantity.flat
 upward = Quantity.flat(0, 1, 0)
 # 0 +/- .5: scale and add offset to taste, e.g.:
 def sample(mid, tol): return Quantity.flat(mid - tol, mid + tol)
