@@ -1,6 +1,4 @@
 """Tool class useful in various contexts.
-
-$Id: prodict.py,v 1.4 2008-05-12 09:14:04 eddy Exp $
 """
 
 
@@ -70,14 +68,15 @@ class Prodict (dict):
         return bok
     __rtruediv__ = __rdiv__
 
+    # No whole-division (floordiv, divmod, div); they make no sense.
+
     def __ipow__(self, n):
-        # Raising to zero power yields 1
         if n:
             for k in self.keys(): self[k] *= n
-        else: self.clear()
+        else: self.clear() # Raising to zero power yields 1
         return self
 
-    def __pow__(self, n): # Third arg would be modulo
+    def __pow__(self, n): # Third arg would be modulo; makes no sense.
         bok = self.copy()
         bok **= n
         return bok
