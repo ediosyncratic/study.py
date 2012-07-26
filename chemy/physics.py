@@ -289,12 +289,26 @@ Thermal.also(Boltzmann = Thermal.k,
 A black hole radiates away energy after the manner of a black body of
 temperature T given by
 
-        k T = hbar g / 2 / pi / c = hbar c / 4 / pi / r
+      k * T = hbar * g / 2 / pi / c = hbar * c / 4 / pi / r
             = hbar / kappa / M
 
 where g is its 'surface' gravity G.M/r/r = c.c/2/r and r is its Schwarzschild
 radius.  The product M.T is thus the constant given here as the Hawking
-radiation constant.
+radiation constant.  Compare the Unruh constant, Thermal.Unruh, which is the
+constant of proportionality between T and g in the above.
+"""),
+             Unruh = Quantity(2 * pi, Vacuum.c * Thermal.k / Quantum.hbar,
+                              """The Unruh radiation constant.
+
+An accellerating observer, with accelleration a, observes black-body radiation
+corresponding to a temperature T, related by the equation
+
+      k * T = hbar * a / 2 / pi / c
+
+This is exactly analogous to the radiation from a black body whose surface
+gravity is a - see Thermal.Hawking.  The constant given here is
+
+      a / T = 2 * pi * c * k / hbar.
 """))
 
 # Mole-related quantities
