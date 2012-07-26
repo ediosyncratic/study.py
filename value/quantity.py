@@ -653,12 +653,9 @@ class Quantity (Object):
     def __kin(self,    scale): return self.__quantity__(scale, self.__units)
 
     def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck_(other, '+'))
-    def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
-    def __mod__(self,  other): return self.__kin(self.__scale % self.__addcheck_(other, '%'))
-
     def __radd__(self, other): return self.__kin(self.__addcheck_(other, '+') + self.__scale)
+    def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
     def __rsub__(self, other): return self.__kin(self.__addcheck_(other, '-') - self.__scale)
-    def __rmod__(self, other): return self.__kin(self.__addcheck_(other, '%') % self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
     def unpack(other):
@@ -696,9 +693,40 @@ class Quantity (Object):
         return self.__quantity__(ot / self.__scale, her / self.__units)
     __rtruediv__ = __rdiv__
 
+    # Whole-quotient division and modulus:
+    @staticmethod
+    def __floor(rat):
+        low = rat._scalar.low # we're rounding down
+        try: n = int(low)
+        except TypeError:
+            raise TypeError('Whole division requires scalar ratio', rat)
+        # int rounds towards zero, we want to round down
+        if low < n: n -= 1
+        assert n <= low < n + 1
+        # but note that original rat.high might be > n+1
+        return n
+
+    def __floordiv__(self, other): return self.__floor(self / other)
+    def __rfloordiv__(self, other): return self.__floor(self.__rdiv__(other))
+
+    # These should give 0 <= .low < 1, but with no upper bound on .high
+    def __mod__(self, other): return self - self.__floordiv__(other) * other
+    def __rmod__(self, other): return other - self.__rfloordiv__(other) * self
+
+    def __divmod__(self, other):
+        rat = self.__floordiv__(other)
+        return rat, self - rat * other
+
+    def __rdivmod__(self, other):
+        rat = self.__rfloordiv__(other)
+        return rat, other - rat * self
+
     def __pow__(self, what, mod=None, grab=unpack):
         if mod is not None:
-            return NotSupportedError('modular power not supported for Quantity()s', mod)
+            # Only makes sense if self, what and mod are whole, which isn't
+            # what Quantity is designed for (so Sample doesn't support it).
+            return NotImplementedError('modular power not supported for Quantity()s', mod)
+
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
