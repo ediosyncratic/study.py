@@ -569,10 +569,13 @@ class PiecewiseConstant (Interpolator):
                 assert 1e-6 * sum(weights) > sum(weights[len(ans)+1:])
                 # Modulo rounding, w should now be zero
                 assert 1e-6 * self.total > w
-                w = 0 # don't let rounding errors mess us up below
+                w = 0 # Don't let rounding errors mess us up below
 
+            if not filter(None, weights[len(ans)+1:]):
+                # Short-cut (also avoids rounding errors):
+                i, prior = len(cut) - 1, cut[-1]
             # grab what we need from present band:
-            if w > 0: prior += w * (cut[i+1] - cut[i]) / load[i]
+            elif w > 0: prior += w * (cut[i+1] - cut[i]) / load[i]
             ans.append(prior)
 
         return tuple(ans)
