@@ -9,11 +9,9 @@ See also:
   http://aa.usno.navy.mil/ephemerides/asteroid/astr_alm/asteroid_ephemerides.html
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
-
-$Id: asteroid.py,v 1.13 2009-03-28 12:50:43 eddy Exp $
 """
 
-from study.value.units import Sample, Quantity, tophat, zetta, tera, mega, year, km, kg
+from study.value.units import Sample, Quantity, tera, mega, year, km, kg
 from study.value.archaea import ton, mile
 
 from inner import Mercury, Venus, Mars
@@ -57,8 +55,7 @@ quite a few that inhabit Jupiter's Lagrange points.\n""")
 
 # Some asteroids:
 def IArock(name, when, period, maxdiam, mass, miss,
-           blur=Sample.flat(.995, 1.005), Tton=tera*ton.US, Mmile=mega*mile,
-           Q=Quantity, bar=Sample.flat(-.5, +.5), yr=year, ml=mile,
+           ton=ton.US, yr=year, ml=mile, Q=Quantity.fromDecimal,
            find=Discovery, rock=Asteroid, sol=Sun):
     """Asteroids described by Asimov in From Earth to Heaven.
 
@@ -68,15 +65,17 @@ See p. 210, table 32.\n"""
         when = find(None, when)
 
     # pity about not knowing eccentricities ...
-    return rock(name, sol.orbiter(Q(period + .01 * bar, yr)), mass * Tton * blur,
-                maxdiameter=Q(maxdiam + bar, ml),
-                periterrion=Q(miss * blur, Mmile), # closest approach to Terra
+    return rock(name,
+                sol.orbiter(Q(period, 2, None, yr)),
+                Q(1, 2, 12, mass * ton),
+                maxdiameter=Q(maxdiam, 0, None, ml),
+                periterrion=Q(1, 2, 6, miss * ml), # closest approach to Terra
                 discovery=when)
 
 Ceres = DwarfAster('Ceres',
-                   Orbit(Sun, Quantity(413.9 + .1 * tophat, mega * km), None),
-                   Quantity(.87 + .01 * tophat, zetta * kg),
-                   surface = Spheroid(Quantity(466 + tophat, km)),
+                   Orbit(Sun, Quantity.fromDecimal(413.9, 1, 6, km), None),
+                   Quantity.fromDecimal(.87, 2, 21, kg),
+                   surface = Spheroid(Quantity.fromDecimal(466, 0, None, km)),
                    number = 1,
                    discovery=Discovery("Piazzi", 1801,
                                        day="January 1st 1801",
@@ -129,4 +128,4 @@ Hermes = IArock('Hermes', 1937, 1.47, 1, 12, .2)
 Asteroids.borrow([ Ceres, Albert, Eros, Amor, Apollo, Icarus, Adonis, Hermes ])
 
 del Sun, AU, Asteroid, DwarfAster, Ring, Discovery, Orbit, NASAmoon, NASAshell, IArock, \
-    Sample, ton, tera, mega, mile, Quantity, year, tophat, km, kg
+    Sample, ton, tera, mega, mile, Quantity, year, km, kg

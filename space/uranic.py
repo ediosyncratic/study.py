@@ -2,7 +2,7 @@
 """The moons and rings of Uranus.
 """
 
-from study.value.units import mega, metre, km, tophat
+from study.value.units import mega, metre, km, Quantity
 from common import Discovery
 from body import Ring
 from rock import NASAmoon, NASAshell, SAOmoon
@@ -46,15 +46,18 @@ Ring("Uranus' 1986 U2R", Uranus, 38 * mega * metre, 41 * mega * metre, width=2.5
 # From NASA I had 33 to 41 Mm radius; can't remember if measured off diagram or taken from text.
 # USGS gives 1986 U2R at radius 38 Mm, width "2500?" km.
 # NASA book seems to have indicated widths between 22 and 93 km for the rest; I've used USGS data.
-Ring("Uranus' 6 Ring", Uranus, 41.84 * mega * metre, 41.842 * mega * metre, width=2 * (1 + tophat) * km)
-Ring("Uranus' 5 Ring", Uranus, 42.23 * mega * metre, 42.233 * mega * metre, width=(2.5 + tophat) * km)
-Ring("Uranus' 4 Ring", Uranus, 42.58 * mega * metre, 42.583 * mega * metre, width=(2.5 + tophat) * km)
-Ring("Uranus' alpha Ring", Uranus, 44.72 * mega * metre, 44.82 * mega * metre, width=(9.5 + 5 * tophat) * km)
-Ring("Uranus' beta Ring", Uranus, 45.67 * mega * metre, 45.68 * mega * metre, width=(9.5 + 5 * tophat) * km)
-Ring("Uranus' eta Ring", Uranus, 47.19 * mega * metre, 47.192 * mega * metre, width=2 * (.5 + tophat) * km)
-Ring("Uranus' gamma Ring", Uranus, 47.63 * mega * metre, 47.633 * mega * metre, width=(2.5 + 3 * tophat) * km)
-Ring("Uranus' delta Ring", Uranus, 48.29 * mega * metre, 48.296 * mega * metre, width=6 * (1 + tophat) * km)
-Ring("Uranus' 1986 U1R", Uranus, 50.02 * mega * metre, 50.022 * mega * metre, width=(1.5 + tophat) * km)
-Ring("Uranus' epsilon Ring", Uranus, 51 * mega * metre, 51.1 * mega * metre, width=20 * (3 + 4 * tophat) * km)
+def _ring(name, lo, hi, wide, vary,
+          U=Uranus, Mm=mega * metre, km=km, about=Quantity.within):
+    Ring("Uranus' " + name, U, lo * Mm, hi * Mm, width=about(wide, vary, km))
+_ring("6 Ring", 41.84, 41.842, 2, 1)
+_ring("5 Ring", 42.23, 42.233, 2.5, .5)
+_ring("4 Ring", 42.58, 42.583, 2.5, .5)
+_ring("alpha Ring", 44.72, 44.82, 9.5, 2.5)
+_ring("beta Ring", 45.67, 45.68, 9.5, 2.5)
+_ring("eta Ring", 47.19, 47.192, 1, 1)
+_ring("gamma Ring", 47.63, 47.633, 2.5, 1.5)
+_ring("delta Ring", 48.29, 48.296, 6, 3)
+_ring("1986 U1R", 50.02, 50.022, 1.5, .5)
+_ring("epsilon Ring", 51, 51.1, 60, 40)
 
-del Discovery, Ring, NASAmoon, NASAshell, SAOmoon, mega, metre, km, tophat, _tmp
+del Discovery, Ring, NASAmoon, NASAshell, SAOmoon, mega, metre, km, Quantity, _tmp, _ring

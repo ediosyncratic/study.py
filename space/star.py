@@ -14,12 +14,13 @@ See also:
   http://antwrp.gsfc.nasa.gov/apod/ap990426.html
 """
 
-from study.value.units import Quantity, tophat, kilo, mega, giga, micro, year
+from study.value.units import Quantity, kilo, mega, giga, micro, year
 from body import Star, System
 from common import Discovery, Spin, Orbit
 from home import AU, Sun
 from constellation import CanisMinor, Cassiopeia, Centaur, Cetus, Cygnus, \
      Draco, Eridanus, Hydra, Indus, Ophiuchus, Pavonis, UrsaMajor
+Float = Quantity.fromDecimal
 
 Solar = System("The Solar System", star=Sun)
 del Sun
@@ -38,11 +39,12 @@ Apparently, we're also due (not quite so close, but nearer than Proxima
 Centauri, our current nearest neighbour) visits from Barnard's star (10,000
 years hence) and &alpha; Centauri (A/B).\n""")
 
-Gliese710.Solstation('K5-M1 V', 63.0 + tophat * .1,
+Gliese710.Solstation('K5-M1 V', Float(63, 1),
                      '18:19:50.8-1:56:19.0',
-                     Quantity(.5 + .2 * tophat, best=.42),
+                     Quantity.flat(.4, .6, .42),
                      # but xs4all.n./~mke gave 1e5 * Earth.mass
-                     (4.2 + .1 * tophat) / 100, .67 + .1 * tophat, # 'possibly 67 percent'
+                     Float(4.2, 1, -2),
+                     Float(.67, 1), # 'possibly 67 percent'
                      aliases=('NSV 10635', 'Gl 710', 'Hip 89825', 'BD-01 3474',
                               'HD 168442', 'HD 168442', 'U449', 'Vys/McC 63'),
                      # http://www.solstation.com/stars2/gl710.htm
@@ -55,22 +57,23 @@ Centaur.Alpha = System("&alpha; Centauri",
 It's the fourth brightest star in the night sky as well as the brightest star
 in constellation Centaurus; it's been known about for millennia.\n""",
                         aliases=("Rigil Kentaurus",),
-                        discovery=Discovery('prehistoric', (-2 + tophat * 3) * kilo,
-                                            etymology="Arabic: Rigil Kentaurus = the foot of the Centaur"),
-                        A = Star('&alpha; Centauri A',
-                                 aliases=('Alf Cen A', 'HR 5459', 'Gl 559 A',
-                                          'Hip 71683', 'HD 128620', 'CP(D)-60 5483',
-                                          'SAO 252838', 'FK5 538', 'LHS 50')),
-                        B = Star('&alpha; Centauri B',
-                                 aliases=('Alf Cen B', 'HR 5460', 'Gl 559 B',
-                                          'Hip 71681', 'HD 128621', 'LHS 51')),
-                        C = Star('&alpha; Centauri C',
-                            aliases=('V645 Centauri', 'Gl 551', 'Hip 70890', 'LHS 49',
-                                     'Alf Cen C', 'Proxima Centauri')))
+                        discovery=Discovery(
+        'prehistoric', Quantity.flat(-3.5, -.5) * kilo,
+        etymology="Arabic: Rigil Kentaurus = the foot of the Centaur"),
+                       A = Star('&alpha; Centauri A',
+                                aliases=('Alf Cen A', 'HR 5459', 'Gl 559 A',
+                                         'Hip 71683', 'HD 128620', 'CP(D)-60 5483',
+                                         'SAO 252838', 'FK5 538', 'LHS 50')),
+                       B = Star('&alpha; Centauri B',
+                                aliases=('Alf Cen B', 'HR 5460', 'Gl 559 B',
+                                         'Hip 71681', 'HD 128621', 'LHS 51')),
+                       C = Star('&alpha; Centauri C',
+                                aliases=('V645 Centauri', 'Gl 551', 'Hip 70890', 'LHS 49',
+                                         'Alf Cen C', 'Proxima Centauri')))
 
-Centaur.Alpha.A.Solstation('G2 V', 4.36 + tophat * .01,
-                            '14:39:36.5-62:50:02.3', 1.095 + .01 * tophat,
-                            1.56 + .08 * tophat, 1.23 + .01 * tophat,
+Centaur.Alpha.A.Solstation('G2 V', Float(4.36, 2),
+                            '14:39:36.5-62:50:02.3', Float(1.095, 2),
+                            Quantity.flat(1.52, 1.6), Float(1.23, 2),
                             discovery=Discovery('Nicholas Louis de La Caille', 1752,
                                                 location='Cape Hope',
                                                 story="""Separation
@@ -80,48 +83,50 @@ Good Hope, the southernmost point of Africa, in 1752 studying the stars of the
 southern hemisphere with just a half-inch (8x) refractor.  He noticed that
 &alpha; Centauri was actually two stars.\n"""))
 
-Centaur.Alpha.B.Solstation('K0-1 V', 4.36 + tophat * .01,
-                            '14:39:35.1-60:50:13.8', .907 + .001 * tophat,
-                            .485 + .07 * tophat, .865 + .01 * tophat,
-                            discovery = Centaur.Alpha.A.discovery)
+Centaur.Alpha.B.Solstation('K0-1 V', Float(4.36, 2),
+                           '14:39:35.1-60:50:13.8', Float(.907, 3),
+                           Quantity.flat(.45, .52), Float(.865, 2),
+                           discovery = Centaur.Alpha.A.discovery)
 
 # There should be a better way to describe mutual orbit ...
 frac = Centaur.Alpha.A.mass / (Centaur.Alpha.A.mass + Centaur.Alpha.B.mass)
+whole = Float(23.7, 1, None, AU)
 Centaur.Alpha.A.orbit = Orbit(Centaur.Alpha,
-                              (23.7 + .1 * tophat) * AU * (1 - frac),
+                              (1 - frac) * whole,
                               Spin(year * (79.90 + .01), 79.23),
                               0.519)
 Centaur.Alpha.B.orbit = Orbit(Centaur.Alpha,
-                              (23.7 + .1 * tophat) * AU * frac,
+                              frac * whole,
                               Spin(year * (79.90 + .01), 79.23),
                               0.519)
-del frac
+del frac, whole
 # i.e. they're 23.7 AU apart and mutually orbiting.
 
 Centaur.Proxima = Centaur.Alpha.C
-Centaur.Alpha.C.Solstation('M5.5 Ve', 4.22 + tophat * .01,
-                            '14:29:42.95-62:40:46.14', .123 + .01 * tophat,
-                            micro * (86.5 + 67 * tophat), # highly variable !
-                            .145 + .01 * tophat, 31.5 + 3 * tophat,
-                            discovery=Discovery('Robert Thorburn Ayton Innes', 1915,
-                                                location='Cape Hope',
-                                                story="""Proxima Centauri's discovery
+Centaur.Alpha.C.Solstation('M5.5 Ve', Float(4.22, 2),
+                           '14:29:42.95-62:40:46.14', Float(.123, 2),
+                           Quantity.flat(53, 120) * micro, # highly variable !
+                           Float(.145, 2), Quantity.flat(30, 33),
+                           discovery=Discovery('Robert Thorburn Ayton Innes', 1915,
+                                               location='Cape Hope',
+                                               story="""Proxima Centauri's discovery
 
 Although &alpha; Centauri was known to be double at least as early as 1752,
 the third member of the group was not discovered until 1915.  Like de La
 Caille before him, Robert Thorburn Ayton Innes (1861-1933) of Edinburgh,
 Scotland was also observing from Cape Hope, probably with the 7-inch refractor
 at the Royal Observatory.\n"""),
-                            age=giga * year * (5.5 + tophat),
-                            orbit=Orbit(Centaur.Alpha,
-                                        year.light * (.2 + .02 * tophat),
-                                        # 'roughly a fifth of a light year'
-                                        # Source also gives 'about 13,000 AUs' which is .20566 ly.
-                                        Spin(mega * year * (.5 + .05 * tophat)),
-                                        # 'around half a million years'
-                                        # Not sure what upper bound to guess, but lower bound is .59:
-                                        Quantity(.8 + .42 * tophat,
-                                                 doc="""Some uncertainty.
+                           age=giga * year * Float(5.5, 0),
+                           orbit=Orbit(Centaur.Alpha,
+                                       year.light * Float(.20566, 2),
+                                       # 'roughly a fifth of a light year';
+                                       # source also gives 'about 13,000 AUs'
+                                       # which is .20566 ly.
+                                       Spin(Float(1, 1, 6, year / 2)),
+                                       # 'around half a million years'
+                                       # Not sure what upper bound to guess, but lower bound is .59:
+                                       Quantity.flat(.59, 1,
+                                                      doc="""Some uncertainty.
 
 Source says Proxima's orbit might be hyperbolic, i.e. eccentricity may exceed
 1; but, if elliptical, seems to have period about half a mega-year.  Using
@@ -153,7 +158,7 @@ Ross154 = Star("Ross 154")
 Ross154.NeighbourTable(9.5, (1.8,-8.5,-3.8), "M5e", .0004, .31, .12)
 Ross248 = Star("Ross 248")
 Ross248.NeighbourTable(10.3, (7.4,-.7,7.1), "M6e", .00011, .25, .07)
-Eridanus.epsilon = Star("&epsilon; Eridani"),
+Eridanus.epsilon = Star("&epsilon; Eridani")
 Eridanus.epsilon.NeighbourTable(10.7, (6.4,8.4,-1.8), "K2", .3, .8, .9)
 Luyten789_6 = Star("Luyten 789-6")
 Luyten789_6.NeighbourTable(10.8, (9.7,-3.7,-2.9), "M6", .00012, .25, .08)
@@ -239,7 +244,7 @@ Altair = Star("Altair")
 Altair.NeighbourTable(16.6, (7.4,-14.6,2.5), "A7", 10.0, 1.9, 1.2)
 Ophiuchus.s70 = System("70 Ophiuchi",
                        A = Star("70 Ophiuchi A"),
-                       B = Star("70 Ophiuchi B")),
+                       B = Star("70 Ophiuchi B"))
 Ophiuchus.s70.A.NeighbourTable(16.7, (.2,-16.7,.7), "K1", .44, .89, 1.3)
 Ophiuchus.s70.B.NeighbourTable(16.7, (.2,-16.7,.7), "K6", .083, .68, .84)
 ACp79deg3888 = Star("AC +79&deg; 3888")
@@ -309,7 +314,7 @@ VB10.A.NeighbourTable(19.6, (6.2,-18.5,1.7), "M4", None, .39, .43)
 VB10.B.NeighbourTable(19.6, (6.2,-18.5,1.7), "M5", .007, None, .008)
 m45deg13677 = Star("-45&deg; 13677")
 m45deg13677.NeighbourTable(19.9, (7.5,-11.8,-14.1), "M0", .00002)
-Eridanus.s82 = Star("82 Eridani"),
+Eridanus.s82 = Star("82 Eridani")
 Eridanus.s82.NeighbourTable(20.3, (9.6,11.2,-13.9), "G5")
 Wolf630 = System("Wolf 630",
                  A = Star("Wolf 630 A"),
@@ -335,4 +340,4 @@ p19deg5116.B.NeighbourTable(21.0, (19.5,-3.4,7.1), "M6")
 
 
 del Discovery, Spin, Orbit, Star, System, \
-    Quantity, tophat, kilo, mega, giga, micro, year, AU
+    Quantity, Float, kilo, mega, giga, micro, year, AU

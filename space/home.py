@@ -1,10 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
-
-$Id: home.py,v 1.35 2009-11-19 19:08:14 eddy Exp $
 """
 
-from study.value.units import Sample, qSample, Quantity, Object, tophat, \
+from study.value.units import Sample, qSample, Quantity, Object, \
      micro, milli, kilo, mega, giga, tera, peta, arc, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
@@ -17,8 +15,8 @@ from study.chemy.physics import Cosmos
 # some rough data from my Nuffield data book:
 Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
                        # some slightly more definite data:
-                       age = Quantity(13.7 * (1 + .02 * tophat), giga * year,
-                                      """The age of our universe.
+                       age = Quantity.within(1, .01, 13.7 * giga * year,
+                                             """The age of our universe.
 
 This is only about 60 mega years short of 2**201 Planck times.  Compare with
 Hubble's constant (q.v.) and note that multiplying the two together gives an
@@ -36,8 +34,9 @@ del Cosmos
 # Data from apod:
 LocalGroup = body.Group("The Local Group",
                         # Error bar is a wild guess, based on MilkyWay.orbit.speed
-                        velocity = Quantity(627 + 44 * tophat, km / second,
-                                            """Speed of Local Group
+                        velocity = Quantity.within(
+        627, 22, km / second,
+        """Speed of Local Group
 
 Our local group of galaxies is moving at somewhere between 600 and 650 km/s
 relative to the cosmic microwave background, in a direction described by
@@ -50,10 +49,11 @@ radiation far more accurately.
 
 See also: http://antwrp.gsfc.nasa.gov/apod/ap030209.html
 """,
-                                  l = (273 + 6 * tophat) * arc.degree,
-                                  b = (30 + 6 * tophat) * arc.degree),
-                        mass = Quantity(2 + tophat, 1e43 * kg,
-                                        """Estimated mass of the Local Group
+        l = Quantity.within(273, 3, arc.degree),
+        b = Quantity.within(30, 3, arc.degree)),
+                        mass = Quantity.fromDecimal(
+        2, 0, 43, kg,
+        """Estimated mass of the Local Group
 
 The mass inwards from radius R within each galaxy grows in proportion to R,
 which might suggest that galactic masses vary in proportion to radii; a simple
@@ -76,7 +76,7 @@ MilkyWay = body.Galaxy('Milky Way', mass=1.79e41 * kg,
                        # NB: actual mass is O(1e42) - but see below !
                        orbit = Orbit(LocalGroup,
                                      # guess radius: over half way to Andromeda
-                                     Quantity(1.5 + tophat, mega * year.light),
+                                     Quantity.fromDecimal(1.5, 0, 6, year.light),
                                      None))
 # Just the part inwards from the Sun (about 90 giga Sun), given here so that
 # adding the Sun as a satellite of it goes smoothly.  See below for a .also()
@@ -90,18 +90,19 @@ def load_rubble(): # lazy satellite loader for Sun
 Sun = body.Star(
     'Sun', load_rubble, type='G2 V',
     orbit = Orbit(MilkyWay,
-		  Quantity(26 + 2.8 * tophat, kilo * year.light),
+		  Quantity.within(26, 1.4, kilo * year.light),
                   # I've seen figures of 28 k ly, 8 k parsec; I used to quote 3e4 ly
                   # and Wikipedia gives both 26 +/- 1.4 and 25 +/- 1 k ly
-		  Spin(Quantity(230 + 20 * tophat, mega * year)),
+		  Spin(Quantity.within(230, 10, mega * year)),
                   # I've seen period figures from 220 to 240 My.
                   None, # I don't know eccentricity, let Orbit guess for us ...
                   # I've seen speed quoted as 215 and 220 km/s
-		  speed=Quantity(218 + 4 * tophat, km / second)),
+		  speed=Quantity.within(218, 2, km / second)),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
-    velocity = Quantity(371 + tophat, kilo * metre / second,
-                        """Speed of Solar System.
+    velocity = Quantity.fromDecimal(
+        371, 0, 3, metre / second,
+        """Speed of Solar System.
 
 The solar system's motion relative to Cosmic Microwave Background shows up as a
 dipole anisotropy, which we can measure fairly accurately.  Its direction is
@@ -109,14 +110,14 @@ given both as (l,b) co-ordinates and as (alpha,delta) which appear to be
 synonyms for (RA,Dec), the first of which is measured in hours and minutes.  All
 four data are here given, as attributes l, b, alpha and delta.
 """,
-                        l = (264.31 + tophat * .34) * arc.degree,
-                        b = (48.05 + tophat * .1) * arc.degree,
-                        alpha = 11.2 + .02 * tophat, # unit is hours ...
-                        delta = (tophat * .16 - 7.22) * arc.degree),
+        l = Quantity.within(264.31, .17, arc.degree),
+        b = Quantity.within(48.05, .05, arc.degree),
+        alpha = Quantity.within(11.2, .01), # unit is hours ...
+        delta = Quantity.within(-7.22, 0.8, arc.degree)),
 
-    bright = Quantity.flat(1.1, 1.7, 1.4,
-                           kilo * Watt / metre / metre,
-                           """How brightly shines the sun ?
+    bright = Quantity.within(1.4, .3,
+                             kilo * Watt / metre / metre,
+                             """How brightly shines the sun ?
 
 Maximum solar total radiant power outside atmosphere at a distance of 1
 Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
@@ -159,7 +160,7 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
 
     wind=Object(speed=Quantity.flat(.3, .8, .4, mega * metre / second),
                 # I suppose that's speed at the Sun or Earth and it slows on its
-                # way out.
+                # way out (c.f. study.space.Kuiper.Heliosphere).
                 # TODO: check back on unfinished page, for composition:
                 # http://solarscience.msfc.nasa.gov/feature4.shtml
                 source="Corona"),
@@ -169,7 +170,8 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
     density = 1.409 * kg / litre,
     age = Quantity(4.6e9, year, # Peter Francis, age of solar system [missing error bar]
                    lifespan = 1e18 * second, # Nuffield, order of magnitude
-                   remain = (5 + tophat) * giga * year), # plus c. 2e9 years as a white dwarf
+                   # remain could include a further c. 2e9 years as a white dwarf
+                   remain = Quantity.fromDecimal(5, 0, 9, year)),
     magnitude = Quantity.flat(4.79, 4.83), # K&L, Moore
     aliases = ('Sol',))
 
@@ -340,7 +342,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                                  IAisland('Iceland', .039768),
                                  IAisland('Formosa', .013855)),
                         name = 'Land',
-                        height = Quantity.flat(0, 8840, mean = 840) * metre),
+                        height = Quantity.below(8840, metre, mean=840)),
 
             # misc other data:
             rainfall = .125e18 * kg / year,
@@ -484,27 +486,27 @@ large radii than would be suggested by the visible stars and clouds.
 """,
     # Span given as 1e21 metre by Nuffield, 100,000 light years by
     # /apod/ap030103.html and assorted other sources; but it's blurry.
-    radius=Quantity(51.5 + 5 * tophat, kilo * year.light,
-                    "Radius of the Milky Way's visible thin disk",
-                    # bulge = ... ?
-                    bar = Quantity(13.5 + tophat, kilo * year.light,
-                                   "Radius of the Milky Way's central bar"),
-                    halo = Quantity(100 + 30 * tophat, kilo * year.light,
-                                    "Radius of the Milky Way's spherical stellar halo")),
+    radius=Quantity.within(51.5, 2.5, kilo * year.light,
+                           "Radius of the Milky Way's visible thin disk",
+                           # bulge = ... ?
+                           bar = Quantity.fromDecimal(
+            13.5, 0, 3, year.light, "Radius of the Milky Way's central bar"),
+                           halo = Quantity.within(
+            100, 15, kilo * year.light, "Radius of the Milky Way's spherical stellar halo")),
     # same apod gave "200 billion"; David Darling (see URL below) gives 200 to
     # 400 billion, not counting brown dwarves.
-    starcount=(3 + 2*tophat) * 100 * giga,
-    age=Quantity(8.3 + 3.8 * tophat, giga * year,
-                 "Age of the Milky Way's galactic thin disk",
-                 # and from an article in el Reg:
-                 oldest=Quantity(13.6 + 0.8 * tophat, giga * year,
-                                 "Age of the oldest stars in the Mikly Way")),
-    spin=Spin(Quantity(50 + 10 * tophat, mega * year),
+    starcount=Quantity.within(3, 1, rescale=100 * giga),
+    age=Quantity.within(8.3, 1.9, giga * year,
+                        "Age of the Milky Way's galactic thin disk",
+                        # and from an article in el Reg:
+                        oldest=Quantity.within(
+            13.6, .4, giga * year, "Age of the oldest stars in the Mikly Way")),
+    spin=Spin(Quantity.within(50, 5, mega * year),
               "Rotation rate of the Milky Way's Spiral pattern",
-              bar=Spin(Quantity(17.5 + 3 * tophat, mega * year),
+              bar=Spin(Quantity.within(17.5, 1.5, mega * year),
                        "Rotation rate of the Milky Way's central bar"),
-              speed=Quantity(225 + 15 * tophat, kilo * metre / second,
-                         """Typical stellar orbital speed.
+              speed=Quantity.within(225, 7.5, kilo * metre / second,
+                                    """Typical stellar orbital speed.
 
 Stars outside the central bulge of the Milky Way but not so far out as the outer
 rim all move at roughly the same speed (instead of exhibiting a Keplerian
@@ -514,8 +516,8 @@ for R larger than the radius of the central bulge but smaller than the
 rim-radius.  The discrepancy between this and the visible matter density is
 evidence for dark matter.\n""")),
     # Correct mass value (previous figure served to make adding Sun go smoothly):
-    mass=Quantity(1 + tophat, 2 * tera * Sun.mass,
-                  """Mass of our Galaxy
+    mass=Quantity.within(2, 1, tera * Sun.mass,
+                         """Mass of our Galaxy
 
 About 5 to 10 % of the Galaxy's mass is in gas and dust; its total mass, in tera
 Sun.mass, has been given as 1 to 2 (revised upwards from around a fifth of that
@@ -525,15 +527,15 @@ supposed) Andromeda.\n"""),
     # http://www.daviddarling.info/encyclopedia/G/Galaxy.html
     density=Quantity(0.1, Sun.mass / parsec**3,
                      "Mean density of our Galaxy."),
-    thick=Quantity(2.45 + .3 * tophat, kilo * year.light,
-                   "Thickness of the stellar disk of the Milky Way",
-                   bulge=Quantity(16, kilo * year.light,
-                                  "Thickness of our Galaxy's central bulge"),
-                   gas=Quantity(12, kilo * year.light,
-                                "Thickness of gas disk enclosing the Milky Way's disk")),
-    luminosity=Quantity(1 + tophat, 10e36 * Watt),
-    magnetic=Quantity(4 + 2 * tophat, micro * Gauss,
-                      """Background magnetic field strength of our Galaxy.
+    thick=Quantity.within(2.45, .15, kilo * year.light,
+                          "Thickness of the stellar disk of the Milky Way",
+                          bulge=Quantity(16, kilo * year.light,
+                                         "Thickness of our Galaxy's central bulge"),
+                          gas=Quantity(
+            12, kilo * year.light, "Thickness of gas disk enclosing the Milky Way's disk")),
+    luminosity=Quantity.fromDecimal(1, 0, 36, Watt),
+    magnetic=Quantity.within(4, 1, micro * Gauss,
+                             """Background magnetic field strength of our Galaxy.
 
 The central bulge has much stronger magnetic fields.
 """))
@@ -579,6 +581,6 @@ Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
 
 del body, Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
-    Sample, qSample, Quantity, Object, tophat, micro, milli, kilo, mega, giga, tera, peta, \
+    Sample, qSample, Quantity, Object, micro, milli, kilo, mega, giga, tera, peta, \
     kg, metre, mile, arc, radian, pi, Kelvin, year, day, hour, minute, second, \
     litre, bar, Watt, Tesla, Ampere, Gauss

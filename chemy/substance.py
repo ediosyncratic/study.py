@@ -7,12 +7,10 @@ alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
 (1-pentanol) melts at -78.9°C and boils at 138.1°C, so it can be used to replace
 mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
-
-$Id: substance.py,v 1.11 2009-04-04 15:52:43 eddy Exp $
 """
 from element import * # q.v.
 from particle import Nucleon
-from study.value.quantity import Quantity, Object, tophat, micro
+from study.value.quantity import Quantity, Object, micro
 from study.value.units import second, metre, gram, kilogramme, litre, \
      Joule, Kelvin, Centigrade, Pascal, Atmosphere, mach
 from study.value.archaea import gallon, pound, calorie
@@ -44,8 +42,8 @@ def waterviscosity(T,
     return A * ten**(247.8/(T/K -140)) # adapted from Wikipedia
 
 water = Substance(
-	density = Quantity(1 -27e-6 +tophat * micro, kilogramme / litre,
-                           """Density of water.
+	density = Quantity.fromDecimal(1 -27e-6, 6, None, kilogramme / litre,
+                                       """Density of water.
 
 at 277.13K, when density is maximal.  The definition of the UK gallon used to
 make the density of water 10 pound / gallon at some specific temperature; but
@@ -68,7 +66,7 @@ see calorie's documentation for consequences.
     boil = Quantity(373.150, Kelvin,
                     "Melting point of water (at one atmosphere).")))
 del waterviscosity
-water.heat.capacity.observe(Joule * (4.2 + tophat * .1) / gram / Kelvin)
+water.heat.capacity.observe(Quantity.fromDecimal(4.2, 1, None, Joule / gram / Kelvin))
 IcePoint = water.temperature.freeze
 milk = Substance(density = 10.5 * pound / gallon)
 
@@ -157,3 +155,6 @@ big pot, out of which any activation energy must come, into which any released
 energy will flow; subsequently, this pot must be divided among the available
 modes that can carry it; this sharing will be done thermodynamically.
 """
+
+del Quantity, Object, micro, second, metre, gram, kilogramme, litre, \
+    Joule, Kelvin, Centigrade, Pascal, Atmosphere, mach, gallon, pound, calorie

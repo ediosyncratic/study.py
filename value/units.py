@@ -442,8 +442,8 @@ radiation exposure from the DOE's operations.  See also radiation.EPA.
         aircrew = Quantity(20 * milli, Sievert / year,
                            "EU limit for annual exposure of airline crew."),
         __doc__="EU limits on radiation exposure."),
-    danger = Quantity.flat(25, 75, 50, rem,
-                           """Threshold beyond which acute doses are harmful.
+    danger = Quantity.within(50, 25, rem,
+                             """Threshold beyond which acute doses are harmful.
 
 It is generally reckoned that subjects exposed to more than about half a
 Sievert in a short space of time can be expected to suffer some degree of

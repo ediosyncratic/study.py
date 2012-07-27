@@ -1,7 +1,5 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
-
-$Id: body.py,v 1.28 2009-03-29 11:26:24 eddy Exp $
 """
 
 class Satellites:
@@ -145,7 +143,7 @@ class Object (object.Object):
             mine = tuple(mine)
             for nom in your:
                 if not nom in mine:
-                    self._name_as(nom)
+                    self._name_as_(nom)
                     mine = mine + (nom,)
 
             what['aliases'] = mine
@@ -208,7 +206,7 @@ class Object (object.Object):
 
 del object, Satellites
 
-from study.value.units import second, metre, turn, pi, tophat, day, year
+from study.value.units import second, metre, turn, pi, day, year
 from common import Spin, Orbit
 
 class Body (Object):
@@ -602,7 +600,7 @@ class Star (Body, Round):
 
         self.augment(bok)
 
-del Spin, year, Quantity, second, metre, turn, pi
+del Spin, year, second, metre, turn, pi
 
 class Galaxy (Body, Round):
     instance = {}
@@ -620,15 +618,17 @@ class Hoop (Object, Round):
     instance = {}
     # used for gaps and ring arcs, and as base for Ring.
     __upinit = Object.__init__
-    def __init__(self, name, centre, radius, tilt=0, eccentricity=0, O=Orbit, **what):
+    def __init__(self, name, centre, radius, tilt=0, eccentricity=0, **what):
         # Assume rings move circularly, since Saturn's rings look like they do ...
-        if tilt: tilt = tilt * tophat
-        o = what['orbit'] = O(centre, radius, None, eccentricity, tilt)
+        o = what['orbit'] = self.__orbit(centre, radius, eccentricity, tilt)
         # It's important that we pass orbit via what ...
         self.__upinit(name, **what)
         self.borrow(o) # for Round
 
-del Orbit, Round
+    @staticmethod
+    def __orbit(centre, radius, eccentricity, tilt, O=Orbit, Q=Quantity.flat):
+        if tilt: tilt = Q(-tilt, tilt)
+        return O(centre, radius, None, eccentricity, tilt)
 
 class Shell (Object, Spheroid):
     __obinit, __spinit = Object.__init__, Spheroid.__init__
@@ -638,17 +638,17 @@ class Shell (Object, Spheroid):
         # what has to come this way so satelload reaches Object
         self.__obinit(name, **what)
 
-del Spheroid
-
 class Ring (Hoop):
     # Share instance dictionary with other Hoop-based classes.
     __upinit = Hoop.__init__
     def __init__(self, name, centre, inner, outer, tilt=0, eccentricity=0, **what):
-        self.__upinit(name, centre,
-                      (inner.best + outer.best) * .5 + (outer.high - inner.low) * tophat,
-                      tilt, eccentricity,
-                      **what)
+        self.__upinit(name, centre, self.__radii(inner, outer), tilt, eccentricity, **what)
 
+    @staticmethod
+    def __radii(inner, outer, Q=Quantity.flat):
+        return Q(inner.low, outer.high, (inner.best + outer.best) * .5)
+
+del Quantity, Spheroid, Orbit, Round
 
 class Planetoid (Body):
     # Any vaguely spherical object that orbits a star.

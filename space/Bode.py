@@ -101,10 +101,10 @@ Public methods:
 
     # Auto-detection of zero, unit and base:
 
-    from study.value.quantity import Quantity, tophat, tera
+    from study.value.quantity import Quantity, tera
     # NB: Any scalar Quantity has attributes exp and log (among others) we can exploit ;^)
 
-    def median(seq, span=1, Q=Quantity, unit=tophat): # tool func
+    def median(seq, span=1, Q=Quantity.flat): # tool func
         seq.sort()
         i, b = divmod(len(seq), 2)
         if b: best = seq[i].best
@@ -112,7 +112,7 @@ Public methods:
         i, b = divmod(len(seq) - span, 2)
         if b: lo, hi = seq[i].best, seq[-1-i].best
         else: lo, hi = seq[i].low, seq[-1-i].high
-        return Q(1, .5 * (lo + hi) + unit * (hi - lo), best=best)
+        return Q(lo, hi, best)
 
     def __enough(self, seq, plenty, mid=median, cache=[]):
         try: bodytypes = cache[0]
@@ -155,7 +155,7 @@ Public methods:
 
     from study.value.SI import metre
     Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
-    del tophat, tera, metre
+    del tera, metre
 
     def use(self, zero=None, unit=None, base=None, Q=Quantity):
         if zero is None:

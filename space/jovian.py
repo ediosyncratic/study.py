@@ -5,7 +5,7 @@ Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and
 L5 (trailing).
 """
 
-from study.value.units import metre, km, mega, tophat
+from study.value.units import metre, km, mega, Quantity
 from rock import NASAmoon, NASAshell, NamedOrbit, SAOmoon
 from common import Discovery
 from body import Ring
@@ -56,7 +56,7 @@ Europa = NASAmoon("Europa", Jupiter, _tmp, 670.9, 3.551181,
                   # Escape velocity = 2.02 km / s
                   # Visual geometric albedo = 0.64
                   # Magnitude = 5.29 Vo
-                  NASAshell(1569, 1565), "ice", 479.7, 3 + .02 * tophat)
+                  NASAshell(1569, 1565), "ice", 479.7, Quantity.within(3, .01))
 Ganymede = NASAmoon("Ganymede", Jupiter, _tmp, 1070, 7.15,
                     NASAshell(2634), "dirty ice", 1482, 1.94)
 Callisto = NASAmoon("Callisto", Jupiter, _tmp, 1883, 16.69,
@@ -260,4 +260,5 @@ Ring("Jovian Halo Ring", Jupiter, 100 * mega * metre, 122.8 * mega * metre, 10, 
 Ring("Jovian Main Ring", Jupiter, 122.8 * mega * metre, 129.2 * mega * metre, thickness = 30 * km)
 Ring("Jovian Disk Ring", Jupiter, 129.2 * mega * metre, 214.2 * mega * metre)
 
-del Ring, Discovery, SAOmoon, NamedOrbit, NASAmoon, NASAshell, metre, km, mega, _tmp
+del Ring, Discovery, SAOmoon, NamedOrbit, NASAmoon, NASAshell, \
+    Quantity, metre, km, mega, _tmp

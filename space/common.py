@@ -1,7 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
 """
-from study.value.units import tophat, arc, pi, Object, second
+from study.value.units import Quantity, arc, pi, Object, second
 
 class Discovery (Object):
     __upinit = Object.__init__
@@ -13,7 +13,7 @@ class Discovery (Object):
 
 class Spin (Object):
     __upinit = Object.__init__
-    def __init__(self, period, tilt=(tophat + .5) * 180, **what):
+    def __init__(self, period, tilt=Quantity.below(90), **what):
         """Initialises a Spin object.
 
         Takes two positional arguments:
@@ -23,7 +23,7 @@ class Spin (Object):
 
           tilt -- angle, in degrees, between the axis of spin and some fixed
           direction provided by your context; a.k.a. inclination.  Should lie
-          between 0 and 180.  Default is an error bar covering this whole range,
+          between 0 and 90.  Default is an error bar covering this whole range,
           meaning `unspecified'.  Is stored as self.tilt; can be accessed as an
           angle value (i.e. multiplied by arc.degree) as self.inclination.
 
@@ -255,4 +255,4 @@ class LandMass (SurfacePart): pass
 class Continent (LandMass): pass
 class Island (LandMass): pass # also used for groups of islands
 
-del tophat, arc, pi, Object, second
+del Quantity, arc, pi, Object, second

@@ -16,19 +16,20 @@ composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
-
-$Id: particle.py,v 1.34 2009-10-17 05:54:50 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object
-from study.value.units import tophat, pi, arc, bykind, \
+from study.value.units import pi, arc, bykind, \
      harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
      gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla
-from physics import sample, Quantum, Vacuum, Thermal
+from physics import Quantum, Vacuum, Thermal
 from decay import Decay
 
 eV = Quantity(Quantum.Millikan, Volt,
               doc='The electron-Volt: a standard unit of energy in particle physics.')
+
+def between(lo, hi, units, *args, **what):
+    return Quantity.flat(lo, hi, None, units, *args, **what)
 
 class Particle (Object):
     # needs merged in with units-related toys etc.
@@ -457,10 +458,9 @@ from the second of which I took the extra-visible spectral data below.
 
         return self.energy / c
 
-def photon(lo, hi, name, **what):
+def photon(lo, hi, name, **what): # local tool
     what['name'] = name
-    return Photon(Quantity(.5 * (hi + lo) + tophat * (hi - lo), nano * metre),
-                  **what)
+    return Photon(between(lo, hi, nano * metre), **what)
 
 visible = photon(380, 700, 'visible',
                  doc="""Visible light.
@@ -486,27 +486,33 @@ we're seeing, counting inwards from the most easily dislodged ones.
 """,
                  # All rather approximate; see Nuffield, pp46--47 and sources in doc string.
                  #' It'd be nice to have a way to use blurry-boundaries ... a chart of the spectrum ?
-                 red=photon(624, 780, 'red',
+                 red=photon(624, 700, 'red',
                             # There's a Hydrogen line in here, too
-                            NII=Photon(name='NII', wavelength=6580 * Angstrom, source='Nitrogen')),
+                            NII=Photon(name='NII', wavelength=6580 * Angstrom,
+                                       source='Nitrogen')),
                  orange=photon(606, 624, 'orange'), # but see Na orange
                  yellow=photon(590, 606, 'yellow',
                                # Flagrantly contradicting naming of bands ! (and should be two lines):
-                               Na = Photon(name='sodium orange', wavelength=590*nano*metre)),
+                               Na = Photon(name='sodium orange', wavelength=590*nano*metre,
+                                           source="Sodium")),
                  # ruby ? absorb green -> emit red channel ...
                  green=photon(520, 590, 'green'), #' the human eye's peak response is at 550nm
                  cyan=photon(490, 520, 'cyan', # blue-green
-                             OIII=Photon(name='OIII', wavelength=5007 * Angstrom, source='doubly-ionized Oxygen')),
+                             OIII=Photon(name='OIII', wavelength=5007 * Angstrom,
+                                         source='doubly-ionized Oxygen')),
                  blue=photon(440, 490, 'blue',
-                             Hbeta=Photon(name='H-beta', wavelength=4860 * Angstrom, source='Hydrogen')),
+                             Hbeta=Photon(name='H-beta', wavelength=4860 * Angstrom,
+                                          source='Hydrogen')),
                  indigo=photon(420, 440, 'indigo'), # dk blue
                  violet=photon(380, 420, 'violet')) # purple
+del photon
 
 visible.also(spectrum=(visible.red, visible.orange, visible.yellow,
                        visible.green, visible.cyan, visible.blue,
                        visible.indigo, visible.violet),
-             rainbow=Quantity(138.7 + 1.4 * tophat, arc.degree,
-                              """The angle through which a rainbow turns visible light.
+             rainbow=Quantity.within(
+        138.7, .7, arc.degree,
+        """The angle through which a rainbow turns visible light.
 
 This varies with the colour of the light, red being turned least and blue most.
 Since the angle exceeds a quarter turn, the arc of a (pure water) rainbow
@@ -515,8 +521,9 @@ sun), at an angle ranging from 40.6 (violet) to 42 (red) degrees from that
 direction.  The spray-bow resulting from sea-spray is tighter - sea water
 droplets turn light through a larger angle than pure water droplets.
 """,
-                              secondary=Quantity(128.5 + 3 * tophat, arc.degree,
-                                                 """The angle through which a secondary rainbow turns visible light.
+                              secondary=between(
+            127, 130, arc.degree,
+            """The angle through which a secondary rainbow turns visible light.
 
 Compare visible.rainbow, the primary angle: for the secondary rainbow, red (130
 degrees) is turned more than violet (127 degrees); since this range is less than
@@ -524,23 +531,22 @@ that of the primary rainbow (but still more than a quarter turn), the secondary
 bow appears outside the primary.
 """)))
 
-_unit = .5 + tophat
-radio = Photon(name="radio", frequency = Quantity(3 * _unit, giga * Hertz))
+radio = Photon(name="radio", frequency = Quantity.below(3, giga * Hertz))
 microwave = Photon(name="microwave",
-                   wavelength = Quantity(1 + 99 * _unit, milli * metre),
-                   frequency = Quantity(1 + 99 * _unit, 3 * giga * Hertz))
+                   wavelength = between(1, 100, milli * metre),
+                   frequency = between(1, 100, 3 * giga * Hertz))
 infrared = Photon(name="infra-red",
-                  wavelength = Quantity(.7 + 999.3 * _unit, micro * metre),
-                  frequency = Quantity(.3 + 399.7 * _unit, tera * Hertz),
+                  wavelength = between(.7, 1000, micro * metre),
+                  frequency = between(.3, 400, tera * Hertz),
                   near=Photon(name='near infra-red',
                               # (.7-1) to 5 microns
-                              wavelength=Quantity(.7 + 4.3 * _unit, micro * metre)),
+                              wavelength=between(.7, 5, micro * metre)),
                   mid=Photon(name='mid infra-red',
                              # 5 to (25-40) microns
-                             wavelength=Quantity(5 + 35 * _unit, micro * metre)),
+                             wavelength=between(5, 40, micro * metre)),
                   far=Photon(name = 'far infra-red',
                              # (25-40) to (200-350) microns
-                             wavelength = Quantity(25 + 325 * _unit, micro * metre)),
+                             wavelength = between(25, 350, micro * metre)),
                   __doc__="""Infra-Red Light
 
 The infra-red spectrum is loosely divided into three bands - near, mid and far - though
@@ -553,13 +559,12 @@ for further details.
 """)
 # visible fits in here
 ultraviolet = Photon(name="ultra-violet",
-                     wavelength = Quantity(10 + 390 * _unit, nano * metre),
-                     frequency = Quantity(.75 + 29.25 * _unit, peta * Hertz))
+                     wavelength = between(10, 400, nano * metre),
+                     frequency = between(.75, 30, peta * Hertz))
 Xray = Photon(name="X-ray",
-              wavelength = Quantity(.01 + 9.99 * _unit, nano * metre),
-              frequency = Quantity(.01 + 9.99 * _unit, 3 * exa * Hertz))
-gamma = Photon(name="gamma", wavelength = Quantity(10 * _unit, pico * metre))
-del _unit
+              wavelength = between(.01, 10, nano * metre),
+              frequency = between(.01, 10, 3 * exa * Hertz))
+gamma = Photon(name="gamma", wavelength = Quantity.below(10, pico * metre))
 
 class Fermion (Particle):
     def _lazy_get_spin_(self, ignored, default=Quantum.hbar/2):
@@ -665,17 +670,9 @@ class Family (Object):
 
 del Lazy
 
-def below(val, unit=tophat*(1-femto)+.5*(1+femto)):
-    """Returns a sample from `almost zero' up to a given value.
-
-    Required argument is the upper bound on some quantity: optional second
-    argument is a distribution on the unit interval (its default is nearly
-    uniform) which doesn't quite straddle zero. """
-
-    # more sophistication might use a less uniform distribution ...
-    return unit * val
-
-def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, under=below):
+def KLfamily(nm, lnom, lsym, lm, lme, lrate,
+             mnom, mm, mme, pnom, pm, pme,
+             mev=mega*eV.mass, Hz=Hertz):
     """Deciphering Kaye&Laby p449.
 
     Positional arguments are as follows:
@@ -685,31 +682,37 @@ def KLfamily(nm, lnom, lsym, lm, lrate, mnom, mm, pnom, pm, mev=mega*eV.mass, un
       lepton name -- string
       lepton symbol -- string
       lepton mass -- in MeV
+      lepton mass error -- half-width of error bar on previous
       lepton decay rate -- fraction of the given lepton species which decay per second
 
       -ve quark name -- name of the quark with -ve charge e/3
       -ve quark mass -- mass estimate, in GeV, for the -ve quark
+      -ve quark mass error -- half-width of error-bar on previous
 
       +ve quark name -- name of the quark with +ve charge 2*e/3
-      +ve quark mass -- mass estimate, in GeV, for the +ve quark\n"""
+      +ve quark mass -- mass estimate, in GeV, for the +ve quark
+      +ve quark mass error -- half-width of error bar on previous\n"""
 
-    return Family(Neutrino(lnom, mass=Quantity(under(nm), mev)),
-                  Lepton(lnom, mass=Quantity(lm, mev), symbol=lsym,
-                         decay=Quantity(lrate, Hertz)),
-                  dQuark(mnom, mass=mm*kilo*mev),
-                  uQuark(pnom, mass=pm*kilo*mev))
+    return Family(Neutrino(lnom, mass=Quantity.below(nm, mev)),
+                  Lepton(lnom, mass=Quantity.within(lm, lme, mev), symbol=lsym,
+                         decay=lrate * Hz),
+                  dQuark(mnom, mass=Quantity.within(mm, mme, kilo*mev)),
+                  uQuark(pnom, mass=Quantity.within(pm, pme, kilo*mev)))
 
 # physicsworld article cited in class Neutrino says neutrino mass <= 1 eV;
 # that's less than the K&L's data, given here:
-table = ( KLfamily(4.6e-5, 'electron', 'e', sample(.5110034, .0000014), below(1./6e28),
-                   'down', sample(0.35, .005), 'up', sample(0.35, .005)),
-          KLfamily(.52, 'muon', '&mu;', sample(105.65932, .00029), mega / sample(2.19709, 5e-5),
-                   'strange', sample(.5, .05), 'charm', sample(1.5, .05)),
-          KLfamily(74, 'tau', '&tau;', sample(1784.2, 3.2), tera / sample(.34, .05),
-                   'beauty', sample(4.7, .05), 'truth', sample(40, 10)) )
+table = ( KLfamily(4.6e-5, 'electron', 'e', .5110034, .0000014,
+                   Quantity.below(1./6e28),
+                   'down', 0.35, .005, 'up', 0.35, .005),
+          KLfamily(.52, 'muon', '&mu;', 105.65932, .00029,
+                    mega / Quantity.within(2.19709, 5e-5),
+                    'strange', .5, .05, 'charm', 1.5, .05),
+          KLfamily(74, 'tau', '&tau;', 1784.2, 3.2,
+                   tera / Quantity.within(.34, .05),
+                   'beauty', 4.7, .05, 'truth', 40, 10) )
 # NB: the error bars on quark masses other than truth's are my interpolation
 # from K&L's truncation of the numbers.
-del below, KLfamily
+del KLfamily
 
 # Make electron a primary export:
 electron = Lepton.item.electron
@@ -761,7 +764,7 @@ an integer).  Thus, at standard temperature (zero Celsius) and pressure (one
 Atmosphere), density is just M times 44.618 grams per cubic metre.\n""")
 
 AMU = AtomicMassUnit = Nucleon.mass
-Lepton.item.electron.mass.observe(Quantity(sample(548.58026, .0002), micro * AMU))
+Lepton.item.electron.mass.observe(Quantity.within(548.58026, .0002, micro * AMU))
 Lepton.item.muon.mass.observe(0.1134289168 * AMU)
 
 # http://en.wikipedia.org/wiki/Free_neutron
@@ -769,26 +772,26 @@ Lepton.item.muon.mass.observe(0.1134289168 * AMU)
 # http://pdg.lbl.gov/2006/tables/bxxx.pdf
 
 proton = Nucleon(2, 1, 'proton',
-                 Quantity(sample(938.27203, 6e-5), mega * eV.mass,
-                          sample = (Quantity(sample(1.00727646688, .13e-9), AMU),
-                                    Quantity(sample(1672.52, .08), harpo * gram))),
+                 Quantity.within(938.27203, 6e-5, mega * eV.mass,
+                                 sample = (Quantity.within(1.00727646688, .13e-9, AMU),
+                                           Quantity.within(1672.52, .08, harpo * gram))),
                  "The charged ingredient in nuclei",
                  halflife=1e33*year,
                  magneticmoment = 1.410606633e-26 * Joule / Tesla,
-                 polarizability = Object(electric = Quantity(sample(120, .6),
-                                                             (femto * metre)**3),
-                                         magnetic = Quantity(sample(1.9, .5),
-                                                             (femto * metre)**3)))
+                 polarizability = Object(electric = Quantity.within(120, .6,
+                                                                    (femto * metre)**3),
+                                         magnetic = Quantity.within(1.9, .5,
+                                                                    (femto * metre)**3)))
 # magnetic moment has the same units as magneton: namely, current * area
 # c.f. moment of inertia = mass * area
 
 neutron = Nucleon(1, 2, 'neutron',
-                  Quantity(sample(939565.36, .8), kilo * eV.mass,
-                           sample = (Quantity(sample(1.0086649156, .6e-9), AMU),
-                                     Quantity(sample(1674.82, .08), harpo * gram))),
+                  Quantity.within(939565.36, .8, kilo * eV.mass,
+                                  sample = (Quantity.within(1.0086649156, .6e-9, AMU),
+                                            Quantity.within(1674.82, .08, harpo * gram))),
                   "The neutral (uncharged) ingredient in nuclei",
-                  halflife=Quantity(sample(613.9, .55), second,
-                                    """Neutron half-life.
+                  halflife=Quantity.within(613.9, .55, second,
+                                           """Neutron half-life.
 
 Early measurements of the neutron half-life (e.g. 'over 15 minuts' in 1948, 11.7
 +/- .3 minutes in 1950s, 10.61 +/1 .16 in 1971) were incompatible (that is,
@@ -799,12 +802,12 @@ results emerging in the 1990s ans since, converging on the value used here
 Phys. Rev.  D 66 (2002) 010001).\n"""),
                   # http://hyperphysics.phy-astr.gsu.edu/hbase/particles/proton.html#c4
                   decays=((1, .7824e6 * eV, proton, electron, Neutrino.item.electron.anti),),
-                  # charge: Quantity(sample(-.4, 1.1), zepto * electron.charge), i.e. zero.
+                  # charge: Quantity.within(-.4, 1.1, zepto * electron.charge), i.e. zero.
                   magneticmoment = 0.96623640e-26 * Joule / Tesla,
-                  polarizability = Object(electric = Quantity(sample(1.16, .15),
-                                                              (femto * metre)**3),
-                                          magnetic = Quantity(sample(.37, .2),
-                                                              (femto * metre)**3)))
+                  polarizability = Object(electric = Quantity.within(1.16, .15,
+                                                                     (femto * metre)**3),
+                                          magnetic = Quantity.within(.37, .2,
+                                                                      (femto * metre)**3)))
 
 # what of:
 # pion, mass = 273.2 * electron.mass, charges 0, +1, -1.
@@ -817,7 +820,7 @@ This is a length-scale that arises naturally in the description of electron
 orbitals within atoms, defined by epsilon0 * (h/e)**2 / pi / m, where m is the
 mass of the electron.  See also Rydberg, which is alpha/4/pi/Bohr.
 """)
-Bohr.observe(Quantity(sample(52.9167, .0007), pico * metre))
+Bohr.observe(Quantity.within(52.9167, .0007, pico * metre))
 Bohr.also(radius = Bohr)
 
 Rydberg = Quantity(0.5 * Vacuum.alpha**2 / Quantum.h,
@@ -844,6 +847,6 @@ to get the Hartree energy.
 """))
 Rydberg.energy.observe(13.605698 * Quantum.Millikan * Volt)
 
-del sample, Quantum, Vacuum, Thermal, tophat, pi, arc, Quantity, Decay, \
+del Quantum, Vacuum, Thermal, pi, arc, Quantity, between, Decay, \
     harpo, femto, pico, nano, micro, milli, kilo, mega, giga, tera, peta, exa, \
     gram, metre, mol, second, year, Volt, Angstrom, Hertz, Joule, Tesla

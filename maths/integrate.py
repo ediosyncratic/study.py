@@ -7,8 +7,6 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
         &larr;n :{naturals})*(b-a)
 
 see: http://en.wikipedia.org/wiki/Method_of_exhaustion
-
-$Id: integrate.py,v 1.11 2009-11-12 02:11:27 eddy Exp $
 """
 class Integrator:
     """Base class for integrators.
@@ -38,7 +36,7 @@ class Integrator:
     added to an error bar whose width is the last change.
 
     By default, the code is geared up to deal with values of class Quantity (see
-    basEddy.quantity) and, in that case, the integrators return Quantity()s.  If
+    study.value.quantity) and, in that case, the integrators return Quantity()s.  If
     the first estimate at the integral (plus optional offset) has a positive
     .width attribute, it is presumed to be a Quantity() and the default test
     simply compares the change in estimate with the .width of the new estimate;
@@ -190,9 +188,9 @@ class Integrator:
 
     # hairy implementation follows: no further exports.
 
-    from study.value.quantity import tophat
-    def __blur(mid, spread, H=tophat): return mid + H * spread
-    del tophat
+    from study.value.quantity import Quantity
+    def __blur(mid, spread, H=Quantity.within): return H(mid, spread * .5)
+    del Quantity
     # __blur and __gettest will be del'd shortly ... they're *not* methods
 
     def bywidth(d, n):

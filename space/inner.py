@@ -5,16 +5,17 @@ Available source for more data:
 http://solarsystem.nasa.gov/planets/profile.cfm?Object=Mars&Display=Facts
 """
 
-from study.value.units import Object, Quantity, tophat, \
-     giga, mega, year, day, hour, minute, metre, kg, bar, arc, Centigrade
+from study.value.units import Object, Quantity, \
+     mega, year, day, hour, minute, metre, kg, bar, arc, Centigrade
 from home import Sun, Earth, KLplanet, KLsurface
 from common import Orbit, Spin, Discovery
+Float = Quantity.fromDecimal
 
 Mercury = KLplanet('Mercury',
                    KLsurface(.382, .38, Spin(58 * day + 16 * hour, 0),
                              flattening = 0, material = "silicates",
-                             temperature=Centigrade(110 + tophat * 580)),
-                   Orbit(Sun, (57.91 + .01 * tophat) * giga * metre,
+                             temperature=Centigrade(Quantity.within(110, 290))),
+                   Orbit(Sun, Float(57.91, 2, 9, metre),
                          Spin(.241 * year, 7.005), .2056),
                    .0553, 5.43, atmosphere="trace Na",
                    discovery=Discovery("prehistoric", -1e4,
@@ -36,16 +37,17 @@ rising to 400 Celsius - and unendurably cold - falling to -180 Celsius, below
 Mercury.mass.observe(0.33022e24 * kg)
 Mercury.surface.spin.period.observe(58.6462 * day)
 Mercury.surface.radius.observe(2.57 * mega * metre)
-Mercury.surface.radius.observe(mega * (2.4397 + .0001 * tophat) * metre) # NASA
+Mercury.surface.radius.observe(Float(2.4397, 4, 6, metre)) # NASA
 Mercury.orbit.spin.period.observe(86.96 * day)
-Mercury.orbit.precession = Quantity(.420 + .001 * tophat, arc.second / year)
+Mercury.orbit.precession = Float(.420, 3, None, arc.second / year)
 
 Venus = KLplanet('Venus',
                  # tilt of 177, i.e. nearly 180, means retrograde rotation ...
-                 KLsurface(.949, .9, Spin((243.015 + tophat * .01) * day, 177.3),
-                           # But note that the *atmosphere* goes round every 96 hours
-                           flattening = 0, material="basalt, granite?"),
-                 Orbit(Sun, (108.21 + .01 * tophat) * giga * metre,
+                 KLsurface(.949, .9,
+                            Spin(Float(243.015, 2, None, day), 177.3),
+                            # But note that the *atmosphere* goes round every 96 hours !
+                            flattening = 0, material="basalt, granite?"),
+                 Orbit(Sun, Float(108.21, 2, 9, metre),
                        Spin(.615 * year, 3.394), .0068),
                  .815, 5.24,
                  Atmosphere = Object(pressure = 90 * bar, composition = { "CO2": .97 }),
@@ -57,7 +59,7 @@ named it for love or war deities.
 """))
 Venus.mass.observe(4.8690e24 * kg)
 Venus.surface.radius.observe(6.3 * mega * metre)
-Venus.surface.radius.observe(mega * (6.0518 + .0001 * tophat) * metre) # NASA
+Venus.surface.radius.observe(Float(6.0518, 4, 6, metre)) # NASA
 Venus.orbit.spin.period.observe(224.68 * day)
 
 # Earth goes here ...
@@ -68,7 +70,7 @@ def load_martian(): # lazy satellite loader
 Mars = KLplanet('Mars',
                 KLsurface(.532, .38, Spin(24 * hour + 37 * minute, 25.2),
                           flattening = .0052, material = "basalt, clays"),
-                Orbit(Sun, (227.94 + .01 * tophat) * giga * metre,
+                Orbit(Sun, Float(227.94, 2, 9, metre),
                       Spin(1.881 * year, 1.85), .0933),
                 .1074, 3.94,
                 Atmosphere = Object(pressure = .07 * bar, composition = { "CO2": .95 }),
@@ -83,7 +85,7 @@ del load_martian
 Mars.mass.observe(0.64191e24 * kg)
 Mars.surface.spin.period.observe(1.02595675 * day)
 Mars.surface.radius.observe(3.43 * mega * metre)
-Mars.surface.radius.observe(mega * (3.397 + .001 * tophat) * metre) # NASA
+Mars.surface.radius.observe(Float(3.397, 3, 6, metre)) # NASA
 Mars.orbit.spin.period.observe(686.95 * day)
 
 Barsoom = Object(__doc__="""Barsoomian units of measurement.
@@ -143,4 +145,4 @@ Barsoom.also(ad = Barsoom.haad / 200,
 Barsoom.sofad = Barsoom.ad / 10
 
 del Orbit, Spin, Discovery, Sun, KLplanet, KLsurface, \
-    Object, tophat, giga, mega, year, day, hour, minute, metre, kg, bar
+    Object, Quantity, Float, mega, year, day, hour, minute, metre, kg, bar

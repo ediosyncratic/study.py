@@ -117,17 +117,17 @@ T = Tesla = Weber / m**2        # Magnetic flux density
 
 # More properties of the mole:
 mol.also(
-    Avogadro = Quantity(sample(602.2045, .003), zetta / mol,
-                        "Avogadro's number"), # 24! * 0.970596 / Mole
-    charge = Quantity(sample(96.48456, .00027),
-                      kilo * Coulomb / mol,
-                      doc="""Faraday's Constant
+    Avogadro = Quantity.within(602.2045, .003, zetta / mol,
+                               "Avogadro's number"), # 24! * 0.970596 / Mole
+    charge = Quantity.within(96.48456, .00027,
+                             kilo * Coulomb / mol,
+                             doc="""Faraday's Constant
 
 This is the charge per mole of protons; it is the charge transferred, when
 electrolysis liberates some univalent electrolyte, per mole liberated.\n"""),
-    volume = Quantity(sample(22.4136, .003), milli * stere / mol,
-                      # .54781 firkin / mol
-                      """Molar volume of an ideal gas at STP.
+    volume = Quantity.within(22.4136, .003, milli * stere / mol,
+                             # .54781 firkin / mol
+                             """Molar volume of an ideal gas at STP.
 
 At standard temperature T and pressure P (see mol.STP, set in units.py), one
 mole of any ideal gas will have a volume of R*T/P = 22.4136 litres.  Compare

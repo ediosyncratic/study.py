@@ -1,6 +1,4 @@
 """Description of thermal radiation.
-
-$Id: thermal.py,v 1.6 2008-05-11 16:16:25 eddy Exp $
 """
 from physics import Thermal, Quantum, Vacuum
 from study.value.object import Object
@@ -57,7 +55,7 @@ class Radiator (Object):
         if frequency: return base * f**3 / c**2
         else: return base * c**2 / wavelength**5
 
-del math, Object, Quantum
+del math, Object, Quantum, Vacuum
 from study.value.units import Kelvin, Centigrade
 
 def radiator(temperature, *args, **what):
@@ -78,11 +76,10 @@ def radiator(temperature, *args, **what):
 
     return Radiator(T, *args, **what)
 
-from study.value.sample import Sample
-from study.value.quantity import tophat, gaussish
-Human = Radiator(Kelvin * (309.5 + tophat),
-                 oral=Centigrade(gaussish * .5 + 36.8),
-                 axillary=Centigrade(Sample(Sample.tophat * .9 + 36.45, best=36.6)),
+from study.value.quantity import Quantity
+Human = Radiator(Quantity.fromDecimal(309.5, 1, None, Kelvin),
+                 oral=Centigrade(Quantity.gaussian(36.8, .5)),
+                 axillary=Centigrade(Quantity.flat(36, 36.9, 36.6)),
                  __doc__="""Human body as a radiator.
 
 The human body maintains a roughly constant temperature, so naturally radiates
@@ -93,3 +90,4 @@ measurement (common in the anglophone world); which, in turn, is about .5 K
 below anal measurements; while core temperatures are presumed to be higher yet
 than this.
 """)
+del Quantity, Centigrade

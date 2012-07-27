@@ -7,9 +7,9 @@ See also:
 from study.value.units import *
 
 Quantum = Object(
-    Planck = Quantity(sample(662.606876, .000052),
-                      1e-36 * Joule * second / turn,
-                      """Angular Planck's constant
+    Planck = Quantity.within(662.606876, .000052,
+                             1e-36 * Joule * second / turn,
+                             """Angular Planck's constant
 
 Planck's constant is definitively given by the equation E = h.f relating the
 frequency, f, of electromagnetic radiation to the amount of energy in parcels
@@ -25,8 +25,8 @@ widely accepted usage which takes h without the turn divisor, I'll reserve the
 name h for h*turn and use the name Planck for the `correct' quantity, with the
 turn unit in it.
 """),
-    Millikan = Quantity(sample(160.210, .007), zepto * Coulomb,
-                        """Millikan's Quantum; size of electron charge"""))
+    Millikan = Quantity.within(160.210, .007, zepto * Coulomb,
+                               """Millikan's Quantum; size of electron charge"""))
 
 Volt.electron = Quantity(Quantum.Millikan, Volt, """The Electron Volt.
 
@@ -110,26 +110,26 @@ include units of angle, alpha actually emerges as an angle, rather than being
 strictly dimensionless.  Then again, either G or epsilon0 arguably involves a
 factor of solid angle, which would complicate the matter even further ...\n"""))
 
-Vacuum.alpha.observe(Quantity(1/sample(137.03604, .00011)))
+Vacuum.alpha.observe(1 / Quantity.within(137.03604, .00011))
 
 # a couple more aliases ...
 Vacuum.epsilon0 = Vacuum.permittivity
 Quantum.fineStructure = Vacuum.alpha # w/ factor of turn or radian ?
 
 Cosmos = Object(
-        G = Quantity(sample(66.720, .04), # .86 cc/g /hour**2
-                     (milli * metre)**3 / gram / (kilo * second)**2,
-                     """Newton's constant of gravitation.
+        G = Quantity.within(66.720, .04, # .86 cc/g /hour**2
+                            (milli * metre)**3 / gram / (kilo * second)**2,
+                            """Newton's constant of gravitation.
 
 The gravitational force between two small massive bodies is the product of
 their masses divided by the square of the distance between them, multiplied by
 Newton's constant, which is normally called G.\n"""),
 
-        Hubble = Quantity(70.1 + 2.6 * tophat, 32.4 * zepto * Hertz, # 2.27 aHz
-                          # km/s/mega/parsec = 32.40 zepto / second
-                          # NASA (Wikipedia): 70.8 + 8 * tophat, (km/s)/Mpc
-                          # Britannica: 22.45 + 1.9 * tophat, mm / second / year.light,
-                          """Hubble's constant.
+        Hubble = Quantity.within(70.1, 1.3, 32.4 * zepto * Hertz, # 2.27 aHz
+                                 # km/s/mega/parsec = 32.40 zepto / second
+                                 # NASA (Wikipedia): 70.8 +/- 4, (km/s)/Mpc
+                                 # Britannica: 22.45 +/- .95, mm / second / year.light,
+                                 """Hubble's constant.
 
 This describes the rate of expansion of the universe: it is the velocity
 difference between widely-separated parts of the universe divided by the
@@ -148,8 +148,8 @@ its most significant digit.  The new figure is 71 km / sec / Mpc, accurate to
 
 See also planets.universe\n"""),
 
-        temperature = Quantity(2.7248 + tophat * .0004, Kelvin,
-                               """Cosmic Microwave Background Temperature.
+        temperature = Quantity.within(2.7248, .0002, Kelvin,
+                                      """Cosmic Microwave Background Temperature.
 
 The after-glow of the Big Bang shows itself as an almost uniform background
 glow in the sky with the spectrum of an ideal black body (one which absorbs
@@ -260,17 +260,17 @@ radius, the radial co-ordinate is spatial and the time-wards co-ordinate is
 time-like, as one would expect; inside, they swap.\n"""))
 
 Thermal = Object(
-        k = Quantity(sample(13.8054, .0018), yocto * Joule / Kelvin,
-                     """Boltzmann constant.
+        k = Quantity.within(13.8054, .0018, yocto * Joule / Kelvin,
+                            """Boltzmann constant.
 
 This is the constant of proportionality in the ideal gas law in its molecular
 form: if a gas of N particles fills a volume V at pressure P and temperature
 T, then P.V/N/T is equal to this constant, k.  It is effectively a conversion
 factor between temperature and typical energy per particle.
 """),
-        Stefan = Quantity(sample(56.7032, .0125),
-                          nano * Watt / (metre * Kelvin**2)**2,
-                          """Stefan-Boltzmann constant
+        Stefan = Quantity.within(56.7032, .0125,
+                                 nano * Watt / (metre * Kelvin**2)**2,
+                                 """Stefan-Boltzmann constant
 
 The total radiant power output per unit area from a black body at temperature
 T is given by sigma T**4 where sigma is the Stefan-Boltzmann constant,

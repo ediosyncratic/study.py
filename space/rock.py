@@ -1,10 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
-
-$Id: rock.py,v 1.6 2008-05-11 19:55:16 eddy Exp $
 """
 
-from study.value.units import tophat, mega, day, km, metre, kg, litre
+from study.value.units import Quantity, mega, day, km, metre, kg, litre
 from body import Planetoid, Planet
 from common import Spheroid, Orbit, Spin
 
@@ -15,14 +13,15 @@ def NASAshell(major, minor=None, minim=None, Sp=Spheroid, u=km):
     if minim is not None: minim = minim * u
     return Sp(major, minor, minim) # should really be a Surface ...
 
-def NASAorbit(planet, sma, per, tilt = 90 * (.5 + tophat),
-              u=day, centi=.01*tophat, Mm=mega*metre, O=Orbit, S=Spin, **what):
+def NASAorbit(planet, sma, per, tilt = Quantity.below(90),
+              Float=Quantity.fromDecimal,
+              u=day, Mm=mega*metre, O=Orbit, S=Spin, **what):
     # no eccentricities supplied ... but they are all bound orbits ...
     # no tilt supplied, aside from retrograde or not ...
     if per < 0: tilt, per = tilt + 90, -per
     # no error bars supplied, but all periods gave two decimal places
     # sma is really radius / (1 - eccentricity), but endure it and let per's error-bar infect it
-    return O(planet, sma * Mm, S(u * (per + centi), tilt), **what)
+    return O(planet, sma * Mm, S(Float(per, 2, None, u), tilt), **what)
 
 def NASAdata(what, found, mass, rho, skin, shell, m=kg, d=kg/litre):
     what['discovery'] = found
@@ -54,4 +53,4 @@ def SAOmoon(planet, found, nom, sma, per, name=None, P=Planetoid):
     if name is None: name = 'S/%d %s' % (found.year, nom)
     return P(name, orbit=NASAorbit(planet, sma, per, name=name), discovery=found)
 
-del Planetoid, Planet, Spheroid, Orbit, Spin, tophat, mega, day, km, metre, kg, litre
+del Planetoid, Planet, Spheroid, Orbit, Spin, Quantity, mega, day, km, metre, kg, litre

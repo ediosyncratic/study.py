@@ -3,11 +3,10 @@
 
 See also:
 http://space.newscientist.com/article/dn13029-voyager-2-probe-reaches-solar-system-boundary.html
-$Id: Kuiper.py,v 1.17 2009-03-28 12:49:21 eddy Exp $
 """
 
-from study.value.units import Sample, Quantity, tophat, upward, \
-     zetta, exa, tera, giga, mega, kilo, metre, second, hour, day, year, kg, \
+from study.value.units import Quantity, \
+     zetta, tera, giga, mega, kilo, metre, second, hour, day, year, kg, \
      Kelvin, Fahrenheit, Centigrade
 from study.value.archaea import mile
 
@@ -16,14 +15,18 @@ from outer import Neptune
 from common import Orbit, Spin, Discovery, Spheroid, Surface
 from rock import NASAmoon, NASAshell
 from body import Object, Ring, Shell, Planetoid, MinorPlanet, DwarfPlanet
+
+Float = Quantity.fromDecimal
+About = Quantity.within
 
 Pluto = KLplanet('Pluto',
                  KLsurface(.23, .05, Spin(6 * day + 9 * hour, 118),
                            flattening = 0, material="CH4 ice",
-                           temperature=Centigrade(-233 + 10 * tophat)),
-                 Orbit(Sun, (5936 + .1 * tophat) * giga * metre,
+                           temperature=Centigrade(About(-233, 5))),
+                 Orbit(Sun, Float(5936, 1, 9, metre),
                        Spin(250 * year, 17.13), .253),
-                 .0025, 1.95 + .3 * tophat, # K&L gave 1.1 g/cc; solstation gave 1.8 to 2.1
+                 .0025,
+                 Quantity.flat(1.8, 2.1), # according to Solstation (K&L gave 1.1 g/cc)
                  DwarfPlanet, # in place of Planet
                  atmosphere="trace CH4",
                  discovery=Discovery('Clyde Tombaugh', 1930,
@@ -43,11 +46,11 @@ The telescope which took the discovery pictures was only installed in 1929 (on
 # perihelion happens at max tilt.  Orbital period is neatly 1.5 times Neptune's.
 Pluto.mass.observe(15e21 * kg)
 Pluto.surface.spin.period.observe(6.3867 * day)
-Pluto.surface.radius.observe(mega * (1.195 + .001 * tophat) * metre) # NASA
+Pluto.surface.radius.observe(Float(1.195, 3, 6, metre)) # NASA
 # but http://www.solstation.com/stars/kuiper.htm gives 2320 km diameter, i.e. r=1.16 Mm
 Pluto.orbit.spin.period.observe(248.5 * 365.242198781 * day)
 Pluto.orbit.spin.period.observe(248.02 * year) # NASA
-Pluto.orbit.radius.observe(giga * (5915.80 + .1 * tophat) * metre) # NASA
+Pluto.orbit.radius.observe(Float(5915.80, 1, 9, metre)) # NASA
 
 Charon = NASAmoon("Charon", Pluto, Discovery("Christy", 1978), 19.64, 6.39, NASAshell(593), "ice")
 # but http://www.solstation.com/stars/kuiper.htm gives surface radius 635 km
@@ -60,7 +63,7 @@ Makemake = DwarfPlanet('Makemake',
                        orbit=Orbit(Sun, 45.791 * AU,
                                    Spin(113183 * day, 28.96),
                                    0.159),
-                       mass=Quantity(4 + tophat, zetta * kg))
+                       mass=Float(4, 0, 21, kg))
 
 # From Wikipedia:
 Haumea = DwarfPlanet('Haumea',
@@ -70,34 +73,34 @@ Haumea = DwarfPlanet('Haumea',
                                         1.518/2 * mega * metre,
                                         .996/2 * mega * metre),
                      orbit = Orbit(Sun, 43.335 * AU,
-                                   Spin(Quantity(104234 + tophat, day),
-                                        28.19 + .01 * tophat),
+                                   Spin(Float(104234, 1, None, day),
+                                        Float(28.19, 2)),
                                    0.18874),
-                     mass = Quantity(4.2 + .2 * tophat, zetta * kg),
-                     albedo = .7 + .2 * tophat,
-                     temperature = Quantity(32 + 6 * tophat, Kelvin))
+                     mass = Float(2.1, 1, 21, 2 * kg),
+                     albedo = About(.7, .1),
+                     temperature = About(32, 3, Kelvin))
 
 Hiiaka = Planetoid("Hi'iaka",
                    orbit=Orbit(Haumea,
-                               Quantity(49.5 + .8 * tophat, mega * metre),
-                               Spin(Quantity(49.12 + .06 * tophat, day),
-                                    234.8 + .6 * tophat),
-                               .05 + .006 * tophat),
-                   mass=Quantity(4 + tophat, .1 * zetta * kg),
-                   surface=Spheroid(Quantity(155 + tophat, kilo * metre)))
+                               About(49.5, .4, mega * metre),
+                               Spin(About(49.12, .03, day),
+                                    About(234.8, .3)),
+                               About(.05, .003)),
+                   mass=Float(4, 0, 20, kg),
+                   surface=Spheroid(Float(155, 0, 3, metre)))
 Namaka = Planetoid('Namaka',
                    orbit=Orbit(Haumea,
                                39.3 * mega * metre,
-                               Spin(Quantity(34.7 + .2 * tophat, day),
+                               Spin(About(34.7, .1, day),
                                     #' tilt is given relative to Hi'iaka
-                                    39 + 12 * tophat)),
-                   mass = Quantity(8 + tophat, 10 * exa * kg),
+                                    About(39, 6))),
+                   mass = Float(8, 0, 19, kg),
                    surface=Spheroid(85 * kilo * metre))
 
 Quaoar = MinorPlanet('Quaoar',
                    surface=Spheroid(800 * mile),
                    # I haven't yet found radius ... but its eccentricity is low
-                   orbit=Orbit(Sun, Quantity(4 + tophat, giga * mile), None, 0),
+                   orbit=Orbit(Sun, Float(4, 0, 9, mile), None, 0),
                    magnitude=18.5,
                    discovery=Discovery("Chadwick Trujillo and Michael Brown, of Caltech",
                                        2002,
@@ -113,16 +116,17 @@ the Tongva, the original inhabitants of the Los Angeles basin.\n"""))
 ape = Quantity(900, AU)
 ape.observe(130 * tera * metre)
 ape.observe(84 * giga * mile)
-peri = Quantity(76 + 14 * tophat, AU)
+peri = About(76, 7, AU)
 Sedna = MinorPlanet('Sedna',
-                    surface=Spheroid((950 + 300 * tophat) * mile,
+                    surface=Spheroid(About(950, 150, mile),
                                      # surface temperature is "about" -400 F.
-                                     temperature=Fahrenheit(-400 + 20 * tophat),
+                                     temperature=Fahrenheit(About(-400, 10)),
                                      # it "likely rotates once every approximately 40 days"
                                      #' suggesting that it's tidally locked to a moon
-                                     spin=Spin(Quantity(40 + 10 * tophat, day))),
+                                     spin=Spin(About(40, 5, day))),
                     orbit=Orbit(Sun,
-                                .5 * (ape.best + peri.best) + (ape.high - peri.low) * tophat,
+                                Quantity.flat(peri.low, ape.high,
+                                              .5 * (ape.best + peri.best)),
                                 Spin(10.5 * kilo * year),
                                 perihelion=peri, apehelion=ape),
                     discovery=Discovery(
@@ -140,16 +144,17 @@ del ape, peri
 
 # Data on Eris and Dysnomia from Wikipedia (2007/July/7):
 Eris = DwarfPlanet('Eris',
-                   surface=Surface(Quantity(1.3 + tophat * .2 + upward * .2, mega * metre),
+                   surface=Surface(Quantity.fromSpread(1.3, .1, .3, mega * metre),
                                    # But alleged equatorial radius is only 1.2 Mm ...
-                                   .8 * metre / second**2, Spin(Quantity(10 + 4 * tophat, hour)), # > 8
-                                   albedo=0.86 + tophat * .14,
+                                   .8 * metre / second**2,
+                                   Spin(About(10, 2, hour)), # > 8
+                                   albedo=About(0.86, .07),
                                    material="CH4 ice",
-                                   temperature = Quantity(42.5 + tophat * 25, Kelvin)),
+                                   temperature = Quantity.flat(30, 55, None, Kelvin)),
                    orbit=Orbit(Sun, 67.6681 * AU, Spin(203500 * day, 44.187), .4417,
                                apehelion=97.56 * AU,
                                perihelion=37.77 * AU),
-                   mass = Quantity(16.6 + .4 * tophat, zetta * kg),
+                   mass = About(16.6, .2, zetta * kg),
                    discovery=Discovery("Mike Brown, Chad Trujillo, David Rabinowitz", 2003,
                                        telescope = "Palomar Oschin",
                                        note="""Originally called 2003 UB313.
@@ -189,10 +194,10 @@ mollify or glamorise her nature is naive.'  For further details, see:
 Dysnomia = Planetoid(name="Dysnomia",
                      surface=Spheroid(75 * kilo * metre), # < 150 km
                      orbit=Orbit(Eris,
-                                 Quantity(37.37 + .3 * tophat, mega * metre),
-                                 Spin(Quantity(15.774 + tophat * .004, day),
-                                      142 + tophat * 6),
-                                 .0065 + tophat * .013),
+                                 About(37.37, .15, mega * metre),
+                                 Spin(About(15.774, .002, day),
+                                      About(142, 3)),
+                                 Quantity.below(.013)),
                      discovery=Discovery("M. E. Brown, M. A. van Dam, A. H. Bouchez, D. Le Mignant",
                                          2005, telescope="Keck",
                                          note="""2005, September 10 images.
@@ -233,8 +238,8 @@ were found.  High resolution CCD cameras combined with powerful computers are
 making it much easier to detect such objects.\n""")
 
 Oort = Shell("The Oort Cloud", Sun,
-             (5 + 8 * tophat) * 11 * kilo * AU, # from Bode index 17 to 20
-             mass=(9 + 14 * tophat) * 20 * Earth.mass,
+             About(5, 4, 11 * kilo * AU), # from Bode index 17 to 20
+             mass=About(9, 7, 20 * Earth.mass),
              # estimates from about 40 times Earth's mass to greater than that of Jupiter
             __doc__ = """The Oort Cloud
 
@@ -245,18 +250,18 @@ around 100 kAU (i.e. about 1.6 light-years).
 Named after a Dutch astronomer, Jan Oort, who first asserted its existence, back
 in 1950.\n""")
 
-Heliosphere = Shell("The Heliosphere", Sun, (.5 + tophat) * 230 * AU,
+Heliosphere = Shell("The Heliosphere", Sun, Quantity.below(230, AU),
                     # Out to Bode index c. 12
                     Termination = Shell("Sol's Termination Shock", Sun,
-                                        (82.5 + 15 * tophat) * AU, # "75-90"
+                                        Quantity.flat(75, 90, None, AU),
                                         # c. Bode index 10
                                         __doc__ = "Where solar wind falls below sound speed."),
                     Heliopause = Shell("Heliopause", Sun,
-                                       (11 + tophat) * 10 * AU, # "about 110"
+                                       Float(11, 0, 1, AU), # "about 110"
                                        # c. Bode index 11
                                        __doc__ = "Where solar wind ions meet galactic ions"),
                     BowShock = Shell("Sol's Bow Shock", Sun,
-                                     (23 + tophat) * 10 * AU, # 'near 230'
+                                     Float(23, 0, 1, AU), # 'near 230'
                                      # c. Bode index 11.6
                                      __doc__="The Bow Wave of the Heliosphere"),
                     __doc__ = """Our Sun's sphere of influence.
@@ -275,7 +280,7 @@ http://antwrp.gsfc.nasa.gov/apod/ap020313.html
 
 # Notional boundary of the solar system (after Asimov):
 Terminus = Shell("Our Solar System's Edge", Sun,
-                 Quantity(Sample.flat(1.9, 2.1), year.light),
+                 Quantity.flat(1.9, 2.1, None, year.light),
                  # Roughly Bode index 20.7
                  __doc__ = """Nominal outer boundary of the Solar system.
 
@@ -287,5 +292,6 @@ meandering between the realms of our Sun and its nearest peers; but, for my
 coarse purposes, it's useful to have a marker orbit.\n""")
 
 del Orbit, Spin, Discovery, Sun, Earth, AU, KLplanet, KLsurface, Neptune, \
-    Spheroid, Object, Ring, Sample, Quantity, tophat, \
-    zetta, tera, giga, mega, kilo, metre, mile, day, hour, year, kg, Fahrenheit
+    Spheroid, Object, Ring, Quantity, Float, About, \
+    zetta, tera, giga, mega, kilo, metre, second, mile, hour, day, year, kg, \
+    Kelvin, Fahrenheit, Centigrade

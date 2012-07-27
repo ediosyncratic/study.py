@@ -5,7 +5,7 @@ Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
 """
-from study.value.quantity import base_unit, tophat
+from study.value.quantity import base_unit, Quantity
 
 quid = base_unit('£', 'Pound Sterling',
 		 """The base unit of British currency.
@@ -26,9 +26,9 @@ how units of volume got re-defined by assorted legislative acts over the years.
 # It's clearly inadequate to treat money units as approximate multiples of one
 # another: each is an exact unit in its place, it's only the conversion between
 # them that's approximate.
-krone = quid / (12 + 2 * tophat)
+krone = quid / Quantity.within(10, 2)
 
-del base_unit, tophat
+del base_unit, Quantity
 
 from debt import Debt, Mortgage
 from job import Job

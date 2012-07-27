@@ -3,11 +3,9 @@
 
 Saturn has sixty moons:
 http://www.sciencedaily.com/releases/2007/07/070719194206.htm
-
-$Id: saturnalia.py,v 1.9 2010-02-22 22:13:39 eddy Exp $
 """
 
-from study.value.units import mega, metre, km, tophat
+from study.value.units import mega, metre, km, Quantity
 from common import Discovery
 from body import Ring, Hoop
 from rock import NASAmoon, NASAshell, NASAtrojan, SAOmoon
@@ -87,17 +85,19 @@ Ring("Saturn's B Ring", Saturn, 92 * mega * metre, 117.58 * mega * metre)
 Ring("The Cassini Division", Saturn, 117.58 * mega * metre, 122.2 * mega * metre,
      width = 4.7 * mega * metre,
      note="gap between rings, not actually a ring; and not actually quite empty, either",
-     Huygens=Hoop("Huygens Gap", Saturn, 117.58 * mega * metre, width=(362.5 + tophat * 77.5) * km)) # width "285-440" km
+     Huygens=Hoop("Huygens Gap", Saturn, 117.58 * mega * metre,
+                  width=Quantity.flat(285, 440, None, km)))
 Ring("Saturn's A Ring", Saturn, 122.2 * mega * metre, 136.78 * mega * metre,
      Encke=Hoop("Encke Division", Saturn, 133.57 * mega * metre, width=325 * km),
      Keeler=Hoop("Keeler Gap", Saturn, 136.53 * mega * metre, width=35 * km))
 Ring("Saturn's F Ring", Saturn, 140.0875 * mega * metre, 140.3525 * mega * metre,
      # radius 140.22 Mm, width 30 to 500 km
-     width = (265 + tophat * 235) * km)
+     width=Quantity.flat(30, 500, None, km))
 Ring("Saturn's E Ring", Saturn, 180 * mega * metre, 480 * mega * metre)
 # Average thickness: c. 100 m.  If all gathered together, they'd form a body
 # only 500 km in diameter (and the NASA book uses "diameter", in some of its
 # data tables, as a synonym for "radius" - d'oh).  Diagrams also show an
 # "unnamed" object in orbit at 118 Mm, shepherding the B ring.
 
-del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav, _tmp, mega, metre, km, tophat
+del Discovery, Ring, Hoop, NASAmoon, NASAshell, NASAtrojan, SAOmoon, _glad, _kav, _tmp, \
+    mega, metre, km, Quantity
