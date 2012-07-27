@@ -1159,20 +1159,3 @@ def base_unit(nom, fullname, doc, **what):
     result = Quantity(1, {nom:1}, doc, nom, fullname, **what)
     _terse_dict[nom] = result
     return result
-
-# Deprecated: use Quantity.gaussian() instead
-gaussish = Quantity(Sample.gaussish, doc=Sample.gaussish.__doc__)
-
-# Deprecated: use Quantity.flat() instead:
-tophat = Quantity.within(0, .5, doc="""Unit width zero-centred error bar.
-
-Also known as 0 +/- .5, which can readily be used as a simple way to implement
-a+/-b as a + 2*b*tophat.  For error bars where the lower bound is the best
-estimate, use upward, which has best estimate zero, like tophat, but is
-uniformly distributed on the interval from zero to one.  For general asymmetric
-flat error bars, use Quantity.flat (q.v.).
-""")
-# Deprecated: use Quantity.flat
-upward = Quantity.flat(0, 1, 0)
-# Deprecated: use Quantity.within() instead
-sample = Quantity.within
