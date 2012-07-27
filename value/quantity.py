@@ -329,43 +329,37 @@ class Prodict (prodict.Prodict):
 del prodict
 
 from object import Object
-_terse_dict = {}
 
 class Quantity (Object):
 
     __obinit = Object.__init__
-    def __init__(self, scale, units=Prodict(),
-                 doc=None, nom=None, fullname=None, sample=None,
-                 *args, **what):
+    def __init__(self, scale, units=Prodict(), doc=None, sample=None, *args, **what):
         """Initialises an object representing a quantity.
 
         Arguments:
 
           scale -- (a Quantity or) a scalar, e.g. integer, long or float: it
-          must support addition with and multiplication by at least these types.
+                   must support addition with and multiplication by at least
+                   these types.
 
           [units] -- (a Quantity or) a dictionary with string keys and integer
-          values, or a Quantity.  Each key names a unit of measurement: the
-          whole dictionary represents the product of pow(key, units[key]) over
-          all keys, so {'kg':1, 'm':2, 's':-2} denotes kg.m.m/s/s, aka the
-          Joule.  If omitted, an empty dictionary is used (indicating a
-          dimensionless quantity).
+                     values, or a Quantity.  Each key names a unit of
+                     measurement: the whole dictionary represents the product
+                     of pow(key, units[key]) over all keys, so {'kg':1, 'm':2,
+                     's':-2} denotes kg.m.m/s/s, aka the Joule.  If omitted,
+                     an empty dictionary is used (indicating a dimensionless
+                     quantity).
 
-          [doc] -- a documentation string for the quantity (default None).
-          This may alternatively be set by the .document(doc) method.
-
-          [nom] -- a short name by which to refer to the quantity.
-
-          [fullname] -- a long name (capitalised, if appropriate) for the
-          quantity. [This and nom act as fall-backs for one another: if you give
-          either of them, it serves as the default for the other.]
+          [doc] -- a documentation string for the quantity (default
+                   None).  This may alternatively be set by the .document(doc)
+                   method.
 
           [sample] -- a sequence of quantities which should be equal to this
-          one.
+                      one.
 
         The first two arguments, scale and units, may be Quantity instances: in
         which case each contributes its scale and units to the new Quantity,
-        effectively multiplicatively. """
+        effectively multiplicatively.\n"""
 
         # Initialise self as an Object:
         self.__obinit(*args, **what)
@@ -389,9 +383,8 @@ class Quantity (Object):
 
         if doc is not None: doc = self.__cleandoc(doc)
 
-        # initialise self as a Quantity with the thus-massaged arguments
+        # Initialise self as a Quantity with the thus-massaged arguments:
         self.__scale, self.__units, self.__doc__ = scale, units, doc
-        self.__name(nom or fullname, fullname or nom)
         # Should __addcheck_() what['best'], what['low'] ... if given.
 
     @staticmethod
@@ -462,10 +455,6 @@ class Quantity (Object):
         assert isinstance(what, qSample)
         what = str(Sample(what.mirror, **what.dir))
         return what, unitstr
-
-    def __name(self, nom=None, fullname=None):
-        if nom: self._short_name_ = nom
-        if fullname: self._long_name_ = fullname
 
     def document(self, doc):
         doc = self.__cleandoc(doc)
@@ -829,12 +818,13 @@ class Quantity (Object):
         # Stick the pieces together:
         return num + pad + uni
 
+    __terse_dict = {}
     def _lazy_get__full_repr_(self, ignored):
 
-        def lookup(row, l=_terse_dict):
+        def lookup(row, l=self.__terse_dict):
             out = []
             for nom in row:
-                try: out.append(l[nom]._long_name_)
+                try: out.append(l[nom].__long_name)
                 except KeyError: out.append(nom)
             return out
 
@@ -885,8 +875,8 @@ class Quantity (Object):
 
         I hope to be able to do something smarter when I can see when to say J
         rather than kg.m.m/s/s, and etc.  But that will probably involve
-        creating a units base-class to replace the present _quantity_unit_bok
-        dictionary. """
+        creating a units base-class to replace the present __terse_dict
+        dictionary, which only knows about base units.\n"""
 
 
         # Honour Times='' even with times='.'
@@ -1152,10 +1142,29 @@ class Quantity (Object):
 
         return cls(Sample.gaussish * sigma + mid, units, *args, **what)
 
-del kind_prop_lookup, tonumber
+    @classmethod
+    def unit(cls, scale, units, nom, fullname, doc, **what):
+        result = cls(scale, units, doc, **what)
+        if nom: result.__short_name = nom # nowhere used (for now)
+        if fullname: result.__long_name = fullname
+        return result
+
+    @classmethod
+    def base_unit(cls, nom, fullname, doc, **what):
+        """Constructor for a unit not derived from others.
+
+        Required arguments:
+          nom -- short name (symbol) for the unit
+          fullname -- full name (with capitalisation and non-ASCII content
+                      when appropriate)
+          doc -- documentation, explaining the unit
+
+        Arbitrary keyword arguments may be passed and shall be forwarded to
+        Quantity on construction.  Note, however, that values are already
+        supplied for scale, units, doc, nom and fullname as positional
+        parameters.\n"""
+        result = cls.unit(1, { nom: 1 }, nom, fullname, doc, **what)
+        cls.__terse_dict[nom] = result
+        return result
 
-# TODO: make _terse_dict private; make this an @classmethod
-def base_unit(nom, fullname, doc, **what):
-    result = Quantity(1, {nom:1}, doc, nom, fullname, **what)
-    _terse_dict[nom] = result
-    return result
+del kind_prop_lookup, tonumber

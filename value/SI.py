@@ -13,30 +13,30 @@ equivalents for temperatures.  See quantity.py for details.
 from quantity import *
 
 # The base units
-second = sec = s = base_unit('s', 'second',
-                             """The SI base unit of time.
+second = sec = s = Quantity.base_unit(
+    's', 'second', """The SI base unit of time.
 
 9192631770 periods of the radiation corresponding to the transition between
 the two hyperfine levels of the ground state of the caesium-133 atom.
 """)
 
-m = metre = base_unit('m', 'metre',
-                      """The SI base unit of length.
+m = metre = Quantity.base_unit(
+    'm', 'metre', """The SI base unit of length.
 
 The length of the path travelled by light in vacuum during a time interval of
 1/299792458 of a second.
 """)
 
-kilogramme = kilogram = kg = base_unit('kg', 'kilogramme',
-                                       """The SI base unit of mass.
+kilogramme = kilogram = kg = Quantity.base_unit(
+    'kg', 'kilogramme', """The SI base unit of mass.
 
 The mass of the *International Prototype* kilogramme (a platinum-iridium
 cylinder) kept in the Bureau International des Poids et Mesures (BIPM),
 S&egrave;vres, Paris.
 """)
 
-A = Ampere = base_unit('A', 'Ampere',
-                      """The SI base unit of electric current.
+A = Ampere = Quantity.base_unit(
+    'A', 'Ampere', """The SI base unit of electric current.
 
 That constant current which, if maintained in two parallel rectilinear
 conductors, of immense length and negligible circular cross-section, placed 1
@@ -44,15 +44,15 @@ metre apart in a vacuum, would produce a force between these conductors equal
 to 2e-7 newton per meter of length.
 """)
 
-K = Kelvin = base_unit('K', 'Kelvin',
-                      """The SI base unit of temperature.
+K = Kelvin = Quantity.base_unit(
+    'K', 'Kelvin', """The SI base unit of temperature.
 
 The fraction 1/273.16 (exactly) of the thermodynamic temperature at the triple
 point of water.
 """)
 
-mol = base_unit('mol', 'Mole',
-                """The SI base unit of `amount of substance'.
+mol = Quantity.base_unit(
+    'mol', 'Mole', """The SI base unit of `amount of substance'.
 
 The amount of substance which contains as many elementary units as there are
 atoms in 12e-3 kilogrammes (exactly) of pure carbon-12.  The elementary unit
@@ -60,8 +60,8 @@ must be specified and may be atom, molecule, ion, radical, electron, photon
 etc. or collection of elementary units.
 """)
 
-cd = candela = base_unit('cd', 'Candela',
-                        """The SI base unit of luminous intensity.
+cd = candela = Quantity.base_unit(
+    'cd', 'Candela', """The SI base unit of luminous intensity.
 
 The luminous intensity, in a given direction, of a source that emits
 monochromatic radiation of frequency 540e12 Hz and that has a radiant
@@ -75,15 +75,15 @@ body at the freezing (or, equivalently, melting) temperature of platinum under
 a pressure of 101325 Pascal (i.e. 1 atmosphere).]
 """)
 
-rad = radian = base_unit('rad', 'Radian',
-                        """The SI supplementary unit of angle.
+rad = radian = Quantity.base_unit(
+    'rad', 'Radian', """The SI supplementary unit of angle.
 
 The angle subtended at the centre of a circle by an arc of the circumference
 equal in length to the radius of the circle.  Equal to turn/2/pi.
 """)
 
-sr = steradian = base_unit('sr', 'Steradian',
-                          """The SI supplementary unit of solid angle.
+sr = steradian = Quantity.base_unit(
+    'sr', 'Steradian', """The SI supplementary unit of solid angle.
 
 The unit of solid angle is the solid angle subtended at the center of a sphere
 of radius r by a portion of the surface of the sphere having area r*r.  By

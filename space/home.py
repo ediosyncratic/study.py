@@ -177,11 +177,11 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
 
 del load_rubble
 
-ua = AU = AstronomicalUnit = Quantity(
+ua = AU = AstronomicalUnit = Quantity.unit(
     93, mega * mile,
-    nom = 'ua', # unite astronomique ?
-    fullname = 'Astronomical Unit',
-    doc = """The typical distance between Earth and Sun.
+    'ua', # unite astronomique ?
+    'Astronomical Unit',
+    """The typical distance between Earth and Sun.
 
 This is the standard unit of length used, by astronomers, for measuring other
 distances within the solar system.  Determining the ratio between Earth's

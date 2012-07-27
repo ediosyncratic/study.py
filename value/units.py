@@ -312,8 +312,9 @@ Gauss).  Multiplying H by permeability of the medium gives B.
 Bq = Becquerel = Hz             # Activity of a radionuclide (events / s)
 Ci = Curie = 37 * giga * Becquerel
 
-R = Roentgen = Quantity(258, micro * Coulomb / kilogramme,
-                        """The Röntgen, a unit of ionising radiation.
+R = Roentgen = Quantity.unit(258, micro * Coulomb / kilogramme,
+                             'R', 'Röntgen',
+                             """The Röntgen, a unit of ionising radiation.
 
 This measures the intensity of ionising radiation in terms of amount of charge
 separated per unit mass of exposed material.  Its definition is: the amount of
@@ -323,8 +324,7 @@ centimeter of dry air.  Here, the esu - electro-static unit, a.k.a. franklin
 normally expressed in the Coulomb-cgs system, which takes 4*pi times the
 permittivity of free space as a dimensionless unit, so charge has units
 length*sqrt(force)).
-""",
-                        fullname='Röntgen')
+""")
 
 Gy = Gray = Quantity(1, Joule / kilogramme,
                      """Absorbed dose of radiation.
@@ -477,9 +477,12 @@ hit-frequency.  Contrast study.chemy.physics's Cosmos.temperature (of the
 # constant.
 
 # Non-SI but (relatively) scientific:
-atm = Atmosphere = Quantity(101325, Pascal,
-                            """Standard Atmospheric Pressure""",
-                            'atm', 'Atmoshpere')
+atm = Atmosphere = Quantity.unit(101325, Pascal, 'atm', 'Atmoshpere',
+                                 """Standard Atmospheric Pressure
+
+This is a representative pressure, nominally the typical atmospheric pressure
+at Earth's surface, used as reference for standard measurements and as unit of
+pressure in many contexts.\n""")
 
 # Standard temperature and pressure:
 mol.STP = Quantity(Centigrade(0) / atm, {},

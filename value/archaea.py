@@ -150,14 +150,14 @@ among other complications).
 from units import *
 
 # some non-SI base units ...
-Lenat = base_unit('L', 'Lenat',
-		  """The standard unit of bogosity
+Lenat = Quantity.base_unit('L', 'Lenat',
+                           """The standard unit of bogosity
 
 See the New Hackers' Dictionary, under microLenat.  Also known as the Reid.
 """)
 
-Helen = base_unit('Helen', 'Helen',
-		  """The standard unit of beauty (trad).
+Helen = Quantity.base_unit('Helen', 'Helen',
+                           """The standard unit of beauty (trad).
 
 Definitively `beautiful enough to launch a thousand ships', so that launching a
 single ship gains credit for a single milli-Helen.  The origin of this is the
@@ -165,8 +165,8 @@ story of the Trojan war, in which a Greek fleet of a thousand ships, carrying a
 great army, went to retrieve Helen from Troy, to which Paris had taken her.
 """)
 
-Scoville = base_unit('Scoville', 'Scoville',
-		     """Standard unit of pungency.
+Scoville = Quantity.base_unit('Scoville', 'Scoville',
+                              """Standard unit of pungency.
 
 Dilution to one part in N (with sugar water) makes the taste undetectable for
 an N Scoville pungency.  Conventional wisdom classes 0 to 500 as mild, 500 to
@@ -633,9 +633,9 @@ calorie.short for further details, or that of calorie for background.
 del _short
 
 Calorie = calorie.long
-Clausius = Quantity(1, Calorie / Kelvin, # the heat capacity of a kg of water.
-                    "Clausius's original unit of entropy.",
-                    "Cl", "Clausius")
+Clausius = Quantity.unit(1, Calorie / Kelvin, # the heat capacity of a kg of water.
+                         "Cl", "Clausius",
+                         "Clausius's original unit of entropy.")
 frigorie = calorie / hour # Rate of transfer of heat (in refrigeration).
 
 # Anglophone units of energy:

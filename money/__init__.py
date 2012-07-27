@@ -5,10 +5,10 @@ Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
 """
-from study.value.quantity import base_unit, Quantity
+from study.value.quantity import Quantity
 
-quid = base_unit('£', 'Pound Sterling',
-		 """The base unit of British currency.
+quid = Quantity.base_unit(
+    '£', 'Pound Sterling', """The base unit of British currency.
 
 Used to be 20 shillings (21 shillings made a Guinea); each shilling was 12
 pence, each penny was four farthings.  A florin was two shillings; a crown was
@@ -28,7 +28,7 @@ how units of volume got re-defined by assorted legislative acts over the years.
 # them that's approximate.
 krone = quid / Quantity.within(10, 2)
 
-del base_unit, Quantity
+del Quantity
 
 from debt import Debt, Mortgage
 from job import Job

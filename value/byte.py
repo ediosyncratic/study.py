@@ -4,7 +4,7 @@
 
 See also: units.py
 """
-from quantity import base_unit, Quantity, qSample, _quantifier_dictionary
+from quantity import Quantity, qSample, _quantifier_dictionary
 
 class bQuantity (Quantity):
     # TODO: fold back into Quantity somehow
@@ -47,8 +47,8 @@ class bQuantity (Quantity):
 
     _lazy_get__number_str_ = _lazy_get__unit_str_
 
-bit = base_unit('bit', 'bit',
-		"""The definitive unit of binary data.
+bit = Quantity.base_unit('bit', 'bit',
+                         """The definitive unit of binary data.
 
 A single binary digit is capable of exactly two states, known as 0 and 1.
 A sequence of n binary digits thus has pow(2, n) possible states.
@@ -84,10 +84,10 @@ _row.sort()
 for _key in _row:
     if _key % 3: continue # skip deka, hecto
     _nom = '%sbyte' % _quantifier_dictionary[_key]
-    try: exec '%s = Quantity(1024, %s, nom="%s")' % (_nom, _name, _nom)
+    try: exec '%s = Quantity.unit(1024, %s, fullname="%s")' % (_nom, _name, _nom)
     except OverflowError:
         # assert: _nom is terabyte
-        exec '%s = Quantity(1024L, %s, nom="%s")' % (_nom, _name, _nom)
+        exec '%s = Quantity.unit(1024L, %s, fullname="%s")' % (_nom, _name, _nom)
     _name = _nom
 
 del _nom, _name, _key, _row, _quantifier_dictionary, Quantity, qSample
