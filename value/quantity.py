@@ -1,4 +1,20 @@
 """Objects to describe real quantities (with units of measurement).
+
+TODO: Invent a quantity-type that identifies a value in principle, either by
+definition (e.g. it's a primitive quantity such as a unit, physical constant
+or property of a particular entity) or by formula in terms of others, supports
+being told what values have experimentally been found for it, but doesn't need
+any of these concrete values in the creation of the object.  Change
+data-supply to parse files (one per source, potentially using custom parsers)
+in which each quantity for which the source gives a value is told the values
+given by that source.  In particular, each particle, planet, element
+etc. comes into being with such quantities as the values for its mass, charge,
+etc., with no value given; but (for example) an element's atomic number, or an
+isotope's number of neutrons, shall be an actual value ab initio.
+
+Probably want a different class for each quantity-kind, so that we can load it
+up with the needed kind-specific properties, e.g. by providing a second base
+as mix-in to define the extra lazyprops.
 """
 
 # The multipliers (these are dimensionless) - also used by units.py
