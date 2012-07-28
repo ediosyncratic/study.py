@@ -550,7 +550,12 @@ class PiecewiseConstant (Interpolator):
         scale = self.total / sum(weights)
 
         cut, load = self.cuts, self.mass
+        off = cut[len(cut)/2]
+        # Work with differences from median: this reduces rounding errors when
+        # the range of self.cuts is very narrow compared to abs(off).
+        cut = map(lambda x, m=off: x-m, cut)
         ans, prior, i = [], cut[0], 0
+        # TODO: can probably restructure this loop nicely
         for w in map(lambda x, s=scale: x*s, weights[:-1]):
 
             try: avail = load[i]
@@ -565,6 +570,9 @@ class PiecewiseConstant (Interpolator):
                     w, i, prior = w - avail, 1+i, cut[1+i]
                     avail = load[i]
             except IndexError: # fell off end
+                # We did set prior, the problem was avail = load[i]:
+                assert prior is cut[i] and len(load) == i == len(cut)-1
+                avail = 0 # i.e. load[i] for i too big
                 # There's no weight left to the right of prior
                 assert 1e-6 * sum(weights) > sum(weights[len(ans)+1:])
                 # Modulo rounding, w should now be zero
@@ -576,7 +584,7 @@ class PiecewiseConstant (Interpolator):
                 i, prior = len(cut) - 1, cut[-1]
             # grab what we need from present band:
             elif w > 0: prior += w * (cut[i+1] - cut[i]) / load[i]
-            ans.append(prior)
+            ans.append(prior + off)
 
         return tuple(ans)
 
