@@ -12,30 +12,10 @@ Sub-packages:
 
 While the Quantity-based code (value, chemy and space) does roughly what I
 want, and thus proves that the general approach is valid, there are assorted
-architectural flaws.  Most prominent among these is that the object to
-represent an entity is created from the data I have from some particular
-source, or a melding of sources, where I now consider it would be better to
-create the naked object and feed it data subsequently - via, for each data
-source, a method which knows how to handle that source's data; or via some
-general-purpose method which most source-specific methods call after massaging
-the source's data (e.g. adding units, scalings and error bars; or combining
-things the source gives to obtain the attributes we actually want).  In
-particular, the data should not be part of this package: it should be
-contained in data files digested by the code in this package.  However, this
-requires some fairly far-reaching re-design, so I'll make do with what I have
-in the mean time ;-)
+architectural flaws; see value.quantity's doc-string's TODO.  However, fixing
+that shall require some fairly far-reaching re-design, so I'll make do with
+what I have in the mean time ;-)
 """
-
-# TODO: PEP 8 conformance
-# rename class-parameters to cls (from mode, klaz, etc.)
-# prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
-# purge any type(blah) == what checks in favour of insinstance
-# purge CVS cruft (and switch to git)
-# use __all__ ?
-
-# TODO: reStructuredText conversion
-# Modify doc-strings to use reStructuredText; in each module, once
-# converted, specify global __docformat__ = 'restructuredtext'
 
 # Basics:
 import snake
@@ -50,3 +30,37 @@ import parse
 import value
 import chemy
 import space
+
+TODO = """There are many things that could be improved.
+
+ * Have I finished the conversion to use of interpolators ?
+
+ * Replace the Lazy-based machinery with study.cache.property types.
+
+ * PEP 8 conformance.
+   - Rename class-parameters to cls (from mode, klaz, etc.)
+   - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
+   - Purge any type(blah) == what checks in favour of insinstance
+   - Purge CVS cruft
+   - use __all__ ?
+
+ * Break up archaea into a sub-package - it's huge.  Replace the ad hoc
+   classification with a registration mechanism for the diverse namespaces (by
+   nationality, by name of unit) causing mere creation of the unit object to
+   get it registered in relevant namespaces.
+
+ * Convert documentation to use reStructuredText. Modify doc-strings to use
+   reStructuredText; in each module, once converted, specify global
+   __docformat__ = 'restructuredtext'
+
+ * Add a DateTime type that knows about (and its instances can represent
+   themselves in any of) several different calendar systems; equip it with at
+   least some knowledge of which calendars were in use in which jurisdictions
+   at what dates.  (Start with solar calendars and leave lunar ones for later
+   !)  Take account of differences in when different cultures deemed the
+   transitions between days to happen, as far as possible.  Use the Julian day
+   and UTC as underlying time system.  Integrate with Quantity's time values
+   (e.g. for differences and times within each day).  c.f. the datetime module.
+
+ * New quantity-type; see value.quantity's doc-string.
+"""
