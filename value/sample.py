@@ -141,18 +141,16 @@ class curveWeighted (Lazy, _baseWeighted):
             one heuristic adjustment.  If all keys of the mapping are on one
             side of zero and the foregoing would place a bound on the other
             side, that bound is moved to zero.\n"""
+
+            if not weigher: raise ValueError('Too little data', weigher)
+
             try: mids = weigher.sortedkeys
             except AttributeError:
                 mids = weigher.keys()
                 mids.sort()
 
-            return cls.fromMidMass(mids, map(lambda k, w=weigher: w[k], mids))
-
-        @classmethod
-        def fromMidMass(cls, mids, mass):
-            if not mass or not mids:
-                raise ValueError('Too little data', mids, mass)
-            return cls(cls.__cuts(mids), mass)
+            return cls(cls.__cuts(mids),
+                       map(lambda k, w=weigher: w[k], mids))
 
         @staticmethod
         def __cuts(row, mean=lambda a, b: .5*(a+b)):
@@ -212,13 +210,12 @@ class curveWeighted (Lazy, _baseWeighted):
 
         @classmethod
         def gaussian(cls, mean=0, variance=1, count=None, fudge=1.082):
-            # Ignores count.
-            bok = curveWeighted.gaussish
-            mids = bok.keys()
-            mids.sort()
-            mass = map(lambda k, b=bok: b[k], mids)
-            mids = map(lambda k, m=mean, s=variance**.5/fudge: m + k * s, mids)
-            return cls.fromMidMass(mids, mass)
+            # Ignores count.  See interpolator.Interpolator for documentation.
+            bok, sd = {}, variance**.5
+            for key, val in curveWeighted.gaussish.iteritems():
+                bok[mean + key * sd] = val
+            ans = cls.fromSample(bok)
+            return ans
 
         def toWeights(self, mean=lambda x, y: .5 * (x + y)):
             # Turn a distribution into a weight dictionary:
@@ -511,12 +508,21 @@ class joinWeighted (curveWeighted):
         if prod.total < 1:
             # Model each as gaussian:
             (mym, mys), (yom, yos) = me.normal, yo.normal
-            # Determine interpolator of product gaussian:
+
+            # Determine mean and variance of product gaussian:
             v = 1/(1/mys +1/yos)
-            gaus = self.interpolator.gaussian((mym / mys + yom / yos) * v, v)
-            gaus = gaus.scale(to = 1 - prod.total)
-            if prod.total > 0: prod += gaus
-            else: prod = gaus
+            # Avoid numerical instabilities in computation of mid:
+            if (mym - yom)**2 < v: mid = (mym / mys + yom / yos) * v
+            else: mid = (mym * yos + yom * mys) / (yos + mys)
+            assert mym <= mid <= yom or yom <= mid <= mym, (mid, (mym, mys), (yom, yos))
+
+            gaus = self.interpolator.gaussian(mid, v)
+            # Don't straddle zero if source data didn't:
+            if me.cuts[-1] < 0 and yo.cuts[-1] < 0: gaus = gaus.clip(hi=0)
+            elif me.cuts[0] > 0 and yo.cuts[0] > 0: gaus = gaus.clip(lo=0)
+            # Use to fill prod up to sensible:
+            if prod.total <= 0: prod = gaus.scale()
+            else: prod += gaus.scale(to = 1 - prod.total)
 
         return self.__weighted__(None, smooth=prod).condense(
             max(self.__detail, other.__detail))
