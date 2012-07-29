@@ -88,7 +88,7 @@ class Interpolator (Cached):
         sophisticated.\n"""
         cuts = self.split([0] + [1] * count + [0])
         mass = self.weigh(cuts)
-        assert not mass[0] and not mass[-1]
+        assert not mass[0] and not mass[-1], (mass, cuts, self)
         return self.__interpolator__(cuts, mass[1:-1])
 
     @iterable
@@ -547,46 +547,45 @@ class PiecewiseConstant (Interpolator):
     def split(self, weights):
         assert not filter(lambda x: x < 0, weights), \
             ('Weights should not be negative', weights)
-        scale = self.total / sum(weights)
 
         cut, load = self.cuts, self.mass
-        off = cut[len(cut)/2]
+        scale, mid = self.total / sum(weights), cut[len(cut)/2]
         # Work with differences from median: this reduces rounding errors when
-        # the range of self.cuts is very narrow compared to abs(off).
-        cut = map(lambda x, m=off: x-m, cut)
-        ans, prior, i = [], cut[0], 0
-        # TODO: can probably restructure this loop nicely
-        for w in map(lambda x, s=scale: x*s, weights[:-1]):
-
-            try: avail = load[i]
-            except IndexError: avail = 0
-            # Maybe starting part way through a band:
-            if prior > cut[i]:
-                avail *= (cut[1+i] - prior) / (cut[1+i] - cut[i])
-
-            # Swallow any bands we can:
-            try:
-                while w >= avail:
-                    w, i, prior = w - avail, 1+i, cut[1+i]
-                    avail = load[i]
-            except IndexError: # fell off end
-                # We did set prior, the problem was avail = load[i]:
-                assert prior is cut[i] and len(load) == i == len(cut)-1
-                avail = 0 # i.e. load[i] for i too big
-                # There's no weight left to the right of prior
-                assert 1e-6 * sum(weights) > sum(weights[len(ans)+1:])
-                # Modulo rounding, w should now be zero
-                assert 1e-6 * self.total > w
-                w = 0 # Don't let rounding errors mess us up below
-
-            if not filter(None, weights[len(ans)+1:]):
-                # Short-cut (also avoids rounding errors):
-                i, prior = len(cut) - 1, cut[-1]
-            # grab what we need from present band:
-            elif w > 0: prior += w * (cut[i+1] - cut[i]) / load[i]
-            ans.append(prior + off)
-
-        return tuple(ans)
+        # the range of self.cuts is very narrow compared to abs(mid).
+        cut = map(lambda x, m=mid: x-m, cut)
+        wanted = iter(map(lambda x, s=scale: x*s, weights[:-1]))
+        ans, prior, avail, need, i = [], cut[0], load[0], wanted.next(), 0
+        while True:
+            # We've allocated all weight left of prior, which is in the source
+            # band from cut[i] to cut[1+i]; of that band's load[i], avail is
+            # the remaining weight to the right of prior.  We may, however,
+            # have run past the end of the arrays, in which case we're in the
+            # zero-weight band beyond prior == cut[-1].
+            if need > avail: # eat the rest of this band and move to next:
+                try: need, i, prior = need - avail, 1+i, cut[1+i]
+                except IndexError: # We've run past the end:
+                    assert len(load) == i == len(cut) - 1
+                    assert prior is cut[i] and not avail
+                    # Modulo rounding, need should now be zero
+                    assert 1e-6 * self.total > need
+                    # Sweep the rounding errors under the rug:
+                    need = 0
+                else:
+                    try: avail = load[i]
+                    except IndexError: avail = 0
+            else: # complete this output interval and move on to the next:
+                if not filter(None, weights[len(ans)+1:]):
+                    # Short-cut (also avoids rounding errors):
+                    i, prior, avail = len(cut) - 1, cut[-1], 0
+                elif need: # else: cut[1+i] might IndexError
+                    assert cut[1+i] >= prior >= cut[i]
+                    assert need > 0 and avail > 0
+                    prior += (cut[1+i] - prior) * need / avail
+                    avail -= need
+                assert not ans or prior + mid >= ans[-1]
+                ans.append(prior + mid)
+                try: need = wanted.next()
+                except StopIteration: return tuple(ans) # Job done :-)
 
     @staticmethod
     def __share(weight, result, seq, s):
