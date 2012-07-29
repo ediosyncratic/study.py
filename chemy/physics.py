@@ -26,14 +26,18 @@ name h for h*turn and use the name Planck for the `correct' quantity, with the
 turn unit in it.
 """),
     Millikan = Quantity.within(160.210, .007, zepto * Coulomb,
-                               """Millikan's Quantum; size of electron charge"""))
+                               """Millikan's Quantum
 
-Volt.electron = Quantity(Quantum.Millikan, Volt, """The Electron Volt.
-
-This is a standard unit of energy used in atomic and sub-atomic physics; it is
-the amount of energy that an electron gains when it moves from some location
-to one with an electrostatic potential one Volt more positive.
-""")
+This is the magnitude of the electron's (negative) charge, equal to the charge
+on the proton and positron.  The beautiful quarks (down, strange and bottom)
+have a third of the charge of the electron; the true quarks (up, charm and
+top) have two thirds of the charge of the proton; so this quantum isn't
+actually the smallest irreducible unit of charge - but it is the smallest
+charge possessed by any partlcle we've ever seen in isolation (quarks have
+only, thus far, been seen in combinations with whole multiples of the electron
+charge; it is suspected that they can't be isolated, at least in
+four-dimensional space-time as we know it).
+"""))
 
 Quantum.also(h = Quantity(turn, Quantum.Planck, """Planck's constant
 
@@ -41,17 +45,28 @@ See Quantum.Planck's __doc__ for details. """),
              hbar = Quantity(radian, Quantum.Planck, """Dirac's constant
 
 See Quantum.Planck's __doc__ for details. """))
-
-mol.charge.observe(mol.Avogadro * Quantum.Millikan)
 
 Vacuum = Object(
-    c = second.light / second, # given exactly as an integer, these days.
+    c = Quantity(1, second.light / second,
+                 """The speed of light.
+
+The modern definition of the metre makes this an exact integer, when measured
+in metres/second.  There are important senses, in relativity theory, in which
+the speed of light is really just a conversion factor between two different
+units we use, for historical and practical reasons, to measure space-like and
+time-like displacements in space-time.  There being no fundamental difference
+between these (they can be added, for example, yielding either), there is a
+strong case for doing theoretical work in units which make c take the value 1
+so that we can treat it as dimensionless.
+"""),
     permeability = Quantity(.4 * pi, micro * Henry / metre, # definition
                             """Magnetic permeability of free space.
 
 The magnetic force per unit length between two long parallel wires a distance
-R apart carrying currents j and J is j*J/R times the magnetic permeability of
-the medium between them."""))
+R apart carrying currents j and J is j*J/R/2/pi times the magnetic permeability of
+the medium between them.  The definition of the Ampere fixes the value for
+the permeability of free space.
+"""))
 
 Vacuum.also(
     Z0 = Quantity(Vacuum.c, Vacuum.permeability,
@@ -71,10 +86,9 @@ whence we may infer:
 so that c and Z0 suffice to determine the permeability and permittivity of
 free space.  Note that, since c has (by the definition of the metre) an exact
 integer value and mu0 is (by the definition of the Ampere) exactly pi*4e-7,
-the values of Z0 and epsilon0 are also exact.\n"""),
+the values of Z0 and epsilon0 are also exact.
+"""),
     mu0 = Vacuum.permeability)
-
-# Should mu0, e0, Z0 involve steradian and/or radian ? alpha is begging for it ...
 
 Vacuum.also(
     impedance = Vacuum.Z0,
@@ -84,15 +98,15 @@ Vacuum.also(
 The electrostatic force between two point charges q and Q a distance R apart
 is q*Q / (4 * pi * R**2) divided by the permittivity of the medium between the
 charges."""),
-    alpha = Quantity(Quantum.Millikan**2 / 2, Vacuum.Z0 / Quantum.h,
+    alpha = Quantity(Quantum.Millikan**2 / 2, Vacuum.Z0 / Quantum.Planck / turn,
                      """The fine structure constant.
 
 The fine structure constant arises naturally in the perturbation expansions of
 various physical quantities.  It is a dimensionless quantity which expresses
 the charge on the electron (Millikan's quantum) in terms of the natural unit
 of charge, sqrt(h/Z0), one can obtain (after the style of Planck's units, see
-planck.Planck) from Planck's constant, h, and the impedance of free space,
-Z0. The definitive formula for the fine structure constant is:
+chemy.planck.Planck) from Planck's constant, h, and the impedance of free
+space, Z0.  The definitive formula for the fine structure constant is:
 
     e**2 / (4 * pi * epsilon0 * hbar * c)
 
@@ -106,9 +120,10 @@ electrodynamic systems) is expressed as a power-series in 2*alpha, which the
 latter formula gives as the ratio of e**2 and h/Z0.
 
 It is perhaps worth noting that, when Planck's constant is undestood to
-include units of angle, alpha actually emerges as an angle, rather than being
-strictly dimensionless.  Then again, either G or epsilon0 arguably involves a
-factor of solid angle, which would complicate the matter even further ...\n"""))
+include units of angle, alpha actually emerges as an angle (2.6269 degrees),
+rather than being strictly dimensionless.  Then again, this isn't the quantity
+that actually shows up in relevant power series expansions.
+"""))
 
 Vacuum.alpha.observe(1 / Quantity.within(137.03604, .00011))
 
@@ -116,20 +131,30 @@ Vacuum.alpha.observe(1 / Quantity.within(137.03604, .00011))
 Vacuum.epsilon0 = Vacuum.permittivity
 Quantum.fineStructure = Vacuum.alpha # w/ factor of turn or radian ?
 
-Cosmos = Object(
-        G = Quantity.within(66.720, .04, # .86 cc/g /hour**2
-                            (milli * metre)**3 / gram / (kilo * second)**2,
-                            """Newton's constant of gravitation.
+# TODO: move G, kappa, qperm, Schwarzschild from Cosmos to Vacuum;
+# unify Comsmos with space.home.Universe
+
+Cosmos = Object(__doc__ = """Properties of the universe.
+
+See also space.home.Universe
+""",
+
+                G = Quantity.within(
+        66.720, .04, # .86 cc/g /hour**2
+        (milli * metre)**3 / gram / (kilo * second)**2,
+        """Newton's constant of gravitation.
 
 The gravitational force between two small massive bodies is the product of
 their masses divided by the square of the distance between them, multiplied by
-Newton's constant, which is normally called G.\n"""),
+Newton's constant, which is normally called G.
+"""),
 
-        Hubble = Quantity.within(70.1, 1.3, 32.4 * zepto * Hertz, # 2.27 aHz
-                                 # km/s/mega/parsec = 32.40 zepto / second
-                                 # NASA (Wikipedia): 70.8 +/- 4, (km/s)/Mpc
-                                 # Britannica: 22.45 +/- .95, mm / second / year.light,
-                                 """Hubble's constant.
+                Hubble = Quantity.within(
+        70.1, 1.3, 32.4 * zepto * Hertz, # 2.27 aHz
+        # km/s/mega/parsec = 32.40 zepto / second
+        # NASA (Wikipedia): 70.8 +/- 4, (km/s)/Mpc
+        # Britannica: 22.45 +/- .95, mm / second / year.light,
+        """Hubble's constant.
 
 This describes the rate of expansion of the universe: it is the velocity
 difference between widely-separated parts of the universe divided by the
@@ -143,13 +168,16 @@ with the velocity scales frequencies by the factor exp(b).
 The Wilkinson Microwave Anisotropy Probe's study of the microwave background
 (emitted only 380,000 years after the Big Bang) vastly improved the available
 accuracy of this datum; previously the best estimate's uncertainty included
-its most significant digit.  The new figure is 71 km / sec / Mpc, accurate to
+its most significant digit.  (This is, indeed, why I initially chose to have
+Quantity and Sample display the first uncertain digit in a number's
+representation, as well as the confidently known digits; otherwise, there was
+nothing to display here !)  The new figure is 71 km / sec / Mpc, accurate to
 5%.
+"""),
 
-See also planets.universe\n"""),
-
-        temperature = Quantity.within(2.7248, .0002, Kelvin,
-                                      """Cosmic Microwave Background Temperature.
+                temperature = Quantity.within(
+        2.7248, .0002, Kelvin,
+        """Cosmic Microwave Background Temperature.
 
 The after-glow of the Big Bang shows itself as an almost uniform background
 glow in the sky with the spectrum of an ideal black body (one which absorbs
@@ -195,7 +223,8 @@ gravitational constant, usually called &kappa;, which is 8 * pi times Newton's
 gravitational constant divided by a suitable power of the speed of
 light.  Thus &kappa; has the dimensions of a length per mass, give or take
 some factors of velocity (which is nominally dimensionless - like angles, only
-more convincingly so).\n"""),
+more convincingly so).
+"""),
             qperm = Quantity(1, (4 * pi * Cosmos.G * Vacuum.permittivity)**.5,
                              """The Einstein/Maxwell Charge-to-Mass ratio.
 
@@ -250,14 +279,16 @@ equivalent of the proton only gets down to around 1 MC/kg, around 1e16 times
 as high as the Einstein-Maxwell charge-to-mass ratio.  One electron's charge
 is worth the mass of over a million million million nucleons; the mass of a
 mole of nucleons (or, indeed, of Hydrogen) is worth only a bit over half a
-million electrons' charge.\n"""),
+million electrons' charge.
+"""),
             
             Schwarzschild = Quantity(2, Cosmos.G / Vacuum.c**2,
                                      """Schwarzschild's factor.
 
 The Schwarzschild radius of a black hole of mass m is 2.G.m/c/c; outside this
 radius, the radial co-ordinate is spatial and the time-wards co-ordinate is
-time-like, as one would expect; inside, they swap.\n"""))
+time-like, as one would expect; inside, they swap.
+"""))
 
 Thermal = Object(
         k = Quantity.within(13.8054, .0018, yocto * Joule / Kelvin,
@@ -283,7 +314,8 @@ particle (unless this modification is, for some reason, specific to black
 holes).
 """))
 Thermal.also(Boltzmann = Thermal.k,
-             Hawking = Quantity(1,  Quantum.hbar / Cosmos.kappa / Thermal.k,
+             Hawking = Quantity(radian,
+                                Quantum.Planck / Cosmos.kappa / Thermal.k,
                                 """The Hawking radiation constant.
 
 A black hole radiates away energy after the manner of a black body of
@@ -297,7 +329,8 @@ radius.  The product M.T is thus the constant given here as the Hawking
 radiation constant.  Compare the Unruh constant, Thermal.Unruh, which is the
 constant of proportionality between T and g in the above.
 """),
-             Unruh = Quantity(2 * pi, Vacuum.c * Thermal.k / Quantum.hbar,
+             Unruh = Quantity(2 * pi / radian,
+                              Vacuum.c * Thermal.k / Quantum.Planck,
                               """The Unruh radiation constant.
 
 An accellerating observer, with accelleration a, observes black-body radiation
@@ -310,6 +343,15 @@ gravity is a - see Thermal.Hawking.  The constant given here is
 
       a / T = 2 * pi * c * k / hbar.
 """))
+
+Volt.electron = Quantity(Quantum.Millikan, Volt, """The Electron Volt.
+
+This is a standard unit of energy used in atomic and sub-atomic physics; it is
+the amount of energy that an electron gains when it moves from some location
+to one with an electrostatic potential one Volt more positive.
+""")
+
+mol.charge.observe(mol.Avogadro * Quantum.Millikan)
 
 # Mole-related quantities
 mol.R = Quantity(mol.Avogadro, Thermal.Boltzmann,
