@@ -165,9 +165,10 @@ class curveWeighted (Lazy, _baseWeighted):
                    ('expected sorted data', row)
 
             # Between extreme key b and its neighbour i, we have a cut
-            # at (b+i)/2; twice as far the other side of it is 2*b-i,
+            # at (b+i)/2; twice as far the other side of b is 2*b-i,
             # a.k.a. b +(b-i), or b -(i-b).
             top, bot = 2. * row[-1] - row[-2], 2. * row[0] - row[1]
+            # Don't straddle zero if data didn't originally:
             if top > 0 and row[-1] <= 0: top = 0.
             if bot < 0 and row[0] >= 0: bot = 0.
 
@@ -419,12 +420,34 @@ class joinWeighted (curveWeighted):
     distribution for some combination of their parameters), including
     comparison. """
 
-    def __init__(self, detail):
-        self.__detail = detail
+    def __init__(self, detail): self.__detail = detail
 
-    def add(self, weights, scale=1, func=None, smooth=None,
-            oneach=lambda x: (x, 1)):
-        """Increment some of my keys.
+    @classmethod
+    def __ingest(cls, weights, smooth, scale, func):
+        """Massage add()'s input parameters into tidy form."""
+        if smooth is not None and weights is None:
+            weights = smooth.toWeights()
+
+        try: mites = weights.items()
+        except AttributeError:
+            try: mites = map(lambda x, s=scale: (x, s), weights)
+            except (TypeError, AttributeError): mites = [ (weights, scale) ]
+        else: mites = map(lambda (k, v), s=scale: (k, v*s), mites)
+
+        if smooth is None:
+            # Filter out those handleb by the recursive calls to .add():
+            smooth = filter(lambda (k,v): not isinstance(
+                    k, (Sample, joinWeighted)), mites)
+            if smooth:
+                if func is not None:
+                    smooth = map(lambda (k, v), f=func: (f(k), v))
+                smooth = cls.Interpolator.fromSample(dict(smooth))
+
+        if smooth: smooth = smooth.scale(by=scale)
+        return mites, smooth
+
+    def add(self, weights, scale=1, func=None, smooth=None):
+        """Increment some of self's keys.
 
         Arguments:
 
@@ -449,32 +472,14 @@ class joinWeighted (curveWeighted):
         .mirror is obtained: this is a joinWeighted and the same recursion is
         used.  Otherwise, (func's replacements for) keys should be scalars. """
 
-        if smooth is not None and weights is None:
-            weights = smooth.toWeights()
-
-        try: mites = weights.items()
-        except AttributeError:
-            try: mites = map(oneach, weights[:])
-            except (TypeError, AttributeError): mites = [ (weights, 1) ]
-
-        if smooth is None:
-            # Those filtered out need the recursive calls to .add():
-            smooth = filter(lambda (k,v): not isinstance(
-                    k, (Sample, joinWeighted)), mites)
-            if smooth:
-                if func is not None:
-                    smooth = map(lambda (k, v), f=func: (f(k), v))
-                smooth = self.Interpolator.fromSample(dict(smooth))
-
-        if smooth: smooth = smooth.scale(by=scale)
+        mites, smooth = self.__ingest(weights, smooth, scale, func)
         try: prior = self.interpolator
-        except AttributeError: pass
+        except (AttributeError, ValueError): pass
         else:
             if smooth: smooth += prior
             else: smooth = prior
 
         for key, val in mites:
-            val = val * scale
             if val < 0: raise ValueError('Negative weight', val, key, scale)
             if isinstance(key, Sample): key = key.mirror
 
@@ -550,7 +555,7 @@ class joinWeighted (curveWeighted):
         smooth = self.interpolator
         cuts = smooth.split([ 0, 1 ] + [ 2 ] * count + [ 1, 0 ])
         mass = smooth.weigh(cuts)
-        assert 1e-6 * smooth.total > max(mass[0], mass[-1])
+        assert 1e-6 * smooth.total > max(mass[0], mass[-1]), (cuts, mass, smooth)
         return self.__weighted__(None,
                                  smooth=self.Interpolator(cuts, mass[1:-1]))
 
@@ -977,11 +982,12 @@ class Sample (Object):
 
         if len(weights) < 2:
             return self.__better(*weights.keys())
-        else:
-            try: w = self.__weigh
-            except AttributeError: self.__weigh = weights
-            else: self.__weigh = w.cross(weights)
-            return 1
+
+        try: w = self.__weigh
+        except AttributeError: self.__weigh = weights
+        else: self.__weigh = w.cross(weights)
+            
+        return True
 
     def __better(self, *args):
         """Support for update(): notice some new best estimates.
@@ -995,11 +1001,11 @@ class Sample (Object):
         they're both quoting a common source than believe them independent;
         hence the return value. """
 
-        hit, b = None, self.__best
+        hit, b = False, self.__best
         for it in args:
             if it not in b:
                 b.append(it)
-                hit = 1
+                hit = True
 
         return hit
 
