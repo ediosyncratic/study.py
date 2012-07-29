@@ -175,6 +175,58 @@ class Interpolator (Cached):
         return self.__interpolator__(self.cuts,
                                      map(lambda x, b=by: x * b, self.mass))
 
+    def clip(self, lo=None, hi=None):
+        """Returns self with its weight outside a range discarded.
+
+        Both arguments, lo and hi, are optional, defaulting to None.  If
+        given, they are a lower and upper bound on an interval; if omitted or
+        None, they default to self.cuts[0] and self.cuts[-1], respectively.
+
+        If the resulting interval is empty (upper bound isn't greater than
+        lower) or self has zero weight in it, a ValueError is raised.  The
+        returned Interpolator agrees with self on the interval and has zero
+        weight outside it.\n"""
+
+        if lo is None: lo = self.cuts[0]
+        if hi is None: hi = self.cuts[-1]
+
+        if lo >= hi or lo >= self.cuts[-1] or hi <= self.cuts[0]:
+            raise ValueError('Excessive clipping', (lo, hi), (self.cuts[-1], self.cuts[0]))
+
+        cuts, mass = self.cuts, self.mass
+        if cuts[0] < lo:
+            # First, discard any whole bands:
+            i = 1
+            while i < len(cuts) and cuts[i] <= lo: i += 1
+            i -= 1
+            assert i < len(mass), 'We should have ValueError()ed earlier'
+            if i: cuts, mass = cuts[i:], mass[i:]
+
+            # Now any partial band:
+            assert cuts[0] <= lo < cuts[1]
+            if cuts[0] < lo:
+                mass[0] *= (cuts[1] - lo) / (cuts[1] - cuts[0])
+                cuts[0] = lo
+
+        if cuts[-1] > hi:
+            # First, discard any whole bands:
+            i = len(cuts) - 2
+            while i >= 0 and cuts[i] <= hi: i -= 1
+            i += 1
+            assert i > 0, 'We should have ValueError()ed earlier'
+            if i + 1 < len(cuts): cuts, mass = cuts[:i], mass[:i-1]
+
+            # Now any partial band:
+            assert cuts[-1] >= hi > cuts[-2]
+            if cuts[-1] > hi:
+                mass[-1] *= (hi - cuts[-2]) / (cuts[-1] - cuts[-1])
+                cuts[-1] = hi
+
+        if sum(mass, 0) <= 0:
+            raise ValueError('No weight in interval', (lo, hi, self))
+
+        return self.__interpolator__(cuts, mass)
+
     # Tools for round():
     @staticmethod
     def __log(val, base):
