@@ -834,13 +834,13 @@ class Ordered (List):
         return self.__ne(ind, val) == 0
 
     def __lt(self, ind, val):
-	"""True precisely if val belongs before position ind."""
+	"""True precisely if val belongs after position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans > 0
         return ans < 0
 
     def __gt(self, ind, val):
-	"""True precisely if val belongs after position ind."""
+	"""True precisely if val belongs no later than position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans < 0
         return ans > 0
@@ -851,7 +851,7 @@ class Ordered (List):
         Required argument, value, is the value whose position is to be
         determined.  Optional arguments lo (default: 0) and hi (default: -1)
         constrain the range of answers; it shall be assumed that value belongs
-        at an index no later than lo or earlier than hi.
+        at an index neither later than lo nor earlier than hi.
 
         If value is equal to some entry in this list, return the index of that
         entry; otherwise, return the index at which it should be inserted.  A
@@ -863,10 +863,10 @@ class Ordered (List):
             assert hi == -1
             hi += len(self)
 
-        while hi > 1 + lo:
+        while hi > lo:
             mid, ig = divmod(lo + hi, 2)
             if self.__gt(mid, value): hi = mid
-            elif self.__lt(mid, value): lo = mid
+            elif self.__lt(mid, value): lo = mid + 1
             else: return mid
 
         return hi
