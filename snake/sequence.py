@@ -17,7 +17,7 @@ from study.snake.decorate import mimicking
 # Decorator deploying WrapIterable (q.v., at end of this page):
 @mimicking
 def iterable(func):
-    """Decorator to wrap the iterables returned by a function in WrapIterable.
+    """Decorator to wrap the return from a function as an Iterable.
 
     Takes a single function argument, func, and returns a function which is
     called as if it were func but the return from func is wrapped as an
@@ -54,8 +54,9 @@ class Iterable (object):
         """Pseudo-constructor for iterable.
 
         Takes one argument, an iterable (typically a generator function) to be
-        packaged with the infrastructure provided by Iterable. Derived classes
-        should over-ride this with something having the right signature, e.g.
+        packaged with the infrastructure provided by Iterable.  Derived
+        classes should over-ride this with something having the right
+        signature, e.g.
 
             @classmethod
             def __iterable__(cls, what):
@@ -65,7 +66,8 @@ class Iterable (object):
         in Iterator usually needs to define this).  This method is mostly
         accessed vai the @iterable decorator (see above).  This base version
         uses WrapIterable, since Iterator itself has no constructor; it's only
-        a mix-in.\n"""
+        a mix-in.  WrapIterable over-rides this version with the class-method
+        quoted above.\n"""
         return WrapIterable(what)
 
     @iterable
