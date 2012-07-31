@@ -8,73 +8,70 @@ characters (and a few seven-character ones) to be represented as 32-bit integers
 (strings earlier than t84qkg don't use the top bit).
 
 This module exports two functions:
-
  encode(string) -- yields a number.
-
  decode(number) -- yields a string.
 
-Bill has found that this is the wrong way to approach the decoding, though: it
-is actually done by cutting the int, seen as a sequence of bits, into chunks,
-then decoding each chunk separately.
-""" # ' deconfuse font-lock
+Bill (at LSL) found that this is the wrong way to approach the decoding,
+though: it is actually done by cutting the int, seen as a sequence of bits,
+into chunks, then decoding each chunk separately.  So I should probably at
+least support that reading !
+"""
 
 _charset = " abcdefghijklmnopqrstuvwxyz$.?0123456789"
-_rootmaxint = 1
-_bigint = 1
-try:
-	while type(_bigint) is type(1):
-		_rootmaxint = _rootmaxint * 2
-		_bigint = _bigint * 4
+from sys import maxint
+from study.maths.natural import sqrt
+rootmaxint = int(sqrt(2*(maxint+1)))
+del sqrt, maxint
+# Assert: any negative (non-long) int x satisfies -x / rootmaxint < rootmaxint / 2
 
-except OverflowError: pass
-# Assert: any x representable by a (non-long) int satisfies abs(x / _rootmaxint) < _rootmaxint
+def decode(number, wordsize=None, halfword=rootmaxint):
+    """Decodes a string from `radix 050' form.
 
-def decode(number):
-	"""Decodes a string from `radix 050' form.
+    Required argument, number, should be a positive integer (however, negative
+    integers down to -maxint will be suitably interpreted as signed readings
+    of unsigned ints: 2*(1+maxint) will be added).  This number is expressed
+    in base 40 (aka octal 050) and thereby read as a string.
 
-	Argument, number, should be a positive integer (however, negative
-	integers down to -2147483647 will be suitably interpreted as signed
-	readings of unsigned ints: pow(2,32) will be added).  This number is
-	expressed in base 40 (aka octal 050) and thereby read as a string.
+    Optional argument wordsize is the number of bits in the wordsize that's
+    actually been used to store the number: only relevant if the number was
+    read in as a signed int and thus may turn out to be negative.  If supplied
+    (and not None), (1<<(wordsize-1))-1 is used in place of maxint in the
+    work-around for negative integers mentioned above.
 
-	Letters are emitted lower-case.
-	"""
+    Letters are emitted lower-case.\n"""
 
-	if number < 0:
-		# coerce signed int to unsigned ...
-		if -number / _rootmaxint < _rootmaxint:
-			number = pow(2L, 32) + number
+    if wordsize is not None: halfword = 1 << (wordsize / 2)
 
-		else: raise ValueError, number	# huge, negative: not a radix050 string.
+    if number < 0:
+        # coerce signed int to unsigned ...
+        if -number / halfword < halfword / 2: number += halfword**2
+        else: raise ValueError('Huge negative: not a radix050 "string"', number, halfword)
 
-	row = []
-	while number:
-		number, here = divmod(number, 40)
-		row.append(_charset[int(here)])
+    row = []
+    while number:
+        number, here = divmod(number, 40)
+        row.append(_charset[here])
 
-	return reduce(lambda x,y: y+x, row, '')
+    return reduce(lambda x,y: y+x, row, '')
+del rootmaxint
 
 def encode(text):
-	"""Encodes a string in `radix 050' form.
+    """Encodes a string in `radix 050' form.
 
-	Argument, text, is a string.  It should only use the characters known to
-	the radix 050 encoding (alphanumeric, space, $, . and ?) - all others
-	will be treated as spaces (but I reserve the right to treat them as some
-	other character instead - probably `?').  The string is read as a radix
-	050 (i.e. fourty) number using these characters as digits (with space as
-	0, letters as 1 through 26, $, . and ? as 27, 28 and 29, each digit as
-	its value plus 30).  Note that leading spaces are ignored (just like
-	leading zeros on a number).
-	"""
+    Argument, text, is a string.  It should only use the characters known to
+    the radix 050 encoding (alphanumeric, space, $, . and ?) - all others
+    will be treated as spaces (but I reserve the right to treat them as some
+    other character instead - probably `?').  The string is read as a radix
+    050 (i.e. fourty) number using these characters as digits (with space as
+    0, letters as 1 through 26, $, . and ? as 27, 28 and 29, each digit as
+    its value plus 30).  Note that leading spaces are ignored (just like
+    leading zeros on a number).\n"""
 
-	number = 0
-	import string
-	for ch in text:
+    number = 0
+    import string
+    for ch in text:
+        try: here = string.index(_charset, string.lower(ch))
+        except ValueError: here = 0 # perhaps use ? (29) in place of ch.
+        number = number * 40 + here
 
-		try: here = string.index(_charset, string.lower(ch))
-		except ValueError: here = 0	# perhaps use ? in place of ch.
-
-		try: number = number * 40 + here
-		except OverflowError: number = number * 40L + here
-
-	return number
+    return number
