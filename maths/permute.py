@@ -439,35 +439,53 @@ def cycle(row, by=1):
     by = -by % len(row)
     return row[by:] + row[:by]
 
-def order(row, cmp=cmp):
+def order(row, cmp=cmp, key=None, reverse=False):
     """Returns a permutation which will sort a sequence.
 
-    The sequence order(row).permute(row) is sorted, contains each entry of row
-    exactly as often as it appears in row and has the same length as row.  See
+    Required argument, row, is a sequence (supporting len() and indexing)
+    whose order is to be determined; this function makes no attempt to modify
+    it, so it may be immutable.  Takes the same optional parameters as the
+    built-in sorted() and list.sort():
+
+      cmp -- comparison function (default: built-in cmp)
+      key -- transformation of elements (default: None, to use untransformed)
+      reverse -- whether to reverse the result (default: False)
+
+    The result is a permutation of range(len(row)) for which the sequence
+    order(row).permute(row) is sorted, contains each entry of row exactly as
+    often as it appears in row and has the same length as row.  If order is
+    also passed cmp, key and reverse, the same holds but the notion 'sorted'
+    is suitably revised.  With rev = -1 if reversed else +1, for any i, j in
+    range(len(row)), with seq = order(row, cmp, key, reverse).permute(row):
+    when cmp(key(seq[i]), key(seq[j])) is non-zero it is cmp(i, j) * rev.  See
     Permutation.inverse, above, for discussion of what this implies when row
     is a permutation.
 
     If row has been obtained as r@q, then p = order(row) is a permutation with
     the same length as q and makes r@q@p a sorted list with this same length,
     making q@p a useful replacement for q: it contains the same entries as q,
-    but r@(q@p) is sorted.  This is exploited in the recursive calls to order
-    which model the qsort algorithm.\n"""
+    but r@(q@p) is sorted.  This is exploited in order()'s recursive calls to
+    itself, which model the qsort algorithm.\n"""
 
     n = len(row)
     if n < 2: return range(n)
     pivot = row[0]
+    if key: pivot = key(pivot)
     low, mid, high = [], [ 0 ], []
 
     # Partition the values:
     while n > 1:
         n -= 1
-        sign = cmp(row[n], pivot)
+        here = row[n]
+        if key: here = key(here)
+        sign = cmp(here, pivot)
         if sign > 0: high.append(n)
         elif sign < 0: low.append(n)
         else: mid.append(n)
 
-    if len(low)  > 1: low  = order(permute(row, low),  cmp).permute(low)
-    if len(high) > 1: high = order(permute(row, high), cmp).permute(high)
+    if reverse: low, high = high, low
+    if len(low)  > 1: low  = order(permute(row, low),  cmp, key, reverse).permute(low)
+    if len(high) > 1: high = order(permute(row, high), cmp, key, reverse).permute(high)
     return Permutation(low + mid + high)
 
 def sorted(row, cmp=cmp):
