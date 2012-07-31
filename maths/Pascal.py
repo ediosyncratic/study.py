@@ -1,25 +1,31 @@
 """Combinatorics.
 """
 
-def factorial(num, cache=[1]):
+def factorial(num, cache=[1], maxcache=0x4000):
     """Returns the factorial of any natural number.
 
-    Equivalent to reduce(lambda a,b:a*(1+b), range(num), 1L), except that it
-    doesn't return a long unless it has to (or num is one) and it degrades
-    gracefully when given invalid input.
+    Required argument, num, is the natural number.  Can also be passed
+    (although this is not recommended), as a keyword, maxcache as a limit on
+    how big a cache this should maintain.  Defaults to 0x4000, which shall use
+    up plenty of your computer's memory as it is.  Only relevant if num
+    exceeds it (or would exceed the default).
+
+    Return value is equivalent to reduce(lambda a,b:a*(1+b), range(num), 1),
+    except that it degrades gracefully when given invalid input and caches
+    answers, so may give you an answer sooner.
 
     For agrguments < 0 this raises a ValueError.  For other arguments < 1,
     you'll get the answer 1, as this is correct if your argument is valid and
     resolves the problem of what to do with invalid input.  For other
     non-integer non-negative values, you'll get a computed positive value
-    which probably isn't far off the Gamma function's value at one more than
-    that non-integer.  For valid input, i.e. non-negative integers,
+    which probably isn't far off the Gamma function's value at about one more
+    than that non-integer.  For valid input, i.e. non-negative integers,
     factorial(num) = Gamma(1+num), wherein
 
        Gamma(1+a) = integral(: exp(-t).power(a, t) &larr;t :{positive reals})
 
     for arbitrary a in the complex plane, with a pole (of order 1) at each
-    negative integer and a real humdinger of a singularity at infinity. """
+    negative integer and a real humdinger of a singularity at infinity.\n"""
 
     if num < 0: raise ValueError, "I only do naturals"
     try: return cache[num]
@@ -27,11 +33,9 @@ def factorial(num, cache=[1]):
 
     result, i = cache[-1], len(cache)
     while num >= i:
-        try: result = result * i
-        except OverflowError: result = long(result) * i
-        i = 1 + i
-        if len(cache) < 4000:
-            # lists start mis-behaving if longer than 4000 entries !
+        result *= i
+        i += 1
+        if len(cache) < maxcache:
             cache.append(result)
             assert i == len(cache)
 
