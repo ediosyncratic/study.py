@@ -93,12 +93,22 @@ class Permutation (Tuple, Cached):
         return cls.__upnew(cls, perm)
 
     @classmethod
-    def identity(cls, n):
+    def identity(cls, n, cycle=0):
         """Construct an identity permutation.
 
-        Single argument, n, is a natural number.  The identity permutation on
-        naturals less than it is returned.\n"""
-        return cls(range(n))
+        Required argument, n, is a natural number.  Optional second argument,
+        cycle, defaults to 0.  If given, it is the number, c, of steps to
+        cycle the identity, to get a cyclic permutation which moves the last c
+        entries in a list to the front, so that the (previously) first entry
+        ends up at index c.  It is reduced modulo n.
+
+        Returns the identity permutation on naturals less than n, duly cycled
+        if requested.\n"""
+        seq = range(n)
+        if cycle:
+            cycle = -cycle % n
+            seq = seq[cycle:] + seq[:cycle]
+        return cls(seq)
 
     @classmethod
     def fromSwaps(cls, *ps):
@@ -132,7 +142,7 @@ class Permutation (Tuple, Cached):
         provided as an alias for function call, mainly for ease of reading
         when a function yields a permutation which is being called;
         order(seq).permute(seq) is more readable, IMO, than order(seq)(seq).\n"""
-        return permute(* seqs + (self,)) # forward reference; see after class
+        return permute(*seqs + (self,)) # forward reference; see after class
 
     permute = __call__
 
@@ -268,7 +278,7 @@ class Permutation (Tuple, Cached):
         return i # self == self**(1+i) so self**i is an identity
 
     def cycle(self, by=1):
-        return self.__permutation__(cycle(self, by))
+        return self.identity(len(self), by).permute(self)
 
     @classmethod
     def fixed(cls, size, fix):
@@ -292,7 +302,7 @@ class Permutation (Tuple, Cached):
         # numbers we can use to fill the gaps:
         vs = filter(lambda i, js=js: i not in js, range(size))
         # indices at which the gaps appear:
-        ns = map(lambda (n, v): n, filter(lambda (n, v): v is None, enumerate(fix)))
+        ns = filter(lambda n, f=fix: f[n] is None, range(size))
 
         for perm in cls.all(len(vs)):
             ans = list(fix)
@@ -351,7 +361,7 @@ class Permutation (Tuple, Cached):
 
             i = size -1
             while i > 0 and row[i-1] > row[i]: i -= 1
-            if i < 1: # row is entirely in decreasing order: that's our last permutation.
+            if not i: # row is entirely in decreasing order: that's our last permutation.
                 raise StopIteration
 
             i, j = i-1, size -1
@@ -394,10 +404,15 @@ def permute(*indices):
     functions (see Theory sections Permutation's doc-strings).\n"""
 
     indices, ans = indices[:-1], indices[-1] # IndexError if no sequences given !
+    classy = isinstance(indices[0], Permutation)
 
     while indices:
         indices, last = indices[:-1], indices[-1]
-        ans = map(lambda i, _r=last: _r[i], ans)
+        ans = map(lambda i, r=last: r[i], ans)
+
+    if classy:
+        try: return Permutation(ans)
+        except ValueError: pass
 
     return ans
 
