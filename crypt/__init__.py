@@ -7,14 +7,13 @@ Fragments available:
  Huffman -- text-compressor using the Huffman coding
  morse -- using dots and dashes to represent text
  radix050 -- an archaic base-fourty text encoding
+ salty -- access to system crypt()
 
 Attribute:
  english -- letter frequencies in English text
 
 See also:
  urllib -- standard python module, provides {un,}quote{,_plus} for %xx {en,de}coding.
-
-$Id: __init__.py,v 1.4 2009-08-09 13:53:11 eddy Exp $
 """
 
 # Taken from Information Theory, Inference, and Learning Algorithms (D.J.C. MacKay) p.100:
