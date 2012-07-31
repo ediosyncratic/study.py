@@ -51,15 +51,7 @@ def asreal(val):
     return val
 del postcompose
 
-def factorial(n):
-    result = 1
-
-    while n > 1:
-        try: result, n = result * n, n-1
-        except OverflowError:
-            result, n = long(result) * n, n-1
-
-    return result
+from Pascal import factorial
 
 def lnfactorial(n, log=math.log):
     result = 0.
