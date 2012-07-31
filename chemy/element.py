@@ -24,9 +24,9 @@ class fNucleus (Fermion, Nucleus): 'Fermionic nucleus'
 def nucleus(Q, N, name, **what):
     what.update(name=name, constituents={ proton: Q, neutron: N })
 
-    try: klaz = [ bNucleus, fNucleus ][(Q + N) % 2]
-    except IndexError, TypeError: klaz = Nucleus # e.g. when N is a Sample
-    return klaz(**what)
+    try: cls = [ bNucleus, fNucleus ][(Q + N) % 2]
+    except (IndexError, TypeError): cls = Nucleus # e.g. when N is a Sample
+    return cls(**what)
 
 class Atom (Particle): _namespace = 'Atom.item'
 class bAtom (Boson, Atom): 'Bosonic atom'
@@ -43,9 +43,9 @@ def atom(Q, N, name, symbol, doc, **what):
 
     what.update(name=name, symbol=symbol, __doc__=doc,
                 constituents={n: 1, electron: Q})
-    try: klaz = {0: bAtom, 1: fAtom}[N % 2]
-    except KeyError: klaz = Atom
-    return klaz(**what)
+    try: cls = {0: bAtom, 1: fAtom}[N % 2]
+    except KeyError: cls = Atom # e.g. if N is a distribution
+    return cls(**what)
 
 class Substance (Object): pass
 # should really have
@@ -94,7 +94,7 @@ class Isotope (Substance):
     __upinit = Substance.__init__
     def __init__(self, Q, N):
         self.__names = () # names displaced by uses of .nominate()
-        assert type(Q) is type(1) is type(N)
+        assert isinstance(Q, int) and isinstance(N, int)
         self.__upinit(protons=Q, neutrons=N)
 
         try: el = Element.byNumber[self.protons]
@@ -147,9 +147,9 @@ class Isotope (Substance):
     def __str__(self): return self.symbol
 
 all = {}
-def Isotope(Q, N, klaz=Isotope, rack=all):
+def Isotope(Q, N, cls=Isotope, rack=all):
     try: ans = rack[(Q,N)]
-    except KeyError: ans = rack[(Q,N)] = klaz(Q, N)
+    except KeyError: ans = rack[(Q,N)] = cls(Q, N)
     return ans
 
 Isotopes = all.values
@@ -303,7 +303,7 @@ class Element (Substance):
             else: bok[n] = bun
 
         if bok: base = (bok,) + base
-        try: S(*base, **what)
+        try: A = S(*base, **what)
         except TypeError:
             raise AttributeError("I don't know enough about myself to describe my atom", self)
 

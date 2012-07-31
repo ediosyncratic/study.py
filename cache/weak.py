@@ -269,6 +269,6 @@ class weakattr (dictattr, weakprop):
     __dget = dictattr.__get__
     @decorate.overriding(__dget)
     def __get__(self, obj, cls=None):
-        try: return self.__dget(obj, mode)
-        except AttributeError: return self.__wget(obj, mode)
+        try: return self.__dget(obj, cls)
+        except AttributeError: return self.__wget(obj, cls)
 del dictattr, decorate

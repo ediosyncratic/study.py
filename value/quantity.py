@@ -405,7 +405,7 @@ class Quantity (Object):
 
     @staticmethod
     def __clean_scale_units(scale, units,
-                            scalartypes=(type(1), type(1.), type(1.+0j)),
+                            scalartypes=(int, long, float, complex),
                             Bok=Prodict, Spread=Sample, Nice=qSample):
         """Tidy up scale and units passed to constructor.
 
@@ -422,7 +422,7 @@ class Quantity (Object):
         try: u, s = units.__units, units.__scale
         except AttributeError: pass
         else:
-            if type(s) in scalartypes and s == 1: units = u
+            if isinstance(s, scalartypes) and s == 1: units = u
             else: scale, units = scale * s, u
 
         try: u, s = scale.__units, scale.__scale
@@ -927,10 +927,8 @@ class Quantity (Object):
 
             p = abs(p)
             if p != 1:
-                try:
-                    # if we can represent p as an integer ...
-                    try: ip = int(p)
-                    except OverflowError: ip = long(p)
+                # if we can represent p as an integer ...
+                try: ip = int(p)
                 except (AttributeError, ValueError): pass
                 else:
                     # ... use that by preference !

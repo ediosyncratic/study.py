@@ -34,7 +34,7 @@ class Prodict (dict):
     def __setitem__(self, k, v, up=dict.__setitem__):
         if v:
             # Coerce key to int if valid
-            if type(v) not in (int, long) and v == int(v): v = int(v)
+            if not isinstance(v, (int, long)) and v == int(v): v = int(v)
             up(self, k, v)
         else:
             try: del self[k]

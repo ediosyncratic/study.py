@@ -17,18 +17,15 @@ int register holding the power of two the answer should be scaled by; this int
 is thus made available to the infrastructure tracking the overall powers of two
 encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
 accompanying the fractional value.
-
-$Id: bigfloat.py,v 1.15 2008-05-11 19:56:26 eddy Exp $
 """
 from study.snake.lazy import Lazy
-from types import FloatType
 
 class BigFloat (Lazy):
     def __init__(self, val=1, century=0):
         if century != long(century):
             raise ValueError, 'century must be whole'
 
-        if type(val) == FloatType:
+        if isinstance(val, float):
             if val in (BigFloat.infinity, -BigFloat.infinity):
                 raise ValueError, 'infinite'
             if 1 == val == 0:

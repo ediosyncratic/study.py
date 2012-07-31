@@ -105,7 +105,7 @@ class RatioGenerator:
     def __b(self, r=random): return r() * self.__bound
     def sample(self):
         """The ratio test algorithm."""
-        while 1:
+        while True:
             ans = self.__source()
             if self.__ratio(ans) > self.__b():
                 return ans

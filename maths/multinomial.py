@@ -1,8 +1,6 @@
 """Multinomials - polynomials in several free variables.
 
 c.f. polynomial, using only one free variable.
-
-$Id: multinomial.py,v 1.6 2008-05-11 16:28:46 eddy Exp $
 """
 from study.snake.lazy import Lazy
 from polynomial import unNaturalPower
@@ -196,9 +194,7 @@ class Multinomial (Lazy):
                 num = num.real
                 raise AttributeError
         except AttributeError:
-            try:
-                if num == int(num): num = int(num)
-            except OverflowError: pass
+            if num == int(num): num = int(num)
 
         ans = str(num)
         if ans[0] != '-': return ' +' + ans

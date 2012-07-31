@@ -35,8 +35,6 @@ with q sufficiently negative.  We can construct b as the last B(i) which
 contains no integer <= q with B(0) empty and each B(1+i) obtained from B(i) as
 follows: let S(i) = s -sum(: 2**p &larr;p |B(i))**2 and select the highest
 integer n for which
-
-$Id: search.py,v 1.7 2010-07-08 20:50:49 eddy Exp $
 """
 
 # I'll use complex numbers as a handy model of two dimensions
@@ -139,7 +137,7 @@ def median(seq, fn=None):
     return q
 
 def gradients(fn, arg, *deltas):
-    if len(deltas) == 1 and type(deltas[0]) in (type(()), type([])):
+    if len(deltas) == 1 and isinstance(deltas[0], (tuple, list)):
 	deltas = deltas[0]
     try: result = map(lambda e, f=fn, a=arg: (f(a+e)-f(a-e))*.5/e, deltas)
     except (OverflowError, ZeroDivisionError, ValueError):

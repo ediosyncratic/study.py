@@ -3,8 +3,6 @@
   exceptionlist([bok]) -- list exceptions names (or keys in bok with exception values)
   printexceptions([es]) -- pretty-print table of exceptions (from list)
   showexception(exc [, pre]) -- print information about (usually) an exception
-
-$Id: error.py,v 1.1 2008-05-12 09:12:17 eddy Exp $
 """
 
 def exceptionlist(bok=None):
@@ -19,7 +17,7 @@ def exceptionlist(bok=None):
     else: row = bok.items()
 
     def ok((k, v), b=Exception, t=type(Exception)):
-        return type(v) is t and issubclass(v, b) # ignoring k
+        return isinstance(v, t) and issubclass(v, b) # ignoring k
     return map(lambda (k,v): k, filter(ok, row))
 
 from show import printmenu
@@ -42,9 +40,9 @@ def showexception(exc, preamble=None):
     encountered.\n"""
     if preamble: print preamble,
     if isinstance(exc, Exception):
-	if exc.__class__.__module__ == 'exceptions':
-	    klaz = exc.__class__.__name__
-	else: klaz = str(exc.__class__)
-	print klaz + `exc.args`
+        if exc.__class__.__module__ == 'exceptions':
+            cls = exc.__class__.__name__
+        else: cls = str(exc.__class__)
+        print cls + `exc.args`
 
     else: print `exc`

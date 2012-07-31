@@ -1,6 +1,4 @@
 """Lazy toys.
-
-$Id: lazy.py,v 1.6 2009-03-18 09:12:57 eddy Exp $
 """
 # This is in the same spirit as cacheing, but quite independent.
 class Lazy (object):
@@ -28,11 +26,11 @@ class Lazy (object):
     Thus, for example, a class whose objects have a filename attribute,
     self.filename, can support self.basename via a method
 
-	def _lazy_get_basename_(self, key):
-	    assert key == 'basename'
-	    i = len(self.filename)
-	    while i > 0 and self.filename[i-1] != '/': i = i - 1
-	    return self.filename[i:]
+        def _lazy_get_basename_(self, key):
+            assert key == 'basename'
+            i = len(self.filename)
+            while i > 0 and self.filename[i-1] != '/': i = i - 1
+            return self.filename[i:]
 
     and the relevant computation won't be done unless it's actually needed.
 
@@ -91,10 +89,10 @@ class Lazy (object):
 
     __recursion_bok_ = None
     def __getattr__(self, key):
-	"""Attribute lookup with memory.
+        """Attribute lookup with memory.
 
-	Delegates attribute lookup to _lazy_lookup_() and updates self's
-	namespace so as to avoid being asked the value of that again.
+        Delegates attribute lookup to _lazy_lookup_() and updates self's
+        namespace so as to avoid being asked the value of that again.
 
         Includes checking against recursive call for a given object and key: if
         lazy lookup of self.thing involves some computation which depends on
@@ -133,90 +131,90 @@ class Lazy (object):
             del self.__recursion_bok_[key]
 
         setattr(self, key, val)
-	return val
+        return val
 
     def __init__(self, lazy_source=None, lazy_aliases=None):
-	"""Initialise some easy things for lazy lookup.
+        """Initialise some easy things for lazy lookup.
 
-	Arguments are optional (and their names have a lazy_ prefix for the sake
-	of init methods using * and ** in their arg lists and potentially
-	wanting to use the un-prefixed names for other purposes):
+        Arguments are optional (and their names have a lazy_ prefix for the sake
+        of init methods using * and ** in their arg lists and potentially
+        wanting to use the un-prefixed names for other purposes):
 
-	  lazy_source -- a callable value (or None, the default).  This will be
-	  used as _lazy_early_ by the object initialised, if given (and not
-	  None).
+          lazy_source -- a callable value (or None, the default).  This will be
+          used as _lazy_early_ by the object initialised, if given (and not
+          None).
 
-	  lazy_aliases -- a readable mapping (or None, the default).  This will
-	  be used to augment _lazy_late_ for the object initialised, if given
-	  (and not None).
+          lazy_aliases -- a readable mapping (or None, the default).  This will
+          be used to augment _lazy_late_ for the object initialised, if given
+          (and not None).
 
-	Both _lazy_early_ and _lazy_late_ are used by the _lazy_lookup_() of
-	the Lazy base-class.  Consult the _lazy_lookup_() of the object you are
-	actually using for their relevance, if any.
+        Both _lazy_early_ and _lazy_late_ are used by the _lazy_lookup_() of
+        the Lazy base-class.  Consult the _lazy_lookup_() of the object you are
+        actually using for their relevance, if any.
 
-	If lazy_source is omitted (or None), the object will inherit
-	_lazy_early_() from its class: which necessarily descends from Lazy,
-	which does define _lazy_early_() - to simply raise AttributeError(key),
-	as if it hadn't been defined (it's only there for its docs).
+        If lazy_source is omitted (or None), the object will inherit
+        _lazy_early_() from its class: which necessarily descends from Lazy,
+        which does define _lazy_early_() - to simply raise AttributeError(key),
+        as if it hadn't been defined (it's only there for its docs).
 
-	If lazy_aliases is provided, its keys and values are interpreted as
-	attribute names.  If the object's _lazy_late_ is asked for the attribute
-	named by a key and has the attribute named by the corresponding value,
-	the object will use this last as the requested attribute.
+        If lazy_aliases is provided, its keys and values are interpreted as
+        attribute names.  If the object's _lazy_late_ is asked for the attribute
+        named by a key and has the attribute named by the corresponding value,
+        the object will use this last as the requested attribute.
 
-	See the doc of your object's methods for definitive truth about either
-	_lazy_late_() or _lazy_early_().  Class designers, likewise, think
-	about how far you want to interact with these idioms.\n"""
+        See the doc of your object's methods for definitive truth about either
+        _lazy_late_() or _lazy_early_().  Class designers, likewise, think
+        about how far you want to interact with these idioms.\n"""
 
-	if lazy_source is not None: self._lazy_early_ = lazy_source
+        if lazy_source is not None: self._lazy_early_ = lazy_source
 
-	if lazy_aliases is not None:
+        if lazy_aliases is not None:
 
-	    def alias(key, me=self, mine=lazy_aliases, back=self._lazy_late_):
-		try: alt = mine[key]
-		except KeyError: pass
-		else:
-		    try: return getattr(me, alt)
-		    except AttributeError: pass
+            def alias(key, me=self, mine=lazy_aliases, back=self._lazy_late_):
+                try: alt = mine[key]
+                except KeyError: pass
+                else:
+                    try: return getattr(me, alt)
+                    except AttributeError: pass
 
-		return back(key)
+                return back(key)
 
-	    self._lazy_late_ = alias
+            self._lazy_late_ = alias
 
         # Note: this class doesn't actually rely on sub-classes calling this
         # initialiser ... it allows sub-classes to be lazy about that ;^>
 
     def _lazy_lookup_(self, key):
-	"""One-off attribute lookup.
+        """One-off attribute lookup.
 
-	Argument, key, is the name of an attribute.  If we can work out a value
-	for that name, we return it: otherwise, return AttributeError.  Raises
-	AttributeError(key) on failure.
+        Argument, key, is the name of an attribute.  If we can work out a value
+        for that name, we return it: otherwise, return AttributeError.  Raises
+        AttributeError(key) on failure.
 
-	The Lazy base-class defines a three-phase lazy lookup.  The first and
-	last may be controlled, for each object, by the base __init__():
-	otherwise, like the second, they are determined by the object's class.
-	Each phase is controlled by a lookup method (i.e. one taking the
-	attribute name as single argument).  These are named and described
-	below.
+        The Lazy base-class defines a three-phase lazy lookup.  The first and
+        last may be controlled, for each object, by the base __init__():
+        otherwise, like the second, they are determined by the object's class.
+        Each phase is controlled by a lookup method (i.e. one taking the
+        attribute name as single argument).  These are named and described
+        below.
 
-	  _lazy_early_(key) -- returns the value to use for the given key.
-	  Should answer for keys the class doesn't want overriden by its derived
-	  classes: if calling the _lazy_early_() of an ancestor class, do it
-	  early in the derived class' _lazy_early_().
+          _lazy_early_(key) -- returns the value to use for the given key.
+          Should answer for keys the class doesn't want overriden by its derived
+          classes: if calling the _lazy_early_() of an ancestor class, do it
+          early in the derived class' _lazy_early_().
 
-	  _lazy_method_get_(key) -- returns a callable which, in turn, is given
-	  the same key as input (though it is allowed to ignore it): the result
-	  of that, if any, will be used as the key's value.
+          _lazy_method_get_(key) -- returns a callable which, in turn, is given
+          the same key as input (though it is allowed to ignore it): the result
+          of that, if any, will be used as the key's value.
 
-	  _lazy_late_(key) -- returns the value to use for the given key.
-	  Should answer for keys the class wants in its namespace, but for which
-	  it would rather someone else provided a value: if calling the
-	  _lazy_late_() of an ancestor class, do it late in the derived class'
-	  _lazy_late_().
+          _lazy_late_(key) -- returns the value to use for the given key.
+          Should answer for keys the class wants in its namespace, but for which
+          it would rather someone else provided a value: if calling the
+          _lazy_late_() of an ancestor class, do it late in the derived class'
+          _lazy_late_().
 
-	See the documentation of each method (on an object of your choice, or on
-	the Lazy base class) for further details. """
+        See the documentation of each method (on an object of your choice, or on
+        the Lazy base class) for further details. """
 
         try: return self._lazy_early_(key)
         except AttributeError: pass
@@ -224,110 +222,109 @@ class Lazy (object):
         try: meth = self._lazy_method_get_(key)
         except AttributeError: pass
         else:
-	    try:
-		if type(meth) == type(Lazy): # i.e. a class
-		    # do the currying for it ...
-		    return meth(self, key)
-		else: return meth(key)
+            assert callable(meth)
+            try:
+                if isinstance(meth, type(self._lazy_lookup_)): return meth(key)
+                else: return meth(self, key) # do the currying for it
             except TypeError: pass
 
         return self._lazy_late_(key)
 
     def _lazy_early_(self, key):
-	# This is only here for its doc: it behaves as if it weren't.
-	"""Lazy evaluation: early lookup.
+        # This is only here for its doc: it behaves as if it weren't.
+        """Lazy evaluation: early lookup.
 
-	Argument, key, is a name to be looked up.  Returns the value self wants
-	in its namespace against this name.
+        Argument, key, is a name to be looked up.  Returns the value self wants
+        in its namespace against this name.
 
-	Recommended usage: early in a derived class' _lazy_early_(), it should
-	call that of an ancestor class.  The _lazy_early_() method should only
-	give answers to things it expects its derived classes not to want to
-	override.  See _lazy_lookup_() for all other cases.
+        Recommended usage: early in a derived class' _lazy_early_(), it should
+        call that of an ancestor class.  The _lazy_early_() method should only
+        give answers to things it expects its derived classes not to want to
+        override.  See _lazy_lookup_() for all other cases.
 
-	The Lazy initialisation accepts, as its 'source' argument, a callable
-	entity with which to override the class-derived _lazy_early_().  If that
-	is omitted, Lazy._lazy_early_() just raises an AttributeError: derived
-	classes should override this if they've anything more constructive to
-	do. """
+        The Lazy initialisation accepts, as its 'source' argument, a callable
+        entity with which to override the class-derived _lazy_early_().  If that
+        is omitted, Lazy._lazy_early_() just raises an AttributeError: derived
+        classes should override this if they've anything more constructive to
+        do. """
 
-	raise AttributeError, key
+        raise AttributeError, key
 
     def _lazy_late_(self, key):
-	"""Lazy evaluation fallback.
+        """Lazy evaluation fallback.
 
-	Argument, key, is the name to be looked up.  Returns the value self
-	wants in its namespace against that key.  Raises AttributeError(key)
-	on failure.
+        Argument, key, is the name to be looked up.  Returns the value self
+        wants in its namespace against that key.  Raises AttributeError(key)
+        on failure.
 
-	Recommended usage: late in a derived class' _lazy_late_(), it should
-	call that of an ancestor class.  A tidy thing to do with _lazy_late_
-	is to implement aliasing and default values, e.g.
+        Recommended usage: late in a derived class' _lazy_late_(), it should
+        call that of an ancestor class.  A tidy thing to do with _lazy_late_
+        is to implement aliasing and default values, e.g.
 
-	    def _lazy_late_(self, key,
-			    defaults={'unit': 1},
-			    naming={'broad': 'wide', 'narrow': 'thin'},
-			    down=Lazy._lazy_late_):
+            def _lazy_late_(self, key,
+                            defaults={'unit': 1},
+                            naming={'broad': 'wide', 'narrow': 'thin'},
+                            down=Lazy._lazy_late_):
 
-		try: alt = naming[key]
-		except KeyError: pass
-		else:
-		    try: return getattr(self, alt)
-		    except AttributeError: pass
+                try: alt = naming[key]
+                except KeyError: pass
+                else:
+                    try: return getattr(self, alt)
+                    except AttributeError: pass
 
-		try: return defaults[key]
-		except KeyError: pass
+                try: return defaults[key]
+                except KeyError: pass
 
-		return down(self, key)
+                return down(self, key)
 
-	possibly with a direct base-class in place of Lazy.  The base Lazy
-	initialisation also provides for per-object aliasing in the style of the
-	above. """
+        possibly with a direct base-class in place of Lazy.  The base Lazy
+        initialisation also provides for per-object aliasing in the style of the
+        above. """
 
-	raise AttributeError(key)
+        raise AttributeError(key)
 
     def _lazy_method_get_(self, key):
-	"""Really lazy lookup of how to look up the value for a key.
+        """Really lazy lookup of how to look up the value for a key.
 
-	Argument, key, is a name (which'll get added to self's namespace, if
-	all goes well).
+        Argument, key, is a name (which'll get added to self's namespace, if
+        all goes well).
 
-	This method tries to find a callable entity which, when given key, will
-	return the value we want in self's namespace with the key as its name.
-	If it can't do that, it will raise AttributeError.
+        This method tries to find a callable entity which, when given key, will
+        return the value we want in self's namespace with the key as its name.
+        If it can't do that, it will raise AttributeError.
 
-	This base method looks for an attribute of self, with name of form
-	'_lazy_get_'*key*'_', and returns that - in the expectation that it is a
-	method which accepts (and probably ignores) *key*, returning the value
-	self should have for its attribute *key*.  [It doesn't do this if *key*
-	ends in '_', though, unless it begins and ends in exactly two
-	underscores - a special case for the sake of subtlety with magic
-	methods.]  Derived classes may find it less hassle to use this than to
-	define its own _lazy_method_get_().
+        This base method looks for an attribute of self, with name of form
+        '_lazy_get_'*key*'_', and returns that - in the expectation that it is a
+        method which accepts (and probably ignores) *key*, returning the value
+        self should have for its attribute *key*.  [It doesn't do this if *key*
+        ends in '_', though, unless it begins and ends in exactly two
+        underscores - a special case for the sake of subtlety with magic
+        methods.]  Derived classes may find it less hassle to use this than to
+        define its own _lazy_method_get_().
 
-	A derived class' _lazy_method_get_() might well give the same answer for
-	several keys: though that answer may well respond differently to the
-	keys in response to which it is provided.  For instance,
-	_lazy_method_get_() could import a module and add something to self's
-	namespace (or even to that of a class) which will do the actual lookup
-	wanted.
+        A derived class' _lazy_method_get_() might well give the same answer for
+        several keys: though that answer may well respond differently to the
+        keys in response to which it is provided.  For instance,
+        _lazy_method_get_() could import a module and add something to self's
+        namespace (or even to that of a class) which will do the actual lookup
+        wanted.
 
-	If inheriting Lazy.__hash__(), defining a _lazy_get__lazy_hash_() will
-	render a derived class hashable, provided _lazy_get__lazy_hash_() will
-	accept '_lazy_hash' as input.  It should return a sensible snapshot hash
-	value for self at the moment it gets called: the result will be used as
-	hash value thereafter even if the data used to compute it have changed.
-	Such a class will also have to define a __cmp__() for which this hash
-	will make sense, of course ... """
+        If inheriting Lazy.__hash__(), defining a _lazy_get__lazy_hash_() will
+        render a derived class hashable, provided _lazy_get__lazy_hash_() will
+        accept '_lazy_hash' as input.  It should return a sensible snapshot hash
+        value for self at the moment it gets called: the result will be used as
+        hash value thereafter even if the data used to compute it have changed.
+        Such a class will also have to define a __cmp__() for which this hash
+        will make sense, of course ... """
 
-	try:
-	    if (key[-1:] != '_' or
-		(key[-2:] == '__' == key[:2] and key[-3:-2] != '_' != key[2:3])):
-		ans = getattr(self, '_lazy_get_' + key + '_')
-		if callable(ans): return ans
-	except AttributeError: pass
+        try:
+            if (key[-1:] != '_' or
+                (key[-2:] == '__' == key[:2] and key[-3:-2] != '_' != key[2:3])):
+                ans = getattr(self, '_lazy_get_' + key + '_')
+                if callable(ans): return ans
+        except AttributeError: pass
 
-	raise AttributeError(key)
+        raise AttributeError(key)
 
     __ephemeral_doc = """ IWBN to change the lazy/ephem information so we know
     when the value present was arrived at by laziness.  This requires the object
@@ -364,16 +361,16 @@ class Lazy (object):
                 delattr(self, key)
 
     def __hash__(self):
-	"""Hash value for a lazy object.
+        """Hash value for a lazy object.
 
-	Define _lazy_get__lazy_hash_() or persuade your _lazy_early_() or
-	_lazy_late_ to respond to the name '_lazy_hash' and you're away.
-	Because this is a one-off computation, you get a sensible hash value:
-	even if the data from which you compute self._lazy_hash changes, you'll
-	still have a constant hash value. """
+        Define _lazy_get__lazy_hash_() or persuade your _lazy_early_() or
+        _lazy_late_ to respond to the name '_lazy_hash' and you're away.
+        Because this is a one-off computation, you get a sensible hash value:
+        even if the data from which you compute self._lazy_hash changes, you'll
+        still have a constant hash value. """
 
-	try: return self._lazy_hash
-	except AttributeError: raise AttributeError('__hash__')
+        try: return self._lazy_hash
+        except AttributeError: raise AttributeError('__hash__')
 
 class lazyClass (Lazy):
     """How to complete a class' definition at run-time ;^>
@@ -429,26 +426,26 @@ class lazyClass (Lazy):
     """
 
     def _lazy_early_(self, key):
-	try: return self._lazy_class_lookup_(key)
-	except AttributeError: pass
+        try: return self._lazy_class_lookup_(key)
+        except AttributeError: pass
 
-	# Honour thy parents, even when it's pointless.
-	return Lazy._lazy_early_(self, key)
+        # Honour thy parents, even when it's pointless.
+        return Lazy._lazy_early_(self, key)
 
     def _lazy_class_lookup_(self, key):
-	"""Gets an attribute *for a class*.
+        """Gets an attribute *for a class*.
 
-	If an instance of a class derived from yours hasn't got the value it
-	needs, this gives your your class the chance to set the value in its own
-	namespace - rather than that of the object in question, or its (direct)
-	class.  Setting attributes on self.__class__ should be approached with
-	some care, since the class whose code does it might not be the one it
-	sets this way - if nothing else, setting it on the class which
-	defines
+        If an instance of a class derived from yours hasn't got the value it
+        needs, this gives your your class the chance to set the value in its own
+        namespace - rather than that of the object in question, or its (direct)
+        class.  Setting attributes on self.__class__ should be approached with
+        some care, since the class whose code does it might not be the one it
+        sets this way - if nothing else, setting it on the class which
+        defines
 
-	"""
+        """
 
-	raise AttributeError
+        raise AttributeError
 
 class Delegator:
     """Self-revising object class.
@@ -459,36 +456,36 @@ class Delegator:
 
     If you have a delegator in your namespace, it is sensible to revise it to
     its delegate from time to time: for example,
-	name = name.self()
+        name = name.self()
     This would typically replace an object in a base class with one in a more
     specific class which has methods appropriate to the data it carries. """
 
     def __init__(self):
-	"""Records self as self._self_."""
-	self._self_ = self
+        """Records self as self._self_."""
+        self._self_ = self
 
     # I want to be able to lazily add methods to self, whenever self._self_
     # supports them, as def method(self): return self._self_.method()
 
     def _delegate_to_(self, other):
-	"""Delegates to other.
+        """Delegates to other.
 
-	Argument, other, should be an object faithfully representing self,
-	idealy better so than self does.  This method should only be called by
-	self's own class when it is sure that other is a suitable substitute for
-	self. """
+        Argument, other, should be an object faithfully representing self,
+        idealy better so than self does.  This method should only be called by
+        self's own class when it is sure that other is a suitable substitute for
+        self. """
 
-	self._self_ = other
+        self._self_ = other
 
     def self(self):
-	"""Revise delegation and return new delegate.
+        """Revise delegation and return new delegate.
 
-	If self is delegated, this revises its delegation to the best available
-	delegate.
+        If self is delegated, this revises its delegation to the best available
+        delegate.
 
-	Returns self's delegate (after any such revision). """
+        Returns self's delegate (after any such revision). """
 
-	if self is not self._self_:
-	    self._self_ = self._self_.self()
+        if self is not self._self_:
+            self._self_ = self._self_.self()
 
-	return self._self_
+        return self._self_

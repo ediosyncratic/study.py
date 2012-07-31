@@ -48,11 +48,11 @@ class Integrator:
     zero.\n"""
 
     def __init__(self, func, lower=None, upper=None, width=None):
-	"""Initialises an integrator.
+        """Initialises an integrator.
 
-	Required first argument is the function to be integrated.  This will be
-	exposed as self.integrand(), subject to any clipping (see optional
-	arguments).
+        Required first argument is the function to be integrated.  This will be
+        exposed as self.integrand(), subject to any clipping (see optional
+        arguments).
 
         Optional arguments:
            lower -- a strict lower bound on func's domain
@@ -68,12 +68,12 @@ class Integrator:
         e.g., if func is the density of a random variate, 5 standard deviations
         would be prudent.\n"""
 
-	self.__integrand = func
+        self.__integrand = func
         if lower is not None:
             if upper is not None: assert upper > lower
             self.__lo = lower
         if upper is not None: self.__hi = upper
-	if width is not None: self.__unit = abs(width) * 1.
+        if width is not None: self.__unit = abs(width) * 1.
 
     def integrand(self, val):
         lo, hi = self.__span(val, val)
@@ -149,9 +149,9 @@ class Integrator:
         return self.before(lo, test, offset) + mid + self.beyond(hi, test, offset)
 
     def between(self, start, stop, test=None, offset=None):
-	"""Integral over a range.
+        """Integral over a range.
 
-	Two required arguments, start and stop, give the bounds of the
+        Two required arguments, start and stop, give the bounds of the
         range. Also accepts the usual optional tolerance specifiers, test and
         offset: see class doc for details.  If start > stop, they are reversed
         and the resulting integral is negated.\n"""
@@ -231,8 +231,8 @@ class Integrator:
 
         now = edge * gap # first crude estimate
 
-	# get advertised default for offset:
-	if offset is None:
+        # get advertised default for offset:
+        if offset is None:
             try: offset = now - now.best
             except AttributeError: offset = now * 0
 
@@ -240,33 +240,33 @@ class Integrator:
         if test is None: test = gettest(offset + now)
 
         n = 1
-	while 1:
-	    n, was = 3 * n, now
-	    h = gap / n
-	    now = (sum(map(lambda i, b=start, s=h, f=self.__integrand: f(b+i*s),
-			   range(1, n))) + edge) * h
+        while True:
+            n, was = 3 * n, now
+            h = gap / n
+            now = (sum(map(lambda i, b=start, s=h, f=self.__integrand: f(b+i*s),
+                           range(1, n))) + edge) * h
 
             dif = now - was
             if test(dif, now + offset): return blur(now, dif)
 
     def __outwards(self, bound, step, test, offset,
                    blur=__blur, gettest=__gettest):
-	small = abs(self.__integrand(bound)) / 1e3
-	while self.__probe(bound, step) < small: step = step / 7.
-	while self.__probe(bound, step) > small: step = step * 7
+        small = abs(self.__integrand(bound)) / 1e3
+        while self.__probe(bound, step) < small: step = step / 7.
+        while self.__probe(bound, step) > small: step = step * 7
         if test is None: test = gettest(small * step)
 
         next = bound + step
-	total, bound = self.__interval(bound, next, step, test, offset), next
+        total, bound = self.__interval(bound, next, step, test, offset), next
         if offset is None:
             try: offset = total - total.best
             except AttributeError: offset = 0 * total
 
-	while 1:
-	    step = step * 3
+        while True:
+            step = step * 3
             next = bound + step
-	    more = self.__interval(bound, next, step, test, total + offset)
-	    total, bound = total + more, next
+            more = self.__interval(bound, next, step, test, total + offset)
+            total, bound = total + more, next
             if test(more, total + offset): return blur(total, more)
 
     del __blur, __gettest
@@ -296,18 +296,18 @@ class Integrator:
 
     # need better initial step than abs(bound) ... bound could be zero.
     def __step(self, bound):
-	try: return self.__unit
-	except AttributeError: pass
-	try: ans = abs(bound.copy(lambda x: 1.)) # for Quantity()s
-	except (AttributeError, TypeError): ans = abs(bound) * 1.
-	if ans: self.__unit = ans
-	else: raise ValueError, \
-	      'Integrator needs a width parameter for .before(0) or .beyond(0)'
-	return ans
+        try: return self.__unit
+        except AttributeError: pass
+        try: ans = abs(bound.copy(lambda x: 1.)) # for Quantity()s
+        except (AttributeError, TypeError): ans = abs(bound) * 1.
+        if ans: self.__unit = ans
+        else: raise ValueError, \
+              'Integrator needs a width parameter for .before(0) or .beyond(0)'
+        return ans
 
     import math
     def __probe(self, base, scale,
-		samples=[1, math.exp(1/math.pi), math.sqrt(2.0), 2, math.e, 3, math.pi]):
-	"""Scale of integrand's values for inputs base + of order scale."""
-	return max(map(lambda x, f=self.integrand, s=scale, b=base: abs(f(b + x*s)), samples))
+                samples=[1, math.exp(1/math.pi), math.sqrt(2.0), 2, math.e, 3, math.pi]):
+        """Scale of integrand's values for inputs base + of order scale."""
+        return max(map(lambda x, f=self.integrand, s=scale, b=base: abs(f(b + x*s)), samples))
     del math

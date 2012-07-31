@@ -1,8 +1,6 @@
 """Legendre polynomials and spherical harmonics.
 
 See http://www.chaos.org.uk/~eddy/math/smooth/harmony.html
-
-$Id: Legendre.py,v 1.5 2009-03-05 07:17:45 eddy Exp $
 """
 from polynomial import Polynomial
 

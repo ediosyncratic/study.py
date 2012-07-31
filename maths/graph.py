@@ -6,8 +6,6 @@ ccomps and gvcolorize) for visualisation of graphs.  Things to play at:
 
   * .h file inclusion hierarchy; CPP sensitive ?
   * C function call hierarchy
-
-$Id: graph.py,v 1.5 2008-05-11 16:23:52 eddy Exp $
 """
 
 class Partition:
@@ -90,7 +88,7 @@ class Unite (Partition):
         # This should be implemented to yield an iterator ...
 
         f, n, row = self.__forward, node, []
-        while 1:
+        while True:
             row.append(n)
             n = f[n]
             assert self.__backward[n] == row[-1]
@@ -152,7 +150,7 @@ class Find (Partition):
         returned, so as to speed this chase next time around. """
 
         trail = []
-        while 1:
+        while True:
             n = self.__up[node]
             if n is node: break
             trail.append(node)
@@ -415,24 +413,3 @@ class Graph:
 
         # return that graph:
         return ans
-
-"""
- $Log: graph.py,v $
- Revision 1.5  2008-05-11 16:23:52  eddy
- Modern python.
-
- Revision 1.4  2002/10/08 22:06:15  eddy
- Major over-haul, largely for docs.  Added ADT baseclass Partition.  Made
- initialisers take an initial size.  New peercount(node) method.
- Changed Graph more drastically; nodes, edges and partition are now
- attributes, not methods; renamed sub -> span, added peercount, chop.
-
- Revision 1.3  2000/02/19 15:37:11  eddy
- Carved everything up better.
-
- Revision 1.2  2000/02/19 13:37:30  eddy
- Moved all node/index translations to Graph so FindUnite's node values
- are all indices into lists.  Now to carve up FindUnite.
-
- Initial Revision 1.1  2000/02/19 12:18:45  eddy
-"""

@@ -230,8 +230,6 @@ preserving such tidiness as it has, with its neighbour transfering nodes into it
 as if the nearer-zero node were simply having nodes added to it after the manner
 of simple growth - albeit these additions may be done in bulk, rather than one
 at a time.
-
-$Id: whole.py,v 1.39 2009-10-16 06:23:16 eddy Exp $
 """
 
 Adaptation = """
@@ -557,11 +555,11 @@ class WriteSubNode (CacheSubNode, WriteNode):
         isfile = isinstance(self, CacheFile)
         name = parent._child_name_(self.span, isfile, self.types)
         move(self.path(), parent.path(name))
-        klaz = parent._child_class(isfile, self.types)
+        cls = parent._child_class(isfile, self.types)
         sign = self.sign * parent.sign
         if parent.straddles0: start = self.span.start * parent.sign
         else: start, sign = self.sign * (self.span.start - parent.span.start), None
-        peer = klaz(name, parent, self.types, start, len(span), sign, self)
+        peer = cls(name, parent, self.types, start, len(span), sign, self)
         peer._save_()
         return peer
 
@@ -651,14 +649,14 @@ class WriteFile (CacheFile, WriteSubNode):
         span = self.span.meet(span)
         if span.step * self.sign < 0: span = span.reversed()
         name = self.parent.child_name(span, True, self.types)
-        klaz = self.parent._child_class_(True, types)
+        cls = self.parent._child_class_(True, types)
         move(self.path(), self.parent.path(name))
         self.parent._onchange_()
 
         if self.parent.straddles0:
             start, sign = span.start, self.sign * self.parent.sign
         else: start, sign = span.start - self.parent.span.start, None
-        return klaz(name, self.parent, self.types, start, len(span), sign, self)
+        return cls(name, self.parent, self.types, start, len(span), sign, self)
 
     # TODO: support being split.  How ?
 
@@ -940,9 +938,9 @@ class CacheDir (Node, LockDir):
             def get(ind, s=cdir, g=getseq):
                 # be sure to match order in __listing(self, ...), above:
                 it = g(s)[ind]
-                klaz = s._child_class_(it.isfile, it.types)
-                assert issubclass(klaz, CacheDir._child_class_(it.isfile, it.types))
-                return klaz(it.name, s, it.types, it.sign, it.begin(cdir.sign), it.reach)
+                cls = s._child_class_(it.isfile, it.types)
+                assert issubclass(cls, CacheDir._child_class_(it.isfile, it.types))
+                return cls(it.name, s, it.types, it.sign, it.begin(cdir.sign), it.reach)
             self.__upinit(get)
             self.__who, self.__att = cdir, getseq
 
@@ -1472,7 +1470,7 @@ class WriteDir (WriteNode, CacheDir):
     del abutting
 
     @staticmethod
-    def contiguous(klaz, child, sense, contig=CacheDir.contiguous):
+    def contiguous(cls, child, sense, contig=CacheDir.contiguous):
         """Returns a selected end of child's contiguous block.
 
         Required arguments:
@@ -1609,13 +1607,13 @@ class WriteDir (WriteNode, CacheDir):
 
         up = self.parent
         ts = up.__child_types(kids)
-        klaz = up._child_class_(False, ts)
-        assert issubclass(klaz, WriteDir)
+        cls = up._child_class_(False, ts)
+        assert issubclass(cls, WriteDir)
         if step < 0: lo = self.span.start, kids[-1]
         else: lo = self.span.stop, kids[0]
         lo -= up.span.start
         lo *= up.sign
-        down = klaz(up.child_name(Range(lo, 0), False, ts), up, ts, None, lo, 0)
+        down = cls(up.child_name(Range(lo, 0), False, ts), up, ts, None, lo, 0)
         down, kids = down.__adopt(False, kids)
         # kids should now be empty, unless it was really long before ...
         return down, kids
@@ -1947,8 +1945,8 @@ class WriteRoot (WriteDir, CacheRoot):
             if span.step * self.sign < 0: span = span.reversed()
             sign, start = None, span.start - self.span.start
 
-        klaz = self._child_class_(True, types)
-        return klaz(self.child_name(span, True, types),
+        cls = self._child_class_(True, types)
+        return cls(self.child_name(span, True, types),
                     self, types, sign, start, len(span))
 
     @property
@@ -2045,7 +2043,7 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
             alias = span.start == self.span.start
 
         name = self.parent.child_name(span, False, types)
-        klaz = self.parent._child_class_(False, types)
+        cls = self.parent._child_class_(False, types)
         if alias:
             # Simple rename
             rename(self.path(), self.parent.path(name))
@@ -2053,7 +2051,7 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
             if self.parent.straddles0:
                 start, sign = span.start, self.sign * self.parent.sign
             else: start, sign = span.start - self.parent.span.start, None
-            return klaz(name, self.parent, types, start, len(span), sign, self)
+            return cls(name, self.parent, types, start, len(span), sign, self)
 
         # Heigh ho - self.span.start has to change.  Create new directory, move
         # each child into it, renaming to adjust offsets as it goes.
@@ -2067,7 +2065,7 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
 
         mkdir(name)
         self.parent._onchange_()
-        peer = klaz(name, self.parent, types, start, len(span), sign, self)
+        peer = cls(name, self.parent, types, start, len(span), sign, self)
         for kid in self.listing: kid.relocate(peer)
         peer._save_()
 
@@ -2091,8 +2089,8 @@ class WriteSubDir (WriteSubNode, CacheSubDir, WriteDir):
         assert self.sign < 0 or span >= self.start
         assert self.sign > 0 or span <= self.start
 
-        klaz = self._child_class_(True, types)
-        return klaz(self.child_name(span, True, types),
+        cls = self._child_class_(True, types)
+        return cls(self.child_name(span, True, types),
                     self, types, None,
                     span.start - self.span.start, len(span))
 

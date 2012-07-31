@@ -7,8 +7,6 @@ multiplication and taking powers of the kinds of value.  Each available vector
 describes the kind of one of the given values by the powers of the 'base kinds'
 that make up the value's kind.  The standard base units (i.e. canonical basis)
 may then be inferred from the values by using the linear system's inverse.
-
-$Id: reduce.py,v 1.13 2008-05-11 19:48:21 eddy Exp $
 """
 
 import natural, permute

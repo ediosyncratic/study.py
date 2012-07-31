@@ -1,8 +1,6 @@
 """Description of space elevators.
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
-
-$Id: ladder.py,v 1.7 2008-05-11 19:54:41 eddy Exp $
 """
 from math import exp
 from home import Earth

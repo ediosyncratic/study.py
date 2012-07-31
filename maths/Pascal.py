@@ -81,9 +81,7 @@ class Pascal:
         try: val = self.__values[n, m]
         except KeyError: # ho hum, need to compute it ...
             up, left = self.__lookup(n-1, m), self.__lookup(n, m-1)
-            try: val = left + up
-            except OverflowError: val = long(left) + up
-            self.__values[n, m] = val
+            self.__values[n, m] = val = left + up
 
         return val
 

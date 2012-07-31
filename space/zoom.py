@@ -1,8 +1,6 @@
 """Relativistic constant acceleration.
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
-
-$Id: zoom.py,v 1.13 2010-07-29 22:31:42 eddy Exp $
 """
 
 from study.value.units import Object, year, kg

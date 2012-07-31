@@ -1,6 +1,4 @@
 """The joys of compound interest ...
-
-$Id: debt.py,v 1.9 2009-01-14 09:19:40 eddy Exp $
 """
 from datetime import date, timedelta
 from study.snake.lazy import Lazy

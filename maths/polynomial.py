@@ -1,6 +1,5 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
 """
-import types
 from study.snake.lazy import Lazy
 
 class invalidCoefficient (TypeError): "Invalid coefficient for polynomial"
@@ -127,9 +126,8 @@ class Polynomial (Lazy):
 	if variate: self.variablename = variate
 
     # Coefficients only require the ability to add, multiply and divmod.
-    def _get_coeff(val, oktypes=(types.IntType, types.LongType,
-                                 types.ComplexType, types.FloatType)):
-        if type(val) in oktypes:
+    def _get_coeff(val, oktypes=(int, long, float, complex)):
+        if isinstance(val, oktypes):
             try:
                 if val.imag: return val
                 val = val.real
@@ -199,7 +197,7 @@ class Polynomial (Lazy):
             self.__store(i, v / d)
             i = 1 + i
 
-    def __frombok(self, bok, ok=lambda k, i=(types.IntType, types.LongType): type(k) in i):
+    def __frombok(self, bok, ok=lambda k, i=(int, long): isinstance(k, i)):
         d = self.__descale(bok.values())
         for key, val in bok.items():
             if not ok(key) or key < 0: raise unNaturalPower
@@ -564,7 +562,7 @@ class Polynomial (Lazy):
     del scalarroot, ratcom
 
     def __pow__(self, other, mod=None,
-                ok=lambda i, t=(types.IntType, types.LongType): type(i) in t,
+                ok=lambda i, t=(int, long): isinstance(i, t),
                 rat=rationalize, hcf=gcd):
         if mod is None:
             wer, result = self, 1
@@ -688,9 +686,9 @@ class Polynomial (Lazy):
     # *Stronger* test for equality ...
     def __eq__(self, other): return (self - other).rank < 0
 
-    def __coerce__(self, other, boktyp=types.DictionaryType):
+    def __coerce__(self, other):
         try:
-            if type(other.__coefs) == boktyp: return self, other
+            if isinstance(other.__coefs, dict): return self, other
         except AttributeError: pass
 
         try:
@@ -1120,4 +1118,4 @@ class Polynomial (Lazy):
         return Polynomial(cache[k][0].__coefs, cache[k][1])
     __power_sum = []
 
-del types, Lazy
+del Lazy

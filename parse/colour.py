@@ -1,6 +1,4 @@
 """Handling of colour semantics.
-
-$Id: colour.py,v 1.2 2009-03-22 23:41:52 eddy Exp $
 """
 
 def get_x11_rgb(src='/etc/X11/rgb.txt'):

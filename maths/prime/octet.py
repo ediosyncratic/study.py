@@ -111,8 +111,6 @@ happens again:7*5*3*2 = 210 > 121 = 11*11 and the product is growing roughly
 combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
-
-$Id: octet.py,v 1.16 2009-03-18 21:30:10 eddy Exp $
 """
 
 def coprimes(primes):
@@ -169,8 +167,8 @@ class OctetType (Tuple):
     system scheduler killed the python process in which I'd tried it.  Creating
     a tuple whose length is a 24-digit number can do that.)\n"""
 
-    __upnew = Tuple.__new__
-    def __new__(klaz, ps):
+    __upnew = Tuple.__new__ # takes derived type as second argument
+    def __new__(cls, ps): # automagically class method
         """Create a descriptor for a type of octet-based block.
 
         Required argument, ps, is an initial segment of the infinite sequence of
@@ -192,7 +190,7 @@ class OctetType (Tuple):
         # 2's not crucial.  But I want an initial chunk of primes, anyway.
 
         mod, vals = coprimes(ps)
-        self = klaz.__upnew(klaz, vals)
+        self = cls.__upnew(cls, vals)
         self.modulus = mod
         return self
 
@@ -263,11 +261,11 @@ class OctetType (Tuple):
         return None
 
 del Tuple
-def OctetType(ps, cache={}, klaz=OctetType):
+def OctetType(ps, cache={}, cls=OctetType):
     ps = tuple(ps) # just to be sure ...
     try: ans = cache[ps]
     except KeyError:
-        cache[ps] = ans = klaz(ps)
+        cache[ps] = ans = cls(ps)
     return ans
 
 from study.snake import regular

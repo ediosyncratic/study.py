@@ -122,16 +122,16 @@ class Object (object.Object):
     instance = {}
     _lazy_preserve_ = object.Object._lazy_preserve_ + ('satellites',)
 
-    def _name_as_(self, nom, klaz=None):
-        if klaz is None: klaz = self.__class__
+    def _name_as_(self, nom, cls=None):
+        if cls is None: cls = self.__class__
 
-        try: was = klaz.instance[nom]
+        try: was = cls.instance[nom]
         except KeyError: pass
         else:
             if was is not self:
-                print "Name collision for", klaz.__name__, "name:", nom
+                print "Name collision for", cls.__name__, "name:", nom
 
-        klaz.instance[nom] = self
+        cls.instance[nom] = self
 
     def augment(self, what, Q=Quantity):
         # TODO: richer handling of aliases

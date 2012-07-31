@@ -13,8 +13,6 @@ Modules:
  show -- a pretty-printer for lists of strings
 Sub-package:
  endless -- implementing infinite lists, optionally with cacheing
-
- $Id: __init__.py,v 1.5 2009-11-04 05:06:05 eddy Exp $
 """
 import decorate
 import error

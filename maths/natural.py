@@ -22,8 +22,6 @@ Example linear spaces over the positive integers:
 
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
-
-$Id: natural.py,v 1.25 2010-01-09 15:15:40 eddy Exp $
 """
 
 # Modular division (where possible, e.g. prime base).
@@ -297,8 +295,6 @@ def Collatz(n):
         if n % 2: n = 3 * n + 1
         else: n = n / 2
         yield n
-
-    raise StopIteration
 
 class Naturals (list):
     class Suc (dict):

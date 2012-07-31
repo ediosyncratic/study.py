@@ -849,14 +849,8 @@ class Weighted(_Weighted, repWeighted, statWeighted, joinWeighted):
 # (these get deleted once Sample is defined) ...
 
 def _power(this, what):
-    try:
-        try: return pow(this, what)
-        except ValueError: return 1. / pow(this, -what)
-    except OverflowError: return pow(long(this), what)
-
-def _multiply(this, what):
-    try: return this * what
-    except OverflowError: return long(this) * what
+    try: return pow(this, what)
+    except ValueError: return 1. / pow(this, -what)
 
 def _divide(this, what):
     """Division straightener """
@@ -1098,13 +1092,12 @@ class Sample (Object):
     def __add__(self, what, f=lambda x, w: x+w): return self.join(f, what)
     def __sub__(self, what, f=lambda x, w: x-w): return self.join(f, what)
     def __mod__(self, what, f=lambda x, w: x%w): return self.join(f, what)
-    def __mul__(self, what, f=_multiply): return self.join(f, what)
+    def __mul__(self, what, f=lambda x, w: x*w): return self.join(f, what)
 
     def __radd__(self, what, f=lambda x, w: w+x): return self.join(f, what)
     def __rsub__(self, what, f=lambda x, w: w-x): return self.join(f, what)
     def __rmod__(self, what, f=lambda x, w: w%x): return self.join(f, what)
-    def __rmul__(self, what,
-                 f=lambda x, w, m=_multiply: m(w, x)): return self.join(f, what)
+    def __rmul__(self, what, f=lambda x, w: w*x): return self.join(f, what)
 
     # Division is slightly messier, thanks to ZeroDivisionError
     def __div__(self, what, f=_divide):
@@ -1326,7 +1319,7 @@ class Sample (Object):
 
         return Sample(weights, *args, **what)
 
-del _power, _multiply, _divide
+del _power, _divide
 _surprise = """\
 Note that one can do some surprising things with Sample()s; e.g.:
     >>> gr = (1 + Sample({5.**.5: 1, -(5.**.5): 1}))/2

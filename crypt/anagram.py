@@ -1,8 +1,6 @@
 """Automatic permutation of anagrams, aided by a wordlist.
 
 Can surely be done better !
-
-$Id: anagram.py,v 1.4 2010-01-01 23:44:49 eddy Exp $
 """
 
 class OrdBok:
@@ -14,7 +12,7 @@ class OrdBok:
     def ingest(self, file):
         fd = open(file)
         try:
-            while 1:
+            while True:
                 line = fd.readline()
                 if not line: break
                 key = filter(lambda i: i.isalnum(), line.lower())

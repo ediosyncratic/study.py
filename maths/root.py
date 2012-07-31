@@ -105,7 +105,7 @@ class Search (Cached):
     del exact
 
     def __broaden(self):
-        while 1:
+        while True:
             self.func(self.best + self.stride)
             vals = tuple(self.__known().map(lambda (k,v): (v,k)))
             hi, lo = max(vals), min(vals)

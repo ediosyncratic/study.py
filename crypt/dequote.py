@@ -2,11 +2,8 @@
 """Demangler for =-codes in e-mails.
 
 Contents:
-
   decode(infile, outfile) -- does decoding
   main(programname, args, logstream) -- command-line interface
-
-$Id: dequote.py,v 1.2 2007-12-02 21:06:07 eddy Exp $
 """
 import string
 
@@ -28,7 +25,7 @@ def decode(inf, out):
     I think that's what the =-encoding needs, anyway ;^>
     """
 
-    while 1>0:
+    while True:
 	line = inf.readline()
 	if not line: break
 

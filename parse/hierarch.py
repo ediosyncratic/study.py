@@ -8,8 +8,6 @@ unresolvable ambiguities in how the python engine should access
 base-classes).  Fortunately, python's introspection mechanisms make it fairly
 easy to discover that hierarchy; and the graphviz package's 'dot' language makes
 it easy to turn the result into a picture.
-
-$Id: hierarch.py,v 1.3 2009-03-23 08:51:50 eddy Exp $
 """
 
 class Diagram (object):
@@ -112,7 +110,7 @@ class Diagram (object):
             self.__bases__ = bases
 
         @classmethod
-        def __match(klaz, item, maybe):
+        def __match(cls, item, maybe):
             if item.name != maybe.__name__: return 0
             n = 3 # one point for each attribute checked
 
@@ -135,14 +133,14 @@ class Diagram (object):
                         if s == b[i].__name__: q = 1
                         else: return 0
                     else:
-                        q = klaz.__match(item.super[i], b[i])
+                        q = cls.__match(item.super[i], b[i])
                         if not q: return 0
                     n += q # bonus points from base-class scores.
 
             return n
 
         @classmethod
-        def express(klaz, name, item, prior, module=None):
+        def express(cls, name, item, prior, module=None):
             """Represent a named item from module as a FakeClass object.
 
             Required arguments:
@@ -192,7 +190,7 @@ class Diagram (object):
 
                 best, score, ms, peers = None, 0, 0, []
                 for it in known:
-                    q = klaz.__match(item, it)
+                    q = cls.__match(item, it)
                     if q > score:
                         best, score, ms, peers = it, q, mark(it.__module__), []
                     elif 0 < q == score: # ambiguity; check module
@@ -211,7 +209,7 @@ class Diagram (object):
                 for k in item.super:
                     if isinstance(k, basestring): nom = k
                     else: nom = k.name
-                    bases.append(klaz.express(nom, k, prior, mod))
+                    bases.append(cls.express(nom, k, prior, mod))
                 bases = tuple(bases)
 
             if best is not None:
@@ -222,7 +220,7 @@ class Diagram (object):
                     best.__bases__ = bases
                 return best
 
-            ans = klaz(name, module, bases)
+            ans = cls(name, module, bases)
             prior[name] = known + (ans,)
             return ans
 

@@ -278,7 +278,7 @@ class Permutation (Tuple, Cached):
         Single required argument is the length of the permutations.
         Illustrative usage::
 
-            for it in study.maths.permute.Permute.all(len(word)):
+            for it in study.maths.permute.Permutation.all(len(word)):
                 anagram = ''.join(it(word))
                 if dictionary.has_key(anagram): print anagram
 
@@ -361,7 +361,7 @@ def permute(*indices):
       permute(row, ind, ..., dex)[i] == row[ind[...dex[i]...]],
 
     which may be understood as the composite of the sequences, read as
-    functions (see Theory sections in doc-strings in permute.py)."""
+    functions (see Theory sections Permutation's doc-strings).\n"""
 
     indices, ans = indices[:-1], indices[-1] # IndexError if no sequences given !
 
@@ -382,7 +382,7 @@ def compose(*perms):
     identity-default behaviour by catching IndexErrors)."""
 
     try: n = max(map(len, perms))
-    except IndexError: n = 0 # Permute([]) is an implicit identity.
+    except IndexError: n = 0 # Permutation([]) is an implicit identity.
 
     result, i = [], 0
     while i < n:
@@ -454,7 +454,7 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
     Subtracting from num!, we get the sum over 0 < i <= num of: the number of
     ways of chosing i things to keep fixed, times the number of ways of
     permuting the remaining (num-i) items without any of these staying
-    fixed. Indeed, num! = sum(: chose(num,i) * unfixed(num-i) <- i :1+num) as
+    fixed.  Indeed, num! = sum(: chose(num,i) * unfixed(num-i) <- i :1+num) as
     every permutation of num keeps i items fixed, for some i, while permuting
     the remaining i items without (further) fixed points.  This yields (as
     chose(num,i) = chose(num, num-i) and (1+num| num-i <- i |1+num) is a
@@ -474,9 +474,9 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
 
     So, consider any natural N for which, for each num in N,
 	unfixed(num) = sum(: pow(-1,i)*num!/i! <- i :1+num).
-
     An example would be N = 0, since there is no num in 0 = {}.  In such a
     case,
+
     unfixed(N)
       = N! - sum(: chose(N,i) * sum(: pow(-1,j)*i!/j! <- j :1+i) <- i :1+N)
         # substitute n = N - i + j, so i = N - n + j:
@@ -505,10 +505,7 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
         # grow cache until it's long enough
         while num >= N:
             #    u(N) = N * u(N-1) + pow(-1,N)
-            try: next = N * last + sign
-            except OverflowError:
-                next = long(N) * last + sign
-
+            next = N * last + sign
             cache.append(next)
             N, sign, last = N+1, -sign, next
         # we should now be happy.

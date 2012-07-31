@@ -23,8 +23,6 @@ naturals a and b is 1, then each is a proper factor of a*b.  We cannot salvage
 the case of 1, since it has no other factor than itself, so it's probably
 simpler just to arbitrarily declare 0 and 1 special, rather than redefining
 'proper factor' !
-
-$Id: sieve.py,v 1.6 2008-06-08 23:44:46 eddy Exp $
 """
 
 def mark(p, slab, base, off=0):

@@ -3,8 +3,6 @@
 See S and C for details, or
 http://www.chaos.org.uk/~eddy/math/multiangle.html
 for theory.
-
-$Id: multiangle.py,v 1.12 2010-06-27 19:00:50 eddy Exp $
 """
 
 from polynomial import Polynomial

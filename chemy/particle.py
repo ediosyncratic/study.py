@@ -151,7 +151,7 @@ class Particle (Object):
             def _lazy_lookup_(self, key):
                 return getattr(self.__source, key).anti
 
-    def _store_as_(self, name, klaz, root=None, ItemCarrier=__ItemCarrier):
+    def _store_as_(self, name, cls, root=None, ItemCarrier=__ItemCarrier):
         """Each sub-class of Particle carries a namespace full of its instances.
 
         That includes indirect instances but only applies to strict sub-classes,
@@ -169,7 +169,7 @@ class Particle (Object):
         synonym for .item.electron.anti, and likewise for other particles. """
 
         if root is None: root = Particle # can't set as default; not defined yet
-        todo, done = [ klaz ], [ Particle ]
+        todo, done = [ cls ], [ Particle ]
         while todo:
             k, todo = todo[0], todo[1:]
             try: i = k.item
@@ -431,8 +431,8 @@ from the second of which I took the extra-visible spectral data below.
         return siz + ' eV'
 
     __store_as = Boson._store_as_
-    def _store_as_(self, name, klaz):
-        self.__store_as(name, klaz, Photon)
+    def _store_as_(self, name, cls):
+        self.__store_as(name, cls, Photon)
         if name != 'photon': name = '%s light' % name
         self.__store_as(name, Boson)
 
@@ -574,9 +574,9 @@ class Fermion (Particle):
 class Neutrino (Fermion):
     # pass the constructor the corresponding Lepton's name
     __store_as = Fermion._store_as_
-    def _store_as_(self, name, klaz):
+    def _store_as_(self, name, cls):
         # well, OK, Neutrino is unlikely to have sub-classes, but cope with them anyway ...
-        self.__store_as(name, klaz, Neutrino)
+        self.__store_as(name, cls, Neutrino)
 
         # forward modified name to Fermion et al.
         self.__store_as('%s neutrino' % name, Fermion)

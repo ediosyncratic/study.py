@@ -1,6 +1,4 @@
 """Master object controlling primes list.
-
-$Id: master.py,v 1.6 2009-01-24 11:47:52 eddy Exp $
 """
 import os, cache
 

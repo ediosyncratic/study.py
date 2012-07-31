@@ -58,20 +58,12 @@ def fibonacci(what, was=0, result=1):
 
     if -1 < what < 1: return was
     while what > 1:
-        # f(j-1), f(j) = f(i), f(i) + f(i-1)
-	# j = 1+i
-	try: was, result = result, result + was
-	except OverflowError:
-		was, result = result, long(result) + was
-	what = what - 1
+        # f(j-1), f(j), j = f(i), f(i) + f(i-1), 1+i
+        was, result, what = result, result + was, what - 1
 
     while what < -1:
-        # f(j), f(1+j) = f(1+i) - f(i), f(i)
-	# j = i-1
-	try: result, was = was - result, result
-	except OverflowError:
-		result, was = was - long(result), result
-	what = what + 1
+        # f(j), f(1+j), j = f(1+i) - f(i), f(i), i-1
+        result, was, what = was - result, result, what + 1
 
     return result
 
@@ -82,7 +74,7 @@ def fibtimes((a,b), (c,d)):
 
     Define multiplication on ordered pairs
 
-	(A,B) (C,D) = (A C + A D + B C, A C + B D).
+        (A,B) (C,D) = (A C + A D + B C, A C + B D).
 
     This is just (A X + B) * (C X + D) mod X^2 - X - 1, and so is associative,
     etc. We note (A,B) (1,0) = (A + B, A), which is the Fibonacci
@@ -96,9 +88,9 @@ def fibpow(n, c=0, d=1):
     if n < 0: a, b, n = 1, -1, -n
     else: a, b = 1, 0
     while n > 0:
-	n, i = divmod(n, 2)
-	if i: c, d = fibtimes((a,b),(c,d))
-	a, b = fibtimes((a,b), (a,b))
+        n, i = divmod(n, 2)
+        if i: c, d = fibtimes((a,b),(c,d))
+        a, b = fibtimes((a,b), (a,b))
     return c, d
 
 def fastonacci(n, zero, one):
@@ -232,7 +224,7 @@ class Fibpair (tuple):
 class Fibonacci:
     """Cached computation of Fibonacci's sequence."""
     def __init__(self, zero=0, one=1):
-	self.__natural, self.__negative = [ zero, one ], [ one - zero, 2 * zero - one ]
+        self.__natural, self.__negative = [ zero, one ], [ one - zero, 2 * zero - one ]
 
     def __iter__(self):
         i = 0
@@ -241,28 +233,28 @@ class Fibonacci:
             i += 1
 
     def __up(self, n):
-	assert n >= 0
-	row = self.__natural
-	todo = n + 1 - len(row)
-	while todo > 0:
-	    row.append(row[-1] + row[-2])
-	    todo -= 1
+        assert n >= 0
+        row = self.__natural
+        todo = n + 1 - len(row)
+        while todo > 0:
+            row.append(row[-1] + row[-2])
+            todo -= 1
 
-	return row[n]
+        return row[n]
 
     def __down(self, n):
-	assert n > 0
-	row = self.__negative
-	todo = n - len(row)
-	while todo > 0:
-	    row.append(row[-2] - row[-1])
-	    todo -= 1
+        assert n > 0
+        row = self.__negative
+        todo = n - len(row)
+        while todo > 0:
+            row.append(row[-2] - row[-1])
+            todo -= 1
 
-	return row[n-1]
+        return row[n-1]
 
     def __getitem__(self, n):
-	if n < 0: return self.__down(-n)
-	return self.__up(n)
+        if n < 0: return self.__down(-n)
+        return self.__up(n)
 
     def __contains__(self, other, g=.5*(1 +5.**.5)):
         if self.__natural[:2] == [ 0, 1 ] and other > 0:

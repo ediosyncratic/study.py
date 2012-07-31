@@ -1,6 +1,4 @@
 """Playing with different number bases.
-
-$Id: base.py,v 1.5 2008-06-26 05:48:37 eddy Exp $
 """
 
 class Base:
@@ -18,9 +16,9 @@ class Base:
     # Alternate subclass: handle 'thousand separator' suitably.
 
     def __init__(self, digits='0123456789',
-		 offset=0, signif=None,
-		 plus=('', '+'), minus='-', fracsep='.',
-		 ignore=',', prefix=('',), doc=None):
+                 offset=0, signif=None,
+                 plus=('', '+'), minus='-', fracsep='.',
+                 ignore=',', prefix=('',), doc=None):
         """Set up a base.
 
         Where the following refers to a 'character' you may equally supply a
@@ -46,98 +44,92 @@ class Base:
                     shall be used as prefix on every encoded value.
           doc -- a documentation string for the base (or None).\n"""
 
-	self.__digits, self.__ignore = digits, ignore
-	self.__plus, self.__minus, self.__fracsep = plus, minus, fracsep
-	self.__base, self.__offset = len(digits), offset
+        self.__digits, self.__ignore = digits, ignore
+        self.__plus, self.__minus, self.__fracsep = plus, minus, fracsep
+        self.__base, self.__offset = len(digits), offset
         if doc is not None: self.__doc__ = doc
 
-	if signif is None:
+        if signif is None:
             # Compute minimal representable fractional error:
             signif, err, frac = 0, 1, 1. / self.__base
             while 1 + err != 1 and signif < 100: err, signif = err * frac, 1 + signif
 
-	self.__sigfig = signif
+        self.__sigfig = signif
 
     def __unique(self, char):
-	while len(char) > 1: char = char[0]
-	return char
+        while len(char) > 1: char = char[0]
+        return char
 
     def __encode(self, index):
-	return self.__unique(self.__digits[int(index) + self.__offset])
+        return self.__unique(self.__digits[int(index) + self.__offset])
 
     # TODO: replace signif (passed to encode) with a test function which, given
     # top and bottom of an interval, says whether the digit sequence denoting
     # that interval is precise enough.
     def encode(self, number, signif=None):
-	if signif is None: signif = self.__sigfig
+        if signif is None: signif = self.__sigfig
 
-	if number < 0:
-	    sign = self.__unique(self.__minus)
-	    number = -number
-	elif number > 0: sign = self.__unique(self.__plus)
-	else: sign = ''
+        if number < 0:
+            sign = self.__unique(self.__minus)
+            number = -number
+        elif number > 0: sign = self.__unique(self.__plus)
+        else: sign = ''
 
-	shunt = 0
-	while 1:
-	    whole = long(number)
-	    if number == whole or shunt >= signif: break
-	    else:
-		shunt = 1 + shunt
-		try: number = self.__base * number
-		except OverflowError: number = long(self.__base) * number
+        shunt = 0
+        while True:
+            whole = long(number)
+            if number == whole or shunt >= signif: break
+            shunt, number = 1 + shunt, self.__base * number
 
-	if number > .5 + whole: whole = 1 + whole # round up.
-	result = ''
+        if number > .5 + whole: whole = 1 + whole # round up.
+        result = ''
 
-	while shunt > 0:
-	    whole, digit = divmod(whole, self.__base)
-	    if digit + self.__offset >= self.__base:
-		whole, digit = whole + 1, digit - self.__base
-	    result, shunt = self.__encode(digit) + result, shunt - 1
+        while shunt > 0:
+            whole, digit = divmod(whole, self.__base)
+            if digit + self.__offset >= self.__base:
+                whole, digit = whole + 1, digit - self.__base
+            result, shunt = self.__encode(digit) + result, shunt - 1
 
-	if result: result = self.__unique(self.__fracsep) + result
+        if result: result = self.__unique(self.__fracsep) + result
 
-	while whole:
-	    whole, digit = divmod(whole, self.__base)
-	    if digit + self.__offset >= self.__base:
-		whole, digit = whole + 1, digit - self.__base
-	    result = self.__encode(digit) + result
+        while whole:
+            whole, digit = divmod(whole, self.__base)
+            if digit + self.__offset >= self.__base:
+                whole, digit = whole + 1, digit - self.__base
+            result = self.__encode(digit) + result
 
-	return sign + result
+        return sign + result
 
     def __decode(self, digit):
-	ind = - self.__offset
-	for it in self.__digits:
-	    if digit in it:
+        ind = - self.__offset
+        for it in self.__digits:
+            if digit in it:
                 return ind
-	    ind += 1
+            ind += 1
 
         raise ValueError, ('Bad digit', digit, self.__digits)
 
     def decode(self, given):
-	if given and (given[0] in self.__plus or given[0] in self.__minus):
+        if given and (given[0] in self.__plus or given[0] in self.__minus):
             negate, given = given[0] in self.__minus, given[1:]
-	else: negate = False
-	result = 0
+        else: negate = False
+        result = 0
 
-	while given and given[0] not in self.__fracsep:
-	    left, given = given[0], given[1:]
-	    if left in self.__ignore: continue
-	    left = self.__decode(left)
+        while given and given[0] not in self.__fracsep:
+            left, given = given[0], given[1:]
+            if left not in self.__ignore:
+                left = self.__decode(left)
+                result = result * self.__base + left
 
-	    try:	result = result * self.__base + left
-	    except OverflowError:
-			result = result * long(self.__base) + left
+        if given: given, unit = given[1:], 1.
+        while given:
+            left, given = given[0], given[1:]
+            if left in self.__ignore: continue # perverse
+            left, unit = self.__decode(left), unit / self.__base
+            result = result + left * unit
 
-	if given: given, unit = given[1:], 1.
-	while given:
-	    left, given = given[0], given[1:]
-	    if left in self.__ignore: continue # perverse
-	    left, unit = self.__decode(left), unit / self.__base
-	    result = result + left * unit
-
-	if negate: return -result
-	return result
+        if negate: return -result
+        return result
 
     def intlen(self, i):
         """len(self.encode(1L << (8*i)))
@@ -168,12 +160,12 @@ unit, 5 trits packed in a byte should work reasonably well.
 octal = Base('01234567', prefix=('0',), doc="Octal")
 decimal = Base(doc="Decimal")
 hexadecimal = Base(( '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-		     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ),
+                     'aA', 'bB', 'cC', 'dD', 'eE', 'fF' ),
                    prefix=('0x', '0X'), doc="Hexadecimal")
 radix050 = Base((' ', 'aA', 'bB', 'cC', 'dD', 'eE', 'fF', 'gG', 'hH', 'iI',
-		 'jJ', 'kK', 'lL', 'mM', 'nN', 'oO', 'pP', 'qQ', 'rR', 'sS',
-		 'tT', 'uU', 'vV', 'wW', 'xX', 'yY', 'zZ', '$', '.', '?',
-		 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'),
+                 'jJ', 'kK', 'lL', 'mM', 'nN', 'oO', 'pP', 'qQ', 'rR', 'sS',
+                 'tT', 'uU', 'vV', 'wW', 'xX', 'yY', 'zZ', '$', '.', '?',
+                 '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'),
                 doc="""Radix 050 (fourty)
 
 This encoding has some peculiar history I've forgotten; it uses space as zero,

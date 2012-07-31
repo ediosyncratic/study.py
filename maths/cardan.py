@@ -1,8 +1,6 @@
 """Cardan's solution of the cubic.
 
 See also HAKMEM note on cubics in search.py
-
-$Id: cardan.py,v 1.10 2009-03-06 06:45:33 eddy Exp $
 """
 from math import cos, acos, pi
 

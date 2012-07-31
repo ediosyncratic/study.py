@@ -7,8 +7,6 @@ This module should eventually replace lazy.Lazy; it provides:
 
 See individual classes for details.
 See also study.cache for related classes.
-
-$Id: property.py,v 1.17 2009-10-16 06:18:18 eddy Exp $
 """
 
 class docprop (property):
@@ -40,7 +38,7 @@ class docprop (property):
             return self.__all.__get__(obj, kind)[self.__ind]
 
     @classmethod
-    def group(klaz, count, hvert=each):
+    def group(cls, count, hvert=each):
         """Decorator for several attributes computed by one function.
 
         Required argument, count, is the number of attributes whose values the
@@ -70,7 +68,7 @@ class docprop (property):
         first time either is accessed (since that's how lazyprop manages the
         tuple returned).\n"""
 
-        def deco(get, k=klaz, n=count, e=hvert):
+        def deco(get, k=cls, n=count, e=hvert):
             all = k(get) # apply underlying decorator to "method"
             return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
         return deco

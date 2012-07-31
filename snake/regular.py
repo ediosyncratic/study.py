@@ -1,6 +1,4 @@
 """Descriptors for arithmetic series (bounded on at least one side).
-
-$Id: regular.py,v 1.12 2009-03-21 11:11:46 eddy Exp $
 """
 
 class Regular (object):

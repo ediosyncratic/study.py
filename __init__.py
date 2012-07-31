@@ -34,15 +34,14 @@ import space
 TODO = """There are many things that could be improved.
 
  * Have I finished the conversion to use of interpolators ?
+   No.
 
  * Replace the Lazy-based machinery with study.cache.property types.
 
  * PEP 8 conformance.
-   - Rename class-parameters to cls (from mode, klaz, etc.)
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
-   - Purge any type(blah) == what checks in favour of insinstance
-   - Purge CVS cruft
    - use __all__ ?
+   - kill tabs !
 
  * Break up archaea into a sub-package - it's huge.  Replace the ad hoc
    classification with a registration mechanism for the diverse namespaces (by
