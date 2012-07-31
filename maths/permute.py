@@ -79,18 +79,48 @@ class Permutation (Tuple, Cached):
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
-    __upnew = Tuple.__new__
-    def __new__(cls, perm):
-        """Construct a permutation.
+    __upnew = Tuple.__new__ # takes derived type as first arg
+    def __new__(cls, perm): # automagically an @staticmethod
+        """Create a permutation.
 
-        Single argument is either a natural number, in which case the identity
-        permutation of the given length is constructed, or a sequence of
-        natural numbers in which no number is repeated and every natural less
-        than each entry is present in the sequence.  (This constraint is not
-        checked unless you evaluate the .inverse or .sign attribute.)\n"""
-        try: perm[:]
-        except TypeError: return cls.__upnew(cls, range(perm))
-        else: return cls.__upnew(cls, perm)
+        Single argument must be a sequence of natural numbers in which no
+        number is repeated and every natural less than each entry is present
+        in the sequence.  For convenience constructors, see .identity() and
+        .fromSwaps().\n"""
+        if set(perm) != set(range(len(perm))):
+            raise ValueError('Is not a permutation', perm)
+
+        return cls.__upnew(cls, perm)
+
+    @classmethod
+    def identity(cls, n):
+        """Construct an identity permutation.
+
+        Single argument, n, is a natural number.  The identity permutation on
+        naturals less than it is returned.\n"""
+        return cls(range(n))
+
+    @classmethod
+    def fromSwaps(cls, *ps):
+        """Construct a permutation by swapping entries.
+
+        Each argument must be a pair of naturals; an identity permutation is
+        constructed and, for each such pair, its entries at the two positions
+        indexed by the pair are swapped.\n"""
+        ans, n = [], 0
+        for i, j in ps:
+            if i == j: continue
+            if min(i, j) < 0:
+                raise ValueError('Invalid permutation index', i, j)
+
+            m = max(i, j) + 1
+            if m > n:
+                ans += range(n, m)
+                n = m
+
+            ans[i], ans[j] = ans[j], ans[i]
+
+        return cls(ans)
 
     def __call__(self, *seqs):
         """Apply permutation.
