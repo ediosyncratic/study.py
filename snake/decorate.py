@@ -101,9 +101,9 @@ def inherit(function, base, join=joinlines, wrap=wrapas):
     Any documentation from base is presumed to be definitive; any
     documentation provided by function is presumed to just elaborate on how it
     implements the API.  Thus the composite puts the doc string of base before
-    that of function. If either is empty or None, it is discarded; the list of
-    what remains is passed to join, whose return is used as __doc__, unless it
-    is empty (in which case None is used).
+    that of function.  If either is empty or None, it is discarded; the list
+    of what remains is passed to join, whose return is used as __doc__, unless
+    it is empty (in which case None is used).
 
     Since the result's signature shall match base's, authors should write
     function using the same argument names as base, so that they'll match
@@ -169,10 +169,12 @@ def accepting(prototype, wrapping=wrapas, mime=mimic, rator=funcorator):
 def overriding(base, heir=inherit, mime=mimic, wrap=wrapas, rator=funcorator):
     """Decorator for a method that over-rides one on a base-class.
 
-    Single argument, base, is the base-class (unbound) method; returns a
-    decorator which, given the derived class's implementation of the method,
-    ensures the latter behaves as the former and the latter's documentation
-    string incorporates the former's; see inherit() for details.\n"""
+    Single argument, base, is whatever defines the API being overridden
+    (e.g. a base class's method).  Returns a decorator which, given the
+    replacement (e.g. a derived class's implementation of a method), ensures
+    the latter behaves as the former (same signature) and the latter's
+    documentation string incorporates the former's; see inherit() for
+    details.\n"""
 
     def decor(function, form=base, mime=heir):
         return mime(function, form)
