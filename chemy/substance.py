@@ -17,13 +17,15 @@ from study.value.archaea import gallon, pound, calorie
 
 # Properties of some substances:
 class Gas (Substance):
-    def _lazy_get__amupokt_(self, ignored, amuk=Nucleon.amuk): # AMU*P/k/T
+    def _lazy_get__amupokt_(self, ignored,
+                            amuk=Nucleon.amuk, # AMU*P/k/T
+                            C=Centigrade(0), A=Atmosphere):
         try: T = self.temperature
-        except AttributeError: T = Centigrade(0)
+        except AttributeError: T = C
         try: P = self.pressure
-        except AttributeError: P = Atmosphere
+        except AttributeError: P = A
         return amuk * P / T
-        
+
     def _lazy_get_density_(self, ignored):
         return self.RMM * self._amupokt
 
