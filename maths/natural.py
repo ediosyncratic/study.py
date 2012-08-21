@@ -11,6 +11,7 @@ Exports:
   Collatz(n) -- iterate the Collatz conjecture's sequence starting at n
   desquare(n) -- integer square root with remainder
   sqrt(n) -- integer square root, discarding remainder
+  depower(n, p) -- as desquare, but for p-th power
   naturals -- list: naturals[i][naturals[j]] is naturals[j+1] iff i > j are natural
   lattice(dim, [signed, [mode, [total]]]) -- iterator over tuples of whole numbers
 
@@ -249,7 +250,6 @@ def perfect():
 
         i += 1
 
-# TODO: can this be generalized to higher powers ?
 def desquare(val):
     """Whole square root with remainder.
 
@@ -291,6 +291,71 @@ def unsquare(val):
 def sqrt(val):
     "max({natural n: n*n <= val})"
     return desquare(val)[0]
+
+def depower(val, p):
+    """Whole inverse of a power, with remainder.
+
+    Requires two arguments, val and p with val real (typically natural) and p
+    a positive natural (typically > 1).  If p is even and val < 0, raises
+    ValueError.  Otherwise, returns a twople n, v with n an integer,
+    satisfying n**p +v = val, with n and v having the same sign as val and v
+    as small as possible (so rounding towards zero; contrast divmod, which
+    rounds down).\n"""
+
+    if p == 0:
+        if val == 1: return 1, 0
+        raise ValueError("Zeroth power only produces 1 as value", val, p)
+    elif p == 1:
+        n = int(val)
+        return n, val - n
+    elif p == 2: return desquare(val) # more efficient
+    elif p < 3 or p != int(p):
+        raise ValueError("Unsupported power to undo", p, val)
+
+    p = int(p)
+    if val < 0:
+        if not p % 2:
+            raise ValueError("Negative value nas no even root", val, p)
+        n, v = depower(-val, p)
+        return -n, -v
+
+    elif val < 1: return 0, val # trivial
+
+    v, ind, bit, pb, tp = val, 0, 1, 1, 1 << p
+    while v >= tp:
+        v /= tp
+        ind += 1
+        bit <<= 1
+        pb <<= p
+    assert val / tp < pb <= val and pb == bit**p
+
+    # input = val # hereafter, val shall store input - v**p
+    v = 0
+    while bit:
+        # term = lambda i: v**i * bit**(p-i) * p!/i!/(p-i)!
+        # sum(map(term, range(p))) +v**p is (v + bit)**p
+        # We need to compare sum(map(term, range(p))) with val.
+        i, t, up = 1, pb, pb # i, term(i-1), sum(term, range(i))
+        while i < p:
+            # term(i) = (term(i-1) >> ind)*v*(p+1-i)/i
+            t >>= ind
+            assert not t % i
+            t *= v * (p + 1 - i) / i
+            up += t
+            i += 1
+
+        assert up == (v | bit)**p - v**p
+        if up == val: return v | bit, 0
+        if up < val:
+            v |= bit
+            val -= up
+
+        assert pb == 1 << (p * ind) and bit == 1 << ind and v & (bit - 1) == 0
+        ind -= 1
+        bit >>= 1
+        pb >>= p
+
+    return v, val
 
 def Collatz(n):
     """Iterator for the Collatz conjecture's sequence for n.
