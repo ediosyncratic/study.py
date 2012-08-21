@@ -234,6 +234,11 @@ class Vector (Tuple):
         if len(self) == 1: return '(%s,)' % str(self[0])
         return '(' + ', '.join(self.map(str)) + ')'
 
+    def __nonzero__(self):
+        for it in self:
+            if it: return True
+        return False
+
     def __add__(self, other, add=lambda x, y: x+y):
         assert len(other) == len(self)
         return self.__vector__(map(add, self, other))
