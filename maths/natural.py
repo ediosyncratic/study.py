@@ -259,24 +259,25 @@ def desquare(val):
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
 
-    v, bit = val, 0
+    v, ind, bit = val, 0, 1
     while v >= 1:
         v /= 4
-        bit += 1
+        ind += 1
+        bit <<= 1
 
     # input = val # hereafter, val holds input - v**2
-    v, bb = 0, 1 << (2 * bit) # > val but <= val*4
-
-    while bit and val:
-        assert (v<<(1+bit)) +bb > val > 0 and bb == (1 << 2 * bit)
-        # i.e. (v + (1<<bit))**2 = input - val +(v<<(1+bit)) +bb > input > v**2
-        bb >>= 2
-        up = (v << bit) + bb
-        assert v & ((1 << bit) -1) == 0
-        bit -= 1
-        assert up == (v | (1<<bit))**2 - v**2
-        if up <= val: # (v + (1<<bit))**2 == input -val +up <= input
-            v |= 1 << bit
+    v = 0
+    while ind and val:
+        assert v & (bit - 1) == 0 and bit == (1 << ind)
+        assert ((v << 1) +bit) << ind > val > 0
+        # i.e. (v + bit)**2 = v**2 +(2*v +bit)*bit > input > v**2
+        bit >>= 1
+        ind -= 1
+        up = ((v << 1) | bit) << ind
+        assert up == (v | bit)**2 - v**2
+        # Do we want to set this bit ?
+        if up <= val: # (v + (1<<ind))**2 == input -val +up <= input
+            v |= bit
             val -= up
 
     # v**2 <= input < (1+v)**2
