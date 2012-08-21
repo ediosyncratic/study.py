@@ -9,7 +9,8 @@ Exports:
   factorsum(N) -- sum of proper factors of N
   perfect() -- iterator over all N for which N == factorsum(N)
   Collatz(n) -- iterate the Collatz conjecture's sequence starting at n
-  sqrt(n) -- integer square root (computed bit by bit)
+  desquare(n) -- integer square root with remainder
+  sqrt(n) -- integer square root, discarding remainder
   naturals -- list: naturals[i][naturals[j]] is naturals[j+1] iff i > j are natural
   lattice(dim, [signed, [mode, [total]]]) -- iterator over tuples of whole numbers
 
@@ -249,8 +250,12 @@ def perfect():
         i += 1
 
 # TODO: can this be generalized to higher powers ?
-def sqrt(val):
-    """Returns the highest natural whose square does not exceed val"""
+def desquare(val):
+    """Whole square root with remainder.
+
+    Input, val, is a non-negative reaal, typically a natural.  Raises
+    ValueError if negative.  Otherwise, returns a twople n, v with n natural,
+    n*n + v == val and 0 <= v < 2*n+1.\n"""
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
 
@@ -259,8 +264,8 @@ def sqrt(val):
         v /= 4
         bit += 1
 
-    # input = val; assert v == 0 # hereafter, val stores input - v**2
-    bb = 1 << (2 * bit) # > val but <= val*4
+    # input = val # hereafter, val holds input - v**2
+    v, bb = 0, 1 << (2 * bit) # > val but <= val*4
 
     while bit and val:
         assert (v<<(1+bit)) +bb > val > 0 and bb == (1 << 2 * bit)
@@ -275,7 +280,17 @@ def sqrt(val):
             val -= up
 
     # v**2 <= input < (1+v)**2
+    return v, val
+
+def unsquare(val):
+    "Return n with n*n == val or raise ValueError if no such n"
+    v, n = desquare(val)
+    if n: raise ValueError("Not a perfect square", val, n, v)
     return v
+
+def sqrt(val):
+    "max({natural n: n*n <= val})"
+    return desquare(val)[0]
 
 def Collatz(n):
     """Iterator for the Collatz conjecture's sequence for n.
@@ -316,7 +331,7 @@ class Naturals (list):
 
 naturals = Naturals()
 del Naturals
-# NB: len(str(naturals[1+n])) = 13 * 3**n -2
+# NB: len(str(naturals[1+n])) + 2 = 13 * 3**n
 
 def lattice(dim, signed=False, mode=True, total=None):
     """Iterator over {({whole numbers}:|dim)}
