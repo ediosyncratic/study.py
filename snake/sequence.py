@@ -383,28 +383,41 @@ class ReadSeq (Iterable):
 
         raise ValueError('not in sequence', val)
 
+    @iterable
+    def __reversed__(self):
+        seq = tuple(self)
+        i = len(seq)
+        while i > 0:
+            i -= 1
+            yield seq[i]
+
     # Throw in something suitable in place of sort:
-    def order(self, par=cmp):
+    def order(self, cmp=cmp, key=None, reverse=False):
         """Return self's indices in increasing order of matching entries.
 
-        Takes one optional argument, defaulting to the built-in cmp: a
-        function to be used for comparison. The return from this method is a
-        Permutation (see study.maths.permute) of range(len(self)) in which,
-        for each i, j in this range, if cmp(self[i], self[j]) < 0, i appears
-        before j in the result list; if > 0, i appears after j; else, the
-        order of i and j is unspecified.\n"""
-        return self.__order(par)
+        Takes the same optional arguments as the built-in sorted() and the
+        list.sort() method:
+          cmp -- a comparison function
+          key -- a transformation of inputs
+          reverse -- whether to reverse the order
 
-    def __order(self, par):
-        # boot-strap round the fact that permute.Permute inherits from Tuple
-        from study.maths import permute
+        The return from this method is a Permutation (see study.maths.permute)
+        of range(len(self)) in which, for each i, j in this range, if
+        cmp(key(self[i]), key(self[j])) < 0, i appears before j in the result
+        list; if > 0, i appears after j; else, the order of i and j is
+        unspecified; except that, if reverse is true, the reverse of this
+        ordering is used instead.\n"""
+        return self.__order(cmp, key, reverse)
+
+    def __order(self, par, key, rev):
+        # boot-strap round the fact that permute.Permutation inherits from Tuple
+        from study.maths.permute import order
         # over-write this boot-strap implementation
-        ReadSeq.__order = lambda who, are=cmp, p=permute.order: p(who[:], are)
-        return permute.order(self[:], par)
+        ReadSeq.__order = order
+        return order(self, par, key, rev)
 
-    @iterable
-    def sorted(self, par=cmp):
-        return self.order(par)(self)
+    def sorted(self, cmp=cmp, key=None, reverse=False):
+        return self.order(cmp, key, reverse)(self)
 
     def best(self, n, par=cmp):
         """Selects the best n entries in self, preserving self's order.
@@ -765,6 +778,45 @@ class Ordered (List):
 
         return self
 
+    def sorted(self, cmp=None, key=None, reverse=False, attr=None, unique=()):
+        """Return a copy of self with changed sorting criteria.
+
+        Arguments are all optional, in the order cmp, key, reverse, attr,
+        unique, or passed as keywords in any order, with the same meanings and
+        defaults as for Ordered.__init__ (q.v.), aside from:
+         * reverse is understood relative to self (so false, the default,
+           means to use the same as self and true means to use the reverse of
+           self, which shall be forward ordering if self is reversed); and
+         * for cmp, key or attr, passing None (their default) means to use
+           self's corresponding datum; any other false value means the same as
+           None did for the constructor.
+         * unique's default is (), which means to use self's value; all other
+           false values mean the same as they did for the constructor, notably
+           including its special handling of None.
+
+        Thus, by default, self.sorted() returns a copy of self; but any of
+        self's constructor parameters can be overridden in the copy.  Compare
+        self.sort(), which re-sorts self (returning None) and can't change
+        attr or unique.\n"""
+
+        if cmp is None: cmp = self.__cmp
+        elif not cmp: cmp = None
+
+        if key is None: key = self.__key
+        elif not key: key = None
+
+        if self.__reverse: reverse = not reverse
+
+        if attr is None: attr = self.__attr
+        elif not attr: attr = None
+
+        if unique is (): unique = self.__unique
+
+        return self.__ordered__(self, reverse, key, cmp, attr, unique)
+
+    def __reversed__(self):
+        return self.sorted(reverse=True)
+
     __upsort = List.sort
     def sort(self, cmp=None, key=None, reverse=False):
         """Change sort criteria.
@@ -773,19 +825,21 @@ class Ordered (List):
         but each defaults to self's corresponding sort property.  If given,
         cmp replaces self's prior comparison function, if any (you can restore
         the effect of no custom comparison by passing the built-in cmp
-        function). If key is omitted or None, self's existing key is
+        function).  If key is omitted or None, self's existing key is
         preserved; if it is any other false value, any prior key is discarded
         and self uses values as they are, subject to any attribute name
-        look-up; otherwise, key replaces self's prior key.  If reverse is
-        true, it is combined with self's prior reversal using xor (so
-        reverse-sorting a reverse-sorted list yields a normally sorted list,
-        for example).  Since no list.sort() parameter matches attribute
-        look-up (for all that key may be used to do this), nothing can change
-        self's choice of delegating attribute.
+        look-up; otherwise, key replaces self's prior key.  The meaning of
+        reverse is relative to self, so it is combined with self's prior
+        reversal using xor (so reverse-sorting a reverse-sorted list yields a
+        normally sorted list, for example).  Since no list.sort() parameter
+        matches attribute look-up (for all that key may be used to do this),
+        nothing can change self's choice of delegating attribute.
 
         When no parameters are passed, this should normally be an expensive
         no-op; however, if entries in the list have changed in ways that
-        affect their position, this should restore proper sorting.\n"""
+        affect their position, this should restore proper sorting.  Compare
+        self.sorted(), which returns a copy of self with changed sort criteria
+        and can override the attr and unique passed to the constructor.\n"""
 
         if cmp is None: cmp = self.__cmp
         else: self.__cmp = cmp
