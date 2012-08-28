@@ -122,8 +122,9 @@ four data are here given, as attributes l, b, alpha and delta.
 Maximum solar total radiant power outside atmosphere at a distance of 1
 Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
 metre**2, or about 2%.  This radiant power corresponds to an astronomical
-apparent magnitude of -26.73; it should be possible to work out the zero-point
-of the astronomical magnitude scale from this ...
+apparent magnitude of -26.73 (it should be possible to work out the zero-point
+of the astronomical magnitude scale from this ...).  For the photon pressure
+due to this radiant power, see Sun.bright.pressure.
 
 The Earth's cross-section, the area relevant to this power supply, is a quarter
 of its surface area; multiplying that by the solar constant, Earth is receiving
@@ -253,6 +254,15 @@ parsec.observe(30.857 * peta * metre) # Kaye & Laby
 # some other source alleged 3.26 * year.light, which is about the same.
 
 Sun.luminosity = Sun.bright * 4 * pi * AU**2
+Sun.bright.also(pressure = Quantity(2 * second / second.light, Sun.bright,
+                                    """Photon pressure from the Sun at Earth.
+
+The light from the sun carries momentum as well as energy.  If we put a mirror
+in the path of the sun-light to reflect all of the light back to the sun, all
+of that momentum gets reversed, so the mirror receives twice the momentum of
+the light, thereby exerting a pressure equal to 2/c times the incident power,
+Sun.bright.  This works out at about five micro-Pascal at Earth's orbit.
+"""))
 
 # surface part data taken from Asimov:
 _square_kilo_mile = (kilo * mile)**2
