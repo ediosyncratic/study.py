@@ -195,7 +195,7 @@ class Interpolator (Cached):
         if lo >= hi or lo >= self.cuts[-1] or hi <= self.cuts[0]:
             raise ValueError('Excessive clipping', (lo, hi), (self.cuts[-1], self.cuts[0]))
 
-        cuts, mass = self.cuts, self.mass
+        cuts, mass = list(self.cuts), list(self.mass)
         if cuts[0] < lo:
             # First, discard any whole bands:
             i = 1
