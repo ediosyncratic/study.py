@@ -14,7 +14,7 @@ class LazySeq (ReadSeq):
         self.__src = gen
         self.__cache = []
 
-    __upget = ReadOnlySeq.__getitem__
+    __upget = ReadSeq.__getitem__
     from study.snake.regular import Slice
     def __getitem__(self, i, S=Slice):
         if isinstance(i, slice): i = S(i)
