@@ -619,7 +619,7 @@ class joinWeighted (curveWeighted):
         if not isinstance(other, _baseWeighted):
             other = self.__weighted__(other)
 
-        return self.interpolator < other.interpolator
+        return cmp(self.interpolator, other.interpolator)
 
 # Various statistical computations.
 
