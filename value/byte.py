@@ -48,7 +48,7 @@ class bQuantity (Quantity):
 
     _lazy_get__number_str_ = _lazy_get__unit_str_
 
-bit = Quantity.base_unit('bit', 'bit',
+bit = Quantity.base_unit('b', 'bit',
                          """The definitive unit of binary data.
 
 A single binary digit is capable of exactly two states, known as 0 and 1.
@@ -56,9 +56,9 @@ A sequence of n binary digits thus has pow(2, n) possible states.
 """)
 
 _name = 'byte'
-byte = bQuantity(qSample(best=8), # but no actual sample
-                bit,
-                """The standard unit of memory on a computer.
+byte = bQuantity.unit(qSample(best=8), # but no actual sample
+                      bit, 'B', _name,
+                      """The standard unit of memory on a computer.
 
 Whereas the bit is the *natural* unit of binary data, in practice one normally
 manipulates data in larger chunks.  These may vary from machine to machine, but
@@ -77,15 +77,15 @@ and so on.  So I also define Kib, Mib, Gib, along with the full swath of
 positive-exponent quantifiers applied to byte, as kibibyte
 etc. above.  Indeed, it is mainly in order to do this that I bother defining
 the byte ...
-""",
-                _name)
+""")
 
 _row = filter(lambda x: x > 0, _quantifier_dictionary.keys())
 _row.sort()
 for _key in _row:
     if _key % 3: continue # skip deka, hecto
     _nom = '%sbyte' % _quantifier_dictionary[_key]
-    exec '%s = Quantity.unit(1024, %s, fullname="%s")' % (_nom, _name, _nom)
+    exec '%s = Quantity.unit(1024, %s, "%siB", "%s", None)' % (
+        _nom, _name, _nom[0].upper(), _nom)
     _name = _nom
 
 del _nom, _name, _key, _row, _quantifier_dictionary, Quantity, qSample
