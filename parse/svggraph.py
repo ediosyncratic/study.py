@@ -1,9 +1,8 @@
 """Graphing data using SVG.
 """
-from study.cache.property import Cached, lazyprop
 from study.parse.morphsvg import SVG
 
-class SVGgraph (SVG, Cached):
+class SVGgraph (SVG):
     """Manage a DOM object describing an SVG graph.
 
     The usual constructor requires the path of an existing file.  See the
@@ -60,4 +59,3 @@ class SVGgraph (SVG, Cached):
     del os
     __pristine = False
 
-del Cached, lazyprop
