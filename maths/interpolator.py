@@ -609,6 +609,13 @@ class PiecewiseConstant (Interpolator):
         cut = map(lambda x, m=mid: x-m, cut)
         wanted = iter(map(lambda x, s=scale: x*s, weights[:-1]))
         ans, prior, avail, need, i = [], cut[0], load[0], wanted.next(), 0
+        try:
+            # Avoid silly rounding errors at start:
+            while not need:
+                ans.append(self.cuts[0])
+                need = wanted.next()
+        except StopIteration: pass
+
         while True:
             # We've allocated all weight left of prior, which is in the source
             # band from cut[i] to cut[1+i]; of that band's load[i], avail is
