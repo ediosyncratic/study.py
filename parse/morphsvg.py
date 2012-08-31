@@ -25,7 +25,7 @@ class SVG (object):
 
     def __del__(self): self.__dom.unlink()
 
-    def __id_by_tag(self, tag):
+    def id_by_tag(self, tag):
         """Iterate over nodes, of given kind, with id attribute.
 
         Required argument, tag, is the element type of interest.  Those which
@@ -35,14 +35,13 @@ class SVG (object):
             try: nom = node.attributes['id']
             except KeyError: pass
             else: yield node, nom.value
-        raise StopIteration
 
     def get_node(self, id, tag=None):
         if tag is None:
             raise NotImplementedError(
                 "I haven't yet worked out how to do this")
         else:
-            for node, nom in self.__id_by_tag(tag):
+            for node, nom in self.id_by_tag(tag):
                 if nom == id: return node
 
         raise ValueError('No such node', id, tag, self.__path)
