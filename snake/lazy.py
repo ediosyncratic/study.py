@@ -184,7 +184,23 @@ class Lazy (object):
         # Note: this class doesn't actually rely on sub-classes calling this
         # initialiser ... it allows sub-classes to be lazy about that ;^>
 
-    def _lazy_lookup_(self, key):
+    class Dummy:
+        @staticmethod
+        def sm(): pass
+        @classmethod
+        def cm(cls): pass
+        def im(self): pass
+    Dummy = Dummy()
+    def func(): pass # local tool
+    def _lazy_lookup_(self, key,
+                      # The callable types we should call without passing self
+                      # (overtly) as a parameter: it's either curried in
+                      # already or not needed.  Function arises when self's
+                      # constructor assigned a local function to over-ride the
+                      # instance's method.  There's duplication here, but the
+                      # four types could in principle different.
+                      functypes=(type(Dummy.im), type(Dummy.cm),
+                                 type(Dummy.sm), type(func))):
         """One-off attribute lookup.
 
         Argument, key, is the name of an attribute.  If we can work out a value
@@ -224,11 +240,13 @@ class Lazy (object):
         else:
             assert callable(meth)
             try:
-                if isinstance(meth, type(self._lazy_lookup_)): return meth(key)
+                if isinstance(meth, functypes): return meth(key)
                 else: return meth(self, key) # do the currying for it
             except TypeError: pass
 
         return self._lazy_late_(key)
+
+    del Dummy, func
 
     def _lazy_early_(self, key):
         # This is only here for its doc: it behaves as if it weren't.
