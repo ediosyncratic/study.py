@@ -53,7 +53,7 @@ class Table (Cached):
         return '\n'.join(lines)
 
     def close_cell(self):
-        self.__currow.append(self.__tidy_text()))
+        self.__currow.append(self.__tidy_text())
         assert self.__cell == len(self.__currow), (self.__cell, self.__currow)
 
     def close_row(self):
