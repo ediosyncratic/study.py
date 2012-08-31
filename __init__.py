@@ -60,11 +60,22 @@ TODO = """There are many things that could be improved.
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
    - use __all__ ?
    - kill tabs !
+   - don't use __myname__ (e.g. __quantity__ etc.; currently violated extensively)
+   - don't use type(x) == blah comparisons; prefer isinstance(x, blah)
+   - check for any isinstance(x, string); check against basestring instead
+
+ * Cure other archaisms:
+   - s/raise $T, $v/raise $T($v)/
+   - s/except $T, $v/except $T as $v/
+   - See http://www.python.org/dev/peps/pep-0290/
 
  * Break up archaea into a sub-package - it's huge.  Replace the ad hoc
    classification with a registration mechanism for the diverse namespaces (by
    nationality, by name of unit) causing mere creation of the unit object to
-   get it registered in relevant namespaces.
+   get it registered in relevant namespaces.  See:
+   http://docutils.sourceforge.net/rst.html
+
+ * Break out randomness from maths as random.
 
  * Convert documentation to use reStructuredText. Modify doc-strings to use
    reStructuredText; in each module, once converted, specify global
@@ -80,4 +91,17 @@ TODO = """There are many things that could be improved.
    (e.g. for differences and times within each day).  c.f. the datetime module.
 
  * New quantity-type; see value.quantity's doc-string.
+
+ * Covnert to python 3 - worth doing on a separate branch !
+   - there is a "2to3" utility to help with this
+   - convert .next() to .__next__() on iterators
+   - s/for $var in $iterable: yield $var/yield from $iterable/g
+   - can have (tunnels or) keyword-only arguments after *args; PEP 3102
+   - can modify variables in outer scopes using nonlocal; PEP 3104
+   - when catching one exception to raise a different, can inherit the
+     original's context using: raise Type from value (PEP 344)
+   - print stuff -> print(stuff); PEP 3105
+   - changes in .keys(), .values(), .items(); PEP 3106
+   - can no longer use tuple-parameter unpack, e.g. lambda (k, v): k
+   - study PEP 3141, a type hierarchy for numbers
 """
