@@ -20,7 +20,7 @@ class Parser (object):
 
     @staticmethod
     def skiptonext(text):
-        if text[0] != ',' and !text[0].isspace():
+        if text[0] != ',' and not text[0].isspace():
             raise ValueError('Expected space or comma next', text)
         text = text.lstrip()
         if text[0] == ',': text = text[1:]
@@ -38,7 +38,7 @@ class Parser (object):
         if text[i] in 'eE':
             i += 1
             if text[i] in '+-': i += 1
-            if !text[i].isdigit():
+            if not text[i].isdigit():
                 raise ValueError('Expected digits for exponent', text[:i+1])
             while text[i].isdigit(): i += 1
             frac = True
@@ -112,7 +112,7 @@ class Parser (object):
                         Transform((-cx, -cy))), args[1:]
             raise ValueError('No close-paren after rotate( parameter-list', args, text)
 
-        if !text.startswith('skew') or (text[4:] and text[4] not in 'XY'):
+        if not text.startswith('skew') or (text[4:] and text[4] not in 'XY'):
             raise ValueError('Unrecognised transform type', text)
         args, type = text[5:].lstrip(), text[4]
         if args[0] != '(': raise ValueError('No open-paren after ' + text[:5], text)
