@@ -492,7 +492,9 @@ class cachePrimes(_Prime, Lazy):
 
     def _lazy_get_prime_cache_dir_(self, ignored, nodir=nosuchdir):
         import os
-        ans = os.path.join(self.__prime_module_dir, 'primes')
+        try: ans = os.environ['STUDY_FLATPRIME_PATH']
+        except KeyError:
+            ans = os.path.join(self.__prime_module_dir, 'primes')
         if nodir(ans, os): os.makedirs(ans)
         return ans
 
