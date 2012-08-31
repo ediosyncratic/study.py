@@ -405,25 +405,25 @@ class Slice (Regular):
     # Can't actually use slice as a base class (not even using __new__: its
     # metaclass refuses), so fake it:
     def __init__(self, *args):
-	if len(args) == 1:
-	    try: args = args[0].start, args[0].stop, args[0].step
-	    except AttributeError: pass
+        if len(args) == 1:
+            try: args = args[0].start, args[0].stop, args[0].step
+            except AttributeError: pass
         self.__seq = slice(*args)
 
     def __repr__(self): return 'S' + repr(self.__seq)[1:]
     def __nonzero__(self):
-	if self.__seq.stop is None: return True
-	if self.step == 0: return self.__seq.stop != self.start
-	return (self.__seq.stop - self.start) * self.step > 0
+        if self.__seq.stop is None: return True
+        if self.step == 0: return self.__seq.stop != self.start
+        return (self.__seq.stop - self.start) * self.step > 0
 
     def __getattr__(self, key):
-	"""Attribute look-up for attributes not in .__dict__
+        """Attribute look-up for attributes not in .__dict__
 
-	Adds .last, .max and .min to the attributes of .__seq, delegating to the
-	latter for its but mediating the defaults that .start and .step mean
-	when None.  Thus other code of this class references these two
-	attributes directly off self, instead of via .__seq, to avoid having to
-	repeat the special handling of None.\n"""
+        Adds .last, .max and .min to the attributes of .__seq, delegating to the
+        latter for its but mediating the defaults that .start and .step mean
+        when None.  Thus other code of this class references these two
+        attributes directly off self, instead of via .__seq, to avoid having to
+        repeat the special handling of None.\n"""
 
         if key == 'last':
             if self.isempty:

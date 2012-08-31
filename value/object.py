@@ -105,7 +105,7 @@ class Object (Lazy):
             del what['lazy_aliases']
             self.__upinit(lazy_aliases=aliases)
 
-	self.also(**what)
+        self.also(**what)
 
         # now we prepare to replace self's lazy lookup method with one which
         # remembers to call the original before it's finished.
@@ -114,21 +114,21 @@ class Object (Lazy):
         def borrow(where, _row=row):
             _row.insert(-1, aslookup(where))
 
-	def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
+        def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
             if key in _inalien or ( # Don't borrow if unborrowable
                 # or if private (but magic doesn't count as private):
                 key[:1] == '_' and not (key[:2] == '__' == key[-2:])):
                 row = (_row[-1],)
             else: row = _row
 
-	    for item in row:
-		try: return item(key)
-		except AttributeError: pass
+            for item in row:
+                try: return item(key)
+                except AttributeError: pass
 
-	    raise AttributeError, key
+            raise AttributeError, key
 
-	self.borrow = borrow
-	self._lazy_lookup_ = getit
+        self.borrow = borrow
+        self._lazy_lookup_ = getit
 
     def __delattr__(self, key):
         if key in self._lazy_preserve_:

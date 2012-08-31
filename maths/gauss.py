@@ -53,31 +53,31 @@ from variate import Variate
 class Normal (Variate):
     __upinit = Variate.__init__
     def __init__(self, mean, stddev):
-	"""Initialises a (one-dimensional) Normal distribution.
+        """Initialises a (one-dimensional) Normal distribution.
 
-	Takes two arguments; mean and stddev, the mean and standard deviation
-	of the normal distribution. """
+        Takes two arguments; mean and stddev, the mean and standard deviation
+        of the normal distribution. """
 
-	scalar = True
-	try:
-	    mean.width, mean.best
-	    if callable(mean.evaluate): scalar = False
-	except AttributeError: pass
-	try:
-	    stddev.width, stddev.best
-	    if callable(stddev.evaluate): scalar = False
-	except AttributeError: pass
+        scalar = True
+        try:
+            mean.width, mean.best
+            if callable(mean.evaluate): scalar = False
+        except AttributeError: pass
+        try:
+            stddev.width, stddev.best
+            if callable(stddev.evaluate): scalar = False
+        except AttributeError: pass
 
-	if scalar:
-	    # ordinary python numeric types, or functional equivalents
-	    def func(val, m=mean, s=stddev, g=gauss):
-		return g((val-m)/s)/s
-	else:
-	    # Quantity(), supporting sophistication :^)
-	    def func(val, m=mean, s=stddev, g=gauss):
-		return ((val-m)/s).evaluate(g)/s
+        if scalar:
+            # ordinary python numeric types, or functional equivalents
+            def func(val, m=mean, s=stddev, g=gauss):
+                return g((val-m)/s)/s
+        else:
+            # Quantity(), supporting sophistication :^)
+            def func(val, m=mean, s=stddev, g=gauss):
+                return ((val-m)/s).evaluate(g)/s
 
-	self.__upinit(func, width = 5 * stddev)
+        self.__upinit(func, width = 5 * stddev)
         self.mean, self.sigma = mean, stddev
 
     import random

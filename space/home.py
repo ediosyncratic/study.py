@@ -92,14 +92,14 @@ def load_rubble(): # lazy satellite loader for Sun
 Sun = body.Star(
     'Sun', load_rubble, type='G2 V',
     orbit = Orbit(MilkyWay,
-		  Quantity.within(26, 1.4, kilo * year.light),
+                  Quantity.within(26, 1.4, kilo * year.light),
                   # I've seen figures of 28 k ly, 8 k parsec; I used to quote 3e4 ly
                   # and Wikipedia gives both 26 +/- 1.4 and 25 +/- 1 k ly
-		  Spin(Quantity.within(230, 10, mega * year)),
+                  Spin(Quantity.within(230, 10, mega * year)),
                   # I've seen period figures from 220 to 240 My.
                   None, # I don't know eccentricity, let Orbit guess for us ...
                   # I've seen speed quoted as 215 and 220 km/s
-		  speed=Quantity.within(218, 2, km / second)),
+                  speed=Quantity.within(218, 2, km / second)),
     # for mass and surface, see below: Sun.also(...)
     __doc__ = """The Sun: the star at the heart of the solar system.""",
     velocity = Quantity.fromDecimal(

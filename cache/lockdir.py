@@ -183,7 +183,7 @@ class LockableDir (object):
         elif not exist(self.__file): content = False # need to create it
         else: content = None # no change
 
-	# Remember old __fd so we can .close() it when we're done with it:
+        # Remember old __fd so we can .close() it when we're done with it:
         try: old = self.__fd
         except AttributeError: old = None
 

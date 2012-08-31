@@ -525,10 +525,10 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
     chose(num,i) = chose(num, num-i) and (1+num| num-i <- i |1+num) is a
     permutation)
 
-	num! = sum(: chose(num, i) * unfixed(i) <- i :1+num)
+        num! = sum(: chose(num, i) * unfixed(i) <- i :1+num)
 
     Whence, as 1 = chose(num, num)
-	unfixed(num) = num! - sum(: chose(num,i) * unfixed(i) <- i :num)
+        unfixed(num) = num! - sum(: chose(num,i) * unfixed(i) <- i :num)
 
     I find that unfixed(num) * e - factorial(num) gets rapidly close to 0.  We
     get a glitch in the sequence of values at 17 and 19, arising from rounding
@@ -538,7 +538,7 @@ def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
     :1+num) plus something smaller than 1.
 
     So, consider any natural N for which, for each num in N,
-	unfixed(num) = sum(: pow(-1,i)*num!/i! <- i :1+num).
+        unfixed(num) = sum(: pow(-1,i)*num!/i! <- i :1+num).
     An example would be N = 0, since there is no num in 0 = {}.  In such a
     case,
 

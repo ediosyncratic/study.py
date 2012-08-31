@@ -133,12 +133,12 @@ Public methods:
             rat = map(lambda x, y: (y / x).log, gap[:-1], gap[1:])
             cut = mid(rat) / 5
 
-	    # Could perhaps do better by considering every ratio of differences
-	    # among entries; these are all base**j * (base**i - 1)/(base**k - 1)
-	    # if we do things in the right order; and every difference between
-	    # entries with adjacent indices yields, where it's used as
-	    # denominator, a simple k = 1 so these ratios are base**j *
-	    # (base**(i-1) + ... + base**2 + base + 1)
+            # Could perhaps do better by considering every ratio of differences
+            # among entries; these are all base**j * (base**i - 1)/(base**k - 1)
+            # if we do things in the right order; and every difference between
+            # entries with adjacent indices yields, where it's used as
+            # denominator, a simple k = 1 so these ratios are base**j *
+            # (base**(i-1) + ... + base**2 + base + 1)
 
             score = rat[0]
             while score < cut:

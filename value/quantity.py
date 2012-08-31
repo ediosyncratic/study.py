@@ -508,7 +508,7 @@ class Quantity (Object):
 
     __obcopy = Object.copy
     def copy(self, func=None):
-	return self.__obcopy(self.__scale.copy(func), self.__units.copy())
+        return self.__obcopy(self.__scale.copy(func), self.__units.copy())
 
     def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
@@ -558,19 +558,19 @@ class Quantity (Object):
         return bok
 
     def evaluate(self, f):
-	"""Return result of passing self to the given scalar function.
+        """Return result of passing self to the given scalar function.
 
-	Takes a single argument, a callable, typically a function such as
-	math.exp which can only handle inputs of type scalar; returns the
-	appropriate Quantity obtained by supplying self to this function; but
-	raises TypeError unless self is dimensionless.  Result is always
-	dimensionless.
+        Takes a single argument, a callable, typically a function such as
+        math.exp which can only handle inputs of type scalar; returns the
+        appropriate Quantity obtained by supplying self to this function; but
+        raises TypeError unless self is dimensionless.  Result is always
+        dimensionless.
 
-	Note that self.copy(f) will do the corresponding thing but giving the
-	result the same units as self, whatever these may be; .copy() makes no
-	attempt to check whether what you asked for makes sense ... """
+        Note that self.copy(f) will do the corresponding thing but giving the
+        result the same units as self, whatever these may be; .copy() makes no
+        attempt to check whether what you asked for makes sense ... """
 
-	return self.__quantity__(self._scalar.copy(f), {})
+        return self.__quantity__(self._scalar.copy(f), {})
 
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)

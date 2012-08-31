@@ -105,7 +105,7 @@ class Iterable (object):
         returns an iterator over the values.  Contrast with cartesian().\n"""
 
         others = map(self.__endless, others)
-	if func is None: func = lambda *args: args
+        if func is None: func = lambda *args: args
         for val in self:
             yield func(val, *map(lambda x: x.next(), others))
 
@@ -228,9 +228,9 @@ class ReadSeq (Iterable):
 
     @iterable
     def __get(self, ind, S=Slice):
-	for i in ind:
-	    try: yield self[i]
-	    except IndexError:
+        for i in ind:
+            try: yield self[i]
+            except IndexError:
                 # A [:]'s slice has become a Slice(0, maxint), which isn't a
                 # happy thing to iterate, merely to ignore the out-of-bounds
                 # entries.  To support arbitrary sequences as ind, or a slice
@@ -861,16 +861,16 @@ class Ordered (List):
         self.sort(reverse=True)
 
     def __ne(self, ind, val):
-	"""Compares an entry in self to a given value.
+        """Compares an entry in self to a given value.
 
-	Arguments:
-	  ind -- an index into self
-	  val -- a value
+        Arguments:
+          ind -- an index into self
+          val -- a value
 
-	Returns the result of self's defined comparison; if val is less than
-	self[ind], the return is -1, if greater +1; otherwise 0.  Caller is
-	responsible for deciding whether less or greater values belong earlier
-	or later in the list (i.e. handling of self.__rev).\n"""
+        Returns the result of self's defined comparison; if val is less than
+        self[ind], the return is -1, if greater +1; otherwise 0.  Caller is
+        responsible for deciding whether less or greater values belong earlier
+        or later in the list (i.e. handling of self.__rev).\n"""
 
         attr = self.__attr
         if attr: ind, val = getattr(self[ind], attr), getattr(val, attr)
@@ -886,17 +886,17 @@ class Ordered (List):
         return 0 # even if not(ind == val)
 
     def __eq(self, ind, val):
-	"""True precisely if val belongs at position ind."""
+        """True precisely if val belongs at position ind."""
         return self.__ne(ind, val) == 0
 
     def __lt(self, ind, val):
-	"""True precisely if val belongs after position ind."""
+        """True precisely if val belongs after position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans > 0
         return ans < 0
 
     def __gt(self, ind, val):
-	"""True precisely if val belongs no later than position ind."""
+        """True precisely if val belongs no later than position ind."""
         ans = self.__ne(ind, val)
         if self.__rev: return ans < 0
         return ans > 0
@@ -928,11 +928,11 @@ class Ordered (List):
         return hi
 
     def __contains__(self, value):
-	"""True if self would consider value a duplicate entry, if inserted.
+        """True if self would consider value a duplicate entry, if inserted.
 
-	Note that this happens if self has an entry that self deems neither
-	less nor greater than value, even if this entry does not compare equal
-	to value.\n"""
+        Note that this happens if self has an entry that self deems neither
+        less nor greater than value, even if this entry does not compare equal
+        to value.\n"""
         ind = self.__locate(value)
         return not ( ind < 0 or self.__ne(ind, value) )
 
@@ -940,11 +940,11 @@ class Ordered (List):
         """Extends and optimises list.index
 
         Required argument, value, is an entry to look for in this list.  Note,
-	however, that the comparison self uses may be non-simple (see __ne)
-	and that value shall be `found' if this comparison considers it
-	neither less nor greater than some entry in the list; the entry found
-	need not be equal to value (although it likely is for most sensible
-	choices of comparison).
+        however, that the comparison self uses may be non-simple (see __ne)
+        and that value shall be `found' if this comparison considers it
+        neither less nor greater than some entry in the list; the entry found
+        need not be equal to value (although it likely is for most sensible
+        choices of comparison).
 
         Optional arguments lo (default: 0) and hi (default: -1) bound the
         range in which to look for it; self[lo:hi] is searched instead of the

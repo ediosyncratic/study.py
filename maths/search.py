@@ -97,8 +97,8 @@ def logrange(a, b=None, c=None):
 
     result, direction = [], abs(step) - 1
     while (stop - abs(start)) * direction > 0:
-	result.append(start)
-	start = start * step
+        result.append(start)
+        start = start * step
 
     return result
 
@@ -140,7 +140,7 @@ def median(seq, fn=None):
 
 def gradients(fn, arg, *deltas):
     if len(deltas) == 1 and isinstance(deltas[0], (tuple, list)):
-	deltas = deltas[0]
+        deltas = deltas[0]
     try: result = map(lambda e, f=fn, a=arg: (f(a+e)-f(a-e))*.5/e, deltas)
     except (OverflowError, ZeroDivisionError, ValueError):
         result = []
@@ -152,8 +152,8 @@ def gradients(fn, arg, *deltas):
     # However, if the last few deltas are so small df is lost in rounding, throw
     # them away !
     if filter(None, result):	# ie there are some non-zeros in the list ...
-	while result and result[-1] == 0:
-	    result = result[:-1]
+        while result and result[-1] == 0:
+            result = result[:-1]
 
     return result
 
@@ -164,11 +164,11 @@ def gradient(fn, arg):
     # i.e. [ 1, -.1, .01, -.001, ... ]
     grads = gradients(fn, arg, deltas)
     try: # does fn cope with complex values ?
-	more = gradients(fn, arg, map(lambda x: 1j*x, deltas))
+        more = gradients(fn, arg, map(lambda x: 1j*x, deltas))
         grads = map(lambda x: x+0j, grads) + more # add 0j to coerce complex
         # return meadian of real parts + 1j * median of imaginary parts:
-	return median(map(lambda x: x.real, grads)) \
-	+ 1j * median(map(lambda x: x.imag, grads))
+        return median(map(lambda x: x.real, grads)) \
+        + 1j * median(map(lambda x: x.imag, grads))
 
     except (AttributeError, TypeError): return median(grads)
 
@@ -251,42 +251,42 @@ class Search:
     # it might be nice to add some optional verbosity !
 
     def __init__(self, func, start, goal=abs, stride=1.):
-	self.goal, self.__func = goal, func
-	self.stride, self.next = stride, start + stride
+        self.goal, self.__func = goal, func
+        self.stride, self.next = stride, start + stride
         self.__initscore(start)
 
     def reset(self, func=None, start=None, goal=None, stride=None):
-	if func: self.__func = func
-	if start: self.next = start
-	if goal: self.goal = goal
-	if stride: self.stride = stride
+        if func: self.__func = func
+        if start: self.next = start
+        if goal: self.goal = goal
+        if stride: self.stride = stride
         self.__initscore(self.__best[0])
 
     def __initscore(self, start):
         # Contrast with .func(), below.
         F = self.__func(start)
-	self.__best = start, F
+        self.__best = start, F
         self.__score = self.goal(F)
 
     def __getattr__(self, key):
-	if key == 'best': return self.__best
-	if key == 'score': return self.__score
+        if key == 'best': return self.__best
+        if key == 'score': return self.__score
 
         raise AttributeError, key
 
     def func(self, v):
         # Evaluate requested value
-	F = self.__func(v)
+        F = self.__func(v)
 
         # pay attention to what's passing through our hands
         score = self.goal(F)
-	if score < self.__score:
+        if score < self.__score:
             # v takes the title for best root seen thus far
-	    self.__best = v, F
+            self.__best = v, F
             self.__score = score
 
         # Return requested value
-	return F
+        return F
 
     def Newton(self):
         before, best = self.next, self.__score
@@ -316,28 +316,28 @@ class Search:
         return turn * new / art
 
     def rummage(self, tries=42, threshold=-1):
-	"""Does a search for a better answer.
+        """Does a search for a better answer.
 
-	Arguments are optional:
+        Arguments are optional:
 
-	  tries -- 42 by default: the number of attempts to make at refine().
+          tries -- 42 by default: the number of attempts to make at refine().
           Uses a mixture of Newton-Raphson and triangulation refinements.
 
-	  threshold -- -1: if a refine()ment produces an answer whose goal()
-	  value is < threshold, rummage() will return the new best estimate and
-	  its answer, as a tuple, even if it hasn't yet done refine() tries
-	  times.  The default renders this impossible if goal() is never
-	  negative; however, the default also makes ZeroDivisionError quite
-	  likely to arise (in which case self.best is probably quite good).
+          threshold -- -1: if a refine()ment produces an answer whose goal()
+          value is < threshold, rummage() will return the new best estimate and
+          its answer, as a tuple, even if it hasn't yet done refine() tries
+          times.  The default renders this impossible if goal() is never
+          negative; however, the default also makes ZeroDivisionError quite
+          likely to arise (in which case self.best is probably quite good).
 
-	Returns the new best value if it beats the threshold, otherwise
-	None. """
+        Returns the new best value if it beats the threshold, otherwise
+        None. """
 
-	# Admin variables
-	best, step = self.__score, self.stride
+        # Admin variables
+        best, step = self.__score, self.stride
 
-	while tries > 0:
-	    tries = tries - 1
+        while tries > 0:
+            tries = tries - 1
             try:
                 if tries % 3:
                     if tries % 2: step = -1j * step
@@ -351,50 +351,50 @@ class Search:
                 continue
 
             gain = best - self.__score
-	    if gain > 0:
-		if self.__score < threshold:
-		    return self.best
+            if gain > 0:
+                if self.__score < threshold:
+                    return self.best
 
                 # Record details of this improvement:
-		best = self.__score
+                best = self.__score
 
 # Passing thought: given a search for sought in text, we can do the following:
 def text_search(sought, text, skip = 0):
-	total = len(text)
-	length = len(sought)
-	if total < length: return -1
+    total = len(text)
+    length = len(sought)
+    if total < length: return -1
 
-	end = 0		# A match, if found, will be text[end-length:end].
-	last = {}	# lookup table to say how far to advance given mis-match.
+    end = 0     # A match, if found, will be text[end-length:end].
+    last = {}   # lookup table to say how far to advance given mis-match.
 
-	# last will hold, indexed by character, how far to the right of a
-	# character is the first position at which a match of sought can end,
-	# given that the match does not end before the given character.
+    # last will hold, indexed by character, how far to the right of a
+    # character is the first position at which a match of sought can end,
+    # given that the match does not end before the given character.
 
-	# First: find least possible value of end (while initialising last)
-	for i in range(length):
-		here = sought[i]
-		last[here] = length - i
-		# Loop invariant:
-		# a match of sought[:i] cannot arise earlier than text[end-i:end]
-		while text[end] != here:
-			end = 1 + end
-			if end >= total: return -1
+    # First: find least possible value of end (while initialising last)
+    for i in range(length):
+        here = sought[i]
+        last[here] = length - i
+        # Loop invariant:
+        # a match of sought[:i] cannot arise earlier than text[end-i:end]
+        while text[end] != here:
+            end = 1 + end
+            if end >= total: return -1
 
-	# Hereafter, advance in search of a match
-	while end <= total:
-		match = (0==0)
-		for i in range(length):
-			if text[end-1-i] != sought[-1-i]:
-				fro = end - i + length
-				if last.has_key(text[end-i]):
-					fro = end - i + last[text[end-i]]
-				if fro > end:
-					end = fro
-				else: match = (0!=0)
-		else:
-			if match:
-				if skip > 0: skip = skip - 1
-				else: return end - length
-			end = end + 1
-	else: return -1
+    # Hereafter, advance in search of a match
+    while end <= total:
+        match = (0==0)
+        for i in range(length):
+            if text[end-1-i] != sought[-1-i]:
+                fro = end - i + length
+                if last.has_key(text[end-i]):
+                    fro = end - i + last[text[end-i]]
+                if fro > end:
+                    end = fro
+                else: match = (0!=0)
+        else:
+            if match:
+                if skip > 0: skip = skip - 1
+                else: return end - length
+            end = end + 1
+    else: return -1

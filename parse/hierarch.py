@@ -46,44 +46,44 @@ class Diagram (object):
     relevant prefix.\n"""
 
     def __init__(self, prefix=lambda x: x.__module__.split('.')[-1] + '.'):
-	"""Initialize diagram.
+        """Initialize diagram.
 
-	Single argument, prefix, is optional.  It determines a prefix to be
-	added to the name of each class in the diagram.  The special value,
-	None, is a synonym for lambda x: '', i.e. use no prefix.  The default
-	takes the last component of the '.'-joined sequence that is the class's
-	.__module__ and adds a '.' to the end, to join it to the class
-	name. Otherwise, a callable should be supplied: it is passed the class
-	and should return a string (which should typically end in a '.' to join
-	it to the class name).\n"""
+        Single argument, prefix, is optional.  It determines a prefix to be
+        added to the name of each class in the diagram.  The special value,
+        None, is a synonym for lambda x: '', i.e. use no prefix.  The default
+        takes the last component of the '.'-joined sequence that is the class's
+        .__module__ and adds a '.' to the end, to join it to the class
+        name. Otherwise, a callable should be supplied: it is passed the class
+        and should return a string (which should typically end in a '.' to join
+        it to the class name).\n"""
 
-	self.__classes = self.__filters = self.__text = self.__border = ()
-	if prefix is None: self.__prefix = lambda x: ''
-	else: self.__prefix = prefix
+        self.__classes = self.__filters = self.__text = self.__border = ()
+        if prefix is None: self.__prefix = lambda x: ''
+        else: self.__prefix = prefix
 
     def add_class(self, *etc):
-	"""Adds some classes, and their bases, to the diagram.
+        """Adds some classes, and their bases, to the diagram.
 
-	Accepts arbitrarily many positional parameters, each of which should be
-	a class to be included in the diagram, along with all of its bases.\n"""
-	self.__classes += etc
+        Accepts arbitrarily many positional parameters, each of which should be
+        a class to be included in the diagram, along with all of its bases.\n"""
+        self.__classes += etc
 
     def add_filter(self, *etc):
-	"""Adds filters to the base classes to be included in the diagram.
+        """Adds filters to the base classes to be included in the diagram.
 
-	Accepts arbitrarily many positional parameters, each of which should be
-	a callable which accepts a single input (a base of a class in our
-	diagram) and returns a value which can be used as a conditional; if a
-	base-class, of a class in the diagram, gets a true value back from at
-	least one filter, the base-class is included in the diagram.  See also
-	add_module, for the special case of filtering by which module provided
-	the class.  Note that, if parse_module() is used, there may be fake
-	module objects and even strings in the graph: the single parameter
-	passed to each filter may thus be a string; otherwise, the only
-	attributes it reliably has are __name__, __bases__ and __module__; and
-	the last two of these may be None.\n"""
+        Accepts arbitrarily many positional parameters, each of which should be
+        a callable which accepts a single input (a base of a class in our
+        diagram) and returns a value which can be used as a conditional; if a
+        base-class, of a class in the diagram, gets a true value back from at
+        least one filter, the base-class is included in the diagram.  See also
+        add_module, for the special case of filtering by which module provided
+        the class.  Note that, if parse_module() is used, there may be fake
+        module objects and even strings in the graph: the single parameter
+        passed to each filter may thus be a string; otherwise, the only
+        attributes it reliably has are __name__, __bases__ and __module__; and
+        the last two of these may be None.\n"""
 
-	self.__filters += etc
+        self.__filters += etc
 
     @staticmethod
     def __isinmod(m):
@@ -96,14 +96,14 @@ class Diagram (object):
         return res
 
     def add_module(self, *mods):
-	"""Convenience method to filter on source modules.
+        """Convenience method to filter on source modules.
 
-	Accepts arbitrarily many positional parameters, each of which should be
-	a string which names a module or package: each is used to construct a
-	filter which accepts classes whose .__module__ either is the string or
-	begins with it followed by a dot; these filters is then forwarded to
-	self.add_filter (q.v.).\n"""
-	self.add_filter(*map(self.__isinmod, mods))
+        Accepts arbitrarily many positional parameters, each of which should be
+        a string which names a module or package: each is used to construct a
+        filter which accepts classes whose .__module__ either is the string or
+        begins with it followed by a dot; these filters is then forwarded to
+        self.add_filter (q.v.).\n"""
+        self.add_filter(*map(self.__isinmod, mods))
 
     class FakeClass (object):
         def __init__(self, name, module, bases):
@@ -261,51 +261,51 @@ class Diagram (object):
     from colour import Colour
     @staticmethod
     def __colpat(pattern, colour, parse=re.compile, shade=Colour.from_gv):
-	"""Digest possible encodings of a regex-to-colour mapping.
+        """Digest possible encodings of a regex-to-colour mapping.
 
-	Parameters:
-	  pattern -- either a regular expression or a string.
-	  colour -- either a colour.Colour or a valid colour string
+        Parameters:
+          pattern -- either a regular expression or a string.
+          colour -- either a colour.Colour or a valid colour string
 
-	Returns a two-ple of a regular expression and a colour.Colour
-	object.  If pattern is a string, it is re.compile()d to obtain a regular
-	expression.  For the allowable colour strings, see the
-	colour.Colour.from_text(), which shall be used to interpret them.\n"""
+        Returns a two-ple of a regular expression and a colour.Colour
+        object.  If pattern is a string, it is re.compile()d to obtain a regular
+        expression.  For the allowable colour strings, see the
+        colour.Colour.from_text(), which shall be used to interpret them.\n"""
 
-	if isinstance(pattern, basestring): pattern = parse(pattern)
-	if isinstance(colour, basestring): colour = shade(colour)
-	return pattern, colour
+        if isinstance(pattern, basestring): pattern = parse(pattern)
+        if isinstance(colour, basestring): colour = shade(colour)
+        return pattern, colour
 
     del re, Colour
 
     def colour_text(self, pattern, colour):
-	"""Specify colouring of class names.
-	"""
-	self.__text += (self.__colpat(pattern, colour),)
+        """Specify colouring of class names.
+        """
+        self.__text += (self.__colpat(pattern, colour),)
 
     def colour_ring(self, pattern, colour):
-	"""Specify colouring of the ellipses bubbling class names.
-	"""
-	self.__border += (self.__colpat(pattern, colour),)
+        """Specify colouring of the ellipses bubbling class names.
+        """
+        self.__border += (self.__colpat(pattern, colour),)
 
     def arcs(self):
-	"""Returns a filtered set of arcs of the diagram.
+        """Returns a filtered set of arcs of the diagram.
 
-	Result is a set of triples (derived, index, base) with derived being a
-	class whose .__bases__[index] is base.  For each class passed to
-	add_class or present as the base of a returned tuple, one such tuple is
-	included for each base of the class (when no filters are given or, when
-	any are ...) that satisfies at least one filter passed to add_filter
-	(possibly by being provided by a module or package passed to
-	add_module).\n"""
+        Result is a set of triples (derived, index, base) with derived being a
+        class whose .__bases__[index] is base.  For each class passed to
+        add_class or present as the base of a returned tuple, one such tuple is
+        included for each base of the class (when no filters are given or, when
+        any are ...) that satisfies at least one filter passed to add_filter
+        (possibly by being provided by a module or package passed to
+        add_module).\n"""
 
-	done, ans, todo = set(), set(), set(self.__classes)
-	while todo:
-	    it, i = todo.pop(), -1
-	    done.add(it)
-	    for b in it.__bases__:
+        done, ans, todo = set(), set(), set(self.__classes)
+        while todo:
+            it, i = todo.pop(), -1
+            done.add(it)
+            for b in it.__bases__:
                 i += 1
-		if b not in done and b not in todo:
+                if b not in done and b not in todo:
                     if self.__filters:
                         for f in self.__filters:
                             if f(b): break
@@ -317,43 +317,43 @@ class Diagram (object):
 
                 ans.add((it, i, b))
 
-	return ans
+        return ans
 
     def nodes(self):
-	"""Returns a set of classes in the diagram.
+        """Returns a set of classes in the diagram.
 
-	Each member of the returned set is a class that shall apppear in the
-	diagram.\n"""
-	ans = set()
-	for (d, i, b) in self.arcs():
-	    # set.add is helpfully good at ignoring duplicates
-	    ans.add(d)
-	    ans.add(b)
+        Each member of the returned set is a class that shall apppear in the
+        diagram.\n"""
+        ans = set()
+        for (d, i, b) in self.arcs():
+            # set.add is helpfully good at ignoring duplicates
+            ans.add(d)
+            ans.add(b)
 
-	return ans
+        return ans
 
     def colouring(self):
-	"""Returns a { classname: node-colour } mapping."""
+        """Returns a { classname: node-colour } mapping."""
         raise NotImplementedError # TODO
 
     def __name(self, k):
         if isinstance(k, basestring): return k
-	return self.__prefix(k) + k.__name__
+        return self.__prefix(k) + k.__name__
 
     def emit(self, fd):
-	"""Emits a dot-format description of the class hierarchy.
+        """Emits a dot-format description of the class hierarchy.
 
-	Single argument, fd, is the handle of a file open for writing, to which
-	to write the description.\n"""
+        Single argument, fd, is the handle of a file open for writing, to which
+        to write the description.\n"""
 
-	fd.write('digraph ClassDiagram {\n' +
-		 '  rankdir="RL"\n' +
-		 '  node [shape=ellipse]\n')
+        fd.write('digraph ClassDiagram {\n' +
+                 '  rankdir="RL"\n' +
+                 '  node [shape=ellipse]\n')
 
         # TODO: add colouring per node
 
-	for (d, i, b) in self.arcs():
-	    fd.write('  "%s" -> "%s" [taillabel="%d"];\n' %
-		     (self.__name(d), self.__name(b), i))
+        for (d, i, b) in self.arcs():
+            fd.write('  "%s" -> "%s" [taillabel="%d"];\n' %
+                     (self.__name(d), self.__name(b), i))
 
-	fd.write('}\n')
+        fd.write('}\n')

@@ -108,12 +108,12 @@ def hcf(*args):
 
     this = 0
     for n in args:
-	# Any negative factor's matching positive is also a factor, and is
-	# greater than any negative.
-	if n < 0: n = -n
-	# Euclid's algorithm (see also its extension, Euclid(), below):
-	while n:
-	    n, this = this % n, n
+        # Any negative factor's matching positive is also a factor, and is
+        # greater than any negative.
+        if n < 0: n = -n
+        # Euclid's algorithm (see also its extension, Euclid(), below):
+        while n:
+            n, this = this % n, n
     return this
 
 # Legacy / Alias: "greatest common divisor".
@@ -132,9 +132,9 @@ def lcm(*others):
 
     this = 1
     for other in others:
-	if not other: return other # in case it's an object whose class views it as zero
-	c = hcf(this, other)	# > 0, as other != 0.
-	this = other * this / c
+        if not other: return other # in case it's an object whose class views it as zero
+        c = hcf(this, other)    # > 0, as other != 0.
+        this = other * this / c
 
     # this's sign is currently the product of the signs of the arguments.
     if this < 0: return -this

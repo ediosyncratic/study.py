@@ -136,9 +136,9 @@ class Find (Partition):
         self.__up = range(size)
         self.__count = [ 1 ] * size
 
-	# self.__up[i] is a member of the same connected component as i; i is
-	# the representative member of the component iff i is self.__up[i], in
-	# which case self.__count[i] is the size of the connected component.
+        # self.__up[i] is a member of the same connected component as i; i is
+        # the representative member of the component iff i is self.__up[i], in
+        # which case self.__count[i] is the size of the connected component.
 
     def __len__(self): return len(self.__up)
     # assert: always equal to len(self.__count)

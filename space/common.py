@@ -93,12 +93,12 @@ class Orbit (Round):
         [1] http://csep10.phys.utk.edu/astr161/lect/history/kepler.html
         [2] http://www.chaos.org.uk/~eddy/physics/cocentric.html\n"""
         ws = []
-	try: ws.append(what['speed'] / radius)
-	except KeyError: pass
+        try: ws.append(what['speed'] / radius)
+        except KeyError: pass
 
-	try: GM = centre._lazy_get_GM_('GM') # compute but don't store ...
-	except AttributeError: pass
-	else: ws.append((GM / radius**3)**.5)
+        try: GM = centre._lazy_get_GM_('GM') # compute but don't store ...
+        except AttributeError: pass
+        else: ws.append((GM / radius**3)**.5)
 
         if spin is None and not ws: # needed by __spin
             raise ValueError('No spin specified or computeble for orbit', centre, radius, what)
@@ -243,8 +243,8 @@ class Surface (Spheroid, Round, SurfacePart):
     def _lazy_get__GM_(self, ignored): return self.gravity * self.radius**2
 
     def _lazy_get__sync_(self, ignored, third=1./3):
-	"""Radius for synchronous orbit."""
-	return (self.gravity * (self.radius / self.spin.omega) ** 2)**third
+        """Radius for synchronous orbit."""
+        return (self.gravity * (self.radius / self.spin.omega) ** 2)**third
 
 class Ocean (SurfacePart):
     __upvol = SurfacePart._lazy_get_volume_

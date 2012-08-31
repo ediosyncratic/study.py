@@ -75,15 +75,15 @@ class Multinomial (Lazy):
         return tuple(tot)
 
     def __mul__(self, whom, add=addboks):
-	term = {}
+        term = {}
         try: bok = whom.__coefs
         except AttributeError:
-	    for key, val in self.__coefs.items():
-		term[key] = val * whom
-	else:
+            for key, val in self.__coefs.items():
+                term[key] = val * whom
+        else:
             zero = self._zero * whom._zero
-	    for key, val in self.__coefs.items():
-		for cle, lue in bok.items():
+            for key, val in self.__coefs.items():
+                for cle, lue in bok.items():
                     tot = add(key, cle)
                     term[tot] = term.get(tot, zero) + val * lue
 

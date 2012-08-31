@@ -71,37 +71,37 @@ class Polynomial (Lazy):
     def __init__(self, coeffs, denominator=None, variate=None):
         """Constructor.
 
-	Required argument, coeffs, specifies the coefficient of each power.  A
-	mapping {n: c, ...} specifies a term lambda x: c * x**n in the
-	polynomial, for each key, value pair n, c; this is particularly
-	well-suited to sparse polynomials, with rank much greater than number of
-	non-zero coefficients.  A sequence is construed as a mapping with its
-	indices as keys and entries as values, so (a, b, c) is construed as {0:
-	a, 1: b, 2: c}, so specifies a quadratic lambda x: a +b*x +c*x**2; the
-	sequence form is particularly apt for low rank.  Any other value for
-	coeffs shall provoke a TypeError.
+        Required argument, coeffs, specifies the coefficient of each power.  A
+        mapping {n: c, ...} specifies a term lambda x: c * x**n in the
+        polynomial, for each key, value pair n, c; this is particularly
+        well-suited to sparse polynomials, with rank much greater than number of
+        non-zero coefficients.  A sequence is construed as a mapping with its
+        indices as keys and entries as values, so (a, b, c) is construed as {0:
+        a, 1: b, 2: c}, so specifies a quadratic lambda x: a +b*x +c*x**2; the
+        sequence form is particularly apt for low rank.  Any other value for
+        coeffs shall provoke a TypeError.
 
-	Optional arguments (with defaults):
-	  denominator (None): specifies an over-all scaling
-	  variate (None): specifies the variable name to use in representation
+        Optional arguments (with defaults):
+          denominator (None): specifies an over-all scaling
+          variate (None): specifies the variable name to use in representation
 
-	If denominator is specified, and not None, the resulting Polynomial is
-	effectively 1/denominator times what it would have been without;
-	however, instead of actually dividing coefficients by denominator, which
-	may involve rounding errors, the denominator is tracked separately from
-	the coefficients, if any of them are whole numbers (or, if complex, have
-	whole number real or imaginary part).  Any common factor shared with all
-	such whole numbers is eliminated.  If no coefficients are whole numbers,
-	all are simply divided by the given denominator and the behaviour is as
-	if no denominator were specified.
+        If denominator is specified, and not None, the resulting Polynomial is
+        effectively 1/denominator times what it would have been without;
+        however, instead of actually dividing coefficients by denominator, which
+        may involve rounding errors, the denominator is tracked separately from
+        the coefficients, if any of them are whole numbers (or, if complex, have
+        whole number real or imaginary part).  Any common factor shared with all
+        such whole numbers is eliminated.  If no coefficients are whole numbers,
+        all are simply divided by the given denominator and the behaviour is as
+        if no denominator were specified.
 
-	If variate is specified, and has a true value, it is used as the name of
-	the variable in the polynomial's representations as a string: is should
-	be a non-empty string and is used as the new instance's .variablename;
-	the same effect can be achieved by setting .variablename after
-	instantiation.  By default, str() and repr() use 'z' as the variable,
-	but specifying an alternate name, e.g. 'x', by either of these means
-	shall substitute that name for the default.
+        If variate is specified, and has a true value, it is used as the name of
+        the variable in the polynomial's representations as a string: is should
+        be a non-empty string and is used as the new instance's .variablename;
+        the same effect can be achieved by setting .variablename after
+        instantiation.  By default, str() and repr() use 'z' as the variable,
+        but specifying an alternate name, e.g. 'x', by either of these means
+        shall substitute that name for the default.
 
         Note that setting z = Polynomial((0, 1)) provides a `free variable' that
         can then be used to generate polynomials the way many folk prefer; with
@@ -109,9 +109,9 @@ class Polynomial (Lazy):
 
         See also: the alternate constructors listed in the class doc.\n"""
 
-	if denominator is not None:
-	    1. / denominator # raise suitable error if unsuitable as denominator !
-	self.__denom = denominator
+        if denominator is not None:
+            1. / denominator # raise suitable error if unsuitable as denominator !
+        self.__denom = denominator
 
         self.__coefs = {}       # dictionary with natural keys
         try:
@@ -120,12 +120,12 @@ class Polynomial (Lazy):
         except (AttributeError, TypeError, KeyError): # non-sequence arg
             try: coeffs.items, coeffs.get(0, None) # is it a mapping ?
             except AttributeError:
-		raise TypeError('First argument must be mapping or sequence', coeffs)
+                raise TypeError('First argument must be mapping or sequence', coeffs)
             else: self.__frombok(coeffs) # mapping
 
         # self.__coefs and self.__denom should now be construed as immutable.
 
-	if variate: self.variablename = variate
+        if variate: self.variablename = variate
 
     # Coefficients only require the ability to add, multiply and divmod.
     def _get_coeff(val, oktypes=(int, long, float, complex)):
@@ -415,15 +415,15 @@ class Polynomial (Lazy):
         """
         try: top, den = other.rank, other.__denom
         except AttributeError:
-	    if other: other, top, den = Polynomial({0: other}), 0, 1
-	    else: raise ZeroDivisionError, other
+            if other: other, top, den = Polynomial({0: other}), 0, 1
+            else: raise ZeroDivisionError, other
         else:
             if top < 0: raise ZeroDivisionError, other
             if den is None: den = 1
 
         o = other.__numerator(top)
         if top == 0:
-	    bok = {}
+            bok = {}
             for k, v in self.__coefs.items(): bok[k] = den * v
             return Polynomial(bok, o * (self.__denom or 1)), Polynomial((0,))
 
@@ -461,32 +461,32 @@ class Polynomial (Lazy):
         returned.  Otherwise, a ValueError is raised.\n"""
 
         try:
-	    try: q, r = rat(num.imag)
-	    except ValueError:
-		if num.real == 0: raise
-		q = 0 # sentinel
-	    else:
-		if q == 0:
-		    num = num.real
-		    raise AttributeError # to handle as the simple real it is
-		q *= 1j
-		if num.real == 0: return q, r
-	    # so now, if q == 0, r is unset; otherwise q/r approximates 1j * num.imag
+            try: q, r = rat(num.imag)
+            except ValueError:
+                if num.real == 0: raise
+                q = 0 # sentinel
+            else:
+                if q == 0:
+                    num = num.real
+                    raise AttributeError # to handle as the simple real it is
+                q *= 1j
+                if num.real == 0: return q, r
+            # so now, if q == 0, r is unset; otherwise q/r approximates 1j * num.imag
 
-	    try: n, d = rat(num.real)
-	    except ValueError:
-		if q == 0: raise # neither part is well-approximated
-		n, d = num.real * r + q, r
-	    else:
-		if q == 0: n += 1j * num.imag * d
-		else:
-		    i = hcf(d, r)
-		    n = n * r / i + 1j * q * d / i
-		    d *= r / i
+            try: n, d = rat(num.real)
+            except ValueError:
+                if q == 0: raise # neither part is well-approximated
+                n, d = num.real * r + q, r
+            else:
+                if q == 0: n += 1j * num.imag * d
+                else:
+                    i = hcf(d, r)
+                    n = n * r / i + 1j * q * d / i
+                    d *= r / i
         except AttributeError:
             n, d = rat(num)
 
-	if d < 0: return -n, -d
+        if d < 0: return -n, -d
         return n, d
 
     from cardan import cubic
@@ -508,21 +508,21 @@ class Polynomial (Lazy):
         # First, deal with any obvious approximations to rationals:
         for v in rough:
             # Try to approximate v as n / d, with n and d whole:
-	    try: n, d = rat(v)
-	    except ValueError: continue # give up on this one
+            try: n, d = rat(v)
+            except ValueError: continue # give up on this one
             q, r = divmod(self, Polynomial((-n, d)))
             if r.rank == -1:
                 if d == 1: ans.append(n)
                 else: ans.append(n * 1. / d)
                 self = q
 
-	# TODO: see if we have any conjugate pairs we can resolve ?
+        # TODO: see if we have any conjugate pairs we can resolve ?
 
         # If we refined any rough root, we also refined self:
         if ans:
-	    # sort - but complex has no order, so order by real part; but, to be
-	    # able to select .real, we have to treat all entries as complex:
-	    ans.sort(lambda x, y: cmp((x + 0j).real, (y + 0j).real))
+            # sort - but complex has no order, so order by real part; but, to be
+            # able to select .real, we have to treat all entries as complex:
+            ans.sort(lambda x, y: cmp((x + 0j).real, (y + 0j).real))
             return tuple(ans) + self.roots # recurse
         return tuple(rough)
     del cubic
@@ -544,9 +544,9 @@ class Polynomial (Lazy):
 
         top, res = self.rank / num, root(self.coefficient(self.rank), 1./num, num%2)
         try:
-	    n, d = rat(res)
+            n, d = rat(res)
             if n**num * (self.__denom or 1) != d**num * self.__numerator(self.rank):
-		raise ValueError # heigh ho, not good enough, fall back on real:
+                raise ValueError # heigh ho, not good enough, fall back on real:
         except ValueError: ans = Polynomial({ top: res })
         else: ans = Polynomial({ top: n }, d)
 
@@ -657,29 +657,29 @@ class Polynomial (Lazy):
     # assert: self.derivative.integral(x, self(x)) == self, for any x
 
     def sum(self, start=0, base=0):
-	"""Returns lambda n: sum(map(self, range(n)))
+        """Returns lambda n: sum(map(self, range(n)))
 
-	This is the discrete equivalent of integral.  Also accepts optional
-	arguments, start and base, as for integral(): each defaults to zero and,
-	if f is the result without them, when they're specified the result is f
-	- f(start) + base.  See delta for the inverse operation.\n"""
+        This is the discrete equivalent of integral.  Also accepts optional
+        arguments, start and base, as for integral(): each defaults to zero and,
+        if f is the result without them, when they're specified the result is f
+        - f(start) + base.  See delta for the inverse operation.\n"""
 
-	ans, om = Polynomial((self._zero,)), self.__denom
-	for k, v in self.__coefs.items():
-	    ans += v * Polynomial.PowerSum(k)
-	if om is not None: ans /= om
-	if start: ans -= ans(start)
-	if base: ans += base
-	return ans
+        ans, om = Polynomial((self._zero,)), self.__denom
+        for k, v in self.__coefs.items():
+            ans += v * Polynomial.PowerSum(k)
+        if om is not None: ans /= om
+        if start: ans -= ans(start)
+        if base: ans += base
+        return ans
 
     def _lazy_get_delta_(self, ignored):
-	"""Returns lambda n: self(1+n) - self(n)
+        """Returns lambda n: self(1+n) - self(n)
 
-	This is the discrete equivalent of differentiation, the taking of
-	'finite differences'.  Note that, for any s and b:
-	self.sum(s, b).delta == self == self.delta.sum(0, self(0)).\n"""
-	n = Polynomial((0, 1))
-	return self(1+n) - self(n)
+        This is the discrete equivalent of differentiation, the taking of
+        'finite differences'.  Note that, for any s and b:
+        self.sum(s, b).delta == self == self.delta.sum(0, self(0)).\n"""
+        n = Polynomial((0, 1))
+        return self(1+n) - self(n)
 
     # non-zero: safe and unambiguous
     def __nonzero__(self): return self.rank >= 0
@@ -694,8 +694,8 @@ class Polynomial (Lazy):
         except AttributeError: pass
 
         try:
-	    try: return self, Polynomial(other)
-	    except ValueError: return self, Polynomial((other,))
+            try: return self, Polynomial(other)
+            except ValueError: return self, Polynomial((other,))
         except (unNaturalPower, invalidCoefficient): return None
 
     # Only useful if we want polys as keys in dictionaries ... but see .assquares
@@ -819,10 +819,10 @@ class Polynomial (Lazy):
         bok is squared and multiplied by the corresponding value, summing the
         results and adding poly will yield self.
 
-	Unfortunately, by the experiment of adding a sum of multiples of squares
-	of polynomials and asking the result for its .assquares, I find the this
-	algorithm is apt to leave a linear residue when an exact decomposition
-	into squares is actually possible.\n"""
+        Unfortunately, by the experiment of adding a sum of multiples of squares
+        of polynomials and asking the result for its .assquares, I find the this
+        algorithm is apt to leave a linear residue when an exact decomposition
+        into squares is actually possible.\n"""
 
         bok, rem, i = {}, self, self.rank
         while i % 2 == 0:
@@ -1049,10 +1049,10 @@ class Polynomial (Lazy):
         """Returns lambda x: x!/(x-gap)!/gap!
 
         The return is a polynomial, using gap! as denominator so as to keep all
-	coefficients whole, so that evaluation on any natural x shall return a
-	natural, as it should - Chose is formally the transpose of Pascal.chose
-	(q.v.) in the sense Pascal.chose(n, g) = Chose(g)(n), so Chose(gap) maps
-	every natural to a natural.
+        coefficients whole, so that evaluation on any natural x shall return a
+        natural, as it should - Chose is formally the transpose of Pascal.chose
+        (q.v.) in the sense Pascal.chose(n, g) = Chose(g)(n), so Chose(gap) maps
+        every natural to a natural.
 
         Single argument, gap, should be a natural number, although other numeric
         values are handled gracefully: if negative, the constant polynomial
@@ -1061,8 +1061,8 @@ class Polynomial (Lazy):
         the fractional part of gap (i.e. gap-floor(gap)) and, as numerator
         factors, x+1 minus each of these.
 
-	For the closely-related lambda x: (x+gap)!/x!/gap!, you can use
-	Polynomial.Chose(gap)(Polynomial((gap, 1)))
+        For the closely-related lambda x: (x+gap)!/x!/gap!, you can use
+        Polynomial.Chose(gap)(Polynomial((gap, 1)))
 
         Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
         Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html -
@@ -1086,18 +1086,18 @@ class Polynomial (Lazy):
         coefficients as whole numbers, along with a suitable denominator.\n"""
 
         cache = Polynomial.__power_sum
-	if __debug__: check = lambda n, j, z=Polynomial((0, 1)): n(1+z) -n(z) -z**j
+        if __debug__: check = lambda n, j, z=Polynomial((0, 1)): n(1+z) -n(z) -z**j
         while len(cache) <= k:
             if cache:
                 # Compute cache[len(cache)];
-		i = len(cache)
-		j = 1 + i
+                i = len(cache)
+                j = 1 + i
                 term = Polynomial.Chose(j)
-		assert term.__coefs[j] == 1
+                assert term.__coefs[j] == 1
                 num, den = Polynomial(term.__coefs, j), term.__denom
                 term = Polynomial.Chose(i)
                 tum, ten = term.__coefs, term.__denom
-		assert i == max(tum.keys()) and tum[i] == 1
+                assert i == max(tum.keys()) and tum[i] == 1
                 # the lambda h: h**len(cache) we want to sum is the leading term
                 # in term(h), while num(n) is sum(map(term, range(n))) since:
                 assert den == ten * j
@@ -1109,10 +1109,10 @@ class Polynomial (Lazy):
                     else:
                         assert c, 'Zero entry in .__coefs'
                         p, d = cache[i]
-			num -= c * p / d
+                        num -= c * p / d
 
-		assert check(num, len(cache)).rank == -1 and num(0) == 0, (len(cache), num)
-		# i.e. num(1+n)-num(n) == n**j for all n
+                assert check(num, len(cache)).rank == -1 and num(0) == 0, (len(cache), num)
+                # i.e. num(1+n)-num(n) == n**j for all n
                 cache.append((Polynomial(num.__coefs), num.__denom))
 
             else: cache.append((Polynomial((0, 1)), 1))

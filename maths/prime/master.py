@@ -19,10 +19,10 @@ class Master (object):
 
         root = WriteRoot(name)
         if root.lock(write=True):
-	    try: 
-		if not root.lock(read=True):
-		    assert False, 'Ouch - broken lockery'
-	    finally: root.unlock(write=True)
+            try: 
+                if not root.lock(read=True):
+                    assert False, 'Ouch - broken lockery'
+            finally: root.unlock(write=True)
             return root
 
         raise IOError
@@ -30,8 +30,8 @@ class Master (object):
     def readroot(name, kind, CacheRoot=cache.CacheRoot):
         r = CacheRoot(name)
         if not getattr(r, kind): raise AttributeError
-	# Provoke early OSError if use of this directory is problematic (but
-	# being locked is no problem):
+        # Provoke early OSError if use of this directory is problematic (but
+        # being locked is no problem):
         if r.lock(read=True): r.unlock(read=True)
         return r
 
@@ -71,7 +71,7 @@ class Master (object):
                  env=os.environ,
                  study=None,
                  home=os.curdir,
-		 # Tunnels:
+                 # Tunnels:
                  join=os.path.join, OSError=os.error,
                  writedir=writedir, readpath=readpath,
                  List=Ordered):
@@ -104,43 +104,43 @@ class Master (object):
           home: parent directory in which to look for study if env['HOME'] is
                 unset (default: os.curdir, at the time this module was loaded).
 
-	Notes:
+        Notes:
 
-	  * This API is very likely to change (it has far too many parameters),
-	    for example to take most of the data from a configuration file in
-	    $STUDYRC (by default).
-	  * Use of key-word calling is encouraged (if only so as to ensure that
-	    you notice any change to the API, by provoking an error until you
-	    change your calls); in any case, passing more positional arguments
-	    than the ten described above may lead to surprises and brokenness.
-	  * memsize only affects decisions made by this master prime object (and
-	    its servants): objects needed in order to interact with existing
-	    caches shall be created even if they violate the memsize constraint
-	    wildly.
+          * This API is very likely to change (it has far too many parameters),
+            for example to take most of the data from a configuration file in
+            $STUDYRC (by default).
+          * Use of key-word calling is encouraged (if only so as to ensure that
+            you notice any change to the API, by provoking an error until you
+            change your calls); in any case, passing more positional arguments
+            than the ten described above may lead to surprises and brokenness.
+          * memsize only affects decisions made by this master prime object (and
+            its servants): objects needed in order to interact with existing
+            caches shall be created even if they violate the memsize constraint
+            wildly.
           * All defaults taken from os are read when python loads the module
             containing this class; for example, setting os.pathsep after that
             shall not affect the default used for pathsep (but changes in
             os.environ shall take effect as long as os.environ is the same
             mapping object as was saved here as the default for env).
-	  * All directory names are mapped to canonical absolute paths when the
-	    instance is created: any resolution of symbolic links is unaffected
-	    by subsequent changes in the file-system; changes to the environment
-	    variables won't change which cache directories are in use.
+          * All directory names are mapped to canonical absolute paths when the
+            instance is created: any resolution of symbolic links is unaffected
+            by subsequent changes in the file-system; changes to the environment
+            variables won't change which cache directories are in use.
           * If the value of either write directory, as specified above, is empty
             then the relevant sub-directory of study is used.
-	  * The write directories are read-locked for the lifetime of the Master
-	    object, so as to prevent any other process from using them as write
-	    directory (this may be excessive, so may change at a later
-	    revision).
-	  * If a write directory is unwritable (because this process lacks
-	    necessary privileges, or because it is in use by another process) it
-	    is added to the read paths as if it had been included (as first
-	    entry, if not already present) in the read path corresponding to the
-	    write category for which it was specified; otherwise, if it was
-	    present in either path, it shall be removed from that path.
-	  * Any directory, in either read path, that provides data of the kind
-	    sought by the other shall in fact be included at the end of the
-	    other, if not already present in it.\n"""
+          * The write directories are read-locked for the lifetime of the Master
+            object, so as to prevent any other process from using them as write
+            directory (this may be excessive, so may change at a later
+            revision).
+          * If a write directory is unwritable (because this process lacks
+            necessary privileges, or because it is in use by another process) it
+            is added to the read paths as if it had been included (as first
+            entry, if not already present) in the read path corresponding to the
+            write category for which it was specified; otherwise, if it was
+            present in either path, it shall be removed from that path.
+          * Any directory, in either read path, that provides data of the kind
+            sought by the other shall in fact be included at the end of the
+            other, if not already present in it.\n"""
 
         self.__disk, self.__ram = disksize, memsize
         self.__chunks = List(unique=None) # treat attempted duplication as error
@@ -170,10 +170,10 @@ class Master (object):
     del writedir, readpath, Ordered
 
     def __del__(self):
-	try: self.__prime_root.unlock(read=True)
-	except AttributeError: pass
-	try: self.__factor_root.unlock(read=True)
-	except AttributeError: pass
+        try: self.__prime_root.unlock(read=True)
+        except AttributeError: pass
+        try: self.__factor_root.unlock(read=True)
+        except AttributeError: pass
 
     # TODO: write methods that put all those directory tree objects to use
 

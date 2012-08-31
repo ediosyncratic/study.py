@@ -28,19 +28,19 @@ def decode(inf, out):
     """
 
     while True:
-	line = inf.readline()
-	if not line: break
+        line = inf.readline()
+        if not line: break
 
-	while '=' in line:
-	    at = string.index(line, '=')
-	    out.write(line[:at])
-	    line = line[1+at:]
-	    if line[0] == '\n': line = line[1:]
-	    else:
-		out.write(chr(string.atoi(line[:2], 16)))
-		line = line[2:]
+        while '=' in line:
+            at = string.index(line, '=')
+            out.write(line[:at])
+            line = line[1+at:]
+            if line[0] == '\n': line = line[1:]
+            else:
+                out.write(chr(string.atoi(line[:2], 16)))
+                line = line[2:]
 
-	out.write(line)
+        out.write(line)
 
 def main(myname, args, log):
     """Command-line interface.
@@ -64,43 +64,43 @@ def main(myname, args, log):
     src = dst = None
 
     try:
-	while args:
+        while args:
 
-	    if args[0] == '-i':
-		if args[1:]: src = args[1]
-		else: raise SyntaxError, 'No input file name given with -i'
-		args = args[2:]
+            if args[0] == '-i':
+                if args[1:]: src = args[1]
+                else: raise SyntaxError, 'No input file name given with -i'
+                args = args[2:]
 
-	    elif args[0] == '-o':
-		if args[1:]: dst = args[1]
-		else: raise SyntaxError, 'No output file name given with -o'
-		args = args[2:]
+            elif args[0] == '-o':
+                if args[1:]: dst = args[1]
+                else: raise SyntaxError, 'No output file name given with -o'
+                args = args[2:]
 
-	    elif src:
-		dst = args[0]
-		args = args[1:]
+            elif src:
+                dst = args[0]
+                args = args[1:]
 
-	    else:
-		src = args[0]
-		args = args[1:]
+            else:
+                src = args[0]
+                args = args[1:]
 
-	    if src and dst:
+            if src and dst:
 
-		if src == '-': src = sys.stdin
-		else: src = open(src, 'r')
+                if src == '-': src = sys.stdin
+                else: src = open(src, 'r')
 
-		if dst == '-': dst = sys.stdout
-		else: dst = open(dst, 'w')
+                if dst == '-': dst = sys.stdout
+                else: dst = open(dst, 'w')
 
-		decode(src, dst)
-		if src != sys.stdin: src.close()
-		if dst != sys.stdout: dst.close()
-		src = dst = None
+                decode(src, dst)
+                if src != sys.stdin: src.close()
+                if dst != sys.stdout: dst.close()
+                src = dst = None
 
     except SyntaxError, what:
-	log.write('What ? ' + what + '\n')
-	return 1
+        log.write('What ? ' + what + '\n')
+        return 1
 
     except IOError, (n, reason):
-	log.write('IO %d: ' % n + reason + '\n')
-	return 2
+        log.write('IO %d: ' % n + reason + '\n')
+        return 2

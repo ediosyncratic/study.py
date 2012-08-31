@@ -60,10 +60,10 @@ class Particle (Object):
         except KeyError: pass # self will be deemed primitive
         else: del what['constituents']
 
-	self.__obinit(*args, **what)
+        self.__obinit(*args, **what)
 
         self._store_as_(name, self.__class__)
-	self.__name = name
+        self.__name = name
 
     _unborrowable_attributes_ = Object._unborrowable_attributes_ + (
         'name', 'symbol', 'charge', 'anti')
@@ -191,27 +191,27 @@ class Particle (Object):
 
     __oblook = Object._lazy_lookup_
     def _lazy_lookup_(self, key):
-	ans = self.__oblook(key)
-	try: ans.document('The %s of the %s %s.' %
+        ans = self.__oblook(key)
+        try: ans.document('The %s of the %s %s.' %
                           (key, self.name, self.__class__.__name__))
-	except (AttributeError, TypeError): pass
-	return ans
+        except (AttributeError, TypeError): pass
+        return ans
 
     def _lazy_get_magneton_(self, ignored):
         return self.charge * self.spin / self.mass
 
     log2 = Quantity(2).log
     def _lazy_get_decay_(self, ignored, zero=0/second, ln2=log2):
-	"""Fractional decay rate.
+        """Fractional decay rate.
 
-	This is defined by: the probability density for decay of the particle at
-	time t is r*exp(-t*r) with r as the .decay attribute.  Unless otherwise
-	specified, this is presumed to be zero; however, it may be specified
-	when you initialise - either directly, e.g. Fermion(decay=32/second), or
-	indirectly via attribute halflife or (better) decays; see constructor
-	documentation.
+        This is defined by: the probability density for decay of the particle at
+        time t is r*exp(-t*r) with r as the .decay attribute.  Unless otherwise
+        specified, this is presumed to be zero; however, it may be specified
+        when you initialise - either directly, e.g. Fermion(decay=32/second), or
+        indirectly via attribute halflife or (better) decays; see constructor
+        documentation.
 
-	The defining formula implies that the probability of decay before some
+        The defining formula implies that the probability of decay before some
         specified time T is 1-exp(-T*r), making the half-life log(2)/r, and the
         mean time until decay is 1/r.\n"""
 
@@ -227,7 +227,7 @@ class Particle (Object):
         except AttributeError: pass
         else: return decays.rate
 
-	return zero
+        return zero
 
     def _lazy_get_halflife_(self, ignored, ln2=log2):
         """Time taken for the probability of having decayed to reach half"""
@@ -240,7 +240,7 @@ class Particle (Object):
         return 1 / self.decay
 
     def _lazy_get_anti_(self, ignored):
-	"""Returns self's anti-particle."""
+        """Returns self's anti-particle."""
 
         # the anti-electron is anomalously named :^o
         try: nom = {'electron': 'positron'
@@ -248,17 +248,17 @@ class Particle (Object):
                     }[self.name]
         except KeyError: nom = 'anti-%s' % self.name
 
-	try:
-	    bits = {}
-	    for k, v in self.__bits.items():
-		bits[k] = -v
+        try:
+            bits = {}
+            for k, v in self.__bits.items():
+                bits[k] = -v
 
-	except AttributeError: bits = {self: -1}
+        except AttributeError: bits = {self: -1}
 
-	ans = self.__class__(nom, self, _charge=-self._charge, constituents=bits)
+        ans = self.__class__(nom, self, _charge=-self._charge, constituents=bits)
         ans.anti = self # NB cyclic reference; ans is about to become self.anti
 
-	return ans
+        return ans
 
     def _lazy_get__charge_(self, ignored):
         """Charge in units of on third the positron's charge.
@@ -655,19 +655,19 @@ class Family (Object):
     neutrinos, the other of these and the gluon with the quarks.\n"""
 
     def __init__(self, neutrino, lepton, neg, pos):
-	self.neutrino, self.lepton = neutrino, lepton
-	self.quarks = (neg, pos)
-	neutrino.family = lepton.family = neg.family = pos.family = self
+        self.neutrino, self.lepton = neutrino, lepton
+        self.quarks = (neg, pos)
+        neutrino.family = lepton.family = neg.family = pos.family = self
 
     def __repr__(self):
         return '%s+%s-family' % (repr(self.lepton), repr(self.quarks))
 
     def __len__(self): return 4
     def __getitem__(self, ind):
-	if ind == 0: return self.neutrino
-	if ind == 1: return self.lepton
-	if ind in (2, 3): return self.quarks[ind-2]
-	raise IndexError, 'A quark/lepton family has only four members'
+        if ind == 0: return self.neutrino
+        if ind == 1: return self.lepton
+        if ind in (2, 3): return self.quarks[ind-2]
+        raise IndexError, 'A quark/lepton family has only four members'
 
 del Lazy
 

@@ -112,8 +112,8 @@ class Object (object.Object):
         self.__space_upinit(**what)
         self.name = name
         self.__load_satellites = satelload
-	try: what['orbit'].centre.satellites.insert(None, self)
-	except (KeyError, AttributeError):
+        try: what['orbit'].centre.satellites.insert(None, self)
+        except (KeyError, AttributeError):
             pass # print 'Failed to insert', name, "in satellite list of its orbit's centre"
 
         self._name_as_(name)
@@ -454,7 +454,7 @@ class Body (Object):
             else: raise AttributeError(ignored, 'no data available from which to infer')
             row.remove(best)
 
-	return Q(best, sample=row)
+        return Q(best, sample=row)
 
     def orbital(self, radius, ecce=0, tp=2*pi, S=Spin):
         """The spin of the relevant orbit.
@@ -509,9 +509,9 @@ class Body (Object):
         return O(self, radius, S(period), **what)
 
     def _lazy_get_synchronous_(self, ignored, path=Orbit):
-	"""Synchronous orbit. """
-	name = "Synchronous orbit about %s" % self.name
-	return path(self, self.surface._sync, self.surface.spin, 0,
+        """Synchronous orbit. """
+        name = "Synchronous orbit about %s" % self.name
+        return path(self, self.surface._sync, self.surface.spin, 0,
                     name = name, __doc__ = """%s
 
 This is the orbit in which a satellite remains permanently above the same point

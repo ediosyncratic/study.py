@@ -59,35 +59,35 @@ class Ladder (Object):
     __obinit = Object.__init__
 
     def __init__(self, S, D, top=1, planet=Earth, bot=None, Q=Quantity, **what):
-	"""Initialises a ladder object.
+        """Initialises a ladder object.
 
         Required arguments, describing mechanical properties of the material of
-	which the ladder is to be built (to be spacified as Quantity objects,
-	see study.value.quantity):
+        which the ladder is to be built (to be spacified as Quantity objects,
+        see study.value.quantity):
           S -- ultimate tensile stress
           D -- density
 
         Optional arguments:
           top -- the outer radial coordinate of your ladder; default is 1 but
-	         values nearer 1.3 would be more realistic.
+                 values nearer 1.3 would be more realistic.
           planet -- the Planet for which you are building a ladder; default is Earth.
           bot -- the inner radial coordinate of the ladder; default uses the
-	         planet's surface radius.
+                 planet's surface radius.
 
         Both top and bot; may be given either as dimensionless radial
         coordinates or as lengths (that is, Quantity objects with dimensions of
         length), in which case they're divided by the synchronous orbital
         radius.\n"""
 
-	self.__obinit(**what)
-	self.stress, self.density = S, D
-	sync, surf, densile = planet.synchronous, planet.surface, S / D
-	self.spin, self.R = surf.spin, sync.radius
-	self.__kk = Q(sync.speed**2 / densile)
-	# __kk *must* be a Quantity for thin's use of evaluate ...
+        self.__obinit(**what)
+        self.stress, self.density = S, D
+        sync, surf, densile = planet.synchronous, planet.surface, S / D
+        self.spin, self.R = surf.spin, sync.radius
+        self.__kk = Q(sync.speed**2 / densile)
+        # __kk *must* be a Quantity for thin's use of evaluate ...
 
-	if bot is None: bot = surf.radius / self.R
-	self.__ends = (self.__radial(bot), self.__radial(top))
+        if bot is None: bot = surf.radius / self.R
+        self.__ends = (self.__radial(bot), self.__radial(top))
 
     def __radial(self, value):
         try: value + 1
@@ -102,13 +102,13 @@ class Ladder (Object):
  "length or the dimensionless result of dividing a length by synchronous orbital radius")
 
     def thin(self, u, e=exp):
-	"""Area of ladder at radial coordinate u, in units of that at orbit. """
-	return (self.__kk * (1-u) * (.5 +u/2 -1/u)).evaluate(e)
+        """Area of ladder at radial coordinate u, in units of that at orbit. """
+        return (self.__kk * (1-u) * (.5 +u/2 -1/u)).evaluate(e)
 
     def _lazy_get_v_(self, ignored): return self.__kk ** .5
     def _lazy_get_length_(self, ignored):
-	b, t = self.__ends
-	return self.R * (t-b)
+        b, t = self.__ends
+        return self.R * (t-b)
 
     def _lazy_get__integrator_(self, ignored, tool=[]):
         try: return tool[0]
@@ -119,16 +119,16 @@ class Ladder (Object):
         return I
 
     def _lazy_get_shrink_(self, ignored):
-	"""The integral defining volume of a ladder to the stars.
+        """The integral defining volume of a ladder to the stars.
 
-	The volume of ladder is the synchronous orbital radius times the
-	cross-sectional area at orbit times the integral of self.thin(u) for u
-	between self.__ends.  This function computes that integral, which is
-	dimensionless.  Multiply it by self.R to get the ratio of volume to
-	orbital area. """
+        The volume of ladder is the synchronous orbital radius times the
+        cross-sectional area at orbit times the integral of self.thin(u) for u
+        between self.__ends.  This function computes that integral, which is
+        dimensionless.  Multiply it by self.R to get the ratio of volume to
+        orbital area. """
 
-	b, t = self.__ends
-	return self._integrator(self.thin).between(b, t)
+        b, t = self.__ends
+        return self._integrator(self.thin).between(b, t)
 
     def _lazy_get_moment_(self, ignored):
         """Relative moment of inertia.
@@ -142,52 +142,52 @@ class Ladder (Object):
                                 ).between(b, t) / self.shrink
 
     def _lazy_get_ends_(self, ignored):
-	bot, top = self.__ends
-	return self.thin(bot), self.thin(top)
+        bot, top = self.__ends
+        return self.thin(bot), self.thin(top)
 
     def area(self, ciel):
-	"""Tells you how fat a ladder you can make given how much of your material.
+        """Tells you how fat a ladder you can make given how much of your material.
 
-	Single required argument is how much of the building material your
-	budget will let you buy, expressed as a volume.  Returns the
-	cross-sectional area, at orbit.  Scale by self.ends to get the areas at
-	bottom and top; scale by self.thin(u) to get area at radial coordinate
-	u. """
+        Single required argument is how much of the building material your
+        budget will let you buy, expressed as a volume.  Returns the
+        cross-sectional area, at orbit.  Scale by self.ends to get the areas at
+        bottom and top; scale by self.thin(u) to get area at radial coordinate
+        u. """
 
-	return ciel / self.R / self.shrink
+        return ciel / self.R / self.shrink
 
     def _lazy_get_burden_(self, ignored):
-	"""Total mass of cable per unit orbital cross-section."""
-	return self.shrink * self.R * self.density
+        """Total mass of cable per unit orbital cross-section."""
+        return self.shrink * self.R * self.density
 
     def _lazy_get_total_(self, ignored):
-	return self.burden + self.bauble + self.lift
+        return self.burden + self.bauble + self.lift
 
     def _lazy_get_parts_(self, ignored):
-	"""3-tuple of (cable, counter, payload) fractions of total mass."""
+        """3-tuple of (cable, counter, payload) fractions of total mass."""
 
-	s, w, p = self.shrink, self._counter, self._load
-	t = s + w + p
-	return s/t, w/t, p/t
+        s, w, p = self.shrink, self._counter, self._load
+        t = s + w + p
+        return s/t, w/t, p/t
 
     def __pull(self, u):
-	"""Mass-equivalent of tension, as fraction of total mass.
+        """Mass-equivalent of tension, as fraction of total mass.
 
-	Single argument is a radial coordinate.
+        Single argument is a radial coordinate.
 
-	The (gravity - centrifugal) force, a.k.a. weight, per unit mass at given
-	radial co-ordinate is w.w.(R.u -R/u/u) outwards (so it'll be negative
-	for u<1).  The tension in the cable is S.A(u) = S.thin(u).A(1), equal to
-	the weight of a mass S.A(1).thin(u)/(w.w.R)/(u-1/u/u).  The total mass
-	of our cable is D.A(1).R.shrink; dividing the former by the latter gives:
+        The (gravity - centrifugal) force, a.k.a. weight, per unit mass at given
+        radial co-ordinate is w.w.(R.u -R/u/u) outwards (so it'll be negative
+        for u<1).  The tension in the cable is S.A(u) = S.thin(u).A(1), equal to
+        the weight of a mass S.A(1).thin(u)/(w.w.R)/(u-1/u/u).  The total mass
+        of our cable is D.A(1).R.shrink; dividing the former by the latter gives:
 
-	    T(u)/M = (S/D/(w.R)**2).thin(u)/(u-1/u/u)/shrink
+            T(u)/M = (S/D/(w.R)**2).thin(u)/(u-1/u/u)/shrink
 
-	This function returns the result of leaving out shrink from this, which
-	happens to be useful for various purposes (without introducing the
-	inaccuracy usually present in shrink). """
+        This function returns the result of leaving out shrink from this, which
+        happens to be useful for various purposes (without introducing the
+        inaccuracy usually present in shrink). """
 
-	return self.thin(u) / (u -1/u/u) / self.__kk
+        return self.thin(u) / (u -1/u/u) / self.__kk
 
     # unshrunk values
     def _lazy_get__load_(self, ignored): return -self.__pull(self.__ends[0])

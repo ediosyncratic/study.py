@@ -55,8 +55,8 @@ class Gamma (Variate):
             raise TypeError(alpha,
                             "Order parameter should be a (dimensionless) number")
 
-	self.__setup(alpha, beta)
-	self.__upinit(self.__p, lower=0./beta, width=5./beta)
+        self.__setup(alpha, beta)
+        self.__upinit(self.__p, lower=0./beta, width=5./beta)
 
     import random
     # gammavariate requires alpha > -1, beta > 0; so its alpha is offset by 1 from mine.
@@ -70,7 +70,7 @@ class Gamma (Variate):
     del __gen
 
     def __setup(self, alpha, beta, log=math.log, exp=math.exp, lngam=stirling.lngamma):
-	"""Fiddly bits of setup dealing with whether alpha, beta are Quantity()s.
+        """Fiddly bits of setup dealing with whether alpha, beta are Quantity()s.
 
         Overall goal is to set self.__ep to the function
           (: (beta * x)**(alpha-1) * exp(-beta * x) &larr; x :) * beta / gamma(alpha)
@@ -84,80 +84,80 @@ class Gamma (Variate):
         which performs necessary checks against invalid input.\n"""
         # TODO: gamma is available, now - not just lngamma !
 
-	self.alpha, self.beta = alpha, beta
+        self.alpha, self.beta = alpha, beta
 
-	# alpha is dimensionless ...
-	if alpha > 1: self.__atzero = 0 * beta
-	elif alpha == 1: self.__atzero = 1 * beta
-	elif alpha <= 0:
-	    raise ValueError('Gamma function cannot be normalised for this alpha', alpha)
-	# else, 0 < alpha < 1; don't set __atzero, it's infinite.
+        # alpha is dimensionless ...
+        if alpha > 1: self.__atzero = 0 * beta
+        elif alpha == 1: self.__atzero = 1 * beta
+        elif alpha <= 0:
+            raise ValueError('Gamma function cannot be normalised for this alpha', alpha)
+        # else, 0 < alpha < 1; don't set __atzero, it's infinite.
 
-	scalar = True
-	try: lognorm = alpha.evaluate(lngam)
-	except AttributeError: lognorm = lngam(alpha)
-	else: scalar = False
+        scalar = True
+        try: lognorm = alpha.evaluate(lngam)
+        except AttributeError: lognorm = lngam(alpha)
+        else: scalar = False
 
-	# ... but beta might not be
-	try:
-	    beta.width, beta.best
-	    if not callable(beta.evaluate): raise AttributeError
-	except AttributeError:
-	    def logp(x, b=beta, a=alpha-1, ln=log, n=lognorm):
-		bx = b * x
-		return a * ln(bx) -bx -n
-	else:
-	    scalar = False
-	    def logp(x, b=beta, a=alpha-1, ln=log, n=lognorm):
-		bx = b * x
-		return a * bx.evaluate(ln) -bx -n
+        # ... but beta might not be
+        try:
+            beta.width, beta.best
+            if not callable(beta.evaluate): raise AttributeError
+        except AttributeError:
+            def logp(x, b=beta, a=alpha-1, ln=log, n=lognorm):
+                bx = b * x
+                return a * ln(bx) -bx -n
+        else:
+            scalar = False
+            def logp(x, b=beta, a=alpha-1, ln=log, n=lognorm):
+                bx = b * x
+                return a * bx.evaluate(ln) -bx -n
 
-	if scalar: self.__ep = lambda x, e=exp, lp=logp, b=beta: e(lp(x)) * b
-	else: self.__ep = lambda x, e=exp, lp=logp, b=beta: lp(x).evaluate(e) * b
+        if scalar: self.__ep = lambda x, e=exp, lp=logp, b=beta: e(lp(x)) * b
+        else: self.__ep = lambda x, e=exp, lp=logp, b=beta: lp(x).evaluate(e) * b
 
     def __p(self, x, exp=math.exp):
-	"""The probability distribution"""
-	if x * self.beta < 0:
+        """The probability distribution"""
+        if x * self.beta < 0:
             return 0 * self.beta
 
-	if x * self.beta == 0:
-	    try: return self.__atzero
-	    except AttributeError:
-		raise OverflowError('Gamma, with alpha < 1, is infinite at zero', self.alpha)
+        if x * self.beta == 0:
+            try: return self.__atzero
+            except AttributeError:
+                raise OverflowError('Gamma, with alpha < 1, is infinite at zero', self.alpha)
 
-	return self.__ep(x)
+        return self.__ep(x)
 
     def __sliver(self, end, gam=stirling.gamma):
-	"""Approximates integration from zero to some small value < end.
+        """Approximates integration from zero to some small value < end.
 
-	This involves chosing an X < end for which exp(beta*X) differs
-	negligibly from 1 = exp(0), then using 
+        This involves chosing an X < end for which exp(beta*X) differs
+        negligibly from 1 = exp(0), then using 
 
-	    eps = (beta*X)**alpha / alpha / gamma(alpha)
+            eps = (beta*X)**alpha / alpha / gamma(alpha)
 
-	as estimate of the integral.  Returns a twople, (eps, X). """
+        as estimate of the integral.  Returns a twople, (eps, X). """
 
-	if end * self.beta > 1: end = 1. / self.beta
-	end /= 1e6
-	try: end = end.best # throw away any error bars; not needed.
-	except AttributeError: pass
-	return (self.beta * end)**self.alpha / self.alpha / gam(self.alpha), end
+        if end * self.beta > 1: end = 1. / self.beta
+        end /= 1e6
+        try: end = end.best # throw away any error bars; not needed.
+        except AttributeError: pass
+        return (self.beta * end)**self.alpha / self.alpha / gam(self.alpha), end
 
     __between = Variate.between
     def between(self, start, stop, *args, **what):
         if stop < start: sign, start, stop = -1, stop, start
         else: sign = 1
-	if start == stop or stop * self.beta <= 0: return 0 * self.beta
+        if start == stop or stop * self.beta <= 0: return 0 * self.beta
 
-	if self.alpha < 1 and start * self.beta <= 0:
-	    # bodge round initial pole
-	    eps, cut = self.__sliver(stop)
-	    try: off = what['offset']
-	    except KeyError: what['offset'] = eps
-	    else: what['offset'] = eps + off
-	    return (eps + self.__between(cut, stop, *args, **what)) * sign
+        if self.alpha < 1 and start * self.beta <= 0:
+            # bodge round initial pole
+            eps, cut = self.__sliver(stop)
+            try: off = what['offset']
+            except KeyError: what['offset'] = eps
+            else: what['offset'] = eps + off
+            return (eps + self.__between(cut, stop, *args, **what)) * sign
 
-	return self.__between(start, stop, *args, **what) * sign
+        return self.__between(start, stop, *args, **what) * sign
 
     @lazyattr
     def mean(self, cls=None):
