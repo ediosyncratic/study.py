@@ -2,7 +2,8 @@
 
 See study.LICENSE for copyright and license information.
 """
-import os, cache
+import os
+from study.maths.prime import cache
 
 class Master (object):
 
@@ -12,11 +13,11 @@ class Master (object):
 
     def writedir(name,
                  exist=os.path.exists, makedirs=os.makedirs,
-                 real=realabs, WriteCacheRoot=cache.WriteCacheRoot):
+                 real=realabs, WriteRoot=cache.WriteRoot):
         name = real(name)
         if not exist(name): makedirs(name) # may raise OSError
 
-        root = WriteCacheRoot(name)
+        root = WriteRoot(name)
         if root.lock(write=True):
 	    try: 
 		if not root.lock(read=True):
@@ -175,3 +176,5 @@ class Master (object):
 	except AttributeError: pass
 
     # TODO: write methods that put all those directory tree objects to use
+
+del os, cache
