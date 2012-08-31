@@ -2,13 +2,13 @@
 
 See study.LICENSE for copyright and license information.
 """
+from study.crypt.characters import Counter
 
 class WordList (dict):
     def __init__(self, src="/usr/share/dict/words"):
         self.__file = src
         self.__count()
 
-    from study.crypt.characters import Counter
     class Unique (Counter):
         __upinit = Counter.__init__
         def __init__(self):
@@ -22,7 +22,6 @@ class WordList (dict):
                 if word not in self.__unique:
                     self.__unique.add(word)
                     self.__upgest(word)
-    del Counter
 
     def __count(self, Bok=Unique):
         ws = Bok()
@@ -73,3 +72,4 @@ class WordList (dict):
                     yield line, ans
         finally: fd.close()
 
+del Counter
