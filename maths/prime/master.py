@@ -116,9 +116,9 @@ class Master (object):
 	    wildly.
           * All defaults taken from os are read when python loads the module
             containing this class; for example, setting os.pathsep after that
-            shall not affect the default used for pathsep (but changes in os.env
-            shall take effect as long as os.env is the same mapping object as
-            was saved here as the default for env).
+            shall not affect the default used for pathsep (but changes in
+            os.environ shall take effect as long as os.environ is the same
+            mapping object as was saved here as the default for env).
 	  * All directory names are mapped to canonical absolute paths when the
 	    instance is created: any resolution of symbolic links is unaffected
 	    by subsequent changes in the file-system; changes to the environment
