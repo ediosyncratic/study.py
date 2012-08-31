@@ -1,4 +1,6 @@
 """Tool for use by table-parsers.
+
+See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop, Cached
 

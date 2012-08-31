@@ -3,6 +3,7 @@
 
 See also:
 http://space.newscientist.com/article/dn13029-voyager-2-probe-reaches-solar-system-boundary.html
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Quantity, \

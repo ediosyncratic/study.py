@@ -1,6 +1,7 @@
 """Legendre polynomials and spherical harmonics.
 
 See http://www.chaos.org.uk/~eddy/math/smooth/harmony.html
+See study.LICENSE for copyright and license information.
 """
 from polynomial import Polynomial
 

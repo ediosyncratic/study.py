@@ -4,6 +4,8 @@ Provides class Counter, which extends dict with some methods for counting
 frequencies of tokens.  Instances are, after running methods appropriately,
 suitable for use as the symbol-frequency argument required by the constructor of
 the Huffman class (q.v.) provided by Huffman.py in this directory.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Counter (dict):

@@ -3,6 +3,8 @@
 
 Note that each outer planet's system of moons has a total mass of roughly 1e-4
 times the planet's mass: http://www.physorg.com/news69517584.html
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Quantity, giga, mega, metre, day, hour, minute, year, kg

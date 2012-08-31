@@ -1,4 +1,6 @@
 """Graphing data using SVG.
+
+See study.LICENSE for copyright and license information.
 """
 from study.parse.morphsvg import SVG
 

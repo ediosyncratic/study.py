@@ -1,6 +1,8 @@
 """Relativistic constant acceleration.
 
 Theory: see http://www.chaos.org.uk/~eddy/physics/Zoom.html
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Object, year, kg

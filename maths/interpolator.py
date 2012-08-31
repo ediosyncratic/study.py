@@ -1,4 +1,6 @@
 """Interpolation of distributions.
+
+See study.LICENSE for copyright and license information.
 """
 from study.cache.property import Cached, lazyprop
 from study.snake.decorate import postcompose

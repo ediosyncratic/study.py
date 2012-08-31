@@ -7,6 +7,8 @@ alcohol is colored red (usually) so it can be seen easily.  Amyl alcohol
 (1-pentanol) melts at -78.9°C and boils at 138.1°C, so it can be used to replace
 mercury in laboratory thermometers that must read to 110°C.  Its coefficient of
 cubical expansion is 0.902e-3 / K, so beta' = 0.874e-3.
+
+See study.LICENSE for copyright and license information.
 """
 from element import * # q.v.
 from particle import Nucleon

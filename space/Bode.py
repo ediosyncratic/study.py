@@ -52,6 +52,8 @@ approximation. Alternatively, we can look at the patten from the outskirts
 inward and see the 10AU linear sequence from Neptune in to Saturn, with zero
 as next sequence entry, then describe the inner portion in terms of scaling
 down with an offset.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.snake.lazy import Lazy

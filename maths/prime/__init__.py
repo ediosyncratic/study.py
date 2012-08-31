@@ -193,6 +193,8 @@ Special cases:
     determine whether the first of these is prime.
 
 This sub-package requires python 2.5 or later; it uses try...yield...finally.
+
+See study.LICENSE for copyright and license information.
 """
 
 failure_log = '''

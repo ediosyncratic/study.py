@@ -3,6 +3,8 @@
 Exported class:
   Spread -- description of discrete distributions
 This uses study.maths.vector.Vector as a key-type, in places.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.decorate import postcompose
 from study.snake.sequence import Dict

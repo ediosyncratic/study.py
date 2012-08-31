@@ -14,6 +14,8 @@ needs four bits per decimal digit, so each byte of data encodes two decimal
 digits.  I assume that the data comes in big-endian form; the corresponding
 algorithm for little-endian may be obtained by a trivial and well-known
 transformation.
+
+See study.LICENSE for copyright and license information.
 """
 
 def dumb(data, ten=10):

@@ -40,6 +40,8 @@ which, for alpha > 0, is just (beta*X)**alpha / (beta * alpha), making
 our integral of p up to X pretty close to
 
  (beta*X)**alpha / alpha / gamma(alpha)
+
+See study.LICENSE for copyright and license information.
 """
 from variate import Variate
 from study.cache.property import lazyattr

@@ -1,6 +1,7 @@
 """Solving an equation in one dimension.
 
 See search.Search for 2 dimensions (represented by complex).
+See study.LICENSE for copyright and license information.
 """
 from study.cache.property import Cached, lazyprop
 

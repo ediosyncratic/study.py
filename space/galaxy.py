@@ -6,6 +6,8 @@ http://www.atlasoftheuniverse.com/galaxies.html
 
 For the Canes I group:
 http://www.atlasoftheuniverse.com/galgrps/cvni.html
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import kilo, year

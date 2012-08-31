@@ -73,6 +73,8 @@ per furlong. Even when using the official SI unit, different ways of
 expressing a unit can change perceptions of its meaning - for example, (metre
 / second)**2 means the same as Joule / kilogramme, but expresses a different
 perspective on it.
+
+See study.LICENSE for copyright and license information.
 """
 
 URLs = """Interesting URLs:

@@ -12,6 +12,7 @@ See also:
   http://antwrp.gsfc.nasa.gov/apod/ap020220.html
   Big fat database of stars:
   http://antwrp.gsfc.nasa.gov/apod/ap990426.html
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Quantity, kilo, mega, giga, micro, year

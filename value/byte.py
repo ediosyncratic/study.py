@@ -3,6 +3,7 @@
 ... but note kibi, mibi etc. should obsolete these; see quantity.py
 
 See also: units.py
+See study.LICENSE for copyright and license information.
 """
 from quantity import Quantity, qSample, _quantifier_dictionary
 

@@ -7,8 +7,7 @@ This module should eventually replace snake.lazy.Lazy; it provides:
   lazyattr -- combines lazyprop and dictattr
 
 See also weak.py for weak variants.
-
-$Id: property.py,v 1.13 2009-11-11 21:31:34 eddy Exp $
+See study.LICENSE for copyright and license information.
 """
 from study.snake.property import docprop, recurseprop, dictattr
 

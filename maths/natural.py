@@ -24,6 +24,8 @@ Example linear spaces over the positive integers:
 
 In particular, lattice (q.v.) provides for iteration over the space of tuples,
 of any given length, whose entries are integers or naturals.
+
+See study.LICENSE for copyright and license information.
 """
 
 # Modular division (where possible, e.g. prime base).

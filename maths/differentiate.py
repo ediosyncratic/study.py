@@ -1,4 +1,6 @@
 """Differentiation by brute force, to tolerable accuracy.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Single (object):

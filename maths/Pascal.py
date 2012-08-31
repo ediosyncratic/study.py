@@ -1,4 +1,6 @@
 """Combinatorics.
+
+See study.LICENSE for copyright and license information.
 """
 
 def factorial(num, cache=[1], maxcache=0x4000):

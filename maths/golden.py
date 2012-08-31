@@ -1,6 +1,7 @@
 """Generalising the golden ratio.
 
 See http://www.chaos.org.uk/~eddy/math/golden.html
+See study.LICENSE for copyright and license information.
 """
 
 class Golden (object):

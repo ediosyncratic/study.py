@@ -9,6 +9,7 @@ See also:
   http://aa.usno.navy.mil/ephemerides/asteroid/astr_alm/asteroid_ephemerides.html
   http://aa.usno.navy.mil/hilton/asteroid_masses.htm
 and links therefrom.
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Sample, Quantity, tera, mega, year, km, kg

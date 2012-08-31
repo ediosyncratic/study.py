@@ -1,6 +1,7 @@
 """Analysis of musical theory.
 
 See http://www.chaos.org/~eddy/math/music.xhtml
+See study.LICENSE for copyright and license information.
 """
 import math
 def log2(val, ln=math.log, ln2=math.log(2)): return ln(val) / ln2

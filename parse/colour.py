@@ -1,4 +1,6 @@
 """Handling of colour semantics.
+
+See study.LICENSE for copyright and license information.
 """
 
 def get_x11_rgb(src='/etc/X11/rgb.txt'):

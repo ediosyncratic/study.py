@@ -28,6 +28,8 @@ to take account of how ingredients are mixed (depends on pressure, temperature,
 via frequencies of relevant collisions with various amounts of energy; c.f. the
 nucleosynthesis data in elements.py); should be able to infer rates from
 activation energies and mixing data.
+
+See study.LICENSE for copyright and license information.
 """
 import math # del it later
 _ln2 = math.log(2)

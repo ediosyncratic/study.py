@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Where I come from.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, \

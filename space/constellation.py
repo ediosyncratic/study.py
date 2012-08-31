@@ -6,6 +6,8 @@ clusters or several stars too close together to distinguish by eye) within the
 sky, loosely related by position in the sky as seen from Earth (though their
 distances from Earth may be vastly different).  None the less, they play a part
 in the naming of stars and galaxies, serving as name-space objects.
+
+See study.LICENSE for copyright and license information.
 """
 from body import Constellation
 

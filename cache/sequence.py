@@ -1,4 +1,6 @@
 """Lazily-evaluated sequence.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.sequence import ReadSeq
 

@@ -15,6 +15,8 @@ table also lists the "From date" (Fra&nbsp;dato) and "To date"
 (Til&nbsp;dato) for this transaction history list.  The main table has
 acption "Account transactions" (Bevegelser p&aring; konto); I want all
 of its data.
+
+See study.LICENSE for copyright and license information.
 """
 from HTMLParser import HTMLParser
 from study.parse.tabular import Table

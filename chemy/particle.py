@@ -16,6 +16,7 @@ composed of the first column: indeed, most matter is hydrogen, comprising a
 proton and an electron; the proton is made of two up quarks and one down.
 
 See also: elements.py
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 from study.value.quantity import Quantity, Object

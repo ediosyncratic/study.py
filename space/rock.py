@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Functions to aid in constructing moons, asteroids and other clutter.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Quantity, mega, day, km, metre, kg, litre

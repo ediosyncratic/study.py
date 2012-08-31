@@ -4,6 +4,8 @@
 Fragments:
   debt -- description of debts and mortgages
   job -- description of a job
+
+See study.LICENSE for copyright and license information.
 """
 from study.value.quantity import Quantity
 

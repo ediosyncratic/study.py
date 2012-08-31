@@ -8,6 +8,8 @@ Fragments:
   sample -- describes a number with uncertain value
   SI -- the base units of SI
   units -- other vaguely sensible units
+
+See study.LICENSE for copyright and license information.
 """
 import quantity
 import SI

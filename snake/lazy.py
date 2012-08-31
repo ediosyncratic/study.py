@@ -1,4 +1,8 @@
 """Lazy toys.
+
+Deprecated: use study.cache.property's decorators in preference to this.
+
+See study.LICENSE for copyright and license information.
 """
 # This is in the same spirit as cacheing, but quite independent.
 class Lazy (object):

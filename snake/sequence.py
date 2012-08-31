@@ -11,6 +11,8 @@ Classes:
 
 Decorator:
   iterable -- apply WrapIterable to iterators returned by a function
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.decorate import mimicking
 

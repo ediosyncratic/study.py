@@ -41,6 +41,8 @@ From HAKMEM, http://www.inwap.com/pdp10/hbaker/hakmem/random.html:
   PROBLEM: Generate random unit vectors in N-space uniform on the unit
   sphere. SOLUTION: Generate N Gaussian random numbers and normalize
   to unit length.
+
+See study.LICENSE for copyright and license information.
 """
 
 import math

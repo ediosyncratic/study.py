@@ -57,7 +57,7 @@ Note: brightness of stars is given as 'magnitude' on a logarithmic scale where
 five units is a factor of 100; i.e. the unit of magnitude is 100**.2, just
 over 2.5.
 
-Todo: replace all the source-specific constructors.  Instead, have minimal
+TODO: replace all the source-specific constructors.  Instead, have minimal
 constructors for objects whose classes support 'fill in my details' methods
 specific to the relevant sources.  Causes all manner of grief: sub-bands of
 Saturn's rings need to know that's what they are before they know their radii
@@ -66,6 +66,8 @@ though: a minimal structure can be built that fills itself in on demand by
 imporing modules that just cause the side effects of refining data.  Requires
 total revolution.  Also demands that I find the assorted sources again so as
 to record each separately, as the present data is a mish-mash of them all.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.snake.lazy import Lazy

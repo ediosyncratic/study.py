@@ -1,4 +1,6 @@
 """Interaction with the system crypt() utility.
+
+See study.LICENSE for copyright and license information.
 """
 
 def encrypt(text):

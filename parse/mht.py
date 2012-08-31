@@ -5,6 +5,8 @@ page to disk, save it as a pseudo-mail-message *.mht file; it is
 desirable to be able to unpack these.  Some uses for that would be well
 served by providing for unpacking as a directory-full of files.  This
 module provides that functionality.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import Cached, lazyprop

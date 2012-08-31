@@ -3,6 +3,8 @@
 
 Saturn has sixty moons:
 http://www.sciencedaily.com/releases/2007/07/070719194206.htm
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import mega, metre, km, Quantity

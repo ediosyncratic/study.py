@@ -3,6 +3,8 @@
 Provides:
   Huffman -- class implementing Huffman encodings
   alphabet -- default symbol set used by Huffman (q.v.) for encoded data
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",

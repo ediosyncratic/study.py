@@ -1,4 +1,6 @@
 """The joys of compound interest ...
+
+See study.LICENSE for copyright and license information.
 """
 from datetime import date, timedelta
 from study.snake.lazy import Lazy

@@ -6,7 +6,7 @@ result is somewhat suspect.  In places it conflicts with my Nuffield Advanced
 Science data book (NAS); where the latter enabled me to make sense of what I'd
 got, I adapted to suit it.
 
-$Id: nuclide.py,v 1.3 2008-05-11 15:51:33 eddy Exp $
+See study.LICENSE for copyright and license information.
 """
 
 from element import Isotope, alpha

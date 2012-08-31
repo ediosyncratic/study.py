@@ -1,4 +1,6 @@
 """Depicting functions on the complex plane.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Meromorph (object):

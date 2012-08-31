@@ -1,4 +1,6 @@
 """Canonicalisation of indentation.
+
+See study.LICENSE for copyright and license information.
 """
 from study.cache.property import Cached, lazyprop
 

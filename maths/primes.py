@@ -19,6 +19,8 @@ See also generic integer manipulators in natural.py, combinatorial tools in
 permute.py and polynomials in polynomial.py: some day, it'd be fun to do some
 stuff with prime polynomials ... and there must be such a thing as complex
 primes.
+
+See study.LICENSE for copyright and license information.
 """
 
 checking = None

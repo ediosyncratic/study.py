@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The moons and rings of Uranus.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import mega, metre, km, Quantity

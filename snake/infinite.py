@@ -1,4 +1,6 @@
 """Implement suitably infinite values.
+
+See study.LICENSE for copyright and license information.
 """
 
 try: PosInf = float('Infinity')

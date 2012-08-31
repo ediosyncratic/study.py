@@ -12,6 +12,8 @@ For data, see (inter alia): http://www.webelements.com/
 
 TODO: convert to use a minimalist constructor with source-specific data-supply
 methods; this module can be converted with minimal entanglement with others.
+
+See study.LICENSE for copyright and license information.
 """
 from study.value.units import Object, Sample, Quantity, kilo, harpo, year, \
      Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc

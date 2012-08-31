@@ -111,6 +111,8 @@ happens again:7*5*3*2 = 210 > 121 = 11*11 and the product is growing roughly
 combinatorially, while the square is roughly quadratically, which is
 comparatively slow.  So 30 is the last time that the simple list of primes up to
 the modulus suffices as the list of coprimes.
+
+See study.LICENSE for copyright and license information.
 """
 
 def coprimes(primes):

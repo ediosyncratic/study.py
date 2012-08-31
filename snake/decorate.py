@@ -1,11 +1,11 @@
 """Generic decorators.
 
-Provides a set of tools (inspired by Michele Simionato's decorator module [0])
-for making decorators work better, plus some decorators that deploy
-these.  The primary decorators provided here should suffice to do everything
-you might need with the low-level tools; however, use of the low-level tools,
-particularly in the implementations of other decorators, may be more
-efficient.
+Provides a set of tools (initially inspired by Michele Simionato's decorator
+module [0]) for making decorators work better, plus some decorators that
+deploy these.  The primary decorators provided here should suffice to do
+everything you might need with the low-level tools; however, use of the
+low-level tools, particularly in the implementations of other decorators, may
+be more efficient.
 
 Low-level tools:
   wrapas(function, prototype) -- wrap function with prototype's signature
@@ -38,6 +38,8 @@ Further Decorators:
 See also:
  * http://wiki.python.org/moin/PythonDecoratorLibrary
  * the functools module's wraps() decorator.
+
+See study.LICENSE for copyright and license information.
 """
 
 # Note: all of these are wrapped, below, to hide their tunnelled args !

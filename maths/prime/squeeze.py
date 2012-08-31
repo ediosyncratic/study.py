@@ -60,6 +60,8 @@ fairly rare.  We can then compress each sequence we can handle and save a tuple
 whose entries are either compressed strings or actual primes (possibly
 represented by their index as primes, optionally minus the index of the last
 prime actually handled by the Huffman compressor).
+
+See study.LICENSE for copyright and license information.
 """
 
 from bz2 import compress

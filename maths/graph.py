@@ -6,6 +6,8 @@ ccomps and gvcolorize) for visualisation of graphs.  Things to play at:
 
   * .h file inclusion hierarchy; CPP sensitive ?
   * C function call hierarchy
+
+See study.LICENSE for copyright and license information.
 """
 
 class Partition:

@@ -1,4 +1,6 @@
 """Master object controlling primes list.
+
+See study.LICENSE for copyright and license information.
 """
 import os, cache
 

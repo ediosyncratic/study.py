@@ -6,7 +6,8 @@ integral(: f(x).dx &larr;x; a &le;x&le;b :)
 = sum(: 2**(1+n) * sum(: (-1)**m f(a +(b-a)*(m+1)/2**(1+n)) &larr;m :2**(1+n) -2)
         &larr;n :{naturals})*(b-a)
 
-see: http://en.wikipedia.org/wiki/Method_of_exhaustion
+See: http://en.wikipedia.org/wiki/Method_of_exhaustion
+See study.LICENSE for copyright and license information.
 """
 class Integrator:
     """Base class for integrators.

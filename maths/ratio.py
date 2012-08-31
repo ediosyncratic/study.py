@@ -6,6 +6,7 @@ Exports:
   refine(val [, best]) -- improve on an earlier approximation to val
 
 See also: study.maths.continued, compared to which this is crude and ugly.
+See study.LICENSE for copyright and license information.
 """
 
 def intsplitfrac(val):

@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Planck's units, and kindred systems of units.
+
+See study.LICENSE for copyright and license information.
 """
 from physics import Vacuum, Quantum, Cosmos, Thermal, Object, pi
 

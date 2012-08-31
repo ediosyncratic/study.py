@@ -1,8 +1,8 @@
 """Sinusoids of multiples of angles, via polynomials.
 
-See S and C for details, or
+See S and C for details; or, for theory,
 http://www.chaos.org.uk/~eddy/math/multiangle.html
-for theory.
+See study.LICENSE for copyright and license information.
 """
 
 from polynomial import Polynomial

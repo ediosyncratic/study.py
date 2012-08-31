@@ -1,4 +1,6 @@
 """Analysing a statistical sample.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import lazyprop

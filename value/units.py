@@ -2,6 +2,7 @@
 """Assorted units of measurement.
 
 See SI.py for base units and archaea.py for more arcane units (and references).
+See study.LICENSE for copyright and license information.
 """
 from SI import *
 

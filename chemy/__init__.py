@@ -9,4 +9,6 @@
  planck -- Planck's units
  substance -- properties of some substances
  thermal -- black-body radiator
+
+See study.LICENSE for copyright and license information.
 """

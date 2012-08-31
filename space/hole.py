@@ -1,4 +1,6 @@
 """Description of black holes.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.chemy.physics import Vacuum, Quantum, Cosmos, Thermal, pi

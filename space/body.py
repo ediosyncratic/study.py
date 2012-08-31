@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """The various types of heavenly body.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Satellites:

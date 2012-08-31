@@ -3,6 +3,7 @@
 See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
+See study.LICENSE for copyright and license information.
 """
 from study.value.units import *
 

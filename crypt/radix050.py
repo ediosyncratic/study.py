@@ -15,6 +15,8 @@ Bill (at LSL) found that this is the wrong way to approach the decoding,
 though: it is actually done by cutting the int, seen as a sequence of bits,
 into chunks, then decoding each chunk separately.  So I should probably at
 least support that reading !
+
+See study.LICENSE for copyright and license information.
 """
 
 _charset = " abcdefghijklmnopqrstuvwxyz$.?0123456789"

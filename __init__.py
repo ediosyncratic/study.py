@@ -17,6 +17,24 @@ that shall require some fairly far-reaching re-design, so I'll make do with
 what I have in the mean time ;-)
 """
 
+LICENSE = """\
+Eddy's python package to support the study of science and mathematics.
+Copyright (C) 1998--2012, Edward Welbourne (eddy [at] chaos [dot] org [dot] uk)
+
+This package is free software: you can redistribute it and/or modify it under
+the terms of version 3 of the GNU General Public License as published by the
+Free Software Foundation.
+
+This package is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+details.
+
+You should have received a copy of the GNU General Public License along with
+this package (see the file GPL-3 in the top-level study/ directory).  If not,
+see <http://www.gnu.org/licenses/>.
+"""
+
 # Basics:
 import snake
 import cache

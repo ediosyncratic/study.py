@@ -3,6 +3,8 @@
 
 Jupiter also has around 2000 Trojans at its Lagrange points, L4 (leading) and
 L5 (trailing).
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import metre, km, mega, Quantity

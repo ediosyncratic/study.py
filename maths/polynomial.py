@@ -1,4 +1,6 @@
 """Polynomials.  Coefficients are assumed numeric.  Only natural powers are considered.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 

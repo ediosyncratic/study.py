@@ -38,6 +38,8 @@ For chose(N,m) = N!/m!/(N-m)! Stirling implies the approximation
   log(chose(n+m,m))
   = (n+m+.5)*log(n+m) -(n+.5)*log(n) -(m+.5)*log(m) -.5*log(2*pi) +(1/n +1/m -1/(n+m))/12
   = .5 * log((1/n +1/m)/2/pi) +n*log(1+m/n) +m*log(1+n/m) +(1+n/m+m/n)/(n+m)/12
+
+See study.LICENSE for copyright and license information.
 """
 
 import math, cmath

@@ -16,6 +16,8 @@ by converting chemy.element first; see its TODO.
 Probably want a different class for each quantity-kind, so that we can load it
 up with the needed kind-specific properties, e.g. by providing a second base
 as mix-in to define the extra lazyprops.
+
+See study.LICENSE for copyright and license information.
 """
 
 # The multipliers (these are dimensionless) - also used by units.py

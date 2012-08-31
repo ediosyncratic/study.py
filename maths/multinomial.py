@@ -1,6 +1,7 @@
 """Multinomials - polynomials in several free variables.
 
 c.f. polynomial, using only one free variable.
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 from polynomial import unNaturalPower

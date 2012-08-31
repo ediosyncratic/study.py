@@ -18,6 +18,8 @@ factorial(), chose() and other combinatoric toys.
 
 Note that Numeric python's numarray infrastructure provides for quite a lot of
 the same things as the following.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import Cached, lazyprop, lazyattr

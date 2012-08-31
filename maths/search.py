@@ -35,6 +35,8 @@ with q sufficiently negative.  We can construct b as the last B(i) which
 contains no integer <= q with B(0) empty and each B(1+i) obtained from B(i) as
 follows: let S(i) = s -sum(: 2**p &larr;p |B(i))**2 and select the highest
 integer n for which
+
+See study.LICENSE for copyright and license information.
 """
 
 # I'll use complex numbers as a handy model of two dimensions

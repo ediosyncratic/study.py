@@ -1,4 +1,6 @@
 """Slice objects of the prime object.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.sequence import Iterable
 from study.snake.regular import Slice

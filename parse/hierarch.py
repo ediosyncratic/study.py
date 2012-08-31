@@ -8,6 +8,8 @@ unresolvable ambiguities in how the python engine should access
 base-classes).  Fortunately, python's introspection mechanisms make it fairly
 easy to discover that hierarchy; and the graphviz package's 'dot' language makes
 it easy to turn the result into a picture.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Diagram (object):

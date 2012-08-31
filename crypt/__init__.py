@@ -14,6 +14,7 @@ Attribute:
 
 See also:
  urllib -- standard python module, provides {un,}quote{,_plus} for %xx {en,de}coding.
+See study.LICENSE for copyright and license information.
 """
 
 # Taken from Information Theory, Inference, and Learning Algorithms (D.J.C. MacKay) p.100:

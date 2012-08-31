@@ -17,6 +17,8 @@ int register holding the power of two the answer should be scaled by; this int
 is thus made available to the infrastructure tracking the overall powers of two
 encoded by the arbitrary-sized int (i.e. python's long or an equivalent)
 accompanying the fractional value.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 

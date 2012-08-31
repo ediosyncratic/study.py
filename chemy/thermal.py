@@ -1,4 +1,6 @@
 """Description of thermal radiation.
+
+See study.LICENSE for copyright and license information.
 """
 from physics import Thermal, Quantum, Vacuum
 from study.value.object import Object

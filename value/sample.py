@@ -24,6 +24,8 @@ any other.
 Various classes with Weighted in their names provide the underlying
 implementation for that; the class Sample packages this functionality up for
 external consumption.
+
+See study.LICENSE for copyright and license information.
 """
 
 class _baseWeighted:

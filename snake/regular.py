@@ -1,4 +1,6 @@
 """Descriptors for arithmetic series (bounded on at least one side).
+
+See study.LICENSE for copyright and license information.
 """
 
 class Regular (object):

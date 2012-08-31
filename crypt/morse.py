@@ -7,6 +7,8 @@ letter: dot is encoded as '.', dash as '-'.
 
 Provides two functions, encode and decode, which perform the implied
 conversions.
+
+See study.LICENSE for copyright and license information.
 """
 
 encoding = {

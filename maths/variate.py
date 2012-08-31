@@ -5,6 +5,8 @@ A random variate's model needs to be able to generate `unpredictably'
 to be able to perform the integration needed to determine moments (e.g. the
 mean) and the probability of the variate falling in any given range of its
 permitted values.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.maths.integrate import Integrator

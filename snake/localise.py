@@ -12,6 +12,8 @@ error in this shall cause the call to name(...) to be aborted) and
 followed by a locale-restore; otherwise, name() shall accept the same
 signature, perform the same computation and return the same result as
 the written implementation.
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.snake.decorate import mimicking, accepting

@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Base classes and common types for astronomical data.
+
+See study.LICENSE for copyright and license information.
 """
 from study.value.units import Quantity, arc, pi, Object, second
 

@@ -20,6 +20,7 @@ tracking information about primeness and least common factors for the naturals
 some design features should be refactored out to maths.prime.cache in order to
 make these classes function truly generically.
 
+See study.LICENSE for copyright and license information.
 
 Hierarchy
 =========

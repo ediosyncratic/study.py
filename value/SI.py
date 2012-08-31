@@ -9,6 +9,8 @@ Note that Quantity equips certain kinds of quantity with extra attributes:
 time.light, mass.weight or mass.force, trigonometric attributes for angles,
 their inverses and a few relatives for scalars, Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
+
+See study.LICENSE for copyright and license information.
 """
 from quantity import *
 

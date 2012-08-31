@@ -1,4 +1,6 @@
 """Generate pythagorean triangles.
+
+See study.LICENSE for copyright and license information.
 """
 
 def whole(i, j):

@@ -1,6 +1,7 @@
 """Tool class useful in various contexts.
-"""
 
+See study.LICENSE for copyright and license information.
+"""
 
 class Prodict (dict):
     """A dictionary modelling a product of powers.

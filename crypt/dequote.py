@@ -4,6 +4,8 @@
 Contents:
   decode(infile, outfile) -- does decoding
   main(programname, args, logstream) -- command-line interface
+
+See study.LICENSE for copyright and license information.
 """
 import string
 

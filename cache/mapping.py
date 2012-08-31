@@ -3,6 +3,8 @@
 Contents:
   LazyDict -- mapping populated with data only when needed
   LazyFunc -- callable that caches responses for an underlying callable
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.sequence import Dict, List
 

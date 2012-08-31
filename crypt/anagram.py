@@ -1,6 +1,8 @@
 """Automatic permutation of anagrams, aided by a wordlist.
 
 Can surely be done better !
+
+See study.LICENSE for copyright and license information.
 """
 
 class OrdBok:

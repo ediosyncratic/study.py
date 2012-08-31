@@ -1,6 +1,7 @@
 """Description of space elevators.
 
 See http://www.chaos.org.uk/~eddy/project/space/ladder.html
+See study.LICENSE for copyright and license information.
 """
 from math import exp
 from home import Earth

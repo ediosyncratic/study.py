@@ -2,7 +2,7 @@
 
 Used by whole.py but isolated because intrinsically independent.
 
-$Id: lockdir.py,v 1.15 2009-10-16 06:14:26 eddy Exp $
+See study.LICENSE for copyright and license information.
 """
 
 class LockableDir (object):

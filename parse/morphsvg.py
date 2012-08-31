@@ -1,4 +1,6 @@
 """Parser for convenient access to and transformation of SVG data.
+
+See study.LICENSE for copyright and license information.
 """
 
 class SVG (object):

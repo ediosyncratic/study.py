@@ -2,6 +2,8 @@
 
 A good reference for these is Leonard I. Schiff's 'quantum mechanics'; page
 numbers quoted here are for the third edition.
+
+See study.LICENSE for copyright and license information.
 """
 from study.maths.polynomial import Polynomial
 from study.maths.natural import hcf

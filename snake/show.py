@@ -4,6 +4,8 @@
 
 Note that this may be adapted to work more like the standard library's
 textwrap.TextWrapper, if I ever find the time.
+
+See study.LICENSE for copyright and license information.
 """
 from row import transpose
 try:

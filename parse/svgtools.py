@@ -1,4 +1,6 @@
 """Tools for use with SVG.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Parser (object):

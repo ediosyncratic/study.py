@@ -17,6 +17,8 @@ So what we really need is three lists n, s, c, of equal length N
    * s must be a good approximation to sin(n),
    * c must be a good approximation to cos(n) and
    * s*s + c*c must be a very good approximation to 1.
+
+See study.LICENSE for copyright and license information.
 """
 from study.maths.pythagorean import coprime
 

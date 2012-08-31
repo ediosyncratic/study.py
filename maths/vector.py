@@ -2,6 +2,8 @@
 
 Exports one class, Vector, also exposed under the name Tensor.
 See its documentation for more.
+
+See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
 from study.snake.sequence import Tuple

@@ -4,6 +4,8 @@
   unique(seq) -- copy sequence, skipping duplicates
   deltas(seq [, step]) -- list of differences between entries in sequence
   median(seq) -- find entry, with as many >= it as <= it, in seq (or a mapping's keys)
+
+See study.LICENSE for copyright and license information.
 """
 
 def transpose(rows):

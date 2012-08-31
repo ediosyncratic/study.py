@@ -1,4 +1,6 @@
 """Code to manipulate /usr/share/dict/'s word-list files.
+
+See study.LICENSE for copyright and license information.
 """
 
 class WordList (dict):

@@ -13,6 +13,8 @@ Modules:
  show -- a pretty-printer for lists of strings
 Sub-package:
  endless -- implementing infinite lists, optionally with cacheing
+
+See study.LICENSE for copyright and license information.
 """
 import decorate
 import error

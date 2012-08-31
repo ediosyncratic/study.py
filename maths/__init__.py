@@ -33,6 +33,8 @@ Miscellaneous:
   primes -- factorisation and a disk-cached lazy list of all primes
   pythagorean -- integer-sided right-angle triangles
   ratio -- representing exact fractions and approximating numbers with them
+
+See study.LICENSE for copyright and license information.
 """
 # in memoriam:
 Ramanujan = 7 * 13 * 19

@@ -2,6 +2,8 @@
 
 The data record how long a computer ran between booting and shutting down
 (whether gracefully or otherwise).
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import lazyprop

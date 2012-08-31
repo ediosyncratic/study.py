@@ -8,6 +8,8 @@ Exports:
 The parser could fairly straightforwardly be adapted to parse the whole
 stockList page and provide data for all stocks.  However, I only actually want
 one stock at a time.
+
+See study.LICENSE for copyright and license information.
 """
 
 # Parser for Oslo Børs ticker pages:

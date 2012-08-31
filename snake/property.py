@@ -7,6 +7,7 @@ This module should eventually replace lazy.Lazy; it provides:
 
 See individual classes for details.
 See also study.cache for related classes.
+See study.LICENSE for copyright and license information.
 """
 
 class docprop (property):

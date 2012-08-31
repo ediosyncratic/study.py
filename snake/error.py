@@ -3,6 +3,8 @@
   exceptionlist([bok]) -- list exceptions names (or keys in bok with exception values)
   printexceptions([es]) -- pretty-print table of exceptions (from list)
   showexception(exc [, pre]) -- print information about (usually) an exception
+
+See study.LICENSE for copyright and license information.
 """
 
 def exceptionlist(bok=None):

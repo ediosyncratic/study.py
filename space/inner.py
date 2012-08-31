@@ -3,6 +3,8 @@
 
 Available source for more data:
 http://solarsystem.nasa.gov/planets/profile.cfm?Object=Mars&Display=Facts
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Object, Quantity, \

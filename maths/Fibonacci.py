@@ -32,6 +32,7 @@ effectively computing the Fibonacci sequence, so we may infer that the ratio
 between successive terms of this sequence steadilly approaches the golden ratio.
 
 For related discussion, see http://www.chaos.org.uk/~eddy/craft/Fibonacci.html
+See study.LICENSE for copyright and license information.
 """
 
 def fibonacci(what, was=0, result=1):

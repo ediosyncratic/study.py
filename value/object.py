@@ -1,4 +1,6 @@
 """Objects to describe values with namespaces.
+
+See study.LICENSE for copyright and license information.
 """
 
 def aslookup(whom):

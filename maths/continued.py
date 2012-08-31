@@ -8,6 +8,7 @@ Exports:
 See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
+See study.LICENSE for copyright and license information.
 """
 
 def real_continued(val, whole=int):

@@ -1,4 +1,6 @@
 """Playing with different number bases.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Base:

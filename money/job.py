@@ -1,5 +1,7 @@
 # -*- coding: iso-8859-1 -*-
 """Descriptin of a Job in terms of time and money.
+
+See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
 from study.value.units import hour, day, week, year

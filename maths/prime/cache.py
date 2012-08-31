@@ -47,6 +47,8 @@ Caches:
  * The cache root __init__.py may eventually record a cache format version, for
    future-prooofing purposes !  However, until the need for that is realised, we
    can leave it out and have it default to 0 if not found :-)
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.cache import whole

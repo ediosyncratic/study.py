@@ -17,6 +17,8 @@ which extends permute.Permutation; adding a .solve(size) iterator to iterate
 over all solutions of the given size; and adding a .unique(size) to do the same
 but skip equivalent solutions: two solutions are deemed equivalent if some
 symmetry of the chess board maps one onto another.
+
+See study.LICENSE for copyright and license information.
 """
 
 from permute import Permutation

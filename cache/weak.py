@@ -11,6 +11,8 @@ Provides:
                index to entries.
   weakprop -- recurseprop using propstore to cache weakrefs to attribute values
   weakattr -- combines weakprop and dictattr
+
+See study.LICENSE for copyright and license information.
 """
 
 from study.snake.sequence import ReadSeq
