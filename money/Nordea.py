@@ -17,6 +17,7 @@ acption "Account transactions" (Bevegelser p&aring; konto); I want all
 of its data.
 """
 from HTMLParser import HTMLParser
+from study.parse.tabular import Table
 
 class NordeaParser (HTMLParser):
     def process(self, filename):
@@ -176,9 +177,8 @@ class NordeaParser (HTMLParser):
             # A simple named tuple type:
             __names = 'booked', 'interest', 'text', 'bunch', 'ref', 'change'
             __upnew = tuple.__new__
-            @classmethod
-            def __new__(cls, bok):
-                return cls.__upnew(map(bok.get, cls.__names))
+            def __new__(cls, bok): # automagically an @staticmethod
+                return cls.__upnew(cls, map(bok.get, cls.__names))
 
             for i, nom in enumerate(__names):
                 exec('\n'.join(['@property',
@@ -218,8 +218,10 @@ class NordeaParser (HTMLParser):
                  short={ 'Booked date': 'booked',
                          'Interest date': 'interest',
                          'Text': 'text',
-                         'Bunch reference': 'bunch', 'Reference': 'ref',
+                         'Bunch reference': 'bunch',
+                         'Reference': 'ref',
                          'In': 'change', 'Out': 'change' }):
+            assert frozenset(short.values()) == frozenset(self.__names)
             bok = {}
             for k, v in map(lambda *kv: kv,
                             self.__keys,
@@ -245,7 +247,7 @@ class NordeaParser (HTMLParser):
         return junk
     del Info, Transact, Stub
 
-del HTMLParser
+del HTMLParser, Table
 def digest(filename, parser=NordeaParser()):
     return parser.process(filename)
 
