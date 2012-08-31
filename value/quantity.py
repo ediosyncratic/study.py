@@ -10,7 +10,8 @@ in which each quantity for which the source gives a value is told the values
 given by that source.  In particular, each particle, planet, element
 etc. comes into being with such quantities as the values for its mass, charge,
 etc., with no value given; but (for example) an element's atomic number, or an
-isotope's number of neutrons, shall be an actual value ab initio.
+isotope's number of neutrons, shall be an actual value ab initio.  Prototype
+by converting chemy.element first; see its TODO.
 
 Probably want a different class for each quantity-kind, so that we can load it
 up with the needed kind-specific properties, e.g. by providing a second base
@@ -1001,7 +1002,9 @@ class Quantity (Object):
         describe.
 
         All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity().\n"""
+        hence possibly to Quantity(); if units are specified (first positional
+        parameter after the above), they are effecitvely multiplied with any
+        units of best and tol.\n"""
         return cls.flat(best - tol, best + tol, best, *args, **what)
 
     @classmethod
