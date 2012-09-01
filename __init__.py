@@ -59,7 +59,6 @@ TODO = """There are many things that could be improved.
  * PEP 8 conformance.
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
    - use __all__ ?
-   - kill tabs !
    - don't use __myname__ (e.g. __quantity__ etc.; currently violated extensively)
    - don't use type(x) == blah comparisons; prefer isinstance(x, blah)
    - check for any isinstance(x, string); check against basestring instead
@@ -75,11 +74,16 @@ TODO = """There are many things that could be improved.
    get it registered in relevant namespaces.  See:
    http://docutils.sourceforge.net/rst.html
 
- * Break out randomness from maths as random.
+ * Add a test-suite as sub-package study.trial; simply importing study.trial
+   should verify that everything (else) imports; it should provide functions
+   to run testing of various degrees of thoroughness.  Support adding simple
+   fragments to the sub-package to reproduce each bug as I find it, for
+   subsequent regression testing.  At least support test-cases known to fail,
+   that should be fixed, but not run as part of regression testing.
 
- * Convert documentation to use reStructuredText. Modify doc-strings to use
-   reStructuredText; in each module, once converted, specify global
-   __docformat__ = 'restructuredtext'
+ * Convert documentation to use reStructuredText.
+   - See: http://docutils.sourceforge.net/docs/user/rst/quickstart.html
+   - In each converted module, set global __docformat__ = 'restructuredtext'
 
  * Add a DateTime type that knows about (and its instances can represent
    themselves in any of) several different calendar systems; equip it with at
@@ -91,6 +95,7 @@ TODO = """There are many things that could be improved.
    (e.g. for differences and times within each day).  c.f. the datetime module.
 
  * New quantity-type; see value.quantity's doc-string.
+ * Break out randomness from maths as random ?
 
  * Covnert to python 3 - worth doing on a separate branch !
    - there is a "2to3" utility to help with this
