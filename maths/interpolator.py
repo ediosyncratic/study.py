@@ -598,55 +598,62 @@ class PiecewiseConstant (Interpolator):
     straightforward.  For method documentation, check matching methods of
     Interpolator.\n"""
 
+    def __bands(self):
+        for l, h, m in self: yield l, h, m, h - l, False
+        yield h, h, 0, self.span, True
+
+    def __split(self, weights):
+        load, need = self.__bands(), weights[0]
+        left, right, avail, wide, done = load.next()
+        i = j = 1 # indexing into .mass and weights, respectively
+        while j < len(weights):
+            # We've eaten i-1 bands of self part of band i, which stretches
+            # from left to right, leaving avail spread across wide as the rest
+            # of this band.  That eating enabled us to yield j-1 cut-points;
+            # need remains of weights[j-1], before we can yield the next;
+            # eating reduces need via scaling to make sum(weights) match
+            # sum(.mass); but avoid pre-scaling either .mass or weights, as
+            # rounding errors muck up the scaled values; compute a revised
+            # scaling each time round the loop.
+            if done: # We've run out of .mass; hopefully also of need !
+                assert 1e-6 * sum(weights) > need
+                assert right is self.cuts[-1]
+                yield right
+                need = weights[j]
+                j += 1
+            else:
+                want = sum(weights[j:], need)
+                have = sum(self.mass[i:], avail)
+                # Modulo rounding: have may be zero, but only when want is.
+                if want and have:
+                    scale = want / have
+                    bite = need / scale
+                else:
+                    assert have < 1e-6 * self.total and want < 1e-6 * sum(weights)
+                    bite = scale = 0
+
+                if bite >= avail:
+                    # Eat the rest of avail
+                    need -= avail * scale
+                    left, right, avail, wide, done = load.next()
+                    i += 1
+                else: # we can complete this interval
+                    step = wide * bite / avail
+                    avail -= bite
+                    # Rest of avail is spread across remaining wide:
+                    wide -= step
+                    yield right - wide
+                    need = weights[j]
+                    j += 1
+
+        assert abs(sum(self.mass[i:], avail) / self.total - need / sum(weights)) < 1e-6, (
+            done, need, weights, left, wide, right, avail, i, self)
+
     def split(self, weights):
         assert not filter(lambda x: x < 0, weights), \
             ('Weights should not be negative', weights)
 
-        cut, load = self.cuts, self.mass
-        scale, mid = self.total / sum(weights), cut[len(cut)/2]
-        # Work with differences from median: this reduces rounding errors when
-        # the range of self.cuts is very narrow compared to abs(mid).
-        cut = map(lambda x, m=mid: x-m, cut)
-        wanted = iter(map(lambda x, s=scale: x*s, weights[:-1]))
-        ans, prior, avail, need, i = [], cut[0], load[0], wanted.next(), 0
-        try:
-            # Avoid silly rounding errors at start:
-            while not need:
-                ans.append(self.cuts[0])
-                need = wanted.next()
-        except StopIteration: pass
-
-        while True:
-            # We've allocated all weight left of prior, which is in the source
-            # band from cut[i] to cut[1+i]; of that band's load[i], avail is
-            # the remaining weight to the right of prior.  We may, however,
-            # have run past the end of the arrays, in which case we're in the
-            # zero-weight band beyond prior == cut[-1].
-            if need > avail: # eat the rest of this band and move to next:
-                try: need, i, prior = need - avail, 1+i, cut[1+i]
-                except IndexError: # We've run past the end:
-                    assert len(load) == i == len(cut) - 1
-                    assert prior is cut[i] and not avail
-                    # Modulo rounding, need should now be zero
-                    assert 1e-6 * self.total > need
-                    # Sweep the rounding errors under the rug:
-                    need = 0
-                else:
-                    try: avail = load[i]
-                    except IndexError: avail = 0
-            else: # complete this output interval and move on to the next:
-                if not filter(None, weights[len(ans)+1:]):
-                    # Short-cut (also avoids rounding errors):
-                    i, prior, avail = len(cut) - 1, cut[-1], 0
-                elif need: # else: cut[1+i] might IndexError
-                    assert cut[1+i] >= prior >= cut[i]
-                    assert need > 0 and avail > 0
-                    prior += (cut[1+i] - prior) * need / avail
-                    avail -= need
-                assert not ans or prior + mid >= ans[-1]
-                ans.append(prior + mid)
-                try: need = wanted.next()
-                except StopIteration: return tuple(ans) # Job done :-)
+        return tuple(self.__split(weights))
 
     @staticmethod
     def __share(weight, result, seq, s):
