@@ -56,7 +56,7 @@ class Interpolator (Cached):
         doesn't, the one at half wins; otherwise, call it a draw.\n"""
         split = self.combine(cmp, other)
         assert set(split.cuts).issubset([-1, 0, 1])
-        low, mid, hie = self.weigh((-.5, .5), 2)
+        low, mid, hie = split.weigh((-.5, .5), 2)
         if low < 1: b = 0
         else: b = -1
         if hie < 1: return b
