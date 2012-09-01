@@ -12,7 +12,11 @@ Most documentation is in doc-strings, where it belongs; you should get
 useful information by printing the __doc__ of whatever object you're
 playing with, be it Planck's constant, the Polynomial class or the
 top-level study package object itself - a good place to start, if you
-want to learn more about this package.
+want to learn more about this package.  There's also a partial
+description of the package `on my web-site`__.
+
+__ StudyPy_
+.. _StudyPy: http://www.chaos.org.uk/~eddy/dev/study.py.html
 
 Coding style
 ------------
