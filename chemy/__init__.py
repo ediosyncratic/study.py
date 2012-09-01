@@ -10,5 +10,8 @@
  substance -- properties of some substances
  thermal -- black-body radiator
 
+Potential sources:
+ http://physics.nist.gov/cuu/Constants/
+
 See study.LICENSE for copyright and license information.
 """
