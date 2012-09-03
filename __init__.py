@@ -15,6 +15,9 @@ want, and thus proves that the general approach is valid, there are assorted
 architectural flaws; see value.quantity's doc-string's TODO.  However, fixing
 that shall require some fairly far-reaching re-design, so I'll make do with
 what I have in the mean time ;-)
+
+For a simple summary of pythonic wisdom, see PEP 20; or
+import this
 """
 
 LICENSE = """\
