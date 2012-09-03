@@ -140,15 +140,15 @@ class Colour (object):
     # Combine attributes in some standard ways:
 
     @property
-    def rgba(self, ig=None):
+    def rgba(self):
         return (self.red << 24) | (self.green << 16) | (self.blue << 8) | self.alpha
 
     @property
-    def argb(self, ig=None):
+    def argb(self):
         return (self.alpha << 24) | (self.red << 16) | (self.green << 8) | self.blue
 
     @property
-    def bgra(self, ig=None):
+    def bgra(self):
         return (self.blue << 24) | (self.green << 16) | (self.red << 8) | self.alpha
 
 del get_x11_rgb, LazyDict

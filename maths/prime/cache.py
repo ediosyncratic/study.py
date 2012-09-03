@@ -59,7 +59,7 @@ from bz2 import decompress
 
 class Node (whole.Node):
     @lazyattr
-    def indices(self, ig=None):
+    def indices(self):
         """Range of prime indices"""
         try: ind = self.__indices
         except AttributeError:
@@ -75,16 +75,16 @@ class Node (whole.Node):
     # FIXME: [PQ] -> P, [FG] -> F: distinguish internally instead.
 
     @lazyprop
-    def prime(self, ig=None):
+    def prime(self):
         if self.parent is None: return len(self.primes) > 0
         return 'P' in self.types or 'Q' in self.types
     @lazyprop
-    def factor(self, ig=None):
+    def factor(self):
         if self.parent is None: return len(self.factors) > 0
         return 'F' in self.types or 'G' in self.types
 
     @lazyprop
-    def interval(self, ig=None, Range=Interval):
+    def interval(self, Range=Interval):
         lo, sz, mo = self.span.start, len(self.span), self.root.octet.modulus
         lo *= mo
         if sz is not None: sz *= mo

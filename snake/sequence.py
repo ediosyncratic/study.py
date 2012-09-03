@@ -441,14 +441,9 @@ class ReadSeq (Iterable):
 from study.cache.property import lazyprop, Cached
 class ReadOnlySeq (ReadSeq, Cached):
     @lazyprop
-    def min(self, cls=None):
-        assert cls is None
-        return min(self)
-
+    def min(self): return min(self)
     @lazyprop
-    def max(self, cls=None):
-        assert cls is None
-        return max(self)
+    def max(self): return max(self)
 
 del lazyprop, Cached
 

@@ -159,7 +159,7 @@ class Permutation (Tuple, Cached):
         return cls(what)
 
     @lazyattr
-    def inverse(self, cls=None):
+    def inverse(self):
         """Inverts the permutation.
 
         Computes the inverse of self: that is, if p is a permutation and q =
@@ -211,7 +211,6 @@ class Permutation (Tuple, Cached):
         would, on permutations, serve as inversion.  However, the
         implementation here is more efficient than calling order.\n"""
 
-        assert cls is None
         n = len(self)
         ans = [ None ] * n
 
@@ -235,7 +234,7 @@ class Permutation (Tuple, Cached):
         return ans
 
     @lazyprop
-    def sign(self, cls=None):
+    def sign(self):
         """The signature of the permutation.
 
         The signature homomorphism is the unique non-fatuous mapping from
@@ -245,7 +244,7 @@ class Permutation (Tuple, Cached):
         value is entirely determined by the fact that every transposition
         (i.e. a permutation that simply swaps two elements) has sign -1; this
         is used in computing the value.\n"""
-        assert cls is None
+
         mess, sign, i = list(self), +1, len(self)
         try:
             while i > 1:
@@ -263,7 +262,7 @@ class Permutation (Tuple, Cached):
         return sign
 
     @lazyprop
-    def period(self, cls=None):
+    def period(self):
         """Computes the period of the permutation.
 
         See http://www.research.att.com/~njas/sequences/A000793 and
@@ -273,7 +272,7 @@ class Permutation (Tuple, Cached):
         of the lowest common multiple of the lengths of the parts.  Note that
         this method may fail to terminate if self is not actually a
         permutation.\n"""
-        assert cls is None
+
         q, i = compose(self, self), 1 # Invariant: q = self**(1+i)
         while q != self:
             q, i = compose(q, self), 1+i

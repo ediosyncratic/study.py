@@ -18,13 +18,11 @@ class Record (tuple):
         return self.start < other.end and other.start < self.end
 
     @lazyprop
-    def date(self, cls=None, delta=datetime.timedelta):
-        assert cls is None
+    def date(self, delta=datetime.timedelta):
         return str(delta(seconds=self.ran))
 
     @lazyprop
-    def duration(self, cls=None, fmt=time.strftime):
-        assert cls is None
+    def duration(self, fmt=time.strftime):
         return fmt('%c', self.start)
 
     def __sane(self, end=None, time=time.time):

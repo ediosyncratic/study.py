@@ -160,7 +160,7 @@ class Gamma (Variate):
         return self.__between(start, stop, *args, **what) * sign
 
     @lazyattr
-    def mean(self, cls=None):
+    def mean(self):
         """Mean of the gamma distribution.
 
         This is

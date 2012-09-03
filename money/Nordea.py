@@ -184,8 +184,8 @@ class NordeaParser (HTMLParser):
 
             for i, nom in enumerate(__names):
                 exec('\n'.join(['@property',
-                                'def %s(self, cls=None): return self[%d]'
-                                % (nom, i), '']))
+                                'def %s(self): return self[%d]' % (nom, i),
+                                '']))
             del i, nom
 
             def as_dict(self, ns=__names):

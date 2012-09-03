@@ -14,7 +14,7 @@ class Rational (Rational):
     """
 
     @lazyprop
-    def log(self, ig=None, log2=log2):
+    def log(self, log2=log2):
         return log2(self.real)
 
     __ps = (2,)
@@ -24,22 +24,22 @@ class Rational (Rational):
 
     from primes import factorise
     @lazyprop
-    def __factors(self, ig=None, crack=factorise):
+    def __factors(self, crack=factorise):
         return crack(self.numerator, crack(self.denominator))
     del factorise
 
     @property
-    def factors(self, ig=None): return self.__factors.keys()
+    def factors(self): return self.__factors.keys()
 
     @lazyprop
-    def complexity(self, ig=None):
+    def complexity(self):
         bok = self.__factors
         ans = sum(bok.keys()) + sum(bok.values()) - len(bok)
         if self.clean: return ans
         return ans * self.numerator * self.denominator
 
     @lazyprop
-    def clean(self, ig=None):
+    def clean(self):
         return all(k in self.__ps for k in self.__factors.keys())
 
 from study.snake.sequence import Ordered
@@ -147,12 +147,12 @@ class Scale (object):
 
     from study.maths.natural import sqrt
     @lazyprop
-    def __complex(self, ig=None, root=sqrt):
+    def __complex(self, root=sqrt):
         return self.__count # * root(self.__count)
     del sqrt
 
     @lazyprop
-    def __rough(self, ig=None, Row=LeastBad, Frac=Rational):
+    def __rough(self, Row=LeastBad, Frac=Rational):
         seq, count, big = (), self.__count, self.__complex
         i, step = count + 1, 1. / count
         while i > 0:
@@ -217,7 +217,7 @@ class Scale (object):
         return True
 
     @lazyprop
-    def best(self, ig=None, unlack=(None,)):
+    def best(self, unlack=(None,)):
         return map(lambda s, u=unlack: (s or u)[0], self.__rough)
 
     def prefer(self, *primes):

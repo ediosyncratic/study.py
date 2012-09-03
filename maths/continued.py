@@ -121,7 +121,7 @@ class Cycle (Token):
             i += 1
 
     @property
-    def values(self, ig=None): return self.__values
+    def values(self): return self.__values
     def __repr__(self): return 'Cycle%s' % (self.__values,)
     __str__ = __repr__
 
@@ -142,9 +142,9 @@ class Series (Token):
             n += s
 
     @property
-    def first(self, ig=None): return self.__data[0]
+    def first(self): return self.__data[0]
     @property
-    def step(self, ig=None): return self.__data[1]
+    def step(self): return self.__data[1]
     def __repr__(self): return 'Series(%s, %s)' % self.__data
     __str__ = __repr__
 
@@ -182,7 +182,7 @@ class Continued (object):
             self.__src = it
 
         @property
-        def source(self, ig=None): return self.__src
+        def source(self): return self.__src
 
         __upget = list.__getitem__
         def __getitem__(self, key):
@@ -327,7 +327,7 @@ class Continued (object):
             return True
 
         @property
-        def status(self, ig=None):
+        def status(self):
             return tuple(map(self.__show, self.__x))
 
         @staticmethod
@@ -679,7 +679,7 @@ class Continued (object):
         # </Grinder>
 
     @property
-    def status(self, ig=None, G=Grinder):
+    def status(self, G=Grinder):
         n = len(self.__ds)
         if isinstance(self.__ds, self.__IterStore):
             src = self.__ds.source

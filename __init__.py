@@ -67,11 +67,6 @@ TODO = """There are many things that could be improved.
 
  * Replace the Lazy-based machinery with study.cache.property types.
 
- * Fix lots of property-getters that suffer the delusion of needing a second
-   cls=None parameter; I've no idea where I got th crazy idea that this was
-   needed but, apparently, it isn't !  Some cases use, in place of cls, a
-   prefix of ignore as name, typically ig.
-
  * PEP 8 conformance.
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
    - use __all__ ?

@@ -1,31 +1,27 @@
 """Analysing a statistical sample.
 
+TODO: this has a bunch of overlap with Interpolator; factoring it into a
+suitable base-class would not be unreasonable.
+
 See study.LICENSE for copyright and license information.
 """
-
-from study.cache.property import lazyprop
 
+from study.cache.property import lazyprop
+
 class Sample (tuple):
     @lazyprop
-    def order(self, cls=None):
-        assert cls is None
+    def order(self):
         from study.maths.permute import order
+        Sample.order = order
         return order(self)
 
     @lazyprop
-    def sorted(self, cls=None):
-        assert cls is None
-        return self.order.permute(self)
+    def sorted(self): return self.order.permute(self)
 
     @lazyprop
-    def span(self, cls=None):
-        assert cls is None
+    def span(self):
         all = self.sorted
         return all[0], all[-1]
-
-    @lazyprop
-    def prop(self, cls=None):
-        assert cls is None
 
     @staticmethod
     def __diff(seq, step=1):

@@ -16,7 +16,7 @@ class Parser (object):
       * skewX( [one angle] )
       * skewY( [one angle] )
     """
-    def __init__(self, client, cls=None): assert cls is None
+    def __init__(self, client): pass
 
     @staticmethod
     def skiptonext(text):

@@ -63,12 +63,12 @@ class Interpolator (Cached):
         return b + 1
 
     @lazyprop
-    def total(self, cls=None): return sum(self.mass)
+    def total(self): return sum(self.mass)
     @lazyprop
-    def span(self, cls=None): return self.cuts[-1] - self.cuts[0]
+    def span(self): return self.cuts[-1] - self.cuts[0]
     @lazyprop
     @postcompose(tuple)
-    def spikes(self, cls=None):
+    def spikes(self):
         """Returns a tuple of self's degenerate values.
 
         If self has non-zero weight in an interval that ends where it starts,
@@ -78,7 +78,7 @@ class Interpolator (Cached):
 
         Note that combining spikes with non-zero density intervals presents
         problems for analysis of correct behaviour.\n"""
-        for (l, h, w) in self.filter(lambda l, h, w: l == h):
+        for l, h, w in self.filter(lambda l, h, w: l == h):
             yield h
 
     def simplify(self, count):
@@ -110,7 +110,7 @@ class Interpolator (Cached):
 
     @iterable
     def __iter__(self):
-        for (l, h, w) in self.map(lambda *args: args):
+        for l, h, w in self.map(lambda *args: args):
             yield l, h, w
 
     @staticmethod
@@ -338,7 +338,7 @@ class Interpolator (Cached):
             else: scale /= base
 
     @property
-    def dispersal(self, cls=None, log=math.log):
+    def dispersal(self, log=math.log):
         """Computes an entropy-related shape property of the distribution.
 
         This is -self.entropy with a correction term to eliminate dependence
@@ -449,18 +449,17 @@ class Interpolator (Cached):
         raise NotImplementedError
 
     @property
-    def normal(self, cls=None):
+    def normal(self):
         """Mean and variance tuple as property.
 
         Returns the mean and variance of the distribution, as a twople.  These
         are the data one would supply to gaussian() to obtain a distribution
         similar to self; .gaussian(m,v).normal should return at least a
         reasonable approximation to (m,v).\n"""
-        assert cls is None
         raise NotImplementedError
 
     @property
-    def entropoid(self, cls=None):
+    def entropoid(self):
         """Raw entropy measure for the distribution, as property.
 
         Returns the integral of ln(p)*p, where p is the density function of
@@ -470,7 +469,6 @@ class Interpolator (Cached):
         unit of measurement, for the quantity whose distribution self
         describes, used in obtaining the entries in cuts.  See .dispersal for
         a scale-invariant alternative.\n"""
-        assert cls is None
         raise NotImplementedError
 
     def split(self, weights):
@@ -766,7 +764,7 @@ class PiecewiseConstant (Interpolator):
         return tuple(result)
 
     @lazyprop
-    def normal(self, cls=None):
+    def normal(self):
         cut, siz = iter(self.cuts), iter(self.mass)
         zero = one = two = 0.
         # [zero,one,two][i] == integral(lambda x: x**i * p(x))
@@ -804,7 +802,7 @@ class PiecewiseConstant (Interpolator):
         return mean, two / zero
 
     @lazyprop
-    def entropoid(self, cls=None,
+    def entropoid(self,
                   each=lambda l, h, w, g=math.log: w * g(w / (h-l))):
         """See Interpolator.entropoid for definition.
 
@@ -1078,14 +1076,9 @@ class PiecewiseConstant (Interpolator):
             return cmp(self.start, other.start) or cmp(self.stop, other.stop)
 
         @lazyprop
-        def start(self, cls=None):
-            assert cls is None
-            return self.kinks[0]
-
+        def start(self): return self.kinks[0]
         @lazyprop
-        def stop(self, cls=None):
-            assert cls is None
-            return self.kinks[-1]
+        def stop(self): return self.kinks[-1]
 
         def weigh(self, lo, hi):
             """Returns how self.weight contributes to an interval.

@@ -35,9 +35,7 @@ class Search (Cached):
 
     from study.maths.differentiate import Single
     @lazyprop
-    def gradient(self, cls=None, S=Single):
-        assert cls is None
-        return S(self.__func)
+    def gradient(self, S=Single): return S(self.__func)
     del Single
 
     def __getattr__(self, key):

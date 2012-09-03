@@ -312,7 +312,7 @@ class Vector (Tuple):
         return self
 
     @lazyprop
-    def rank(self, cls=None):
+    def rank(self):
         """The rank of self, as a tensor.
 
         If the entries in self are numbers, self's rank is 1; otherwise, each
@@ -326,7 +326,7 @@ class Vector (Tuple):
         return 1
 
     @lazyprop
-    def dimension(self, cls=None):
+    def dimension(self):
         """The sequence of dimensions at different ranks.
 
         For a tensor, len(self[i]) is the same for all 0 <= i < len(self); for

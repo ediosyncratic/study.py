@@ -42,7 +42,7 @@ class MHT (Cached):
             if loc: yield loc
 
     @lazyprop
-    def stem(self, ig=None, cut='/\\'):
+    def stem(self, cut='/\\'):
         """Maximal common prefix of Content-Location headers.
 
         This is the longest common path-like prefix of all

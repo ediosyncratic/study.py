@@ -114,7 +114,7 @@ class LockableDir (object):
     from property import lazyprop
 
     @lazyprop
-    def __file(self, ig=None): return self.path('.lock')
+    def __file(self): return self.path('.lock')
 
     del lazyprop
     import fcntl, errno

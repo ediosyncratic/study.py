@@ -177,43 +177,29 @@ class Spread (Dict, Cached):
         return self
 
     @lazyprop
-    def max(self, cls=None):
-        assert cls is None
-        return max(self.keys())
-
+    def max(self): return max(self.keys())
     @lazyprop
-    def min(self, cls=None):
-        assert cls is None
-        return min(self.keys())
-
+    def min(self): return min(self.keys())
     @lazyprop
-    def mean(self, cls=None):
-        assert cls is None
-        return self.E()
-
+    def median(self): return self.split(2)[0]
     @lazyprop
-    def variance(self, cls=None):
-        assert cls is None
+    def mean(self): return self.E()
+    @lazyprop
+    def variance(self):
         return self.E(lambda (x, w), m=self.mean: (x - m)**2 * w)
 
     @lazyprop
-    def modes(self, cls=None):
-        assert cls is None
+    def modes(self):
         top = max(self.values())
         return tuple(self.iteritems().filter(
                 lambda (k, v), m=top: v == m).map(
                 lambda (k, v): k))
 
     @lazyprop
-    def mode(self, cls=None):
+    def mode(self):
         ms = self.modes
         if len(ms) != 1: raise ValueError('Distribution is not unimodal', ms)
         return ms[0]
-
-    @lazyprop
-    def median(self, cls=None):
-        assert cls is None
-        return self.split(2)[0]
 
     def split(self, n, par=cmp, mid=None):
         """Tuple of split-points between n-iles of distribution.

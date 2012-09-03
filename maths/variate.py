@@ -37,21 +37,19 @@ class Variate (Integrator, Cached):
     def __moment(self, i):
         return self.measure(lambda x, j=i: x**j).total(self.__cut)
     @lazyprop
-    def __total(self, cls=None): return self.total(self.__cut)
+    def __total(self): return self.total(self.__cut)
     @lazyattr
-    def __cut(self, cls=None): return self.sample()
+    def __cut(self): return self.sample()
+    @lazyprop
+    def mean(self): return self.moments(1)[0]
 
     @lazyprop
-    def mean(self, cls=None):
-        return self.moments(1)[0]
-
-    @lazyprop
-    def variance(self, cls=None):
+    def variance(self):
         self.mean, two = self.moments(2)
         return two - self.mean**2
 
     @lazyprop
-    def median(self, cls=None):
+    def median(self):
         lo = hi = self.sample()
         while lo == hi: lo = self.sample()
         if lo > hi: lo, hi = hi, lo

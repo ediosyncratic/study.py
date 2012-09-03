@@ -96,26 +96,26 @@ class Rational (Cached):
             yield ans
 
     @property
-    def denominator(self, ig=None): return self.__ratio[1]
+    def denominator(self): return self.__ratio[1]
     @property
-    def numerator(self, ig=None): return self.__ratio[0]
+    def numerator(self): return self.__ratio[0]
 
     @lazyprop
-    def floor(self, ig=None): # round down (towards -infinity)
+    def floor(self): # round down (towards -infinity)
         num, den = self.__ratio
         rat = int(num // den)
         assert num >= rat * den
         return rat
 
     @lazyprop
-    def ceil(self, ig=None): # round up (towards +infinity)
+    def ceil(self): # round up (towards +infinity)
         num, den = self.__ratio
         rat = int(num / den)
         if num > rat * den: return rat + 1
         return rat
 
     @lazyprop
-    def nearint(self, ig=None): # round to nearest int, preferring even when ambiguous
+    def nearint(self): # round to nearest int, preferring even when ambiguous
         num, den = self.__ratio
         q = int(divmod(2 * num + den, 2 * den)[0])
         while 2 * (num - q * den) >  den: q += 1
@@ -125,13 +125,13 @@ class Rational (Cached):
         return q
 
     @lazyprop
-    def truncate(self, ig=None): # round towards zero
+    def truncate(self): # round towards zero
         num, den = self.__ratio
         if num > 0: return int(num / den)
         return -int(-num / den)
 
     @lazyprop
-    def real(self, ig=None):
+    def real(self):
         num, den = self.__ratio
         return float(num) / den
 

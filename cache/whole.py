@@ -311,7 +311,7 @@ class Node (Cached):
     an Interval (a Span with stride -1).\n"""
 
     @weakprop
-    def content(self, ig=None): return self._load_()
+    def content(self): return self._load_()
 
     class Bok (dict): pass # for weakref's sake
     def _load_(self, bok=None, glo={}, Dict=Bok, BLOCKED=EWOULDBLOCK):
@@ -441,11 +441,11 @@ class SubNode (Node):
 
     # read-only access to data members
     @property
-    def parent(self, ig=None): return self.__up
+    def parent(self): return self.__up
     @property
-    def types(self, ig=None): return self.__type
+    def types(self): return self.__type
     @property
-    def sign(self, ig=None):
+    def sign(self):
         up = self.__up.sign
         try: return self.__sign * up
         except AttributeError: return up
@@ -476,7 +476,7 @@ class SubNode (Node):
         except AttributeError: return cmp(None, s)
 
     @lazyprop
-    def span(self, ig=None):
+    def span(self):
         ans = self.__span
         if self.sign < 0: ans = -ans
         try: self.__sign
@@ -489,14 +489,15 @@ class SubNode (Node):
 
     # Chase parent to its root:
     @property
-    def root(self, ig=None): return self.__up.root
+    def root(self): return self.__up.root
 
 class Gap (SubNode):
     __upinit = SubNode.__init__
     def __init__(self, parent, start, span, sign):
         self.__upinit(parent, '', start, span, sign)
 
-    def straddles0(self, ig=None):
+    @lazyprop
+    def straddles0(self):
         return self.span is None or (-1 in self.span and +1 in self.span)
 
 class CacheSubNode (SubNode):
@@ -531,11 +532,11 @@ class CacheSubNode (SubNode):
         return s
 
     @property
-    def name(self, ig=None): return self.__name
+    def name(self): return self.__name
     def path(self, *tail): return self.parent.path(self.__name, *tail)
 
     @lazyprop
-    def straddles0(self, ig=None):
+    def straddles0(self):
         """CacheSubnodes do not straddle zero.
 
         They may start at it, but never contain values on both sides of it.
@@ -594,10 +595,9 @@ class WriteSubNode (CacheSubNode, WriteNode):
 
 class CacheFile (CacheSubNode):
     @lazyprop
-    def _cache_file(self, ig=None): return self.path()
-
+    def _cache_file(self): return self.path()
     @property
-    def depth(self, ig=None): return 0
+    def depth(self): return 0
 
     def lock(self, read=False, write=False):
         return self.parent.lock(read, write)
@@ -618,12 +618,12 @@ class CacheFile (CacheSubNode):
         return None # no such data available under my root
 
     @lazyprop
-    def next(self, ig=None):
+    def next(self):
         """Successor node to this one, if in this cache; else None."""
         return self.__spanner(self.span.stop)
 
     @lazyprop
-    def prev(self, ig=None):
+    def prev(self):
         """Prior node to this one, if in this cache; else None."""
         return self.__spanner(self.span.start - 1)
 
@@ -693,8 +693,7 @@ from study.snake.sequence import Ordered
 
 class CacheDir (Node, LockDir):
     @lazyprop
-    def _cache_file(self, ig=None):
-        return self.path('__init__.py')
+    def _cache_file(self): return self.path('__init__.py')
 
     class NameFragments (tuple):
         """Give tuples in .__listing handy names for their entries."""
@@ -718,7 +717,7 @@ class CacheDir (Node, LockDir):
 
     import re
     @lazyprop
-    def __listing(self, ig=None, get=os.listdir, seq=Ordered, row=NameFragments,
+    def __listing(self, get=os.listdir, seq=Ordered, row=NameFragments,
                   pat=re.compile(r'^(N|P|)([0-9a-z]+)([A-Z]+)([0-9a-z]+)(\.py|)$'),
                   signmap={ 'N': -1, 'P': +1, '': None }):
         """The (suitably sorted) list of contents of this directory.
@@ -744,7 +743,7 @@ class CacheDir (Node, LockDir):
     del re, NameFragments
 
     @lazyattr
-    def depth(self, ig=None): # but usually we'll read this from __init__.py
+    def depth(self): # but usually we'll read this from __init__.py
         return max(self.listing.map(lambda x: x.depth)) + 1
 
     def child_index(self, child):
@@ -948,8 +947,7 @@ class CacheDir (Node, LockDir):
         def __len__(self): return len(self.__att(self.__who))
 
     @lazyprop
-    def listing(self, ig=None, W=WeakSeq):
-        return W(self, lambda s: s.__listing)
+    def listing(self, W=WeakSeq): return W(self, lambda s: s.__listing)
 
     del WeakSeq
 
@@ -1017,7 +1015,7 @@ class CacheDir (Node, LockDir):
         directory entries in whose names 'F' appeared in the type
         component.\n"""
 
-        def get(self, ig=None, test=picker, S=W):
+        def get(self, test=picker, S=W):
             return S(self, lambda s: s.__listing, test)
 
         return L(get, doc=picker.__doc__)
@@ -1259,10 +1257,10 @@ class CacheRoot (CacheDir):
     parent = span = None
     sign = +1
     @lazyprop
-    def straddles0(self, ig=None):
+    def straddles0(self):
         return self.span is None or (-1 in self.span and +1 in self.span)
     @property
-    def root(self, ig=None): return self
+    def root(self): return self
     def path(self, *tail): return self.__path(tail)
     def __path(self, tail, join=os.path.join): return join(self.__dir, *tail)
 
@@ -1885,7 +1883,7 @@ class WriteDir (WriteNode, CacheDir):
         return WriteSubDir
 
     @lazyprop
-    def __namelen(self, ig=None, fmt=nameber.encode):
+    def __namelen(self, fmt=nameber.encode):
         if not self.straddles0:
             # len(self.span) is an upper bound on the .span.start of children
             return len(fmt(len(self.span)))
@@ -1952,7 +1950,7 @@ class WriteRoot (WriteDir, CacheRoot):
                     self, types, sign, start, len(span))
 
     @property
-    def contigua(self, ig=None):
+    def contigua(self):
         """Iterator over contiguous chunks of self's children.
 
         Each yield is a maximal tuple of contiguous top-level children, sorted
