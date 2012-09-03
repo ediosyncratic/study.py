@@ -151,7 +151,7 @@ def gradients(fn, arg, *deltas):
 
     # However, if the last few deltas are so small df is lost in rounding, throw
     # them away !
-    if filter(None, result):	# ie there are some non-zeros in the list ...
+    if any(result):	# i.e. there are some non-zeros in the list ...
         while result and result[-1] == 0:
             result = result[:-1]
 

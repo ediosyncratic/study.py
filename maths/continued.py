@@ -369,7 +369,7 @@ class Continued (object):
             ns, ds = self.__n, self.__d
 
             n, d = sum(map(abs, ns)), sum(map(abs, ns))
-            if not filter(None, map(lambda i, e, n=n, d=d: n*e -d*i, self.__n, self.__d)):
+            if all(n * e == d * i for i, e in zip(self.__n, self.__d)):
                 # self just represents the rational n/d.
                 i = gcd(n, d) or 1
                 ns[:], ds[:] = [ n/i ], [ d/i ]
@@ -775,7 +775,7 @@ class Continued (object):
             base.  Furthermore, if F is 0, we simply want to end the digit
             iteration.\n"""
 
-            if not filter(None, ns):
+            if not any(ns):
                 assert p == 0
                 raise StopIteration
 

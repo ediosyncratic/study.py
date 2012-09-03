@@ -880,7 +880,7 @@ class CacheDir (Node, LockDir):
             try:
                 while self.__listing[rev].sign * self.sign < 0: rev += 1
             except IndexError: pass # ran off end of list
-        assert not filter(lambda x: x.sign * self.sign < 0, self.__listing[rev:])
+        assert all(x.sign * self.sign >= 0 for x in self.__listing[rev:])
 
         # ISSUE(?): if root contains a wide file of one type, whose range
         # straddles some directories of another type, this fails to recognize
@@ -1757,7 +1757,7 @@ class WriteDir (WriteNode, CacheDir):
 
         if kids:
             # We've removed the ones in self.listing; the rest are moving in:
-            assert not filter(lambda k: k.stop is None, kids)
+            assert all(k.stop is not None for k in kids)
             span = span.meet(*map(lambda k: k.span, kids))
             types = self.__child_types(kids, types)
         else:
@@ -1788,7 +1788,7 @@ class WriteDir (WriteNode, CacheDir):
         # NB: self may be a freshly-created empty node with no real directory yet.
         assert self.parent is not None
         assert kids or len(self.listing) > 12, 'Pointless !'
-        assert not self.span or not filter(lambda x, d=self.depth-1: x.depth != d, kids)
+        assert not self.span or all(x.depth == self.depth-1 for x in kids)
 
         for it in kids:
             n = cmp(self.listing[0].span.start, it.span.start)
@@ -1801,10 +1801,11 @@ class WriteDir (WriteNode, CacheDir):
             before = tidy
 
         # kids should either all be before listing[0] or all be after listing[-1]:
-        if before:
-            assert not filter(lambda k, b=self.listing[0].span.start, s=self.sign: (b - k.span.stop) * s < 0, kids)
-        else:
-            assert not filter(lambda k, e=self.listing[-1].span.stop, s=self.sign: (k.span.start - e) * s < 0, kids)
+        assert all(x * self.sign >= 0 for x in
+                   map((lambda k, b=self.listing[0].span.start: b - k.span.stop)
+                       if before else
+                       (lambda k, e=self.listing[-1].span.stop: k.span.start - e),
+                       kids))
 
         all = seq(self.listing)
         for kid in kids: all.append(kid)
@@ -1815,7 +1816,7 @@ class WriteDir (WriteNode, CacheDir):
         else:
             def after(a, b): return a.span < b.span
         # Either way: after(a, b) iff a belongs (wholly) after b in self.listing
-        assert not filter(lambda i, k=all, a=after: a(k[i], k[i+1]), range(len(k)-1)), \
+        assert all(not after(y, x) for x, y in zip(all[:-1], all[1:])), \
             'Broken sorting in Ordered :-('
 
         # Where do we want to cut all ?

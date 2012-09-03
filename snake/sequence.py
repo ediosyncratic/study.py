@@ -109,6 +109,8 @@ class Iterable (object):
         for val in self:
             yield func(val, *map(lambda x: x.next(), others))
 
+        # assert all(x.next() is None for x in others) ?
+
     def reduce(self, func, init=None):
         it = iter(self)
         if init is None: init = it.next()

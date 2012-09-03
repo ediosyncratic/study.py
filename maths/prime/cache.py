@@ -200,15 +200,15 @@ class CacheFile (CacheSubNode, whole.CacheFile):
     __load = Node._load_
     def _load_(self, bok=None):
         bok = self.__load(bok)
-        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  bok.keys())
-        assert not self.factor or filter(lambda k: k[:6] == 'factor', bok.keys())
+        assert not self.prime  or any(k.startswith('prime')  for k in bok.keys())
+        assert not self.factor or any(k.startswith('factor') for k in bok.keys())
         return bok
 
 class WriteFile (WriteNode, CacheFile, whole.WriteFile):
     __save = WriteNode._save_
     def _save_(self, formatter, **what):
-        assert not self.prime  or filter(lambda k: k[:5] == 'prime',  what.keys())
-        assert not self.factor or filter(lambda k: k[:6] == 'factor', what.keys())
+        assert not self.prime  or any(k.startswith('prime')  for k in what.keys())
+        assert not self.factor or any(k.startswith('factor') for k in what.keys())
         return self.__save(formatter, **what)
 
 

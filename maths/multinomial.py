@@ -173,11 +173,12 @@ class Multinomial (Lazy):
     variablenames = 'zyxwvutsrqpnmlkhgfdcba' # skip o,i,j,e [0, sqrt(-1), exp]
 
     def _lazy_get_rank_(self, ig):
-        if not filter(None, self.__coefs.values()): return -1
-        return max(self._ranks)
+        if any(self.__coefs.values()):
+            return max(self._ranks)
+        return -1
 
-    def _lazy_get_uniform_(self, ig):
-        return not filter(lambda x, r=self.rank: x != r, self._ranks)
+    def _lazy_get_uniform_(self, ig): # a.k.a. homogeneous
+        return all(x == self.rank for x in self._ranks)
 
     def _lazy_get_profile_(self, ig):
         return tuple(map(* [lambda *x: max((0,) + filter(None, x))] + self.__coefs.keys()))

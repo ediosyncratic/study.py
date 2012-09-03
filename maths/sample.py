@@ -41,12 +41,10 @@ class Sample (tuple):
         steps, use a positive value for step and map(lambda x: -x, ...) the
         result.  A step of zero will is silly but allowed; you'll get the same
         as map(lambda x: x-x, seq).\n"""
-        return map(lambda x, y: y - x, seq[:-step], seq[step:])
+        return [y - x for x, y in zip(seq[:-step], seq[step:])]
 
     def partition(self, cuts):
-        assert not filter(None,
-                          map(lambda x, y: y <= x, cuts[:-1], cuts[1:])
-                          ), "Mis-ordered cuts"
+        assert all(x < y for x, y in zip(cuts[:-1], cuts[1:])), "Mis-ordered cuts"
         all, idx, j = self.sorted, [], 0
         # all[idx[i]-1] <= cuts[i] < all[idx[i]], strict where possible
         for cut in cuts:

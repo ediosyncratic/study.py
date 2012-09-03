@@ -319,9 +319,9 @@ class Vector (Tuple):
         entry in self is a Vector and all have the same rank; self's rank is
         one greater than that of its entries.\n"""
         if isinstance(self[0], Vector):
-            assert not filter(lambda x: not isinstance(x, Vector), self)
+            assert all(isinstance(x, Vector) for x in self)
             r = self[0].rank
-            assert not filter(lambda x, n=r: x.rank != r, self[1:])
+            assert all(x.rank == r for x in self)
             return 1 + r
         return 1
 
@@ -341,9 +341,9 @@ class Vector (Tuple):
         dimension[i] to be len(self[s]) and assert that its value is
         independent of choice of s, subject to given constraints.\n"""
         if isinstance(self[0], Vector):
-            assert not filter(lambda x: not isinstance(x, Vector), self)
+            assert all(isinstance(x, Vector) for x in self)
             tail = self[0]. dimension
-            assert not filter(lambda x, t=tail: x.dimension != t, self[1:])
+            assert all(x.dimension == tail for x in self)
             return (len(self),) + tail
 
         return (len(self),)

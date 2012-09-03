@@ -162,8 +162,7 @@ class curveWeighted (Lazy, _baseWeighted):
                 x = 1. * row[0] # coerce it to real
                 return (x, x)
 
-            assert not filter(None,
-                              map(lambda x, y: y < x, row[:-1], row[1:])), \
+            assert all(x <= y for x, y in zip(row[:-1], row[1:])), \
                    ('expected sorted data', row)
 
             # Between extreme key b and its neighbour i, we have a cut
@@ -651,8 +650,7 @@ class statWeighted (_baseWeighted):
 
         smooth, row = self.interpolator, self.sortedkeys
         assert len(smooth) == len(row)
-        assert not filter(
-            None, smooth.map(lambda l, h, w, m: l > m or m > h, row))
+        assert all(smooth.map(lambda l, h, w, m: l <= m <= h, row))
         i, j = 0, len(smooth) - 1
         lo, hi = smooth.mass[i], smooth.mass[j]
         while i + 1 < j:

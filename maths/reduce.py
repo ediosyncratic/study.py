@@ -190,7 +190,7 @@ class System (Lazy):
                         k -= 1
                         how[i][k] /= f
 
-                if filter(None, row[:i] + row[1+i:]):
+                if any(row[:i]) or any(row[1+i:]):
                     co.append(j)
 
             elif k < len(ker):
@@ -321,11 +321,10 @@ class System (Lazy):
         assert i == len(recip)
         while i > 0:
             i -= 1
-            if filter(None, avail[i]):
-                assert filter(None, recip[i])
+            # avail[i] != zero implies recip[i] != zero
+            if any(avail[i]): assert any(recip[i])
             else:
-                if filter(None, recip[i]):
-                    degen.append(recip[i])
+                if any(recip[i]): degen.append(recip[i])
                 del avail[i], recip[i]
 
         self.kernel = safe(degen)

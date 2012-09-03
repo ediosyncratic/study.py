@@ -29,10 +29,10 @@ class Interpolator (Cached):
         they may be iterables) be a sequence; and cuts must be sorted in
         increasing order.  The distribution described has weight mass[i]
         between cuts[i] and cuts[i+1].\n"""
-        assert len(mass) + 1 == len(cuts)
-        assert not filter(lambda x: x < 0, mass)
         self.cuts, self.mass = tuple(cuts), tuple(mass)
-        assert not filter(None, self.map(lambda x, y, w: y < x)), \
+        assert len(self.mass) + 1 == len(self.cuts)
+        assert all(x >= 0 for x in self.mass)
+        assert all(x <= y for x, y in zip(self.cuts[:-1], self.cuts[1:])), \
             ("Cuts should be sorted", self.cuts)
 
     @classmethod
@@ -650,7 +650,7 @@ class PiecewiseConstant (Interpolator):
             done, need, weights, left, wide, right, avail, i, self)
 
     def split(self, weights):
-        assert not filter(lambda x: x < 0, weights), \
+        assert all(x >= 0 for x in weights), \
             ('Weights should not be negative', weights)
 
         return tuple(self.__split(weights))
@@ -1069,8 +1069,7 @@ class PiecewiseConstant (Interpolator):
         def __init__(self, xs, wt):
             assert wt, 'non-empty'
             assert len(xs) == len(self), 'right number of entries'
-            assert not filter(None, map(lambda x, y: y < x,
-                                        xs[:-1], xs[1:])), 'sorted'
+            assert all(y >= x for x, y in zip(xs[:-1], xs[1:])), 'sorted'
             assert len(xs) < 2 or xs[0] < xs[-1], 'spike or interval'
             self.kinks, self.weight = xs, wt
 

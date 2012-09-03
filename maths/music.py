@@ -40,7 +40,7 @@ class Rational (Rational):
 
     @lazyprop
     def clean(self, ig=None):
-        return not filter(lambda k, fs=self.__ps: k not in fs, self.__factors.keys())
+        return all(k in self.__ps for k in self.__factors.keys())
 
 from study.snake.sequence import Ordered
 class LeastBad (Ordered):

@@ -66,7 +66,7 @@ class Middle (LazySeq):
         assert key == 2*n + m + 1
         this, that = self[n], self[m]
         ans = .5*(down[(n+m)%2]*this(-slab)*that(-two) + up*this(slab-2)*that)
-        assert not filter(lambda p, a=ans: p(a) != a, checks)
+        assert all(p(ans) == ans for p in checks)
         return ans
 
 K = Middle()

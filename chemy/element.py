@@ -203,7 +203,7 @@ class Element (Substance):
             for sym in alias:
                 if len(sym) < 3 or (len == 3 and # it looks like a pig latin name:
                                     sym == sym.capitalise() and sym[0] in 'UBTQPHSOE' and
-                                    not filter(lambda x: x not in 'nubtqphsoe', sym[1:])):
+                                    all(x in 'nubtqphsoe' for x in sym[1:])):
                     assert not Element.bySymbol.has_key(sym)
                     Element.bySymbol[sym] = self
                 else:
