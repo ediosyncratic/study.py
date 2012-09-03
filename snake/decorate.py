@@ -34,8 +34,8 @@ simple decorator.
 Further Decorators:
   @postcompose(post [, ...]) -- compose post after decorated function
 
-[0] http://www.phyast.pitt.edu/~micheles/python/decorator.zip
 See also:
+ * [0] http://www.phyast.pitt.edu/~micheles/python/decorator.zip
  * http://wiki.python.org/moin/PythonDecoratorLibrary
  * the functools module's wraps() decorator.
 
