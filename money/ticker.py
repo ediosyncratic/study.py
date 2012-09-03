@@ -1,5 +1,5 @@
 # -*- coding: iso-8859-1 -*-
-"""Extracting data from the Oslo Børs web pages.
+"""Extracting data from the Oslo Børs stock-ticker web pages.
 
 Exports:
   report(ticker) -- get summary of current state of ticker
@@ -11,11 +11,12 @@ one stock at a time.
 
 See study.LICENSE for copyright and license information.
 """
-
-# Parser for Oslo Børs ticker pages:
-from urllib2 import urlopen, Request, HTTPError
-from HTMLParser import HTMLParser
 
+# TODO: look into using the (non-standard) requests package instead of urllib
+from urllib2 import urlopen, Request, HTTPError
+# TODO: look into using (non-standard) BeautifulSoup instead of HTMLParser
+from HTMLParser import HTMLParser
+
 class StockPageParser (HTMLParser):
     @staticmethod
     def __error_munger(name, what, BadHTTP=HTTPError,
