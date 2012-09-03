@@ -15,9 +15,6 @@ want, and thus proves that the general approach is valid, there are assorted
 architectural flaws; see value.quantity's doc-string's TODO.  However, fixing
 that shall require some fairly far-reaching re-design, so I'll make do with
 what I have in the mean time ;-)
-
-For a simple summary of pythonic wisdom, see PEP 20; or
-import this
 """
 
 LICENSE = """\
@@ -52,12 +49,28 @@ import value
 import chemy
 import space
 
+Advocacy = """I enjoy coding in python.
+
+For a comparison with lisp (from which I actually learned things I didn't know
+about python): http://www.norvig.com/python-lisp.html
+
+For a simple summary of pythonic wisdom, see PEP 20; or
+import this
+"""
+
 TODO = """There are many things that could be improved.
+
+ * Run pylint and see what it says.  Probably lots !
 
  * Have I finished the conversion to use of interpolators ?
    No.
 
  * Replace the Lazy-based machinery with study.cache.property types.
+
+ * Fix lots of property-getters that suffer the delusion of needing a second
+   cls=None parameter; I've no idea where I got th crazy idea that this was
+   needed but, apparently, it isn't !  Some cases use, in place of cls, a
+   prefix of ignore as name, typically ig.
 
  * PEP 8 conformance.
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
@@ -65,6 +78,10 @@ TODO = """There are many things that could be improved.
    - don't use __myname__ (e.g. __quantity__ etc.; currently violated extensively)
    - don't use type(x) == blah comparisons; prefer isinstance(x, blah)
    - check for any isinstance(x, string); check against basestring instead
+
+ * Use list comprehensions in place of map, filter; map(f, filter(g, seq))
+   becomes [ f(x) for x in seq if g(x) ]; using (...) in place of [...] gets
+   you a generator (yum ! - call tuple on it if that's what you want).
 
  * Cure other archaisms:
    - s/raise $T, $v/raise $T($v)/
