@@ -256,11 +256,23 @@ Heliosphere = Shell("The Heliosphere", Sun, Quantity.below(230, AU),
                     Termination = Shell("Sol's Termination Shock", Sun,
                                         Quantity.flat(75, 90, None, AU),
                                         # c. Bode index 10
-                                        __doc__ = "Where solar wind falls below sound speed."),
+                                        __doc__ = "Solar wind falls below sound speed."),
                     Heliopause = Shell("Heliopause", Sun,
                                        Float(11, 0, 1, AU), # "about 110"
                                        # c. Bode index 11
-                                       __doc__ = "Where solar wind ions meet galactic ions"),
+                                       __doc__ = """Solar wind meets interstellar medium.
+
+Theory predicts the solar wind should be deflected sideways when it meets the
+interstellar medium.  See Stagnation for what Voyager 1 found instead.
+"""),
+                    Stagnation = Shell("Stagnation region", Sun,
+                                       Quantity.flat(113, 121, None, AU),
+                                       __doc__ = """Solar wind stops.
+
+Voyager 1 observed the solar wind speed to drop away to nothing at about 113
+AU and remain so for at least 7.5 AU - we're still (2012) waiting for more
+data on this, and don't have a good model for what's going on.
+"""),
                     BowShock = Shell("Sol's Bow Shock", Sun,
                                      Float(23, 0, 1, AU), # 'near 230'
                                      # c. Bode index 11.6
@@ -268,15 +280,21 @@ Heliosphere = Shell("The Heliosphere", Sun, Quantity.below(230, AU),
                     __doc__ = """Our Sun's sphere of influence.
 
 The Sun's magnetic field and particles from the solar wind continue outwards
-into space.  The Termination Shock is defined to be where the solar wind's speed
-falls to below the speed of sound (in it).  At the Heliopause, the Sun's ions
-run into ions from those from the rest of our galaxy, the Milky Way.  This
-results in a pressure wave in the interstellar gas, essentially like the bow
-wave of a boat in water; this causes a bow shock.
+into space.  The Termination Shock is defined to be where the solar wind's
+speed falls to below the speed of sound (in it).  At the Heliopause, the Sun's
+ions were expected to be deflected sideways due to meeting the interstellar
+medium (a mixture of atoms, molecules and ions).  This results in a pressure
+wave in the interstellar gas, essentially like the bow wave of a boat in
+water; this causes a bow shock.  However, Voyager 1 has found a stagnation
+region roughly where the heliopause was expected; instead of being deflected
+sidways, the solar wind apparently simply stops; this isn't presently (2012)
+well understood !
 
-See also: http://antwrp.gsfc.nasa.gov/apod/ap020624.html
-and a picture of the bow shock of a young star, LL Orionis, in Orion at
-http://antwrp.gsfc.nasa.gov/apod/ap020313.html
+See also: 
+ * http://antwrp.gsfc.nasa.gov/apod/ap020624.html
+ * http://arstechnica.com/science/2012/09/missing-voyager-1-yet-to-find-the-boundary-line-of-the-solar-system/
+ * and a picture of the bow shock of a young star, LL Orionis, in Orion:
+   http://antwrp.gsfc.nasa.gov/apod/ap020313.html
 """)
 
 # Notional boundary of the solar system (after Asimov):
