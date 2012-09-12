@@ -10,7 +10,10 @@ Exports:
   perfect() -- iterator over all N for which N == factorsum(N)
   Collatz(n) -- iterate the Collatz conjecture's sequence starting at n
   desquare(n) -- integer square root with remainder
+  unsquare(n) integer square root of perfect square; else ValueError
   sqrt(n) -- integer square root, discarding remainder
+  isprime(n) -- test whether a natural is prime
+  eachprime() -- iterate over the primes
   depower(n, p) -- as desquare, but for p-th power
   naturals -- list: naturals[i][naturals[j]] is naturals[j+1] iff i > j are natural
   lattice(dim, [signed, [mode, [total]]]) -- iterator over tuples of whole numbers
@@ -294,6 +297,28 @@ def unsquare(val):
 def sqrt(val):
     "max({natural n: n*n <= val})"
     return desquare(val)[0]
+
+def isprime(n):
+    "Tests whether a natural is prime"
+    s, r = desquare(n)
+    if not r: return False # n = s * s
+    while s > 1:
+        if n % s: s -= 1
+        else: return False
+    return True
+
+def eachprime():
+    """A trivial iterator over all primes.
+
+    Contrast study.maths.primes and study.maths.prime, both for efficiency and
+    for complexity !  This should be entirely adequate for primes up to modest
+    size; while I typed this sentence, printing each yield of this iterator
+    got me to primes well beyond half a million.  It'll slow down eventually,
+    and doesn't remember what it's done before, but it may be all you need.\n"""
+    n = 1
+    while True:
+        n += 1
+        if isprime(n): yield n
 
 def depower(val, p):
     """Whole inverse of a power, with remainder.

@@ -73,7 +73,10 @@ primes <= x grows with x as x/ln(x) or, for better precision, integral(:
 dt/ln(t) &larr;t, 2<=t<=x :{reals}).  Consequently, the number of primes
 between t and t+N for N small compared to t is about N/ln(t).
 
-Various potential improvements on existing ../primes.py:
+For a mindless and simple iterator, study.maths.natural.eachprime() may be
+sufficient for your needs.  The aim here (and in ../primes.py) is to remember
+what we've worked out before and exploit that knowledge.  Various potential
+improvements on existing study.maths.primes:
 
  * Turn it all into a separate sub-package, maths/prime/ !
     - abandon the misleading 'generalization' of lazyTuple; be entirely
