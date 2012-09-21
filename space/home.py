@@ -7,7 +7,7 @@ See study.LICENSE for copyright and license information.
 from study.value.units import Sample, qSample, Quantity, Object, \
      micro, milli, kilo, mega, giga, tera, peta, arc, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
-     litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin
+     litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin, au
 from study.value.archaea import mile
 import body
 from common import Orbit, Spin, Discovery, Surface, \
@@ -180,61 +180,10 @@ it; but my crude sums indicate these are much smaller (of order exa tonnes).
 
 del load_rubble
 
-ua = AU = AstronomicalUnit = Quantity.unit(
-    93, mega * mile,
-    'ua', # unite astronomique ?
-    'Astronomical Unit',
-    """The typical distance between Earth and Sun.
-
-This is the standard unit of length used, by astronomers, for measuring other
-distances within the solar system.  Determining the ratio between Earth's
-orbital radius and those of other planets is relatively easily performed to
-fairly high accuracy; before the advent of radar, however, determining
-astronomical distances in terrestrial units was rather hard and significantly
-less precise.  Thus using Earth's `unmeasured' orbital radius as unit of length
-was practical and sensible.
-
-To understand the imprecision of the AU in terms of miles or metres, consider
-the problem of measuring it.  To do this, you need two observatories a known
-distance apart to compare the position of some other planet as seen at some
-exact moment.  This is essentially the same mechanism surveyors use to measure
-the heights of mountains, only on a grander scale.  For the distance to the
-moon, this can be done with relatively good precision; however, this isn't much
-help in determining the AU, at least for an observer sat in the middle of the
-moon's orbit.  (For contrast, relating the orbital radii of satellites of other
-planets to the AU is feasible, if perhaps fiddly.)
-
-Using a base-line of order a thousand miles long, two observatories' observed
-directions to an object of order a light year away should differ by a few arc
-seconds, so the measurement is feasible *in principle*, albeit to only as good
-an accuracy as one can measure angles of order a few arc seconds (not brilliant,
-though photography improved it a fair bit in the nineteenth century).  However,
-Earth travels in its orbit at about 30 km/second (67 thousand miles/hour) and
-its spin contributes about another half km/second (one thousand miles/hour);
-thus any imprecision in the simultaneity of the two measurements will introduce
-errors dwarfing the answer.  While the moons of Jupiter provided a clock the
-astronomers could share, the precision with which they could read it ensured
-only very rough estimates.  In the mid-18th century, Venus passed across the
-face of the Sun a couple of times, enabling astronomers to (with huge care and
-much co-operation around the world) perform parallax measurements with decisive
-precision of timing, thereby obtaining a *much* more accurate estimate of the
-Astronomical Unit than had previously been available.
-
-The modern definition of the astronomical unit is given by
-http://physics.nist.gov/cuu/Units/outside.html
-as:
-
-  The astronomical unit is a unit of length. Its value is such that, when used
-  to describe the motion of bodies in the solar system, the heliocentric
-  gravitation constant is (0.017 202 098 95)**2 ua**3 * day**-2.  The value must
-  be obtained by experiment, and is therefore not known exactly.
-
-i.e. it's definition specifies the square root of the numeric value of Sun.GM
-when expressed using the day as unit of time and the ua as unit of length.
-
-See also: parsec.\n""")
-
-parsec = Quantity(radian / arc.second, AU,
+# Common aliases for the atronomical unit (unit astronomique):
+ua = AstronomicalUnit = AU = au
+# Important derived unit:
+parsec = Quantity(radian / arc.second, au,
                   doc="""The parsec - an astronomical unit of length.
 
 The parsec is defined to be the distance at which one Astronomical Unit (q.v.)
