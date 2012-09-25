@@ -263,7 +263,7 @@ class Polynomial (Lazy):
         self.__repr = ans
         return ans
 
-    def format(num, names, depth):
+    def format(num, names, depth): # tool function for __represent
         try:
             if num.imag == 0: num = num.real
         except AttributeError: pass
@@ -271,7 +271,8 @@ class Polynomial (Lazy):
         try: return num.__represent(names, 1+depth)
         except AttributeError: return str(num)
 
-    def __represent(self, names, depth, fmt=format):
+    def __represent(self, names, depth, fmt=format,
+                    ones=('1', '1.0', '(1+0j)'), mons=('-1', '-1.0', '(-1+0j)')):
         if depth > 52: raise ValueError, "We're going to run out of names !"
         while depth >= len(names):
             if names[-1][0] == 'a': names.append('Z')
@@ -281,18 +282,17 @@ class Polynomial (Lazy):
         result, name = '', names[depth]
         for key in self._powers:
             val = self.__numerator(key)
+            frag = fmt(val, names, depth)
             if key:
-                if val == 1: frag = ''
-                elif val == -1: frag = '-'
+                if frag in ones: frag = ''
+                elif frag in mons: frag = '-'
                 else:
-                    frag = fmt(val, names, depth)
                     if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
                         frag = '(' + frag + ')*'
                     else: frag += '*'
 
                 if key == 1: frag += name
                 else: frag += '%s**%d' % (name, key)
-            else: frag = fmt(val, names, depth)
 
             if not result: result = frag
             elif frag[:1] == '-': result += ' ' + frag
