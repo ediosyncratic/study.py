@@ -110,9 +110,9 @@ class Vector (Tuple):
         """Vector selecting given co-ordinates.
 
         First argument, dim, is the dimension of the resulting vector; all
-        subsequent arguments are indices into it.  The returned vector has
-        value 1 at each of these (ignoring any >= dim) and all other entries
-        zero.\n"""
+        subsequent arguments are (full-rank) indices into it.  The returned
+        vector has value 1 at each of these (ignoring any >= dim) and all other
+        entries zero.\n"""
         return cls.__vector__([1 if i in ns else 0 for i in range(dim)])
 
     @classmethod
@@ -348,6 +348,26 @@ class Vector (Tuple):
             return (len(self),) + tail
 
         return (len(self),)
+
+    def pointwise(self, func, rank=None, *others):
+        """Pointwise combination of many tensors.
+
+        First argument, func, is a function; second argument, rank, is either a
+        natural up to self.rank or None, in which case self.rank is used.  All
+        subsequent arguments should be Vector (or Tensor) objects whose
+        .dimension[:rank] matches self's.  For each valid index ind of the given
+        rank, func is called with self[ind] and the [ind] entries of the others
+        as its arguments; what it returns is used as the [ind] of the result of
+        pointwise().\n"""
+
+        if rank is None: rank = self.rank
+        assert all(o.dimension[:rank] == self.dimension[:rank] for o in others)
+        if rank < 1: return func(self, *others)
+        if rank == 1: return Vector([ func(self[i], *[ o[i] for o in others ])
+                                      for i in range(self.dimension[0]) ])
+        return Vector([ self[i].pointwise(func, rank-1,
+                                          *[ o[i] for o in others ])
+                        for i in range(self.dimension[0])])
 
     def symmetrise(self, ranks=None):
         """Return symmetric part of a tensor.
