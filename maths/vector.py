@@ -26,11 +26,12 @@ class Vector (Tuple):
     is not always unambiguous).  I may, some day, add support for at least
     some of the cases where it is well-defined; but that hasn't happened yet.
 
-    The product of two Vector objects is technically a Vector whose entries
-    are Vector-valued; such a vector is termed a tensor.  The depth of nesting
-    of Vector within Vector is known as the 'rank' of the tensor; a plain
-    Vector, with numeric entries, has rank 1; multiplying two tensors of ranks
-    n and m yields a tensor of rank n+m.
+    The product of two Vector objects is technically a Vector whose entries are
+    Vector-valued; such a vector is termed a tensor.  The depth of nesting of
+    Vector within Vector is known as the 'rank' of the tensor; a plain Vector,
+    with numeric entries, has rank 1; multiplying two tensors of ranks n and m
+    yields a tensor of rank n+m.  (A raw scalar can be thought of as a tensor of
+    rank 0; but this is not attempted here.)
 
     For a sequence to be a valid input to the constructor, either its entries
     should all be numeric (and behave reasonably like reals) or its entries
@@ -153,8 +154,8 @@ class Vector (Tuple):
            are entry-by-entry equal;
          * otherwise, both r[i] and s[i] are numbers and r[i] == s[i].
 
-       This method exists so that repr() can avoid repeating this class's name
-       a whole lot !  It is, hopefully, also useful generally.\n"""
+        This method exists so that repr() can avoid repeating this class's name
+        a whole lot !  It is, hopefully, also useful generally.\n"""
 
         assert None not in seq, 'Vector entries should be numeric'
         if isinstance(seq, Vector):
