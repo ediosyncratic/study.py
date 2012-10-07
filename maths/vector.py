@@ -349,6 +349,38 @@ class Vector (Tuple):
 
         return (len(self),)
 
+    @lazyprop
+    def squaresum(self):
+        """The sum of squares of self's components.
+
+        When the co-ordinates in use are orthonormal, with respect to whatever
+        metric it makes sense for you to be using, the square roof of this is
+        the length of self.  For the sake of the case where self's components
+        are complex, the square of the absolute value is used.\n"""
+
+        if self.rank < 2: return sum(abs(x) ** 2 for x in self)
+        return sum(x.squaresum for x in self)
+
+    from study.snake.sequence import Iterable
+    @staticmethod
+    def __indices(dims, rene=Iterable.cartesian):
+        return rene(range, dims)
+    del Iterable
+
+    @lazyprop
+    def biggest(self):
+        """The index of a maximal co-ordinate of self.
+
+        Various algorithms want to know this so that they can work out how to
+        refine an answer in one way or another.\n"""
+        dex = self.__indices(self.dimension)
+        big = dex.next()
+        was = abs(self[big])
+        for ind in dex:
+            val = abs(self[ind])
+            if val > was: was, big = val, ind
+        return big
+
     def pointwise(self, func, rank=None, *others):
         """Pointwise combination of many tensors.
 
@@ -705,21 +737,21 @@ class Vector (Tuple):
                     i -= 1
                     yield (i,) + s
 
-    def __indices(self, tmpl, pairs):
+    def __summands(self, tmpl, pairs):
         try: i, j = pairs.next()
         except StopIteration: yield tuple(tmpl)
         else:
             assert self.dimension[i] == self.dimension[j]
             assert tmpl[i] is None is tmpl[j]
             if i > j: i, j = j, i
-            for s in self.__indices(tmpl, pairs):
+            for s in self.__summands(tmpl, pairs):
                 m = self.dimension[i]
                 while m > 0:
                     m -= 1
                     yield s[:i] + (m,) + s[i+1:j] + (m,) + s[j+1:]
 
     def __total(self, tmpl, pairs):
-        es = self.__indices(tmpl, iter(pairs))
+        es = self.__summands(tmpl, iter(pairs))
         tot = self[es.next()]
         for e in es: tot += self[e]
         return tot
