@@ -103,32 +103,40 @@ def logrange(a, b=None, c=None):
     return result
 
 def median(seq, fn=None):
-    # Adapted from Wirth's "Data Structures + Algorithms = Programs"
+    """Find the median of a sequence.
+
+    Required first argument, seq, is a sequence of values.  Optional second
+    argument, fn, is a comparison function or None (the default) to use the
+    built-in comparison, cmp().  Doesn't go to all the trouble of sorting (a
+    copy of) the sequence, just moves the middle element or two to the
+    middle.\n"""
     if not seq: raise IndexError, 'empty sequence has no median'
     row = list(seq) # always gets a copy
+
+    # Adapted from Wirth's "Data Structures + Algorithms = Programs"
     def split(L, R, m, s=row, cmp=fn or cmp):
-        """Find the m-th highest entry in row.
+        """Move the m-th highest entry in row to index m.
 
         This actually works for any m; it requires that we know the m-th
         highest is actually no earlier than index L and no later than
         index R, with m lying between L and R.  In O(R-L) steps, it
         shuffles the m-th entry to position s[m], then returns.\n"""
-        print m, s[:L], s[L:R+1], s[R+1:]
+
         while L < R:
             x, i, j = s[m], L, R
             while True:
                 while cmp(s[i], x) < 0: i += 1
                 while cmp(s[j], x) > 0: j -= 1
-                print i, j
+
                 if i > j: break
                 elif i < j:
                     s[i], s[j] = s[j], s[i]
                 i += 1
                 j -= 1
                 if i > j: break
+
             if j < m: L = i
             if m < i: R = j
-            print s[:L], s[L:R+1], s[R+1:]
 
     mid, bit = divmod(len(row), 2)
     split(0, len(row) - 1, mid)
