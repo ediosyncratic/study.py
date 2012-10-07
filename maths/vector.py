@@ -361,25 +361,55 @@ class Vector (Tuple):
         if self.rank < 2: return sum(abs(x) ** 2 for x in self)
         return sum(x.squaresum for x in self)
 
-    from study.snake.sequence import Iterable
-    @staticmethod
-    def __indices(dims, rene=Iterable.cartesian):
-        return rene(range, dims)
-    del Iterable
-
     @lazyprop
     def biggest(self):
         """The index of a maximal co-ordinate of self.
 
         Various algorithms want to know this so that they can work out how to
         refine an answer in one way or another.\n"""
-        dex = self.__indices(self.dimension)
-        big = dex.next()
-        was = abs(self[big])
-        for ind in dex:
-            val = abs(self[ind])
+
+        each = self.iteritems()
+        big, was = each.next()
+        was = abs(was)
+
+        for ind, val in each:
+            val = abs(val)
             if val > was: was, big = val, ind
+
         return big
+
+    def iteritems(self, depth=None, *others):
+        """Enumerates self, optionally in parallel with others.
+
+        All arguments are optional.  The first, depth, should be a natural up to
+        self.rank or None, in which case self.rank is used.  Each yield of this
+        function shall be a tuple whose first entry is an index-tuple, of length
+        depth, into self; when this first entry is ind, the second is self[ind].
+
+        Thus, if no arguments are passed, using .iteritems() as if self were a
+        mapping, we iterate over the maximal-length indexing-tuples it accepts,
+        as if it were a mapping from these to the co-ordinates they produce.
+
+        All others arguments, if any, should be iterables (they may be
+        iterators) with the same structure as self; each tuple yielded by this
+        functio shall be, in effect, (ind, self[ind]) + tuple(o[ind] for o in
+        others), except that the values of o[ind] are obtained by iterating the
+        entries in others, and recursively iterating the values they yield,
+        instead of performing lookups using __getitem__().\n"""
+
+        if depth is None: depth = self.rank
+        if depth:
+            depth -= 1
+            others = tuple(iter(o) for o in others)
+            if depth:
+                for i, t in self.enumerate():
+                    for seq in t.iteritems(depth, *[ o.next() for o in others ]):
+                        yield ((i,) + seq[0],) + seq[1:]
+            else:
+                for i, t in self.enumerate():
+                    yield ((i,), t,) + tuple(o.next() for o in others)
+
+        else: yield ((), self) + others
 
     def pointwise(self, func, rank=None, *others):
         """Pointwise combination of many tensors.
