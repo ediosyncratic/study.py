@@ -74,6 +74,9 @@ TODO = """There are many things that could be improved.
    - don't use type(x) == blah comparisons; prefer isinstance(x, blah)
    - check for any isinstance(x, string); check against basestring instead
 
+ * Use the *args, **kw formats rather than using apply, which has been
+   deprecated since version 2.3.
+
  * Use list comprehensions in place of map, filter; map(f, filter(g, seq))
    becomes [ f(x) for x in seq if g(x) ]; using (...) in place of [...] gets
    you a generator (yum ! - call tuple on it if that's what you want).
