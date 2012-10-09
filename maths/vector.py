@@ -109,11 +109,36 @@ class Vector (Tuple):
     def delta(cls, dim, *ns):
         """Vector selecting given co-ordinates.
 
-        First argument, dim, is the dimension of the resulting vector; all
-        subsequent arguments are (full-rank) indices into it.  The returned
-        vector has value 1 at each of these (ignoring any >= dim) and all other
-        entries zero.\n"""
-        return cls.__vector__([1 if i in ns else 0 for i in range(dim)])
+        First argument, dim, is the .dimension of the resulting Vector or
+        Tensor; all subsequent arguments are indices into it.  The result has
+        value 1 at each of these (ignoring any index with any component >= the
+        matching entry in dim) and all other entries zero.  In particular,
+        cls.delta(dim) is the zero tensor with the given dimensions.
+
+        If an index argument is a sequence shorter than dim, it matches
+        all indices of full rank that begin with the given indexing; so indexing
+        the result with such a short index shall get a tensor whose entries are
+        all 1.  Thus cls.delta(dim, ()) is the tensor, with the given
+        dimensions, whose co-ordinate values are all 1.
+
+        Index arguments longer than dim are effectively trimmed at dim's length.
+
+        As a convenience: passing an integer as dim, with each subsequent
+        argument as an integer, is accepted as equivalent to packing each as a
+        one-tuple - which involves way too much punctuation !\n"""
+        try: n, tail = dim[0], dim[1:]
+        except TypeError:
+            assert isinstance(dim, (int, long))
+            assert all(isinstance(n, (int, long)) for n in ns)
+            return cls.__vector__([1 if i in ns else 0 for i in range(dim)])
+        except IndexError: return 1 if () in ns else 0
+
+        if tail:
+            return cls.__vector__([cls.delta(tail, *[ts[1:] for ts in ns
+                                                     if not ts or ts[0] == i])
+                                   for i in range(n)])
+        return cls.__vector__([1 if i in [ n[0] if n else i for n in ns ] else 0
+                               for i in range(n)])
 
     @classmethod
     def diagonal(cls, seq):
