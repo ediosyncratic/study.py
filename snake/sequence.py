@@ -572,8 +572,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
     def __getitem__(self, key):
         """Get value(s) indicated by key.
 
-        If key is a slice, return an Ordered to hold it; if it's going in the
-        reverse direction, suitably reverse the order.\n"""
+        If key is a slice, return the results in a List.\n"""
 
         try: iter(key)
         except TypeError:
