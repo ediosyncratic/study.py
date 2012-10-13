@@ -42,7 +42,7 @@ from any more meaningful code changes.
 
 I don't entirely agree with PEP 8 - and anyone wanting me to accept any
 patches to my branches of this package would do well to respect my
-ediosyncracies as to coding style, if only to keep the patches
+idiosyncrasies as to coding style, if only to keep the patches
 small.  If I have any patches for python's standard library, I'll abide
 by PEP 8; if any of this code is ever invited into the standard library,
 I'll convert it; but, aside from that, this package follows my slightly
@@ -88,10 +88,29 @@ to a word which would otherwise be a keyword; I prefer to avoid use of
 the keyword, instead.  For variables that are expected to be classes, I
 tend to use the name cls, as PEP 8 suggests.
 
+Ediosyncrasies
+~~~~~~~~~~~~~~
+
+All of the above can be considered idiosyncratic, but the following are
+particularly so and I might be a bit more willing to change them ...
+
 I tend to end doc-strings in """... final words.\\n""" so that they
 print cleanly; I'm a bit skeptical of the recommended practice of
 leaving a blank line and indentation at the end of a doc-string.  A good
 doc-gen tool might talk me round, though.
+
+I have a tendency to spell in/equality comparisons with -1 in terms of
+adding one to the value to be compared and using the result as a
+boolean, via the usual implicit comparison with zero.  (This habit
+arises from a murky past in which I worked on a system where the
+signedness of some abstract types, for which -1 was sometimes used as a
+sentinal value, was indeterminate; compilers warn about signed/unsigned
+comparison if one tests against -1 when the type is unsigned (neither
+test works properly if the unsigned type's size is less than that of
+int) but we knew the types in question were big enough, so the +1 test
+avoided the warning and worked in all the same cases as != -1.  This is
+all irrelevant to python, of course.)  To anyone used to that practice,
+it's just as readable; but may be a bit confusing for others !
 
 History
 -------
