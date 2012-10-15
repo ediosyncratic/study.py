@@ -75,7 +75,7 @@ class Single (object):
 
     from study.maths.vector import Vector
     @staticmethod
-    def __messy(vals, V=Vector, zero=Vector.fromSeq(((0, 0), (0, 0)))):
+    def __messy(vals, V=Vector, zero=Vector.xerox((2, 2))):
         """Compute (real) variance of vals.
 
         The instance's .__variance() takes a list of candidate derivatives and
