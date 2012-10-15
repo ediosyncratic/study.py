@@ -141,17 +141,23 @@ class Vector (Tuple):
                                for i in range(n)])
 
     @classmethod
-    def diagonal(cls, seq):
+    def diagonal(cls, seq, rank=2):
         """Returns a tensor whose [i][i] is seq[i].
 
-        All other entries are zero.  Required argument, seq, gives the values
-        on the diagonal.  These should normally be numeric, but vectors or
-        tensors are accommodated.  For the usual 'identity' matrix of
-        dimension n, Vector.diagonal([1]*n) will do fine.\n"""
+        All other entries are zero.  Required argument, seq, gives the values on
+        the diagonal.  These should normally be numeric, but vectors or tensors
+        are accommodated.  For the usual 'identity' matrix of dimension n,
+        Vector.diagonal([1]*n) will do fine.
+
+        Optional second argument, rank,
+        defaults to 2; when given, a tensor of this rank is returned, whose
+        entries are zero except those with indeces (i,) * rank, where seq[i] is
+        used.  (The case rank = 1 is thus equivalent to .fromSeq).\n"""
 
         row, n = [], len(seq)
+        f = (lambda n: n) if rank == 2 else (lambda n, r=rank-1: (n,) * r)
         for i, v in enumerate(seq):
-            row.append(cls.delta(n, i) * v)
+            row.append(cls.delta(f(n), f(i)) * v)
 
         return cls.__vector__(row)
 
