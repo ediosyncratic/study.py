@@ -263,12 +263,12 @@ class Catchment (object):
                         # node equals tree, but doesn't beat it, then we'll
                         # still be done when we get back to tree in the loop, so
                         # no need to change which node we think is best.
-                        if (best <= far if shift else best < far):
-                            live.insert(0, (here, near)) # Back of the queue.
-                        else:
+                        if (far <= best if shift else far < best):
+                            # Improvement (or replacing tree with equal child):
                             best, tree = far, here
                             # Reprocess promptly, as splitting it is apt to improve best:
                             live.append((here, near))
+                        else: live.insert(0, (here, near)) # Back of the queue.
 
         assert live
         # Remaining leaves overlap, need to check all points in them.
