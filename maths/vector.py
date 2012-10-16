@@ -161,7 +161,7 @@ class Vector (Tuple):
         return cls.__vector__(row)
 
     @classmethod
-    def fromSeq(cls, seq, dim=None):
+    def fromSeq(cls, seq, form=None):
         """Construct a Vector from a loosely suitable sequence.
 
         Required first argument, seq, is a sequence whose entries either are
@@ -170,10 +170,17 @@ class Vector (Tuple):
         the sequence of returns is used in place of seq - save that, if any
         two of them have different .dimension, a ValueError is raised.
 
-        Optional second argument, dim, may be None (its default), in which
-        case it is ignored.  Otherwise, it should be a sequence of expected
-        dimensions; if the return from this function would not have this as
-        its .dimension property, a ValueError shall be raised.
+        Optional second argument, form, may be None (its default), in which case
+        it is ignored.  Otherwise, it should be a Vector instance with the
+        expected type of the return; this implies dimension, but also controls
+        which classes based on Vector to use for each entry, at each rank, in
+        the result.  For each ind for which form[ind] is valid, the matching
+        [ind] of the returned tensor shall have the same type and .dimension as
+        form[ind] (in particular, from ind = (), the class of form is used for
+        the return, whose .dimension is equal to that of form); if this is not
+        possible (i.e. the length of some sequence doesn't match the
+        .dimension[0] of the vector it's to be turned into), a ValueError is
+        raised.
 
         Returns a Vector object that's entry-by-entry equal to seq, where such
         equality is defined by: two sequences r, s are entry-by-entry equal
@@ -188,21 +195,38 @@ class Vector (Tuple):
         a whole lot !  It is, hopefully, also useful generally.\n"""
 
         assert None not in seq, 'Vector entries should be numeric'
+        if form is not None:
+            assert isinstance(form, Vector), 'Template should be a Vector'
+            if not issubclass(cls, form.__class__):
+                cls = form.__class__ # form over-rides which class to use
+
         if isinstance(seq, Vector):
-            if dim is not None and seq.dimension != dim:
-                raise ValueError('Mismatched dimensions', dim, seq)
+            if form is None: pass # use seq as is; nothing to check or adapt
+            else:
+                if not form.__sametype(seq, form):
+                    raise ValueError('Mismatched types', form, seq)
+                # Recurse so as to ensure correct types, in case seq uses
+                # different types to form at some positions:
+                seq = [ f.fromSeq(s, f) for s, f in zip(seq, form) ]
+
         else:
             seq = tuple(seq) # in case it's an iterator
-            if dim is None: tail = None
-            elif len(seq) != dim[0]:
-                raise ValueError('Mismatched dimension', dim[0], seq)
-            else: tail = dim[1:]
+            if form is not None and len(seq) != form.dimension[0]:
+                raise ValueError('Mismatched dimension', form.dimension[0], seq)
 
-            try: map(iter, seq)
-            except (TypeError, AttributeError): pass
-            else: seq = cls.__each(seq, tail)
+            isnum = map(cls.__isnumeric, seq)
+            if all(isnum):
+                if form is not None:
+                    if form.rank > 0:
+                        raise ValueError('Expected vector or tensor entries',
+                                         seq, form.dimension)
+            elif any(isnum):
+                raise ValueError('Mixed numeric and non-numeric entries', seq)
+            else:
+                if form is None: seq = [ cls.fromSeq(s) for s in seq ]
+                else: seq = [ f.fromSeq(s, f) for s, f in zip(seq, form) ]
 
-        return cls(seq)
+        return cls.__vector__(seq)
 
     @staticmethod
     def __isnumeric(val):
@@ -218,14 +242,19 @@ class Vector (Tuple):
         return False
 
     @classmethod
-    def __each(cls, seq, dim=None):
-        ans = map(lambda s, v=cls.fromSeq, d=dim: v(s, d), seq)
-        if dim is None:
-            ds = map(lambda x: x.dimension, ans)
-            if filter(lambda e, d=ds[0]: e != d, ds[1:]):
-                raise ValueError('Inconsistent dimensions', seq, ds)
-        return ans
+    def __sametype(cls, seq, form):
+        assert cls is form.__class__
+        if not isinstance(seq, cls): return False
+        if len(seq) != len(form): return False
 
+        if isinstance(form[0], Vector):
+            assert all(isinstance(val, Vector) for val in form[1:])
+            return all(t.__sametype(o, t) for o, t in zip(seq, tail))
+
+        assert not any(isinstance(val, Vector) for val in form[1:])
+        return all(cls.__isnumeric(val) for val in seq)
+
+    # Special casees of .dimension == (2, 2):
     from math import pi, sin, cos, sinh, cosh, atanh
     @classmethod
     def circulate(cls, angle, unit=2*pi, s=sin, c=cos):
@@ -245,7 +274,7 @@ class Vector (Tuple):
         rotation.  Use .embed() for higher dimensions.\n"""
         angle *= unit
         s, c = s(angle), c(angle)
-        return cls.fromSeq(((c, s), (-s, c)), (2, 2))
+        return cls.fromSeq(((c, s), (-s, c)))
 
     @classmethod
     def hyperbolate(cls, speed, mode=atanh, s=sinh, c=cosh):
@@ -268,12 +297,14 @@ class Vector (Tuple):
         .embed() for higher dimensions.\n"""
         if mode is not None: a = mode(speed)
         s, c = s(a), c(a)
-        return cls.fromSeq(((c, s), (s, c)), (2, 2))
+        return cls.fromSeq(((c, s), (s, c)))
     del pi, sin, cos, sinh, cosh, atanh
 
     def __repr__(self):
-        if self.rank > 1: nom = 'Tensor.fromSeq'
-        else: nom = 'Vector'
+        nom = self.__class__.__name__
+        if self.rank > 1:
+            if nom == 'Vector': nom = 'Tensor'
+            nom += '.fromSeq'
         return '%s(%s)' % (nom, str(self))
 
     def __str__(self):
