@@ -7,7 +7,6 @@ See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
 from study.snake.sequence import Tuple
-from study.snake.decorate import postcompose
 
 class Vector (Tuple):
     """Tuple type supporting entry-by-entry arithmetic.
@@ -205,6 +204,19 @@ class Vector (Tuple):
 
         return cls(seq)
 
+    @staticmethod
+    def __isnumeric(val):
+        if isinstance(val, Vector): return False
+        try: iter(val) # you can't iterate a number
+        except (TypeError, AttributeError):
+            try: 0 * val + val # but you can add zero times it to it
+            # We can't simply try: 0 + val, as val might have units;
+            # e.g. if it's an instance of study.value.Quantity.
+            except TypeError: pass # well, actually, fail
+            else: return True
+
+        return False
+
     @classmethod
     def __each(cls, seq, dim=None):
         ans = map(lambda s, v=cls.fromSeq, d=dim: v(s, d), seq)
@@ -273,36 +285,34 @@ class Vector (Tuple):
             if it: return True
         return False
 
-    def __add__(self, other, add=lambda x, y: x+y):
+    def __add__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(map(add, self, other))
+        return self.__vector__(x + y for x, y in zip(self, other))
 
     __radd__ = __add__
 
-    def __sub__(self, other, sub=lambda x, y: x-y):
+    def __sub__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(map(sub, self, other))
+        return self.__vector__(x - y for x, y in zip(self, other))
 
-    def __rsub__(self, other, sub=lambda x, y: x-y):
+    def __rsub__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(map(sub, other, self))
+        return self.__vector__(y - x for x, y in zip(self, other))
 
     def __mul__(self, other):
-        try: other[:]
-        except TypeError: pass
-        else:
-            if not isinstance(other, Vector):
-                other = self.__vector__(other)
+        if not (self.__isnumeric(other) or
+                isinstance(other, Vector)):
+            other = self.fromSeq(other)
 
         return self.__mul(other)
 
     def __mul(self, other):
-        return self.__vector__(map(lambda s, o=other: s * o, self))
+        return self.__vector__(s * other for s in self)
 
     def __rmul__(self, other):
-        try: other[:]
-        except TypeError: return self.__mul(other)
-        return self.__vector__(map(lambda o, s=self: o * s, other))
+        if self.__isnumeric(other): return self.__mul(other)
+        if isinstance(other, Vector): return other.__mul(self)
+        return self.fromSeq(other).__mul(self)
 
     def __pow__(self, other, base=None):
         assert base is None
@@ -540,22 +550,20 @@ class Vector (Tuple):
         if n > self.rank:
             raise ValueError('Too many index sequences', route, self.rank)
 
-        bad = filter(lambda r: min(r) < 0, route)
+        bad = [ r for r in route if min(r) < 0 ]
         if bad: raise ValueError('Negative indices', bad)
 
-        bad = filter(lambda r: len(set(r)) != len(r), route)
+        bad = [ r for r in route if len(set(r)) != len(r) ]
         if bad: raise ValueError('Duplicate entries in indexing', bad)
 
-        bad = filter(lambda i, r=route, d=self.dimension: len(r[i]) > d[i],
-                     range(n))
+        bad = [ i for i in range(n) if len(route[i]) > self.dimension[i] ]
         if bad: raise ValueError(
             'Indexing outside available range', bad, self.dimension, route)
 
         if other is None:
             # Compute implicit 'big enough' Tensor of zeros:
-            other = self.xerox(tuple(map(
-                        lambda r, d: max(1+r, d),
-                        map(max, route), self.dimension[:n])) +
+            other = self.xerox(tuple(1 + max(d - 1, *r) for d, r in
+                                     zip(self.dimension, route)) +
                                self.dimension[n:])
 
         elif other.rank != self.rank:
@@ -563,9 +571,7 @@ class Vector (Tuple):
         elif other.dimension[n:] != self.dimension[n:]: raise ValueError(
             'Mismatched leaf dimensions', n, other.dimension, self.dimension)
         else:
-            bad = filter(
-                lambda i, r=map(max, route), m=other.dimension: r[i] >= m[i],
-                range(n))
+            bad = [ i for i in range(n) if max(route[i]) >= other.dimension[i] ]
             if bad: raise ValueError('Indexing outside reference tensor',
                                      bad, other.dimension, route)
 
@@ -614,20 +620,16 @@ class Vector (Tuple):
 
         Returns what's left of the product after all this tracing has been
         applied.\n"""
-        return apply((self * other).permutrace,
-                     self.__derange(out, n, self.rank))
+        return (self * other).permutrace((), *self.__derange(out, n, self.rank))
 
     @staticmethod
-    @postcompose(lambda x: ((),) + tuple(x))
     def __derange(out, n, r):
         """Returns pairs of indices for contraction.
 
         Arguments out and n are as for .dot() and .rdot(); r is the index of
         the first rank of the right operand.  We thus pair up the indices from
         r to n+r-1 with those from r-n to r-1, either in same order or reverse
-        order according to out.  Since both callers use the sequence of pairs
-        after an empty tuple as parameters to .permutrace(), package it thus
-        by use of @postcompose.\n"""
+        order according to out.\n"""
 
         i = n + r
         if out: j, s = r - n, 1
@@ -647,8 +649,7 @@ class Vector (Tuple):
         is not (so is mildly less efficient than other.dot(self) when other is
         a Vector or Tensor).\n"""
         prod = other * self
-        return apply(prod.permutrace,
-                     self.__derange(out, n, prod.rank - self.rank))
+        return prod.permutrace((), *self.__derange(out, n, prod.rank - self.rank))
 
     def tau(self, pattern):
         """Generalised trace-permutation operator.
@@ -711,7 +712,8 @@ class Vector (Tuple):
                 assert n[a] == a
                 n[a] = None
 
-        if filter(lambda a: a is not None, n):
+        # Check everything in n did get used up:
+        if [ a for a in n if a is not None ]:
             raise ValueError('Incomplete permutation', tuple(n), pattern)
 
         return self.__trace_permute(stub, pairs)
@@ -741,7 +743,7 @@ class Vector (Tuple):
         suitable pattern.  Each pair indicates two ranks to trace out; the
         remaining ranks are permuted according to shuffle.\n"""
 
-        bad = filter(lambda x: len(x) != 2, pairs)
+        bad = [ p for p in pairs if len(p) != 2 ]
         if bad:
             raise ValueError("Each index pair's length should be two", bad)
 
@@ -759,7 +761,7 @@ class Vector (Tuple):
         if bad: raise ValueError(
             "Bad or repeat index in tracing pairs", bad, tuple(bok), shuffle)
 
-        n = filter(lambda x: x is not None, shuffle)
+        n = [ x for x in shuffle if x is not None ]
         if n: n = range(1 + max(n))
         for i, a in enumerate(shuffle):
             if a is None:
@@ -770,7 +772,7 @@ class Vector (Tuple):
                 n[a] = None
         if bad:
             raise ValueError("Not a permutation", bad, shuffle)
-        bad = filter(lambda i: i is not None, n)
+        bad = [ i for i in n if i is not None ]
         if bad:
             raise ValueError("Incomplete permutation", bad, shuffle)
 
@@ -779,7 +781,7 @@ class Vector (Tuple):
     # Implementation of __trace_permute:
     def __listify(self):
         if self.rank < 2: return list(self)
-        return map(lambda x: x.__listify(), self)
+        return [ x.__listify() for x in self ]
 
     @classmethod
     def __ranger(cls, ms):
@@ -829,7 +831,7 @@ class Vector (Tuple):
         Takes two arguments, a permutation optionally padded with None
         entries and a sequence of pairs of indices to trace.\n"""
 
-        ns, i = filter(lambda x: x is not None, shuffle), len(shuffle)
+        ns, i = [ x for x in shuffle if x is not None ], len(shuffle)
         if ns: j = max(ns) + 1
         else: j = 0
 
@@ -878,9 +880,10 @@ class Vector (Tuple):
     def __perm_average(dims, ranks, func, gen=Permutation.fixed, rat=Rational):
         if ranks is None: ranks = tuple(range(len(dims)))
         else: ranks = tuple(ranks)
-        if len(set(map(lambda i, d=dims: d[i], ranks))) != 1:
-            raise ValueError('Can only average over permutations of ranks of equal dimension',
-                             ranks, dims)
+        if len(set(dims[i] for i in ranks)) != 1:
+            raise ValueError(
+                'Can only average over permutations of ranks of equal dimension',
+                ranks, dims)
 
         if ranks: n = max(ranks) + 1
         else: n = 0
@@ -896,4 +899,4 @@ class Vector (Tuple):
 
 Tensor = Vector # alias
 
-del lazyprop, Tuple, postcompose
+del lazyprop, Tuple
