@@ -562,15 +562,15 @@ class Vector (Tuple):
         the result is a suitable .embed() of the entry in self.
 
         Optional second argument, other, defaults to None, denoting a suitably
-        large Tensor whose entries are all zero; otherwise, it is a Tensor
-        from which to draw the values not determined by the fore-going rule
-        for entries in the result.  As such, it must have the same .rank as
-        self, with max(route[i]) < other.dimension[i] >= self.dimension[i] for
-        each i.  In this case, self and other must have equal
-        .dimension[len(route):] to make the 'leaf' values of the embedding
-        match up.  (We could pad with map(range, self.dimension[len(route):])
-        if this condition were not met, but it'd be less efficient and risk
-        hiding errors; the caller can do such padding if really intended.)
+        large Tensor whose entries are all zero; otherwise, it is a Tensor from
+        which to draw the values not determined by the fore-going rule for
+        entries in the result.  As such, it must have the same .rank as self,
+        with max(route[i]) < other.dimension[i] >= self.dimension[i] for each
+        i.  In particular, self and other must have equal
+        .dimension[len(route):] to make the 'leaf' values of the embedding match
+        up.  (We could pad with map(range, self.dimension[len(route):]) if this
+        condition were not met, but it'd be less efficient and risk hiding
+        errors; the caller can do such padding if really intended.)
 
         Example: for n < k > m,
         Tensor.circulate(a).embed(((n, m), (n, m)), Tensor.diagonal([1] * k))
