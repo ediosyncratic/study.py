@@ -929,5 +929,81 @@ class Vector (Tuple):
     del Permutation, Rational
 
 Tensor = Vector # alias
-
 del lazyprop, Tuple
+
+class Namely (Vector):
+    """A vector with more emphasis on the names of its components.
+
+    Derived classes need to define _component_names_ to a sequence (preferably a
+    tuple; all manner of nonsense would happen if it changed during the lifetime
+    of an object) of names of components.  These serve as attribute names for
+    the components of the vector and can be used as keyword names for arguments
+    to the constructor.  Components can be passed simply as positional arguments
+    to the constructor (not as entries in a list passed as first argument,
+    unlike Vector); any not supplied either positionally or as keywords default
+    to zero.  The repr() of the vector uses whichever of these forms is tersest
+    (so, unless many components are zero, usually the positional form); str() is
+    as for Vector.
+
+    Based on Vector, so supports everything it does, although the results may
+    prove a bit odd in some cases.\n"""
+
+    _component_names_ = () # over-ride in derived classes
+    __upnew = Vector.__new__
+    def __new__(cls, *args, **kw):
+        """Create the instance.
+
+        See class doc-string for details.\n"""
+        if len(args) > len(cls._component_names_):
+            raise ValueError('Too many components in vector', args, cls._component_names_)
+        for nom in cls._component_names_[len(args):]:
+            try: val = kw[nom]
+            except KeyError: val = None
+            else: del kw[nom]
+            args += (val,)
+        if kw:
+            raise ValueError('Extraneous keyword arguments specified', kw)
+
+        good = [ val for val in args if isinstance(val, Vector) ]
+        bad = [ val for val in args if val is not None and not isinstance(val, Vector) ]
+        if bad:
+            pass
+
+        if None in args:
+            given = [ val for val in args if val is not None ]
+            if given: # use zero of same rank as given values:
+                zero = given[0] * 0
+                assert all(val * 0 == zero for val in given[1:])
+            else: zero = 0 # ddefault to scalar zero
+            # replace each None with zero:
+            args = (zero if val is None else val for val in args)
+
+        return cls.__upnew(cls, args)
+
+    @classmethod
+    def __vector__(cls, seq): return cls(*seq)
+
+    def __repr__(self):
+        seq, byname, index = [], [], []
+        for val, nom in zip(self, self._component_names_):
+            index.append(len(byname))
+            seq.append(repr(val))
+            if val: byname.append(nom + '=' + seq[-1])
+
+        if len(byname) < len(seq):
+            # Find where to switch from positional to keyword form, for shortest text:
+            i = len(index)
+            while i:
+                i = len([j for j in index if j < index[i-1]])
+                assert i == 0 or self[i-1] # i.e. we have to mention self[i-1]
+                if sum(2 + len(x) for x in seq[i:]) > sum(2 + len(x) for x in byname[index[i]:]):
+                    seq = seq[:i] +byname[index[i]:]
+
+        return self.__class__.__name__ + '(' + ', '.join(seq) + ')'
+
+    def __getattr__(self, key):
+        try: ind = self._component_names_.index(key)
+        except ValueError: pass
+        else: return self[ind]
+
+        raise AttributeError(key)
