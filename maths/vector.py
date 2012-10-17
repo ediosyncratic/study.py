@@ -274,6 +274,9 @@ class Vector (Tuple):
         rotation.  Use .embed() for higher dimensions.\n"""
         angle *= unit
         s, c = s(angle), c(angle)
+        # Avoid stupid 6e-17ish value for one when it should be zero:
+        if s in (-1, 1): c = 0
+        if c in (-1, 1): s = 0
         return cls.fromSeq(((c, s), (-s, c)))
 
     @classmethod
