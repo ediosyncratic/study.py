@@ -1,7 +1,11 @@
 """Vectors (and tensors).
 
-Exports one class, Vector, also exposed under the name Tensor.
-See its documentation for more.
+Exports:
+  Vector -- manages the coordinates of vectors or tensors
+  Tensor -- alias for Vector, for use when rank > 1
+  Namely -- for when coordinates are though of by name mostly
+
+See the documentation of each for more.
 
 See study.LICENSE for copyright and license information.
 """
