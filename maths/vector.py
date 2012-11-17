@@ -955,7 +955,10 @@ class Namely (Vector):
     Based on Vector, so supports everything it does, although the results may
     prove a bit odd in some cases.\n"""
 
-    _component_names_ = () # over-ride in derived classes
+    # Data to over-ride in derived classes:
+    _component_names_ = () # names of components, in order
+    _component_aliases_ = () # .items() of { alias: name } mapping
+
     __upnew = Vector.__new__
     def __new__(cls, *args, **kw):
         """Create the instance.
@@ -963,6 +966,17 @@ class Namely (Vector):
         See class doc-string for details.\n"""
         if len(args) > len(cls._component_names_):
             raise ValueError('Too many components in vector', args, cls._component_names_)
+
+        for nom, name in cls._component_aliases_:
+            try: val = kw[nom]
+            except KeyError: pass
+            else:
+                if kw.has_key(name):
+                    raise ValueError('Name duplicated by alias',
+                                     (name, kw[name]), (nom, val))
+                del kw[nom]
+                kw[name] = val
+
         for nom in cls._component_names_[len(args):]:
             try: val = kw[nom]
             except KeyError: val = None
