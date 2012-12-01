@@ -8,7 +8,7 @@ See study.LICENSE for copyright and license information.
 """
 from study.maths.vector import Vector
 
-class Catchment (object):
+class Catchment (set):
     """Subdivide space according to which of a set of points is nearest.
 
     This is Voronoi's decomposition of the space; see class Voronoi for the
@@ -17,6 +17,12 @@ class Catchment (object):
     .centres; has one method, .nearest(vec [, elide]), that finds the nearest in
     .centres (but not in elide, if passed) to the given vec.\n"""
 
+    __upnew = set.__new__
+    def __new__(cls, centres, count=1):
+        if count < 1: raise ValueError('Demanding unrealistic subdivision', count)
+        return cls.__upnew(cls, map(cls.__vectorise, centres))
+
+    __upinit = set.__init__
     def __init__(self, centres, count=1):
         """Set up data for computation of catchment-regions.
 
@@ -27,27 +33,27 @@ class Catchment (object):
         each leaf of the bisection tree built internally; it must be at least 1
         - its default (and recommended) value.
 
-        Stores, as .centres, a tuple of Vector (see study.maths.vector)
-        instances (made using Vector.fromSeq where needed) representing the
-        entries in centres.\n"""
+        Stores, in self as a set, Vector (see study.maths.vector) instances
+        (made using Vector.fromSeq where needed) representing the entries in
+        centres.\n"""
 
-        if count < 1: raise ValueError('Demanding unrealistic subdivision', count)
+        self.__upinit(centres)
 
-        self.centres = tuple(map(self.__vectorise, centres))
         # Check all in the same space:
-        each = iter(self.centres)
-        dims = each.next().dimension # StopIteration if no centres, which would be silly
+        each = iter(self)
+        try: dims = each.next().dimension # StopIteration if no centres, which would be silly
+        except StopIteration, what:
+            raise apply(StopIteration, what.args + (self,))
         for it in each:
             d = it.dimension
             if len(d) != len(dims) or d != dims:
                 raise ValueError('Mismatched dimension', dims, d, it)
         self.__dim = tuple(dims)
-        self.__root = self.__btree(self.centres, count)
+        self.__root, self.__ineach = self.__btree(tuple(self), count), count
 
     @staticmethod
     def __vectorise(val, V=Vector):
-        if isinstance(val, V): return val
-        return V.fromSeq(val)
+        return val if isinstance(val, V) else V.fromSeq(val)
 
     # Support for .__btree()
     class BTree (object):
@@ -79,6 +85,7 @@ class Catchment (object):
         def __init__(self, lo, hi, up=None):
             self.box = lo, hi
             if up is not None: self.parent = up
+        # TODO: make parent a weak attribute, so that garbage collection is happy.
 
         # Tools for use by split():
         def __child(self, lo, hi): return self.__class__(lo, hi, self)
@@ -147,7 +154,7 @@ class Catchment (object):
             lo, hi = self.box
             return not vec.pointwise(lambda v, L, H: v < L or H < v, None, lo, hi)
 
-        def locate(self, vec): # not actually used
+        def locate(self, vec):
             """Returns the leaf node containing a given vector.
 
             Identifies the leaf node, in the tree under self, in which vec
@@ -177,21 +184,26 @@ class Catchment (object):
                                  None, lo, hi)
             return off.squaresum ** .5, far.squaresum ** .5
 
-    @staticmethod
-    def __btree(ps, each=1, Tree=BTree):
-        """Builds a BTree with at most each of the ps in each leaf of the tree.
+    @classmethod
+    def __btree(cls, ps, n=1, Tree=BTree):
+        """Builds a BTree with at most n of the ps in each leaf of the tree.
 
         Saves, as each node's .points, the list of entries from ps that are in
-        the leaf.  Points on boundaries are placed in one of the adjacent nodes,
+        the node.  Points on boundaries are placed in one of the adjacent nodes,
         at each split; clients should make no assumption about which.\n"""
         root = Tree(ps[0].pointwise(lambda *xs: min(xs), None, *ps[1:]),
                     ps[0].pointwise(lambda *xs: max(xs), None, *ps[1:]))
+        cls.__split(root, ps, n)
+        return root
+    del BTree
 
+    @staticmethod
+    def __split(root, ps, each):
         live = [ ( root, ps ) ]
         while live:
             tree, ps = live.pop()
             assert all(p in tree for p in ps)
-            tree.points = tuple(ps)
+            tree.points = frozenset(ps)
 
             if len(ps) > each: # else we can let tree be a leaf
                 left, rite = tree.split()
@@ -200,9 +212,54 @@ class Catchment (object):
                 for p in ps: (rs if p[ind] > cut else ls).append(p)
                 live += [ (left, tuple(ls)), (rite, tuple(rs)) ]
 
-        return root
-    del BTree
+    # Critique: self.__root.points is a set with the same membership as self
+    # (just lacking the extra methods of Catchment).  This strongly hints that
+    # self and self.__root could be unified in some way, with each sub-tree as a
+    # subset.  It would change the semantics of __contains__(); rename the
+    # geometric one to encloses().
 
+    # API of set:
+    __upadd = set.add
+    def add(self, point):
+        if point.dimension != iter(self).next().dimension:
+            raise ValueError('Incompatible dimension', point.dimension)
+        self.__upadd(point)
+
+        if point in self.__root:
+            # We can insert it into the existing BTree:
+            tree = self.__root.locate(point)
+            self.__split(tree, tree.points.union((point,)), self.__ineach)
+
+            while True: # run up to root, adding point to .points of each node:
+                try: tree = tree.parent
+                except AttributeError: break
+                tree.points = tree.points.union((point,))
+
+        else: # Need a new BTree:
+            self.__root = self.__btree(tuple(self), self.__ineach)
+
+    __uprm = set.discard
+    def discard(self, point):
+        if point not in self: return
+        self.__uprm(point)
+        self.__rm(point, self.__root)
+
+    @staticmethod
+    def __rm(point, root):
+        assert point in root.points # which is what we need to fix
+        tree, point = root.locate(point), set((point,))
+        while True:
+            tree.points -= point
+            # TODO: unsplit if one child is empty and the other a leaf.
+            try: tree = tree.parent
+            except AttributeError: break
+
+    __uppop = set.pop
+    def pop(self): # ... or suppress this method as a silly one to use ?
+        ans = self.__uppop()
+        self.__rm(ans, self.__root)
+        return ans
+
     # Support for .nearest()
     from itertools import chain
     @staticmethod
@@ -276,15 +333,15 @@ class Catchment (object):
     del chain
 
     def nearest(self, where, elide=()):
-        """Find a nearest entry in self.centres to where.
+        """Find a nearest entry in self to where.
 
         Required first argument, where, is a vector (or tensor, with the same
-        .dimension as the entries in self.centres).  Optional second argument,
-        elide, is a container (we must be able to do 'p in elide' tests) of
-        points in self to ignore when searching for the one nearest to where;
-        defaults to ().  Returns a twople (p, d) where p is in self.centres and
-        d*d == (where-p).squaresum is minimal among relevant p (in self.centres
-        but not in elide) - although there is no guarantee this is unique.\n"""
+        .dimension as the members of self).  Optional second argument, elide, is
+        a container (we must be able to do 'p in elide' tests) of points in self
+        to ignore when searching for the one nearest to where; defaults to
+        ().  Returns a twople (p, d) where p is in self and d*d ==
+        (where-p).squaresum is minimal among relevant p (in self but not in
+        elide) - although there is no guarantee this is unique.\n"""
 
         ps = self.__nearleaves(self.__vectorise(where), self.__root, elide)
         centre = ps.next()
