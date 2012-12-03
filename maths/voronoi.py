@@ -99,16 +99,20 @@ class Catchment (set):
             one for which hi-lo has the largest component, i.e. the box's width
             is biggest.  Returns a twople of this index with the vector that's
             half the box's width in this direction.\n"""
-            dex = (hi - lo).iteritems()
-            big, was = dex.next()
-            assert was >= 0
+            dex, was = (hi - lo).iteritems(), 0
+            while not was:
+                try: big, was = dex.next()
+                except StopIteration: # lo == hi
+                    raise ValueError('Empty box', lo, hi)
+                assert was >= 0
             at = deep(big)
 
             for ind, val in dex:
                 assert val >= 0
-                dp = deep(ind)
-                if at < dp or (dp == at and val < was):
-                    at, was, big = dp, val, ind
+                if val: # don't try to cut on a zero-width direction !
+                    dp = deep(ind)
+                    if at < dp or (dp == at and val < was):
+                        at, was, big = dp, val, ind
 
             gap = hi[big] - lo[big]
             assert gap > 0
