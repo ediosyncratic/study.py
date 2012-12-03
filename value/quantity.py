@@ -1046,13 +1046,16 @@ class Quantity (Object):
         return cls.flat(best - down, best + up, best, *args, **what)
 
     @classmethod
-    def fromDecimal(cls, best, decimals, exponent=None, *args, **what):
+    def fromDecimal(cls, best, decimals=0, exponent=None, *args, **what):
         """Convenience constructor for value given number of decimal places.
 
         Supports a value recorded to some specific number of digits past the
-        decimal point.  Requireds two arguments
-          best -- the best estimate of the value, i.e. the value published.
-          decimals -- the number of digits specified after the decimal point.
+        decimal point.  Required arguments, best, is the best estimate of the
+        value, i.e. the value published.  Next positional argument, decimals, is
+        the number of digits specified after the decimal point: it defaults to
+        zero, for the common case where a value has been rounded to the nearest
+        whole number.  Assigning whole = Quantity.fromDecimal may thus be useful
+        in an interactive session.
 
         Best is expected to be dimensionless (in fact, a simple number);
         decimals should be an integer.  (Technically, even a negative value
@@ -1062,7 +1065,7 @@ class Quantity (Object):
         exponent, see below.)  Note that leading zeros after the decimal point
         in best should be included in decimals; if best is 0.00314 then
         decimals should be 5.  Likewise, trailing zeros should normally be
-        understood to be significant; if 0.003140 is what was published, then
+        understood to be significant; if 0.003140 was the published value, then
         decimals should be 6.
 
         Note that some publications typeset a number such that the
