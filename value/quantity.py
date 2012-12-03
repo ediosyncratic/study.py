@@ -1,21 +1,21 @@
 """Objects to describe real quantities (with units of measurement).
 
 TODO: Invent a quantity-type that identifies a value in principle, either by
-definition (e.g. it's a primitive quantity such as a unit, physical constant
-or property of a particular entity) or by formula in terms of others, supports
+definition (e.g. it's a primitive quantity such as a unit, physical constant or
+property of a particular entity) or by formula in terms of others, supports
 being told what values have experimentally been found for it, but doesn't need
-any of these concrete values in the creation of the object.  Change
-data-supply to parse files (one per source, potentially using custom parsers)
-in which each quantity for which the source gives a value is told the values
-given by that source.  In particular, each particle, planet, element
-etc. comes into being with such quantities as the values for its mass, charge,
-etc., with no value given; but (for example) an element's atomic number, or an
-isotope's number of neutrons, shall be an actual value ab initio.  Prototype
-by converting chemy.element first; see its TODO.
+any of these concrete values in the creation of the object.  Change data-supply
+to parse files (one per source, potentially using custom parsers) in which each
+quantity for which the source gives a value is told the values given by that
+source.  In particular, each particle, planet, element etc. comes into being
+with such quantities as the values for its mass, charge, etc., with no value
+given; but (for example) an element's atomic number, or an isotope's number of
+neutrons, shall be an actual value ab initio.  Prototype by converting
+chemy.element first; see its TODO.
 
 Probably want a different class for each quantity-kind, so that we can load it
-up with the needed kind-specific properties, e.g. by providing a second base
-as mix-in to define the extra lazyprops.
+up with the needed kind-specific properties, e.g. by providing a second base as
+mix-in to define the extra lazyprops.
 
 See study.LICENSE for copyright and license information.
 """
@@ -104,8 +104,8 @@ def massage_text(text, times,
     in the range .1 to 1000 and only exceeds 100 if at least three significant
     digits are available and, by so doing, we can avoid the need for a
     [quantifier].  If the exponent is given as [e[sign]digits] and the
-    representation is exact, the e will be an E, e.g. the integer 4000 is 4E3.
-    Exact numbers will also elide their decimal point if it is the last
+    representation is exact, the e will be an E, e.g. the integer 4000 is
+    4E3. Exact numbers will also elide their decimal point if it is the last
     character of the mantissa, rough ones are less likely to.\n"""
 
     # Extract any sign and set it aside; we'll put it back as we return:
@@ -253,12 +253,12 @@ def energy():
         """Seismographic moment magnitude.
 
         This is the standardized moment magnitude scale for earthquakes; the
-        energy is taken to be the total energy, stored as stress in the
-        Earth's crust, released.  For the energy magnitude scale (i.e. if your
-        energy is the radiated seismic energy), add 5.8/1.5; for the Ricter
-        scale, add 1.65 (or so).  Bear in mind that energy coming from
-        non-seismic sources (e.g. nukes) tends not to couple as directly to
-        the Earth's crust, so don't necessarily produce comparable effects.\n"""
+        energy is taken to be the total energy, stored as stress in the Earth's
+        crust, released.  For the energy magnitude scale (i.e. if your energy is
+        the radiated seismic energy), add 5.8/1.5; for the Ricter scale, add
+        1.65 (or so).  Bear in mind that energy coming from non-seismic sources
+        (e.g. nukes) tends not to couple as directly to the Earth's crust, so
+        don't necessarily produce comparable effects.\n"""
         return ((v / J).log / ln10 - 9.1) / 1.5
 
     from study.chemy.physics import Thermal, Quantum
@@ -289,11 +289,10 @@ def time():
 
         Returns a tuple: first member is '+' or '-' according as t is positive
         or negative; the rest describe its value, giving whole years, days,
-        hours and minutes, ending with the remainder in seconds, which may
-        have a fractional part.  The year used is sidereal (the period of the
-        Earth's orbit around The Sun), since I have no idea what calender was
-        in force at either end of the interval that the time in question
-        implicitly is.\n"""
+        hours and minutes, ending with the remainder in seconds, which may have
+        a fractional part.  The year used is sidereal (the period of the Earth's
+        orbit around The Sun), since I have no idea what calender was in force
+        at either end of the interval that the time in question implicitly is.\n"""
         if t < zero: sign, t = '-', -t
         else: sign = '+'
         ny, t = divmod(t, y)
@@ -356,23 +355,18 @@ class Quantity (Object):
         """Initialises an object representing a quantity.
 
         Arguments:
-
           scale -- (a Quantity or) a scalar, e.g. integer, long or float: it
                    must support addition with and multiplication by at least
                    these types.
-
           [units] -- (a Quantity or) a dictionary with string keys and integer
                      values, or a Quantity.  Each key names a unit of
-                     measurement: the whole dictionary represents the product
-                     of pow(key, units[key]) over all keys, so {'kg':1, 'm':2,
-                     's':-2} denotes kg.m.m/s/s, aka the Joule.  If omitted,
-                     an empty dictionary is used (indicating a dimensionless
+                     measurement: the whole dictionary represents the product of
+                     pow(key, units[key]) over all keys, so {'kg':1, 'm':2,
+                     's':-2} denotes kg.m.m/s/s, aka the Joule.  If omitted, an
+                     empty dictionary is used (indicating a dimensionless
                      quantity).
-
-          [doc] -- a documentation string for the quantity (default
-                   None).  This may alternatively be set by the .document(doc)
-                   method.
-
+          [doc] -- a documentation string for the quantity (default None).  This
+                   may alternatively be set by the .document(doc) method.
           [sample] -- a sequence of quantities which should be equal to this
                       one.
 
@@ -415,11 +409,10 @@ class Quantity (Object):
         Each is allowed to be a Quantity, scale may be a qSample, Sample or
         native scalar, units may be a simple dictionary or a Prodict.  This
         method puts all of the scalar-ness into scale and all the units-ness
-        into units.  (It mainly exists so that scalartypes can be computed
-        just once, rather than on every run of the test that uses it; but it
-        may also help make it possible to del qSample and Prodict from this
-        module's name-space, some day; and it also makes __init__ easier to
-        read.)\n"""
+        into units.  (It mainly exists so that scalartypes can be computed just
+        once, rather than on every run of the test that uses it; but it may also
+        help make it possible to del qSample and Prodict from this module's
+        name-space, some day; and it also makes __init__ easier to read.)\n"""
 
         # Using try allows Object()s that borrow() from Quantity()s work.
         try: u, s = units.__units, units.__scale
@@ -468,7 +461,7 @@ class Quantity (Object):
 
         The primitive form doesn't try to use quantifiers when printing itself,
         or other fancy stuff.  This is intended for use by derived classes when
-        sorting out their representations ... """
+        sorting out their representations ...\n"""
 
         what, unitstr = self.__scale, self._unit_str
         assert isinstance(what, qSample)
@@ -527,12 +520,12 @@ class Quantity (Object):
                                     k=kind_prop_lookup, cache={}, empty={}):
         """Quantity-kind-specific attribute lookup.
 
-        For each kind of quantity (length, speed, etc.) this provides a
-        mapping from names of attributes, relevant only to that kind of
-        quantity, to functions that convert a value of that kind to its
-        relevant attribute.  That values of this mapping are functions is
-        required to ensure the attribute depends on the quantity of which it
-        is an attribute.
+        For each kind of quantity (length, speed, etc.) this provides a mapping
+        from names of attributes, relevant only to that kind of quantity, to
+        functions that convert a value of that kind to its relevant
+        attribute.  That values of this mapping are functions is required to
+        ensure the attribute depends on the quantity of which it is an
+        attribute.
 
         The actual mapping returned is obtained from an internal mapping which
         takes ._unit_str as key (identifying the kind) and provides a function
@@ -540,11 +533,11 @@ class Quantity (Object):
         arguments) is the mapping we return (and it's cached, so we won't need
         to call that function next time this method is called with the given
         ._unit_str).  This second layer of function-via-mapping makes it
-        possible for the functions (that build the mappings whose values are
-        the functions that compute kind-specific attributes) to import modules
-        that may depend on this one - typically to obtain units, or the values
-        of physical constants, that are expressed as Quantity objects -
-        without creating a cyclic dependency.\n"""
+        possible for the functions (that build the mappings whose values are the
+        functions that compute kind-specific attributes) to import modules that
+        may depend on this one - typically to obtain units, or the values of
+        physical constants, that are expressed as Quantity objects - without
+        creating a cyclic dependency.\n"""
 
         key = self._unit_str
         try: return cache[key]
@@ -568,7 +561,7 @@ class Quantity (Object):
 
         Note that self.copy(f) will do the corresponding thing but giving the
         result the same units as self, whatever these may be; .copy() makes no
-        attempt to check whether what you asked for makes sense ... """
+        attempt to check whether what you asked for makes sense ...\n"""
 
         return self.__quantity__(self._scalar.copy(f), {})
 
@@ -605,8 +598,7 @@ class Quantity (Object):
           units -- the expected units dictionary
 
         If the value doesn't match the units, a type-error is raised, whose
-        .args[0] is value._unit_str if it had one; otherwise, .args is
-        empty.\n"""
+        .args[0] is value._unit_str if it had one; otherwise, .args is empty.\n"""
 
         # In later equivalents, units may use Quantity()s as units; in which
         # case, one should `flatten' it to check whether non-empty really
@@ -625,12 +617,10 @@ class Quantity (Object):
         """Checks for additive compatibility and unpacks.
 
         Arguments:
-
           other -- another quantity, which should have the same dimensions as
                    self; may be a scalar iff self is dimensionless.
-
-          why -- string, e.g. '+' or 'compare', describing what caller is
-                 doing: used as prefix in error messages.
+          why -- string, e.g. '+' or 'compare', describing what caller is doing:
+                 used as prefix in error messages.
 
         Returns other's scalar aspect or raises a TypeError.\n"""
 
@@ -671,11 +661,11 @@ class Quantity (Object):
         """Pythagorean sum.
 
         Sums the squares of self and arbitrarily many others (all of the same
-        kind); returns the square root of the sum.  Meaningful for many
-        (albeit not all) kinds of quantities; enough that it makes more sense
-        to provide it universally - and ignore it when inappropriate - than to
-        try to exhausitively provide it kind-specifically for every kind of
-        quantity to which it *is* relevant.\n"""
+        kind); returns the square root of the sum.  Meaningful for many (albeit
+        not all) kinds of quantities; enough that it makes more sense to provide
+        it universally - and ignore it when inappropriate - than to try to
+        exhausitively provide it kind-specifically for every kind of quantity to
+        which it *is* relevant.\n"""
         val = self
         for it in others:
             val = val.__hypot(it)
@@ -700,10 +690,9 @@ class Quantity (Object):
         """Provide borrowable access to privates.
 
         Object restricts borrowing to public attributes; but this prevents an
-        Object from behaving numerically like a Quantity from which it
-        borrows; so work around that by providing this method, to tunnel
-        between unpack and the Quantity from which its argument is
-        borrowing.\n"""
+        Object from behaving numerically like a Quantity from which it borrows;
+        so work around that by providing this method, to tunnel between unpack
+        and the Quantity from which its argument is borrowing.\n"""
         return self.__scale, self.__units
 
     def __mul__(self, other, grab=unpack):
@@ -784,7 +773,7 @@ class Quantity (Object):
         return self.__kin(lo), self.__kin(hi)
 
     def _lazy_get_best_(self, which):
-        """generic method for statistics, packaging those for __scale with __units """
+        """generic method for statistics, packaging those for __scale with __units"""
         stat = getattr(self.__scale, which) # the statistic (e.g. best estimate) of scale
         return self.__kin(stat) # with the same units as self.
 
@@ -873,24 +862,23 @@ class Quantity (Object):
         """Generates representations of a quantity.
 
         All arguments are optional and should be given by name when given.
-
           scale -- a prefix string to which to join the unit representation
-          built by this routine: in particular, if given, it will be joined to
-          this unit representation by a suitable times or divide operator.  If a
-          non-string is given for scale, its repr() is used.
-
+                   built by this routine: in particular, if given, it will be
+                   joined to this unit representation by a suitable times or
+                   divide operator.  If a non-string is given for scale, its
+                   repr() is used.
           times, divide -- strings, default '.' and '/', to be used to denote
-          multiplication and division in compact texts, e.g. kg.m/s.
-
+                           multiplication and division in compact texts,
+                           e.g. kg.m/s.
           Times, Divide -- strings, defaulting to times and divide, to be used
-          to denote multiplication and division in spread-out texts,
-          e.g. kg.m / s^2^.
-
+                           to denote multiplication and division in spread-out
+                           texts, e.g. kg.m / s^2^.
           lookemup -- a function taking a sequence of strings and returning a
-          similar sequence in which each string may have been replaced with an
-          alternative: typically, the strings in the input list will be short
-          names of units, to be converted to long names where known,
-          e.g. [ kg ] -> [ kilogramme ], or vice versa.
+                      similar sequence in which each string may have been
+                      replaced with an alternative: typically, the strings in
+                      the input list will be short names of units, to be
+                      converted to long names where known, e.g. [ kg ] -> [
+                      kilogramme ], or vice versa.
 
         I hope to be able to do something smarter when I can see when to say J
         rather than kg.m.m/s/s, and etc.  But that will probably involve
@@ -961,8 +949,8 @@ class Quantity (Object):
           hi -- upper bound on value
 
         Optional arguments:
-          best -- best estimate value in the interval, or None (the default)
-                  if no best estimate is available
+          best -- best estimate value in the interval, or None (the default) if
+                  no best estimate is available
           units -- as for Quantity.
           doc -- as for Quantity.
           rescale -- scaling to apply to all of lo, hi and (if given) best; or
@@ -970,11 +958,11 @@ class Quantity (Object):
 
         Values of lo, hi and (when given) best must all be of the same kind
         (i.e. have the same units), although mixing dimensionless Quantity()s
-        with plain scalars (or Sample()s) is allowed.  If they have units,
-        these are combined with the supplied units (if any); thus, for
-        example, lo and hi could be times and units could be the speed of
-        light, to produce a range of distances (that light travels between the
-        given periods of time).\n"""
+        with plain scalars (or Sample()s) is allowed.  If they have units, these
+        are combined with the supplied units (if any); thus, for example, lo and
+        hi could be times and units could be the speed of light, to produce a
+        range of distances (that light travels between the given periods of
+        time).\n"""
 
         try: un, lo = lo.__units, lo.__scale
         except AttributeError: un = {}
@@ -1013,10 +1001,10 @@ class Quantity (Object):
     def below(cls, top, units=Prodict(), *args, **what):
         """A quantity known to be nearer to zero than some given value.
 
-        Required value, top, is the biggest value the quantity could have,
-        with the sign that the quantity is known to have.  Result is bounded
-        away from zero and at most the given value.  Optional argument units
-        is as for Quantity.
+        Required value, top, is the biggest value the quantity could have, with
+        the sign that the quantity is known to have.  Result is bounded away
+        from zero and at most the given value.  Optional argument units is as
+        for Quantity.
 
         All other arguments (positional or keyword) are forwarded to .flat(),
         hence possibly to Quantity().\n"""
@@ -1037,9 +1025,8 @@ class Quantity (Object):
           down -- difference between best and lower bound
           up -- difference between best and upper bound
 
-        If any has units, all must have the same units.  Both down and up
-        should be positive; the range of values specified is from best-down to
-        best+up.
+        If any has units, all must have the same units.  Both down and up should
+        be positive; the range of values specified is from best-down to best+up.
 
         All other arguments (positional or keyword) are forwarded to .flat(),
         hence possibly to Quantity().\n"""
@@ -1058,33 +1045,33 @@ class Quantity (Object):
         in an interactive session.
 
         Best is expected to be dimensionless (in fact, a simple number);
-        decimals should be an integer.  (Technically, even a negative value
-        for decimals is meaningful; passing -2 as decimals means +/- 50 on
-        best; the two digits to the left of the decimal point aren't
-        known.  Such situations may, however, be better expressed by use of
-        exponent, see below.)  Note that leading zeros after the decimal point
-        in best should be included in decimals; if best is 0.00314 then
-        decimals should be 5.  Likewise, trailing zeros should normally be
-        understood to be significant; if 0.003140 was the published value, then
-        decimals should be 6.
+        decimals should be an integer.  (Technically, even a negative value for
+        decimals is meaningful; passing -2 as decimals means +/- 50 on best; the
+        two digits to the left of the decimal point aren't known.  Such
+        situations may, however, be better expressed by use of exponent, see
+        below.)  Note that leading zeros after the decimal point in best should
+        be included in decimals; if best is 0.00314 then decimals should be
+        5.  Likewise, trailing zeros should normally be understood to be
+        significant; if 0.003140 was the published value, then decimals should
+        be 6.
 
-        Note that some publications typeset a number such that the
-        'confidently correct' digits are distinct from subsequent digits
-        indicating a best estimate; in such a case, the number of confidently
-        correct digits after the decimal point is what you should pass as
-        decimal (and it's perfectly fine to include the others in the value
-        given for best).  For example, 3.141(59) might be used to indicate the
-        3.141 part is confidently known and 59 is the best estimate at the
-        next two digits; passing best=3.14159, decimals=3 represents this
-        faithfully.  Note, however, that similar typesetting might indicate an
-        error bar on the last few digits, e.g. 3.141(59) might mean 3.141 +/-
-        0.059; be sure to actually know what notation is in use.
+        Note that some publications typeset a number such that the 'confidently
+        correct' digits are distinct from subsequent digits indicating a best
+        estimate; in such a case, the number of confidently correct digits after
+        the decimal point is what you should pass as decimal (and it's perfectly
+        fine to include the others in the value given for best).  For example,
+        3.141(59) might be used to indicate the 3.141 part is confidently known
+        and 59 is the best estimate at the next two digits; passing
+        best=3.14159, decimals=3 represents this faithfully.  Note, however,
+        that similar typesetting might indicate an error bar on the last few
+        digits, e.g. 3.141(59) might mean 3.141 +/- 0.059; be sure to actually
+        know what notation is in use.
 
-        Optional argument exponent defaults to None; otherwise, it should be
-        an integer and the values of best and the bounds implied by decimals
-        are scaled by ten**exponent (after the bounds have been
-        computed).  Thus .fromDecimal(best, d, n) has the same meaning as
-        .fromDecimal(best / 10**i, d-i, n+i) for any integer i <= d.
+        Optional argument exponent defaults to None; otherwise, it should be an
+        integer and the values of best and the bounds implied by decimals are
+        scaled by ten**exponent (after the bounds have been computed).  Thus
+        .fromDecimal(best, d, n) has the same meaning as .fromDecimal(best /
+        10**i, d-i, n+i) for any integer i <= d.
 
         All other arguments (positional or keyword) are forwarded to .flat(),
         hence possibly to Quantity().\n"""
@@ -1098,11 +1085,11 @@ class Quantity (Object):
         Required arguments:
           best -- the given value, used as best estimate
           sigfig -- number of significant digits of best that are confidently
-                    known; this counts digits from the left-most non-zero
-                    digit to the right-most digit (including zeros) given in
-                    the published value of best - give or take a few at the end
-                    if the publication indicates these are not confidently
-                    known; and ignoring any exponent.
+                    known; this counts digits from the left-most non-zero digit
+                    to the right-most digit (including zeros) given in the
+                    published value of best - give or take a few at the end if
+                    the publication indicates these are not confidently known;
+                    and ignoring any exponent.
 
         For example, in 03.140e27, the leading 0 of 03 is ignored, as is the
         exponent e27, but the 0 following 4 is included, so we have four
@@ -1150,9 +1137,9 @@ class Quantity (Object):
         If either has units, both must (counting dimensionless as not having
         units); and their units must agree.  After these, optional argument
         units may be supplied, with the same meaning and default as for
-        Quantity; if given, it may be a Quantity or a mapping from (short)
-        names of units to powers of each; in such a case, it shall be
-        multiplied by the units of best (or equally of sigma), if any.
+        Quantity; if given, it may be a Quantity or a mapping from (short) names
+        of units to powers of each; in such a case, it shall be multiplied by
+        the units of best (or equally of sigma), if any.
 
         All other arguments (positional or keyword) are forwarded to
         Quantity().\n"""
@@ -1177,8 +1164,8 @@ class Quantity (Object):
 
         Required arguments:
           nom -- short name (symbol) for the unit
-          fullname -- full name (with capitalisation and non-ASCII content
-                      when appropriate)
+          fullname -- full name (with capitalisation and non-ASCII content when
+                      appropriate)
           doc -- documentation, explaining the unit
 
         Arbitrary keyword arguments may be passed and shall be forwarded to
