@@ -328,6 +328,8 @@ class Vector (Tuple):
         return self.__vector__(x + y for x, y in zip(self, other))
 
     __radd__ = __add__
+    def __neg__(self):
+        return self.__vector__(-x for x in self)
 
     def __sub__(self, other):
         assert len(other) == len(self)
@@ -990,7 +992,9 @@ class Namely (Vector):
         if bad:
             pass
 
-        if None in args:
+        # Need an "is" check, not "None in args" which is an == check, in case
+        # some entry in args doesn't like to test == None:
+        if any(x is None for x in args):
             given = [ val for val in args if val is not None ]
             if given: # use zero of same rank as given values:
                 zero = given[0] * 0
@@ -1002,7 +1006,7 @@ class Namely (Vector):
         return cls.__upnew(cls, args)
 
     @classmethod
-    def __vector__(cls, seq): return cls(*seq)
+    def __vector__(cls, seq): return cls(*tuple(seq))
 
     def __repr__(self):
         seq, byname, index = [], [], []
