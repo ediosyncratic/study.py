@@ -481,7 +481,7 @@ class Quantity (Object):
     def observe(self, what, doc=None):
         """Incorporate information from a measurement of this quantity.
 
-        Required argument, what, is a Quantity or, of self is dimensionless, a
+        Required argument, what, is a Quantity or, if self is dimensionless, a
         Sample, sample.Weighted or simple numeric value.  A simple numeric value
         is used as a candidate best estimate.  Otherwise, the spread of the
         supplied value is suitably combined with self's prior spread and any
@@ -680,11 +680,11 @@ class Quantity (Object):
     def __rsub__(self, other): return self.__kin(self.__addcheck_(other, '-') - self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
-    def unpack(other):
+    def unpack(other, one=Prodict()):
         # Using try lets an Object that borrow()s from a Quantity work
         try: return other.__scale_units__()
         except AttributeError: pass # not a Quantity
-        return other, Prodict()
+        return other, one
 
     def __scale_units__(self):
         """Provide borrowable access to privates.
@@ -696,6 +696,9 @@ class Quantity (Object):
         return self.__scale, self.__units
 
     def __mul__(self, other, grab=unpack):
+        if isinstance(other, tuple): # assume study.maths.vector.Vector
+            return other * self
+
         ot, her = grab(other)
         return self.__quantity__(self.__scale * ot, self.__units * her)
 
@@ -709,7 +712,10 @@ class Quantity (Object):
         return self.__quantity__(self.__scale / ot, self.__units / her)
     __truediv__ = __div__
 
-    def __rdiv__(self, other, grab=unpack):
+    def __rdiv__(self, other, grab=unpack, one=Prodict()):
+        if isinstance(other, tuple): # assume study.maths.vector.Vector
+            return other * self.__quantity__(1. / self.__scale, one / self.__units)
+
         ot, her = grab(other)
         return self.__quantity__(ot / self.__scale, her / self.__units)
     __rtruediv__ = __rdiv__
@@ -1176,4 +1182,4 @@ class Quantity (Object):
         cls.__terse_dict[nom] = result
         return result
 
-del kind_prop_lookup, tonumber
+del kind_prop_lookup, tonumber, Prodict
