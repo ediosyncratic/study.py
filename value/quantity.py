@@ -248,23 +248,35 @@ def energy():
     from SI import second, Joule
     def mass(v, cc = (second.light / second)**2): return v / cc
 
-    from math import log
-    def magnitude(v, J=Joule, ln10=log(10)):
-        """Seismographic moment magnitude.
+    class seismic (object):
+        """Seismic magnitudes.
 
-        This is the standardized moment magnitude scale for earthquakes; the
-        energy is taken to be the total energy, stored as stress in the Earth's
-        crust, released.  For the energy magnitude scale (i.e. if your energy is
-        the radiated seismic energy), add 5.8/1.5; for the Ricter scale, add
-        1.65 (or so).  Bear in mind that energy coming from non-seismic sources
-        (e.g. nukes) tends not to couple as directly to the Earth's crust, so
-        don't necessarily produce comparable effects.\n"""
-        return ((v / J).log / ln10 - 9.1) / 1.5
+        The lovely thing about standards is the number of them to chose
+        amongs.  So this property of an energy (or, more precisely, a Quantity
+        with units of torque, which are the same as of energy) has three
+        attributes: the .Richter, .moment and .energy magnitudes associated with
+        the the given amount of energy.  Note that the three different scales
+        have quite separate meanings (i.e. the measure different energies for
+        any given seismic event).  See also: study.value.archaea.Magnitude.\n"""
+
+        from math import log
+        base = log(10) * 1.5 # two steps are equivalent to a power of one thousand
+        def __init__(self, lne, b=base): self.__e = lne / b
+        from study.cache.property import lazyprop
+        @lazyprop
+        def Richter(self, off=log(4.2) / base + 4): return self.__e - off
+        @lazyprop
+        def energy(self, off=2.9 / 1.5): return self.__e - off
+        @lazyprop
+        def moment(self, off=9.1 / 1.5): return self.__e - off
+        del lazyprop, log, base
+
+    def seismic(v, J=Joule, S=seismic): return S((v / J).log)
 
     from study.chemy.physics import Thermal, Quantum
     return { 'frequency': lambda e, h=Quantum.h: e / h,
              'temperature': lambda e, k=Thermal.k: e / k,
-             'mass': mass, 'seismic': magnitude }
+             'mass': mass, 'seismic': seismic }
 
 def frequency():
     from study.chemy.physics import Quantum

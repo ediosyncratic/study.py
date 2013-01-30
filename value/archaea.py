@@ -515,19 +515,74 @@ TNT = Quantity(4184, Joule / gram, # (2.045 km/s)**2
                """The conventional unit of power of explosions
 
 The energy released by each gram of TNT (trinitrotoluene) upon detonation is
-between 4.1 and 4.6 kJ; however, for the purposes of standardized definition,
-a value of 4184 Joule is used.  It is worth noting that food carbohydrate has
-energy content per unit mass roughly four times as high as this.  Multiply
-this by ton.US to get the commonly used 'ton of TNT' unit of explosive power.
+between 4.1 and 4.6 kJ; however, for the purposes of standardized definition, a
+value of 4184 Joule is used - this is the thermochemical kilo-Calorie (see
+calorie.thermochemical).
+
+It is worth noting that food carbohydrate has energy content per unit mass
+roughly four times as high as this.  The energy equivalent of matter (via the
+square of the speed of light) is about 21.5e9 times as high.  The square root of
+this ratio (analogous to the speed of light in the last) is just over 2 km/s, or
+two thirds of geosynchronous orbital speed.
+
+Allegedly, when people talk about megaton or kiloton nukes, the 'ton' involved
+is in fact the metric tonne, not (as I had guessed, or read somewhere now
+forgotten, in the past) the US ton.
 
 c.f.: http://en.wikipedia.org/wiki/TNT_equivalent
 """)
 
-Magnitude = Object(
-    # Seismographic energy scales
-    moment = lambda n: 10 ** (1.5 * n + 9.1) * Joule,
-    energy = lambda n: 10 ** (1.5 * n + 2.9) * Joule,
-    Richter = lambda n: 10 ** (1.5 * n + 6) * 4.2 * Joule)
+Krakatoa = Quantity.parseDecimal('84e16', None, Joule,
+                                 """The Krakatoa explosion's (approximate) energy output.
+
+Explosions of this order (around 200 Mt, equivalent to detonating a fifth of a
+giga-tonne of TNT) are apt to mess with Earth's climate, based on concrete
+observations of how the actual Krakatoa explosion did just that.  The details of
+an explosion doubtless make a difference - maybe by a factor of ten or three,
+one way or another - in how its energy output relates to its impact: but, for
+that, we only have the estimates our models have produced.  For this particular
+case, we have experimental data.
+""")
+
+class Magnitude (Object):
+    """Seismic magnitudes.
+
+    There are various scales for seismic events, such as earthquakes, based on
+    various measurements that can be recorded in practice: unfortunately,
+    journalists tend to call them all Richter, which is just one of them.  See
+    Wikipedia or a real seismology text-book for the actual details of the
+    particular scales; support for them here is mainly to provide a rough idea
+    of the values, with the hope of doing the right thing for those who (unlike
+    me) know what they're doing.
+
+    The attributes of this object are mappings from magnitude numbers to amounts
+    of energy associated, in one way or another (depending on the scale in
+    question), with seismic events of the given magnitude. The amount of energy
+    increases, in each case, by a factor of a thousand for every increase by two
+    in magnitude; so the magnitudes associated with a given energy differ by
+    fixed offsets.
+
+    See also the .seismic attribute of any Quantity with units of energy or
+    torque; its attributes map energies back to magnitudes, inverting the
+    functions here with the same names.  Thus Magnitude.moment(e.seismic.moment)
+    should equal e, for any energy e, while Magnitude.moment(m).seismic.moment
+    should equal m, for any number m; and likewise for .energy or .Richter in
+    place of .moment throughout.\n"""
+
+    @staticmethod
+    def __raise(val, f=lambda v: 10 ** v, Q=Quantity):
+        if isinstance(val, Q):
+            return val.evaluate(f)
+        return f(val)
+
+    @classmethod
+    def moment(cls, m): return cls.__raise(1.5 * m + 9.1) * Joule
+    @classmethod
+    def energy(cls, m): return cls.__raise(1.5 * m + 2.9) * Joule
+    @classmethod
+    def Richter(cls, m): return cls.__raise(1.5 * m + 6) * 4.2 * Joule
+
+Magnitude = Magnitude()
 
 # Speed of sound in dry air at 0 centigrade
 sound = 331.3 * metre / second # * (temperature / 273.15 / K)**.5
