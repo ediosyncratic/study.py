@@ -997,10 +997,10 @@ class Quantity (Object):
         should be positive.  The range best +/- tol is what these values
         describe.
 
-        All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity(); if units are specified (first positional
-        parameter after the above), they are effecitvely multiplied with any
-        units of best and tol.\n"""
+        All other arguments (positional, starting with units, or keyword) are
+        forwarded to .flat(), hence possibly to Quantity(); if units are
+        specified, they are effecitvely multiplied with any units of best and
+        tol.\n"""
         return cls.flat(best - tol, best + tol, best, *args, **what)
 
     @classmethod
@@ -1012,15 +1012,19 @@ class Quantity (Object):
         from zero and at most the given value.  Optional argument units is as
         for Quantity.
 
-        All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity().\n"""
+        All other arguments (positional, starting with doc, or keyword) are
+        forwarded to .flat(), hence possibly to Quantity().\n"""
 
         try: un, top = top.__units, top.__scale
         except AttributeError: pass
         else: units = un * units
 
+        try: best = what['best'] # unnatural, but don't error on it !
+        except KeyError: best = None
+        else: del what['best']
+
         # TODO: pick a better distribution
-        return cls.flat(top * femto, top, None, units, *args, **what)
+        return cls.flat(top * femto, top, best, units, *args, **what)
 
     @classmethod
     def fromSpread(cls, best, down, up, *args, **what):
@@ -1034,8 +1038,8 @@ class Quantity (Object):
         If any has units, all must have the same units.  Both down and up should
         be positive; the range of values specified is from best-down to best+up.
 
-        All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity().\n"""
+        All other arguments (positional, starting with units, or keyword) are
+        forwarded to .flat(), hence possibly to Quantity().\n"""
         return cls.flat(best - down, best + up, best, *args, **what)
 
     @classmethod
@@ -1076,13 +1080,55 @@ class Quantity (Object):
         Optional argument exponent defaults to None; otherwise, it should be an
         integer and the values of best and the bounds implied by decimals are
         scaled by ten**exponent (after the bounds have been computed).  Thus
-        .fromDecimal(best, d, n) has the same meaning as .fromDecimal(best /
-        10**i, d-i, n+i) for any integer i <= d.
+        .fromDecimal(b, d, n) has the same meaning as .fromDecimal(b * 10**i,
+        d-i, n-i) for any integer i <= d.
 
-        All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity().\n"""
+        All other arguments (positional, starting with units, or keyword) are
+        forwarded to .flat(), hence possibly to Quantity().  To read a text
+        string suitably, see .parseDecimal().\n"""
         if exponent: what['rescale'] = what.get('rescale', 1) * 10 ** exponent
         return cls.within(best, 0.5 / 10 ** decimals, *args, **what)
+
+    @classmethod
+    def parseDecimal(cls, text, fuzzy=None, *args, **what):
+        """Convenience constructor for use with a decimal string.
+
+        Required argument, text, is a decimal string that float() can parse; the
+        value float() gives for it is used as best, while its exponent and
+        number of digits are parsed directly.  Optional argument, fuzzy, says
+        how many of the last digits of the mantissa, given in text, are not
+        confidently believed correct; a negative value implicitly pads the
+        mantissa with zeros.  Further arguments (positional, starting at units,
+        or keyword) are forwarded to .fromDecimal(), hence onwards via .flat().
+
+        If fuzzy is supplied and not None (its default), it should be a whole
+        number (integer).  Otherwise (omitted or None), if text is simply a
+        sequence of digits, fuzzy defaults to its number of trailing zeros; if
+        text includes a decimal point or exponent, fuzzy defaults to
+        zero.  Thus, by default, '3400' only has two significant digits (the
+        zeros aren't significant), whereas '3400.' or '3400e0' has four.
+
+        Note that the standard print format for a Quantity's scale corresponds
+        to the case fuzzy=1; the last digit it displays is always uncertain.\n"""
+
+        best, cut, special = float(text), text.find('e'), True # fail if float() does
+        if cut < 0: cut = text.find('E')
+        if cut < 0: mant, exp = text, 0
+        else: mant, exp, special = text[:cut], int(text[cut+1:]), False
+        cut = mant.find('.')
+        if cut < 0: whole, frac = mant, ''
+        else: whole, frac, special = mant[:cut], mant[cut+1:], False
+        # text is equivalent to whole + '.' + frac + 'e%d' % exp
+        # NB: frac can be empty even without cut < 0; e.g. '100.'
+
+        if fuzzy is None: # handle the special case
+            if special:
+                assert text is whole
+                deci = -len(whole.rstrip('0'))
+            else: deci = len(frac)
+        else: deci = len(frac) - fuzzy
+
+        return cls.fromDecimal(best, deci-exp, None, *args, **what)
 
     @classmethod
     def fromSigFigs(cls, best, sigfig, base=10, units=Prodict(), *args, **what):
@@ -1113,8 +1159,8 @@ class Quantity (Object):
                   counted; defaults to ten; must be > 1.
           units -- as for Quantity.
 
-        All other arguments (positional or keyword) are forwarded to .flat(),
-        hence possibly to Quantity().\n"""
+        All other arguments (positional, starting with doc, or keyword) are
+        forwarded to .flat(), hence possibly to Quantity().\n"""
 
         try: un, scale = best.__units, best.__scale
         except AttributeError: scale = best
@@ -1147,8 +1193,8 @@ class Quantity (Object):
         of units to powers of each; in such a case, it shall be multiplied by
         the units of best (or equally of sigma), if any.
 
-        All other arguments (positional or keyword) are forwarded to
-        Quantity().\n"""
+        All other arguments (positional, starting with doc, or keyword) are
+        forwarded to Quantity().\n"""
 
         try: un, mid = best.__units, best.__scale
         except AttributeError: un, mid = {}, best
@@ -1177,7 +1223,7 @@ class Quantity (Object):
         Arbitrary keyword arguments may be passed and shall be forwarded to
         Quantity on construction.  Note, however, that values are already
         supplied for scale, units, doc, nom and fullname as positional
-        parameters.\n"""
+        parameters (so passing any of these as keyword shall fail).\n"""
         result = cls.unit(1, { nom: 1 }, nom, fullname, doc, **what)
         cls.__terse_dict[nom] = result
         return result
