@@ -340,21 +340,23 @@ class Permutation (Tuple, Cached):
 
         Among permutations of any given length, this makes the identity `less
         than' all others, so it's our `first' permutation.  Note that a
-        reverse-sorted (big values before little ones) sequence is later than
-        any other sequence with the same entries.  To find the `next'
-        permutation, in the lexicographic order, one must change as late a
-        chunk of the permutation as possible.  To this end, find the longest
-        reverse-sorted tail of the permutation: no shuffling of only that can
-        yield a later permutation, so our next permutation must bring in at
-        least the previous entry; since the previous entry (by construction)
-        is less than the first entry in the reverse-sorted tail, shuffling it
-        into the tail can produce a later entry.  A little thought will then
-        reveal that we should swap it with the smallest entry in the tail
-        bigger than it, then reverse (i.e. forward-sort) the thus-amended
-        tail.  This is the step used by this iterator.\n"""
+        decreasing (reverse-sorted) sequence is later than any other sequence
+        with the same entries.  To find the `next' permutation, in the
+        lexicographic order, one must change as late a chunk of the permutation
+        as possible.
+
+        To this end, find the longest decreasing tail of the permutation: no
+        shuffling of only that can yield a later permutation, so our next
+        permutation must bring in at least the previous entry.  Since the
+        previous entry (by construction) is less than the first entry in the
+        decreasing tail, shuffling it into the tail can produce a later
+        entry.  A little thought will reveal that we should swap it with the
+        smallest entry in the tail bigger than it, then reverse
+        (i.e. forward-sort) the thus-amended tail.  This is the step used by
+        this iterator.\n"""
 
         if size < 0:
-            raise StopIteration
+            raise StopIteration # Nothing to do :-)
 
         row = range(size)
         while True:
@@ -362,8 +364,8 @@ class Permutation (Tuple, Cached):
 
             i = size -1
             while i > 0 and row[i-1] > row[i]: i -= 1
-            if not i: # row is entirely in decreasing order: that's our last permutation.
-                raise StopIteration
+            if not i: # row is entirely in decreasing order
+                raise StopIteration # yielded all permutaitons already
 
             i, j = i-1, size -1
 
