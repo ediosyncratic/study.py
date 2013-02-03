@@ -180,13 +180,19 @@ class Iterable (object):
         First argument, func, must be a callable (e.g. tuple) or None (in which
         case lambda x: x is implicitly used).  There must be at least one
         subsequent argument; func shall be called on each and must return an
-        iterable; it is important that func's return *not* be an iterator, as it
-        is apt to be iterated repeatedly (and an iterable would be exhausted
-        after the first time).  Let seq refer to the returns from func; each
-        yield of the returned iterator is a Tuple res for which res[i] is an
-        entry in seq[i]; and every such tuple arises.  Thus the iterable
-        returned by this method has, as number of entries, the product of the
-        numbers of entries in the various iterables it's given.\n"""
+        iterable that can be repeatedly iterated.  It is important that func's
+        return *not* be an iterator, as it is apt to be iterated repeatedly (and
+        an iterable would be exhausted after the first time).  Let seq refer to
+        the returns from func, called on each subsequent argument; each yield of
+        the returned iterator is a Tuple res for which res[i] is an entry in
+        seq[i]; and every such tuple arises.  Thus the iterable returned by this
+        method has, as number of entries, the product of the numbers of entries
+        in the various iterables in seq.
+
+        Example: Iterable.cartesian(range, 4, 4, 4, 4, 4) yields every tuple, of
+        length five, whose entries are in range(4); Iterable.cartesian(range,
+        *((7,)*7)) yields every tuple, of length seven, whose entries are drawn
+        from range(7).\n"""
         return cls.__iterable__(cls.__renee(func, *whom)).map(Tuple)
 
 class WrapIterable (Iterable):
