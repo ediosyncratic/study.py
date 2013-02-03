@@ -392,13 +392,17 @@ class Vector (Tuple):
         return self.fromSeq(other).__mul(self)
 
     def __pow__(self, other, base=None):
-        assert base is None
-        # TODO: can this be optimised ?
-        result = 1
+        assert base is None # TODO: can we make any sense of it, if not ?
+        if other < 0:
+            # self, other = self.inverse, -other # not meaningful for all tensors
+            raise ValueError('Raising to negative powwer', other)
+
+        other, r = divmod(other, 2)
+        result = self if r else 1
         while other > 0:
+            self = self * self
             other, r = divmod(other, 2)
             if r: result = self * result
-            self = self * self
 
         return result
 
