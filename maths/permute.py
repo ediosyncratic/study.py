@@ -85,11 +85,12 @@ class Permutation (Tuple, Cached):
     def __new__(cls, perm): # automagically an @staticmethod
         """Create a permutation.
 
-        Single argument must be a sequence of natural numbers in which no
-        number is repeated and every natural less than each entry is present
-        in the sequence.  For convenience constructors, see .identity() and
+        Single argument must be a sequence of natural numbers in which no number
+        is repeated and every natural less than each entry is present in the
+        sequence.  Raises ValueError otherwise; see .isa() if you only want to
+        test validity.  For convenience constructors, see .identity() and
         .fromSwaps().\n"""
-        if set(perm) != set(range(len(perm))):
+        if not cls.isa(perm):
             raise ValueError('Is not a permutation', perm)
 
         return cls.__upnew(cls, perm)
@@ -214,17 +215,12 @@ class Permutation (Tuple, Cached):
         n = len(self)
         ans = [ None ] * n
 
-        try:
-            while n > 0:
-                n = n - 1
-                ans[self[n]] = n
-
-            if None in ans:
-                n = ans.index(None)
-                raise IndexError
-
-        except IndexError:
-            raise ValueError, ('Sequence is not a permutation', n, self)
+        while n > 0:
+            n -= 1
+            assert 0 <= self[n] < len(self) and ans[self[n]] is None
+            ans[self[n]] = n
+        # The .isa() check on construction ensures the last and next assertions.
+        assert None not in ans
 
         ans = self.__permutation__(ans)
         assert ans(self) == range(len(self)) == self(ans)
@@ -246,19 +242,15 @@ class Permutation (Tuple, Cached):
         is used in computing the value.\n"""
 
         mess, sign, i = list(self), +1, len(self)
-        try:
-            while i > 1:
-                i -= 1
+        while i > 1:
+            i -= 1
 
-                if i != mess[i]:
-                    sign, j = -sign, mess.index(i) # may ValueError
-                    assert j < i
-                    mess[i], mess[j] = mess[j], mess[i]
+            if i != mess[i]:
+                sign, j = -sign, mess.index(i)
+                assert j < i
+                mess[i], mess[j] = mess[j], mess[i]
 
-            if mess != range(len(self)): raise ValueError
-        except ValueError:
-            raise ValueError('Not actually a permutation', i, self)
-
+        assert mess == range(len(self))
         return sign
 
     @lazyprop
@@ -280,6 +272,31 @@ class Permutation (Tuple, Cached):
 
     def cycle(self, by=1):
         return self.identity(len(self), by).permute(self)
+
+    @staticmethod
+    def isa(seq):
+        """Test whether seq is a permutation.
+
+        Single argument, seq, is a sequence: it must support len() and 'is in'
+        tests for its entries.  The result is true precisely if the entries in
+        seq are, in some order, the valid (forward) indices into seq.  In
+        particular, for each i in seq, seq[i] must be a valid expression.
+
+        Note that this is vastly more efficient than collecting up the outputs
+        of .all(len(seq)) and testing whether seq is one of them, even if you
+        reuse the collection to do this for many sequences of the same length.\n"""
+
+        check = range(len(seq))
+        for i in seq:
+            try: seq[i]
+            except (IndexError, TypeError): # entry that doesn't belong
+                return False
+
+            if i < 0 or check[i] is None: # negative or duplicate
+                return False
+            check[i] = None
+
+        return all(x is None for x in check) # we did hit each entry
 
     @classmethod
     def fixed(cls, size, fix):
@@ -327,6 +344,10 @@ class Permutation (Tuple, Cached):
         for some n; does so in lexicographic order: that is, a permutation p
         shall be yielded sooner than a permutation q precisely if, in the
         first position at which they differ, p[i] is less than q[i].
+
+        Note that collecting up all of the outputs of this may use very large
+        amounts of memory.  If all you need to do is test whether some sequence
+        is one of these outputs, see .isa() instead.
 
         Theory
         ======
