@@ -307,6 +307,43 @@ class Vector (Tuple):
         return cls.fromSeq(((c, s), (s, c)))
     del pi, sin, cos, sinh, cosh, atanh
 
+    @classmethod
+    def antisymmetric(cls, dim, scale=None):
+        """Totally antisymmetric tensor on a space of dimension dim.
+
+        Required argument, dim, is the dimension of the underlying space and the
+        rank of the returned tensor.  Optional argument, scale, defaults to
+        None; if given (and not None), it should be a number (although,
+        technically, you'll get away with passing any Tensor as it); if None, it
+        defaults to 1/dim! (to get the same result as symmetrising the product
+        of the standard basis).  If you index the returned tensor with any even
+        permutation of dim, you'll get scale; while any odd permutation shall
+        give -scale.  The value of the result is equal to the result of (right)
+        multiplying, by scale, the result you'd have obtained by passing 1 as
+        scale: but the returned tensor is more compact (by re-using entries,
+        c.f. what .xerox() does).
+
+        The result is the tensor A for which, when s is an index-sequence of
+        length dim, with all(0 <= si < dim for si in s), A[s] is zero unless s
+        is a permutation, in which case A[s] is scale times s.sign, its
+        signature, in (+1, -1).
+
+        See also symmetrise() and antisymmetrise(), for when you already have a
+        tensor and want the relevant part of it.\n"""
+
+        # Implement scale's default:
+        if scale is None:
+            scale, n = cls.__rat_over(1), dim
+            while n > 0: scale, n = scale / n, n - 1
+
+        if dim < 2: return cls.__vector__((scale,) * dim) # boring
+
+        # Delegate to private method, mainly to isolate its huge theory doc-string !
+        return cls.__antisymmetric(dim,
+                                   0 * scale,
+                                   { tuple(range(dim)): (scale, -scale) },
+                                   cls.__vector__)
+
     def __repr__(self):
         nom = self.__class__.__name__
         if self.rank > 1:
@@ -914,10 +951,17 @@ class Vector (Tuple):
     del setcell
 
     # Further implementation details
-    from study.maths.permute import Permutation
     from study.maths.ratio import Rational
     @staticmethod
-    def __perm_average(dims, ranks, func, gen=Permutation.fixed, rat=Rational):
+    def __rat_over(n, R=Rational): return R(1, n)
+    del Rational
+
+    from study.maths.permute import Permutation
+    @staticmethod
+    def __perm_average(cls, dims, ranks, func,
+                       gen=Permutation.fixed):
+        """Average over permutations, needed by (anti-)symmetrise()
+        """
         if ranks is None: ranks = tuple(range(len(dims)))
         else: ranks = tuple(ranks)
         if len(set(dims[i] for i in ranks)) != 1:
@@ -933,9 +977,185 @@ class Vector (Tuple):
 
         ans, n = func(es.next()), 1
         for e in es: ans, n = ans + func(e), n + 1
-        return ans * rat(1, n)
+        return ans * cls.__rat_over(n)
 
-    del Permutation, Rational
+    del Permutation
+
+    def tail_twist(index, key, old, flip): # tool-function; del'd later
+        """Performs key-munging needed by __antisymmetric().
+
+        Arguments:
+          index -- any in range(dim) but not in key
+          key -- a sub-set of range(dim), in increasing order
+          old -- maps keys one longer than key to tensors
+          flip -- parity toggle; 0 for the positive result, 1 for negative
+
+        Used when computing key's pair of tensors from old, which maps all keys
+        longer than key by one to their relevant pairs of tensors; see the
+        Theory section of .__antisymmetric()'s doc-string.  Pass 0 as flip for
+        the primary value for key and 1 for the negated value.\n"""
+        n = len([x for x in key if x < index])
+        pre, post = key[:n], key[n:]
+        assert all(x > index for x in post) # key is in increasing order
+        n = len(post) + flip
+        # assert: old has the key looked up here (and maps it to a twople):
+        return old[pre + (index,) + post][n % 2]
+
+    @staticmethod
+    def __antisymmetric(dim, zero, bok, vec, munge=tail_twist):
+        """Gory implementation of antisymmetric().
+
+        Required arguments:
+          dim -- dimension of space; also rank of final tensor
+          zero -- the zero of the kind matching scale
+          bok -- initial mapping from full-length key to (scale, -scale).
+          vec -- constructor for vectors
+
+        == Theory ==
+
+        We'll create the returned tensor, its dim entries, each of which has dim
+        entries, and so on, for a total of sum(dim**i for i in range(dim)),
+        which is (dim**dim - 1) / (dim - 1); if we create this the most obvious
+        way (or, as it happens, if we multiply the answer by a scalar), this is
+        how many tensor objects we'll create.  However, many of these objects
+        duplicate one another - most obviously, most of them are zero, of a
+        relevant rank - so we can do better by reusing them.
+
+        For each n in range(1+dim), there are chose(dim, n) distinct sets of n
+        entries in range(dim); each ordering of each such set is a key with
+        which we can index our answer to get a non-zero entry, of rank
+        dim-n.  For n > 1, half of the available orderings give one entry, the
+        other half give its negation.  Any valid key not of this form gives zero
+        as answer, so we have 1 + 2 * chose(dim, n) distinct entries of this
+        rank.  For n = 1, chose(dim, n) = dim; for n = 0, chose(dim, n) = 1; in
+        each of these cases, there is only one ordering and we don't use the
+        zero tensor (making special handling of these two ranks beneficial, as
+        exploited below), so we only have chose(dim, n) dictinct entries.  For n
+        = dim, the results of indexing are scale, -scale and 0, which aren't
+        tensor objects (well, the can be, but I'm ignoring that
+        possibility).  So, for dim > 1, the number of tensor objects we need is:
+
+            1 + dim + sum(1 + 2*chose(dim, n) for n in range(2, dim)]
+          = 1 + dim + dim - 2 + 2 * sum(chose(dim, n) for n in range(2, dim))
+          = 2 * dim - 1 + 2 * (sum(chose(dim, n) for n in range(dim+1)) - 1 - dim - 1)
+
+        since chose(dim, 0), chose(dim, 1) and chose(dim, dim) are 1, dim and 1,
+        respectively.  The given sum of chose(dim, n) is just 2**dim (it ranges
+        over all values of n for which chose(dim, n) can be non-zero; so is just
+        the number of subsets, of any size, of a set of size dim), so we are
+        left with 2**(dim+1) - 5 tensor objects that we need to create.  This
+        grows much less rapidly than (dim**dim - 1) / (dim - 1), as dim grows;
+        and is already bigger at dim = 3.
+
+        Aside from ranks dim and dim - 1, and a zero of each rank, our distinct
+        entries come in pairs, differing only in sign; and there is exactly one
+        such pair for each partition of range(dim+1) into two subsets.  One of
+        those subsets defines the keys we index our result with to obtain the
+        pair of entries; swapping two entries in such a key switches between the
+        two possibilities for the entry.  The other subset provides the keys by
+        which one can index either entry to get a non-zero scalar result (or, at
+        least, result of scale's rank); half the orderings of this subset give
+        scale, the other half give -scale.
+
+        We can represent a partition by either of the two subsets of range(dim);
+        the other subset is implied, by virtue of being its complement.  We can
+        represent a subset by the tuple in which its members appear in
+        increasing order.  We can build a mapping from such tuples to the
+        entries associated with the partition they represent.  Since the entries
+        associated with shorter keys are built out of those with longer keys, we
+        can in fact start with a mapping from longer keys and iteratively use it
+        to build mappings with shorter keys, discarding each mapping once the
+        next is available (and its values are using the previous mapping's
+        values as entries).
+
+        One side of each partition is used as index into our result tensor, to
+        obtain the two tensor entries associated with this indexing; swapping
+        two of the indices in this key switches between the two entries.  So use
+        (the increasing-order tuple of) this side of the partition, which shall
+        work as a key into our final tensor, as key in our transient mappings;
+        and map it to the twople whose first entry is the tensor our final
+        tensor shall map it to, with its negation as second entry.
+
+        We thus start with one key, tuple(range(dim)), mapped to the pair
+        (scale, -scale); and with 0 * scale as zero (two of the parameters
+        passed to this method).  From each such mapping and associated zero, we
+        then build the equivalent for keys one index shorter, with values of
+        rank one higher; the entries associated with these are vectors of the
+        previous mapping's entries.  For each old key, deleting one entry from
+        it yields some new key: but each new key can (at least potentially)
+        arise from several old keys.  To avoid duplication, traverse each key
+        from its bottom upwards until it hits a gap from an earlier iteration's
+        deletion: any later deletion than this shall have appened to a peer of
+        the key being traversed, that didn't delete the gap we've just hit, so
+        *its* traversal shall include deletion of this gap.  (The ability to do
+        this is what makes ordered tuples better than feozensets as keys.)
+
+        So, given a key, an index to delete from it and the old mapping, we need
+        to compute the values, for the reduced key, in the new mapping.  Let the
+        index be m and the portions of key before and after it A, Z, so that
+        A+(m,)+Z is the old key, of length n, and A+Z is the new key.  Our
+        duplication-avoidance ensures m = len(A), so len(Z) = n - m - 1.  With R
+        as the final result, we want to compute S = R[A+Z] and its
+        negative.  For any k in A+Z, S[k] is zero, since it has a repeated
+        index.  For any other k in range(dim), including k = m, S[k] is
+        non-zero; and it's R[A+Z+(k,)], which our old mapping can tell us,
+        exploiting the fact that A+Z is in increasing order, so cycling k and
+        the entries in A+Z greater than it one step shall give a key in
+        increasing order.  This cycle is even or odd precisely as the number of
+        entries in A+Z greater than k is even or odd; if even, S[k] is the
+        thus-cycled key's primary value; otherwise, its negated value.  This
+        lets us select the values from the old mapping, that are needed in order
+        to make the values for the new (and likewise their negations, by taking
+        the opposite choice in each case).
+
+        We can thus obtain the needed mappings for progressively shorter keys;
+        and can trivially compute the zero that each rank needs to fill in its
+        gaps.  We could repeat this until we're left with a mapping whose sole
+        key is () and return the primary value it maps this to; however, we can
+        be more efficient.  Clearly we don't need to compute the negated version
+        of the returned value, or the zero of its rank.  Each entry in the final
+        value (taken from the previous iteration's mapping) is non-zero, so we
+        didn't need the previous iteration's zero, either.  Furthermore, as this
+        penultimate iteration's mapping's keys have length one, hence only one
+        possible ordering, we don't need their negated values.  Thus it's
+        possible to unroll the last two iterations and deliver a result straight
+        off the mapping whose keys have length two.\n"""
+
+        assert dim > 1
+        assert len(bok.keys()) == 1 and bok.keys()[0] == tuple(range(dim))
+        assert len(bok.values()[0]) == 2
+
+        n = dim
+        while n > 2:
+            kob = {} # new mapping
+            for key in bok.iterkeys():
+                assert len(key) == n
+                for i, m in enumerate(key):
+                    if i < m: break # avoid duplication
+                    assert i == m
+                    yek = key[:i] + key[i+1:] # new mapping's key, skipping m
+                    assert not kob.has_key(yek) # we avoided duplication
+                    kob[yek] = tuple(vec(zero if k in yek else munge(k, yek, bok, i)
+                                         for k in range(dim))
+                                     for i in (0, 1))
+
+            n -= 1
+            # Check duplication-avoidance isn't over-zealous:
+            # len(bok) is chose(dim, n+1) = dim! / (n+1)! / (dim-n-1)!
+            # len(kob) is chose(dim, n) = dim! / n! / (dim-n)!
+            assert (n + 1) * len(bok) == (dim - n) * len(kob)
+
+            # Replace the old with the new:
+            zero, bok = vec((zero,) * dim), kob
+
+        assert all(len(key) == 2 for key in bok.iterkeys())
+        assert 2 * len(bok) == (dim - 1) * dim
+        # No need for negated values or zeros in last two ranks:
+        return vec(vec(zero if k == i else munge(k, (i,), bok, 0)
+                       for k in range(dim))
+                   for i in range(dim))
+
+    del tail_twist
 
 Tensor = Vector # alias
 del lazyprop, Tuple
