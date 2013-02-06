@@ -476,7 +476,9 @@ class Tuple (ReadOnlySeq, tuple):
         raises an error.  Otherwise, this uses the class of self to construct
         a new Tuple of suitable type.\n"""
         return cls(val)
-    __iterable__ = __tuple__
+
+    @classmethod
+    def __iterable__(cls, what): return cls.__tuple__(what)
     __hash__ = tuple.__hash__
 
     __upmul = tuple.__mul__
