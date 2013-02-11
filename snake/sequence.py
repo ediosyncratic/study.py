@@ -517,6 +517,27 @@ class Tuple (ReadOnlySeq, tuple):
         a new Tuple of suitable type.\n"""
         return cls(val)
 
+    # Fix an infelicity in tuple:
+    try: tuple.__getslice__
+    except AttributeError: pass
+    else: # tuple still has this deprecated method: over-ride it !
+        def __getslice__(self, i, j): return self.__getitem__(slice(i, j))
+
+    # Over-ride item access:
+    __upget = tuple.__getitem__
+    __rsget = ReadOnlySeq.__getitem__
+    def __getitem__(self, key):
+        """Get value(s) indicated by key.
+
+        If key is a slice, return the results in a Tuple.\n"""
+
+        try: iter(key)
+        except TypeError:
+            if not isinstance(key, slice):
+                return self.__upget(key)
+
+        return self.__tuple__(self.__rsget(key))
+
     @classmethod
     def __iterable__(cls, what): return cls.__tuple__(what)
     __hash__ = tuple.__hash__
@@ -614,7 +635,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
         def __setslice__(self, i, j, val):
             self.__setitem__(slice(i, j), val)
 
-    # Over-ride getitem and setitem:
+    # Over-ride item access:
     __upget = list.__getitem__
     __rsget = ReadSeq.__getitem__
     def __getitem__(self, key):
