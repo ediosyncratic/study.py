@@ -35,7 +35,7 @@ def iterable(func):
     methods of Iterable itself.\n"""
     def ans(*args, **kw):
         try: wrap = args[0].__iterable__
-        except AttributeError: wrap = WrapIterable
+        except (IndexError, AttributeError): wrap = WrapIterable
         return wrap(func(*args, **kw))
     return ans
 del mimicking
@@ -107,7 +107,7 @@ class Iterable (object):
         others = map(self.__endless, others)
         if func is None: func = lambda *args: args
         for val in self:
-            yield func(val, *map(lambda x: x.next(), others))
+            yield func(val, *[x.next() for x in others])
 
         # assert all(x.next() is None for x in others) ?
 
@@ -464,6 +464,7 @@ class ReadSeq (Iterable):
     def sorted(self, cmp=cmp, key=None, reverse=False):
         return self.order(cmp, key, reverse)(self)
 
+    @iterable
     def best(self, n, par=cmp):
         """Selects the best n entries in self, preserving self's order.
 
@@ -475,9 +476,8 @@ class ReadSeq (Iterable):
         order of the entries within self; if you want them sorted, use
         self.sorted(par)[-n:] instead.\n"""
 
-        return self.enumerate().filter(
-            lambda (k, v), ks=self.order(par)[-n:]: k in ks).map(
-            lambda (k, v): v)
+        ks = self.order(par)[-n:]
+        return (v for k, v in self.enumerate() if k in ks)
 
 from study.cache.property import lazyprop, Cached
 class ReadOnlySeq (ReadSeq, Cached):
@@ -595,22 +595,28 @@ class Dict (dict):
 
     @staticmethod
     def __unterleave(args, T=Tuple):
+        assert all(len(it) == 2 for it in args)
         return tuple(map(T, map(lambda *kv: kv, *args)))
 
     @classmethod
-    def cartesian(cls, *what):
+    def cartesian(cls, *args):
         """Cartesian product of dictionaries.
 
-        Each argument should be a mapping.  With seq = (self, *others), this
-        method returns an iterator over (key, val) pairs, in which key and val
-        are Tuples with seq[i][key[i]] == val[i] for each valid index i into
-        seq.  Passing the result to self.__iterdict__() will get you a
-        suitable mapping object with these keys and values; that isn't done
-        here, since you're likely to want, first, to appply some mapping to
-        the key or value tuples.\n"""
-        return apply(Tuple.cartesian,
-                     (tuple,) + tuple(map(lambda o: o.items(), what))
-                     ).map(cls.__unterleave)
+        Each argument should be a mapping.  With args as the sequence of such
+        arguments, this method returns an Iterator over (key, val) pairs, in
+        which key and val are Tuples with args[i][key[i]] == val[i] for each
+        valid index i into args.  So each entry in key is a key of the
+        corresponding mapping in args; and this mapping maps the given key to
+        the corresponding entry in val.
+
+        Passing the result to self.__iterdict__() will get you a suitable
+        mapping object with these keys and values; that isn't done here, since
+        you're likely to want, first, to transform the key or value tuples.  For
+        example, if the mappings represent vectors, mapping names of components
+        to values thereof, their tensor product would be obtained by mapping
+        each (key, val) to (key, val.product())\n"""
+        return Tuple.cartesian(tuple, *tuple(o.items() for o in args)
+                               ).map(cls.__unterleave)
 
 class List (ReadSeq, list): # list as base => can't use __slots__
 
