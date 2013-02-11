@@ -112,15 +112,50 @@ class Iterable (object):
         # assert all(x.next() is None for x in others) ?
 
     def reduce(self, func, init=None):
+        """Combine entries using a given function.
+
+        Required argument, func, is a function of two args, used for combining
+        entries.  Optional arguments:
+          init -- initial value, combined with entries; ignored if None (default)
+
+        If init is not supplied (or is None), the first value is used in its
+        placed and skipped from the remaining values.  Each func(init, value) is
+        computed and used in place of init for the next value, with the final
+        value of init returned.  Thus, if the iterable has just one entry and
+        init is not supplied, func is never called and the single entry is
+        returned.  If init is not supplied (or is None) and the iterable is
+        empty, a ValueError is raised.
+
+        A natural value to supply for init, if given, is an identity for the
+        binary operator encoded by func, so that func(init, x) is x for all
+        relevant x; thus init is effectively ignored when the iterable has
+        values, but this identity value is returned if the sequence is
+        empty.  Other values may be passed for init, for example where
+        func(init, x) is a different type of value from x, an entry, and init is
+        a 'seed' value that combines with the first entry to produce a value of
+        the right type right type.\n"""
+
         it = iter(self)
-        if init is None: init = it.next()
+        if init is None:
+            try: init = it.next()
+            except StopIteration:
+                raise ValueError('Reducing empty with no initial value')
+
         for p in it: init = func(init, p)
         return init
 
-    def sum(self, zero=0, add=lambda x, y: x + y): return self.reduce(add, zero)
-    def product(self, one=1, mul=lambda x, y: x * y): return self.reduce(mul, one)
-    def mean(self): return self.sum() * 1. / len(self)
+    import operator
+    def sum(self, zero=None, add=operator.add): return self.reduce(add, zero)
+    def product(self, one=None, mul=operator.mul): return self.reduce(mul, one)
+    del operator
     def geomean(self): return self.product() ** (1. / len(self))
+    def mean(self):
+        tot, n = self.sum(), len(self)
+        try: q, r = divmod(tot, n)
+        except (TypeError, ValueError): pass
+        else: # avoid making it a float when it doesn't need to be:
+            if not r: return q
+        return tot * 1. / n
 
     @iterable
     def filter(self, *tests):
@@ -450,6 +485,11 @@ class ReadOnlySeq (ReadSeq, Cached):
     def min(self): return min(self)
     @lazyprop
     def max(self): return max(self)
+    __upmean, __upgeom = ReadSeq.mean, ReadSeq.geomean
+    @lazyprop
+    def mean(self): return self.__upmean()
+    @lazyprop
+    def geomean(self): return self.__upgeom()
 
 del lazyprop, Cached
 
