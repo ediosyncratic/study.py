@@ -129,6 +129,9 @@ reducing Earth's moment of inertia without affecting its angular momentum, so
 causing it to spin faster than it would have, partially countering the tidal
 drag.  As Earth's shape stabilises, the day length increase shall increase
 towards c. 2.3 ms/century.
+
+See also:
+http://www.irregularwebcomic.net/3278.html
 """,
 
                      Julian = Quantity(3 * 487, day / 4,
