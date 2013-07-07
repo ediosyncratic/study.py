@@ -320,13 +320,14 @@ measurements will introduce errors dwarfing the answer.  While the moons of
 Jupiter provided a clock the astronomers could share, the precision with which
 they could read it ensured only very rough estimates.  Further, all that
 movement induces changes in the apparent direction from which the light from a
-distant object arrives, that must also be taken into account.  In the mid-18th
-century, Venus passed across the face of the Sun a couple of times, enabling
-astronomers to (with huge care and much co-operation around the world - even
-amongst scientists from nations which were at ware with one another) perform
-parallax measurements with decisive precision of timing, thereby obtaining a
-*much* more accurate estimate of the Astronomical Unit than had previously
-been available.
+distant object arrives, that must also be taken into account.
+
+In the mid-18th century, Venus passed across the face of the Sun a couple of
+times, enabling astronomers to (with huge care and much co-operation around the
+world - even amongst scientists from nations which were at war with one another)
+perform parallax measurements with decisive precision of timing, thereby
+obtaining a *much* more accurate estimate of the Astronomical Unit than had
+previously been available.
 
 In August 2012, the IAU adopted a redefinition of the astromonical unit as a
 specific whole number (just under 150 million) of hectometres:
@@ -466,6 +467,9 @@ Sources:
  * FAQ at http://www.unscear.org/
  * http://en.wikipedia.org/wiki/Background_radiation
  * http://en.wikipedia.org/wiki/Ionizing_radiation#Sources
+
+Contrast study.chemy.physics's Cosmos.temperature (of the (non-ionizing) cosmic
+microwave background).
 """),
     EPA = Object(
         airborne = Quantity(10 * milli, rem / year,
@@ -542,8 +546,7 @@ political factors make it unlikely that this will happen.
 
 See also the relevant units: Sievert, Gray and rem for doses by energy
 delivered; Röentgen and Oersted for doses by charge; Becquerel and Curie for
-hit-frequency.  Contrast study.chemy.physics's Cosmos.temperature (of the
-(non-ionizing) cosmic microwave background).
+hit-frequency.
 """)
 
 # see also study.chemy.particle for the electron-Volt, eV, and Rydberg's
