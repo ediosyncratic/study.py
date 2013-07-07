@@ -184,15 +184,15 @@ around the second, which is only five times as big.  A half peta Kelvin black
 hole has mass just over a quarter of a million tonnes and radius under 0.4e-18
 metres; with N=14 this will take about 7 years to evaporate.
 
-It seems reasonable to guess that nothing but neutrinos have less mass than
-the electron.  On that assumption, N is at most 5 for temperatures below 5.9
-giga Kelvin, radii above 31 femto metres (of order the size of nuclei), masses
-above 21 giga tonne.  Even if we (conservatively) suppose N jumps to infinity
-at this threshold, we only eliminate the last 23 peta years of the time a
-black hole takes to evaporate; and at least 40% of the remainder survives the
-N-scaling; for just the age of the universe to remain requires only 22 million
-tonnes of extra mass, about one part in a thousand.  Thus any black hole
-bigger or colder than the threshold just described will last essentially for
-ever; and even an asteroid a couple of kilometres across has more mass than
+It seems reasonable to guess that nothing but neutrinos (and photons) have less
+mass than the electron.  On that assumption, N is at most 5 for temperatures
+below 5.9 giga Kelvin, radii above 31 femto metres (of order the size of
+nuclei), masses above 21 giga tonne.  Even if we (conservatively) suppose N
+jumps to infinity at this threshold, we only eliminate the last 23 peta years of
+the time a black hole takes to evaporate; and at least 40% of the remainder
+survives the N-scaling; for just the age of the universe to remain requires only
+22 million tonnes of extra mass, about one part in a thousand.  Thus any black
+hole bigger or colder than the threshold just described will last essentially
+for ever; and even an asteroid a couple of kilometres across has more mass than
 that.
 """)
