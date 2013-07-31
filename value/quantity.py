@@ -13,6 +13,14 @@ given; but (for example) an element's atomic number, or an isotope's number of
 neutrons, shall be an actual value ab initio.  Prototype by converting
 chemy.element first; see its TODO.
 
+TODO: FIXME: support complex numbers.  Presently, things like .iExp (on an
+angle) think they do, but produce Sample objects with complex keys; and the
+interpolators assume ordering on their ordinate values.  Probably best handled
+as part and parcel of integrating support for vector quantities.  Until this is
+sorted out, various things that should work don't; e.g. chemy.atomic's Orbit and
+maths.Legendre's Spherical think they're callable but actually involve doing
+complex arithmetic on Quantity objects.
+
 Probably want a different class for each quantity-kind, so that we can load it
 up with the needed kind-specific properties, e.g. by providing a second base as
 mix-in to define the extra lazyprops.
