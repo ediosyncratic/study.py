@@ -29,12 +29,10 @@ class LazySeq:
     def check(self, val): return val == long(val)
 
     def __getitem__(self, key):
-        try: ans = self.__seq[key]
+        try:
+            ans = self.__seq[key]
+            if ans is None: raise IndexError
         except IndexError: return self.__growto(key)
-        else:
-            if ans is None:
-                return self.__growto(key)
-
         return ans
 
     def __getslice__(self, lo, hi, step=1):
@@ -56,32 +54,31 @@ z = Polynomial.power(1)
 
 class Middle (LazySeq):
     def growto(self, key,
-               down={0: z-1, 1: 1-z}, up=z+1, two=z+2, slab=z*(z+2),
-               checks=(lambda p, x=z: (p(-x)*p(x-2)).unafter(x*(2-x)),
-                       lambda p, x=z: ((p(x*(x+2)-2)*(x+1)+2)/(x+3))**.5,
-                       lambda p, x=z: ((4+(x-1)*p(-x-2)**2)/(x+3))**.5)):
-        assert K is self
-        n, r = divmod(key, 3)
-        m = n + r - 1
-        assert key == 2*n + m + 1
-        this, that = self[n], self[m]
-        ans = .5*(down[(n+m)%2]*this(-slab)*that(-two) + up*this(slab-2)*that)
-        assert all(p(ans) == ans for p in checks)
-        return ans
+               u=z,
+               # Single-step, needed for first:
+               flup = lambda p, u=z: u * p + (u - 2) * p(-u)):
+        assert H is self # singleton class
+        # TODO: try to express 1 + key as (1 + n) * (1 + m) for some n, m;
+        # then exploit the product formulae.
 
-K = Middle()
+        if key > 1: return u * self[key - 1] - self[key - 2]
+        if key == 1: return flup(self[0]) / 2
+        raise IndexError, key
+
+H = Middle()
 del Middle
 
-term = 1-z*z
+term = 2 * z * z - 1
 
 class seqCos (LazySeq):
     """Sequence of polynomials describing cos(n.t) in terms of cos(t)
 
     C[n](cos(t)) = cos(n.t)\n"""
-    def growto(self, key, kate=1-4*term, term=-term, x=z):
+    def growto(self, key, term=term, x=z):
+        assert C is self # singleton class
         n, r = divmod(key, 2)
-        if r: ans = x * K[n](kate)
-        else: ans = self[n](term)
+        if r: ans = x * H[n](2 * term)
+        else: ans = term(self[n])
 
         assert ans.rank == key
         return ans
@@ -89,17 +86,21 @@ class seqCos (LazySeq):
 class seqSin (LazySeq):
     """Sequence of polynomials describing sin(n.t)/sin(t) in terms of cos(t)
 
-    sin(t)*S[n](cos(t)) == sin(n.t)\n"""
+    sin(t)*S[n-1](cos(t)) == sin(n.t)\n"""
 
-    def growto(self, key, stem=4*term-3, term=term, x=z):
+    def growto(self, key, mert=-2 * term):
+        assert S is self # singleton class
         n, r = divmod(key, 2)
-        if r: ans = 2 * x * S[n](-term)
-        else: ans = K[n](stem) * {0: 1, 1: -1}[n%2]
+        if r: ans = 2 * self[n] * C[1 + n]
+        else:
+            ans = H[n](mert)
+            if n % 2: ans = -ans
 
         assert ans.rank == key
         return ans
+
+del Polynomial, term, z, LazySeq
 
-# C[n] and S[n+1] each have n roots between -1 and +1, symmetrically placed about 0
+# C[n] and S[n] each have n roots between -1 and +1, symmetrically placed about 0
 C, S = seqCos(), seqSin()
-del seqCos, seqSin, LazySeq
-del term, z, Polynomial
+del seqCos, seqSin
