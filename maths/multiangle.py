@@ -10,41 +10,33 @@ from polynomial import Polynomial
 class LazySeq:
     def __init__(self, first=Polynomial.power(0)): self.__seq = [ first ]
 
-    def __growto(self, key):
-        val = self.growto(key)
-
-        if __debug__:
-            i = val.rank
-            while i >= 0:
-                assert self.check(val.coefficient(i))
-                i = i-1
-
-        if key >= len(self.__seq):
-            self.__seq = self.__seq + [ None ] * (1 + key - len(self.__seq))
-
-        self.__seq[key] = val
-
-        return val
-
-    def check(self, val): return val == long(val)
-
-    def __getitem__(self, key):
+    def iswhole(val): return val == long(val)
+    def __getitem__(self, key, check=iswhole):
         try:
             ans = self.__seq[key]
             if ans is None: raise IndexError
-        except IndexError: return self.__growto(key)
+        except IndexError:
+            ans = self.growto(key)
+            assert all(check(ans.coefficient(i)) for i in range(1 + ans.rank))
+
+            if key >= len(self.__seq):
+                self.__seq += [ None ] * (1 + key - len(self.__seq))
+
+            self.__seq[key] = ans
+
         return ans
+    del iswhole
 
     def __getslice__(self, lo, hi, step=1):
         ans = []
         if step > 0:
             while lo < hi:
                 ans.append(self[lo])
-                lo = lo + step
+                lo += step
         elif step < 0:
             while lo > hi:
                 ans.append(self[lo])
-                lo = lo + step
+                lo += step
         elif lo != hi:
             raise ValueError("Sequence with zero step is a very bad idea !")
 
@@ -53,17 +45,19 @@ class LazySeq:
 z = Polynomial.power(1)
 
 class Middle (LazySeq):
-    def growto(self, key,
-               u=z,
+    def growto(self, key, u=z,
                # Single-step, needed for first:
                flup = lambda p, u=z: u * p + (u - 2) * p(-u)):
         assert H is self # singleton class
         # TODO: try to express 1 + key as (1 + n) * (1 + m) for some n, m;
         # then exploit the product formulae.
 
-        if key > 1: return u * self[key - 1] - self[key - 2]
-        if key == 1: return flup(self[0]) / 2
-        raise IndexError, key
+        if key > 1: ans = u * self[key - 1] - self[key - 2]
+        elif key == 1: ans = flup(self[0]) / 2
+        else: raise IndexError, key
+
+        assert ans.rank == key
+        return ans
 
 H = Middle()
 del Middle
