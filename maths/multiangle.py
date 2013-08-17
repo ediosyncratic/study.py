@@ -46,17 +46,21 @@ z = Polynomial.power(1)
 
 class Middle (LazySeq):
     def growto(self, key, u=z,
-               # Single-step, needed for first:
-               flup = lambda p, u=z: u * p + (u - 2) * p(-u)):
+               squp = lambda p, u=z: (2 + u) * p**2,
+               flap = lambda p, u=z: p + p(-u)):
         assert H is self # singleton class
-        # TODO: try to express 1 + key as (1 + n) * (1 + m) for some n, m;
-        # then exploit the product formulae.
-
-        if key > 1: ans = u * self[key - 1] - self[key - 2]
-        elif key == 1: ans = flup(self[0]) / 2
-        else: raise IndexError, key
-
+        assert key > 0
+        m, r = divmod(key - 1, 3)
+        n = m + r
+        assert key == n + 2 * m + 1 and (n + m) % 2 == r % 2
+        N, M = self[n], self[m]
+        head = (u + 2) * N * M
+        tail = head(-u) # now subtract (-1) ** (n + m) of that from head:
+        if r % 2: head += tail
+        else: head -= tail
+        ans = M * head / 2 - N
         assert ans.rank == key
+        assert flap(squp(ans)) == 4
         return ans
 
 H = Middle()
