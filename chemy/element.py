@@ -15,8 +15,9 @@ methods; this module can be converted with minimal entanglement with others.
 
 See study.LICENSE for copyright and license information.
 """
-from study.value.units import Object, Sample, Quantity, kilo, harpo, year, \
-     Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, cc
+from study.value.units import Object, Sample, Quantity, kilo, nano, harpo, \
+     Joule, Tesla, Ohm, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, \
+     cc, year
 from particle import AMU, Particle, Boson, Fermion, \
      proton, neutron, electron
 
@@ -577,7 +578,8 @@ Manganese = NASelement('Manganese', 'Mn', 25, 54.938, {55: 1}, .44, 1517, 2314)
 Iron = NASelement('Iron', 'Fe', 26, Float(55.847, 3), {54: 5.84, 56: 91.68, 57: 2.17, 58: .31}, 22, 1812, 3160, arcanum='Ferrum')
 Cobalt = NASelement('Cobalt', 'Co', 27, 58.9332, {59: 1}, .01, 1768, 3150)
 Nickel = NASelement('Nickel', 'Ni', 28, 58.71, {58: 67.76, 60: 26.16, 61: 1.25, 62: 3.66, 64: 1.16}, 3.5e-2, 1728, 3110)
-Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, arcanum='Cuprum')
+Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, arcanum='Cuprum', resistivity=Quantity.fromDecimal(16.8, 1) * nano * Ohm * metre)
+# resistivity: http://www.irregularwebcomic.net/3295.html
 Zinc = NASelement('Zinc', 'Zn', 30, 65.37, {64: 48.89, 66: 27.81, 67: 4.11, 68: 18.56, 70: .62}, 5.8e-2, 693, 1181)
 Gallium = NASelement('Gallium', 'Ga', 31, 69.72, {69: 60.2, 71: 39.8}, 6.6e-3, 303, Float(2510, -1))
 Germanium = NASelement('Germanium', 'Ge', 32, 72.59, {70: 20.55, 72: 27.37, 73: 7.67, 74: 36.74, 76: 7.67}, 3.1e-3, 1210, Float(3100, -2))
@@ -775,6 +777,6 @@ alpha = Helium[4].atom.nucleus
 #  C-rich core; and "hot bottom burning" (stars with mass > Sun.mass * 4, T > 50
 #  MK in H-shell) does more.
 
-del Object, Sample, Float, About, kilo, harpo, \
-    Joule, Tesla, Kelvin, Centigrade, gram, kg, tonne, year, metre, mol, torr, cc, \
-    Particle, Boson, Fermion, AMU, NASelement
+del Object, Sample, Float, About, kilo, nano, harpo, \
+    Joule, Tesla, Ohm, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, \
+    cc, year, Particle, Boson, Fermion, AMU, NASelement
