@@ -297,7 +297,8 @@ to be believed - to prehistory.  (Thom measured the lengths in stone circles
 all over Europe and found correlations that lead him to conclude that they
 were measured to a common unit, approximately equal to the yard.)  It takes
 its name from a Germanic word, 'gyrd'.  Its metric replacement, the metre, is
-just slightly bigger than the anglophone yard.
+just slightly bigger than the anglophone yard, or indeed than three times the
+French pied du roi (the longest foot I know of).
 """)
 
 nail = yard / 16
@@ -324,9 +325,9 @@ long time it was used as a standard distance for races, fitting nicely with
 the pattern of doubling lengths upwards from 100m.  Like all Imperial units,
 it has a long and contorted history.
 
-Its nominal origin is in the Imperial Roman 'millum pes' - a thousand paces,
-though the Roman pes was the distance a soldier's foot travels in each stride,
-roughly double the separation of the feet when both are on the
+Its nominal origin is in the Imperial Roman 'mille passus' - a thousand paces,
+though the Roman passus was the distance a soldier's foot travels in each
+stride, roughly double the separation of the feet when both are on the
 ground.  Compare this to the British 'pace', of 5 feet, which is quite close
 to one thousandth of a mile, while the US 'pace' is exactly half as long.
 
@@ -334,6 +335,14 @@ Some backward countries seem likely to continue using this unit to measure
 distances - along with the mile per hour as a unit of speed - for some time to
 come.  Contrast mile.nautical, the Scandinavian mil and, generally, the other
 things you'll find listed by dir(mile).
+
+Scandinavia, North Germany and various parts of Eastern Europe used units with
+cognate names but based on the rather longer Roman 'millum spatium' - a
+thousand 'intervals'.  Such units are typically subdivided into 24000 (Danish,
+North German, Austrian) or 36000 (Swedish, Croatian) 'feet' that do, at least
+roughly, match other so-named units.
+
+See also: http://en.wikipedia.org/wiki/Mile
 """)
 
 league = Quantity(3, mile,
@@ -374,7 +383,7 @@ shoe = Object(
     __doc__= "Units of thickness of leather in shoes.",
     iron = inch / 48, # soles
     ounce = inch / 64)# elsewhere
-railgauge = 4 * foot + 8.5 * inch
+railgauge = 4 * foot + 8.5 * inch # 1435 mm according to Anders at Tandberg
 mile.also(sea = Quantity(2000, yard,
                          """A 'sea mile'.
 
@@ -383,26 +392,39 @@ mile.nautical.  The various Scandinavian nations also had kindred units, see
 note on mile.Scandinavian, although I presently only have data for the Swedish
 sjoemil.
 """),
-          geographical = 7420 * metre,
-          Prussian = 7532 * metre,
+          # geographical = 7420 * metre, # whence got I this ? seems to match Scandinavian
+          geographical = Quantity.flat(1855.3248, 1855.4, 1855.3257, metre,
+                                  """The geographical mile
+
+This is one minute of arc along the Earth's equator.  Compare mile.nautical,
+which was once defined as a minute of arc along a great circle, without
+specifying which.  Even with the equator specified, the value depends on
+choice of geoid (formal world-wide model of nominal sea level); the estimated
+.best used here is taken from the IAU-2000 standard, while the range is taken
+from WGS-84 (.low) and the 1924 International Spheroid (.high).
+
+Scandinavia and Germany used equivalent names for four minutes of arc,
+sometimes named as a 'sea mile' (suitably translated),
+"""),
+          # some uses of nautical mile, below, should perhaps use geographical
           nautical = Quantity(1852, metre,
                               # K&L, given as the definition of this unit.
                               """The nautical mile
 
 I've met assertions that the nautical mile is 2000 yards (here given as
-mile.sea since I've seen it called a sea mile).  Alternatively, that it's one
-minute of arc - i.e. Earth.surface.radius * pi / 180 / 60.  My available
-figures for the Earth's radius yield figures ranging from 1853 to 1855 metres,
-aka 2026 to 2029 yards: so Kaye & Laby fits with the minute of arc view (to
-reasonable accuracy) and I take the 2000 yard figure as being a widely used
-approximation.  See also notes on mile.nautical.UK.  Apparently, the US used
-some other unit until 1954, the UK until 1970; both catching up with a 1929
-international standard.
+mile.sea since I've also seen it called a sea mile).  Alternatively, that it's
+one minute of arc - see mile.geographical.  My available figures for the
+Earth's radius yield figures ranging from 1853 to 1855 metres, aka 2026 to
+2029 yards: so Kaye & Laby fits with the minute of arc view (to reasonable
+accuracy) and I take the 2000 yard figure as being a widely used
+approximation.  See also notes on mile.nautical.Admiralty.  Apparently, the US
+used some other unit until 1954, the UK until 1970; both catching up with a
+1929 international standard, which set it to 1852 metres, the value used here.
 """,
-                 UK = Quantity(6080, foot,
-                               """Archaic UK Nautical mile
+                 Admiralty = Quantity(6080, foot, """Admiralty Nautical mile
 
-Replaced in 1970 with the international standard.
+An archaic UK variant on the nautical mile, replaced in 1970 with the
+international standard.
 
 <quote src='http://gwydir.demon.co.uk/jo/units/oldunits/sea.htm'>
 Nautical miles measure distance. 1 nautical mile is the angular distance of 1
@@ -414,13 +436,61 @@ defines it as 1853 metres!
 </quote>
 
 Some authors (notably including Joseph Conrad) use knot (q.v.) as a synonym
-for the nautical mile (as well as the speed that covers one per hour).
-""")))
+for the nautical mile (as well as the speed that covers one per hour, for
+which I used the name knot in this module).
+""")),
+          Roman = Quantity.within(1480, 1, metre,
+                                  """The Roman mile
+
+The Roman mile, mille passus (1000 paces, or 5000 Roman feet), was used (with
+local adaptations) throughout the Roman empire.  Its precise length is not
+known with certainty: [0] gives 1479 metres as modern estimate but [1] gives
+1481 metres, possibly (but not clearly) as an English traditional estimate of
+1620 yards (1481.328 metres).
+
+[0] http://en.wikipedia.org/wiki/Mile#Roman_mile
+[1] http://en.wiktionary.org/wiki/Roman_mile
+"""),
+          Scots = Quantity(1807, metre, """The Scots mile.
+
+Scots ratios:
+mile = 8 furlongs
+furlong = 40 fall
+fall = 6 ell
+ell = 3 ft + 1 inch = 37 inch
+"""),
+          Arabic = Quantity.within(1925, 5, metre),
+          Hungarian = Quantity.flat(8937.4, 8379, 8353.6, metre),
+          Prussian = 7532 * metre, # KDWB
+          # Wikipedia gives North German: 7532.5
+          Portugese = 2087.3 * metre,
+          Croatian = 11130 * metre, # hrvatska milja
+          Austrian = 7586 * metre, # Croatian banska milja
+          Russian = 7468 * metre)
 cable = Quantity(0.1, mile.nautical,
                  US = Quantity(100, fathom,
                                navy = 720 * foot.survey))
 league.marine = 3 * mile.nautical
 knot = mile.nautical / hour
+
+Scots = Object(__doc__="""Scots units of measure.
+
+Used until 1824, when an Act of Parliament forbade use of these units in
+favour of the Imperial standard units, which had technically been introduced
+earlier by the 
+""",
+    mile = mile.Scots)
+
+Roman = Object(mile = mile.Roman,
+               passus = Quantity(1e-3, mile.Roman, """The Roman passus (pace).
+
+This is the distance a legionnaire's foot moved in each stride, half the
+forward distance between his feet at a moment when both were on the ground
+(but a little less than half the separation of the feet at this moment, which
+also includes the sideways separation of his feet).
+"""),
+               foot = Quantity(2e-4, mile.Roman, "The Roman foot"))
+foot.Roman = Roman.foot
 
 foot.French = 4500 * metre / 13853	# pied de roi, French foot
 inch.French = foot.French / 12
@@ -816,10 +886,13 @@ Swedish.also(fot = Quantity(1, Swedish.aln/2, old=Swedish.aln.old/2), # foot
              # The fot.old is .9904 nano light seconds
              famn = Quantity(3, Swedish.aln,
                              old = 3 * Swedish.aln.old), # fathom (Norsk: favn)
-             sjoemil = Quantity(4, Swedish.kvartmil, doc="Svensk sjømil")) # "sea mile"
+             # "sea mile"; c.f. mile.geographical * 4
+             sjoemil = Quantity(4, Swedish.kvartmil, doc="Svensk sjømil"))
 mile.sea.Svensk = Swedish.sjoemil
 # Joachim also reports favn as a unit of volume ~ 2.4 metre**3 (so ~ 2 * housecord)
 Swedish.also(mil = Quantity(6000, Swedish.famn, old=6000 * Swedish.famn.old),
+             # ... but Wikipedia gives 6 to 14.485 for mil.old/km (compare
+             # 10.7ish here), varying by district, until 1649.
              tum = Quantity(1, Swedish.fot / 10, # thumb, i.e. inch
                             old = Swedish.fot.old / 12))
 Swedish.also(linje = Quantity(1, Swedish.tum / 10, # line (pica)
@@ -846,16 +919,17 @@ Danish.also(fod = Danish.alen / 2, favn = 3 * Danish.alen,
             kande = 2 * Danish.pot, # 3.4 pints
             skok = 3 * Danish.snes, ol = 4 * Danish.snes)
 Danish.also(tomme = Danish.fod / 12,
-            mil = 4000 * Danish.favn, # 12000 alen, 7.532 km
+            mil = 4000 * Danish.favn, # 12000 alen, 7532 m == mile.Prussian.
             anker = 20 * Danish.kande) # plural is ankre; 68 pints; c.f. firkin
-Danish.oksehoved = 6 * Danish.anker # pl. = oksehoveder, clealy means Ox-head, .944 hogsheads ...
+# pl. = oksehoveder, clealy means Ox-head, .944 hogsheads:
+Danish.oksehoved = 6 * Danish.anker
 Danish.fad = 4 * Danish.oksehoved # c.f. tun
 foot.Dansk, inch.Dansk = Danish.fod, Danish.tomme
 ell.Dansk, fathom.Dansk = Danish.alen, Danish.favn
 
 Norse = Object(fot = .31374 * metre,
                favn = 1.88245 * metre, # 6 * fot
-               mil = 11294.6 * metre) # 600 * favn
+               mil = 11294.6 * metre) # 600 * favn; Wikipedia gives 11298 m
 Norse.also(alen = 2 * Norse.fot,
            tom = Norse.fot / 12)
 line.Norsk = Norse.linje = Norse.tom / 12
@@ -900,7 +974,7 @@ wey = load = 5 * seam 	# a `last' is 1 or 2 of these ...
 sack = 3 * bushel
 firlot = sack / 2
 boll = 2 * sack
-chaldron = 12 * sack
+chaldron = 12 * sack # but OED (etym) gives 32 * bushel (vs. 36 bushel here)
 cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 
 # More US units of volume:
