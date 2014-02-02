@@ -47,7 +47,7 @@ class Frame (object):
         leaf = place.group(1) == 'at'
         addr, func = place.group(2, 3)
         if func == '???': func = None
-        tail = text[place.end():]
+        tail = text[place.end():].strip()
 
         src = inlib.match(tail)
         if src is None:
@@ -76,9 +76,18 @@ class Frame (object):
 
     def __repr__(self): return self.text
 
+    # TODO: frames from different binaries (reported in different log files) may
+    # have different addresses for the same file and line, that we would ideally
+    # identify; but different addresses within a given binary should not be
+    # conflated, even if they come from the same line.  Not easy to resolve
+    # this: probably needs an iteration over Source.__known()'s values whose
+    # .frames has more than two entries; requires interactive decision about
+    # which ones to conflate.  For now, ignoring command passed to .get(), but
+    # it's the hook by which I hope to be able to make this possible.
+
     __known = {}
     @classmethod
-    def get(cls, text):
+    def get(cls, text, command): # ignoring command; see TODO above.
         key = cls.__parse(text)
         try: ans = cls.__known[key]
         except KeyError: ans = cls.__known[key] = cls(text, *key)
@@ -154,7 +163,7 @@ class UMR (Issue):
         self.__upclear()
         MemoryChunk.disuse(self)
 
-Issue.register(UMR, lambda x: 0 <= x.startswith('Invalid read of size'))
+Issue.register(UMR, lambda x: x.startswith('Invalid read of size'))
 Issue.register(UMR, lambda x: 0 <= x.find('uninitialized value'))
 Issue.register(UMR, re.compile(r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match)
 
@@ -264,7 +273,7 @@ class Leak (Issue):
         it = blocks.match(text)
         if not it: raise ParseError('No block-count on leak-line', text)
         count = asint(it.group(1))
-        text = text[it.end():]
+        text = text[it.end():].strip()
 
         sure = text.startswith('definitely')
         if not (sure or text.startswith('possibly')):
@@ -302,7 +311,7 @@ class LeakSummary (object):
         self.sure, self.more, self.maybe, self.reach, self.skip = sure, more, maybe, reach, skip
 
 class FinalSummary (object):
-    def __init__(self, err, ctx, serr, sctx):
+    def __init__(self, err, ctx, serr=0, sctx=0):
         self.reports = err, ctx
         self.suppressed = serr, sctx
 
@@ -320,18 +329,18 @@ class MemCheck (object):
     def __len__(self): return len(tuple(iter(self)))
     def __iter__(self):
         for it in self.__iter():
-            if it.fixed: self.fixed.add(it)
+            if it in self.fixed: pass
+            elif it.fixed: self.fixed.add(it)
             else: yield it
 
     def __iter(self):
         for it in self.leaks:
-            if it.sure and it not in self.fixed: yield it
+            if it.sure: yield it
+
+        for it in self.issues: yield it
 
         for it in self.leaks:
-            if not it.sure and it not in self.fixed: yield it
-
-        for it in self.issues:
-            if it not in self.fixed: yield it
+            if not it.sure: yield it
 
     def repair(self, frame, leak=True):
         for it in (self.leaks if leak else self.issues):
@@ -339,7 +348,7 @@ class MemCheck (object):
                 it.clear()
                 self.fixed.add(it)
 
-    # The parser:
+    # The (hairy spitball of an ad hoc) parser:
     @staticmethod
     def __parseheader(src,
                       head=(re.compile(r'Copyright (C) \d+-\d+.*'),
@@ -369,7 +378,7 @@ class MemCheck (object):
         return command, ppid
 
     @staticmethod
-    def __parseblocks(src, stopper, mode,
+    def __parseblocks(src, stopper, mode, command,
                       cruft=re.compile(r'More than (100|1000 different) errors detected\.')):
         items, stanza, addr, count = [], None, None, None
         for n, line in src:
@@ -377,6 +386,7 @@ class MemCheck (object):
 
             if not line: # end of stanza
                 if addr or stanza: stack = Stack.get(stack)
+
                 if addr:
                     addr = MemoryChunk.get(addr, stack)
                     items.append(addr)
@@ -401,8 +411,8 @@ class MemCheck (object):
                 assert addr is None
                 prior = Stack.get(stack), mode # stash while parsing allocation block
                 addr, stack, mode = line, [], 'Address block for ' + mode
-            elif stanza or addr:
-                try: frame = Frame.get(line)
+            elif stanza or addr: # read stack-frame line:
+                try: frame = Frame.get(line, command)
                 except ParseError, what:
                     # TODO: is there nothing else we can do here ?
                     what = what.args
@@ -410,14 +420,14 @@ class MemCheck (object):
                     raise ParseError('Failed to parse line', mode, n, what)
                 stack.append(frame)
 
-            else: stack, stanza = [], line
+            else: stack, stanza = [], line # first line of new block
 
         try: stack
         except NameError: pass
         else: raise ParseError('Missing blank line before', line, n)
         assert stanza is None
 
-        return items, n
+        return tuple(items), n
 
     @staticmethod
     def __parsetraffic(src, asint=readint,
@@ -435,7 +445,7 @@ class MemCheck (object):
 
         return Traffic(lost, block, grab, free, churn), n
 
-    def leaksum(text, n, prefix, asint=readint,
+    def leaksum(text, n, prefix, asint=readint, # tool function for __parseleaksummary
                 chunk=re.compile(r'([0-9,]+) bytes in ([0-9,]+) blocks')):
         if text.startswith(prefix + ': '):
             it = chunk.search(text)
@@ -480,8 +490,7 @@ class MemCheck (object):
         return FinalSummary(*data)
 
     def byline(fd, stem): # tool function for __ingest
-        n = 1 # we got stem off the first line.
-        off = len(stem)
+        n, off = 1, len(stem) # we got stem off the first line.
         while True:
             line = fd.readline()
             if not line: break
@@ -504,12 +513,12 @@ class MemCheck (object):
         except StopIteration:
             raise ParseError('Incomplete or unterminated header')
 
-        issues, n = cls.__parseblocks(src, 'HEAP SUMMARY:', 'issue stack-frame')
+        issues, n = cls.__parseblocks(src, 'HEAP SUMMARY:', 'issue stack-frame', command)
         try: traffic, n = cls.__parsetraffic(src)
         except StopIteration:
             raise ParseError('Incomplete, missing or unterminated heap summary', n)
 
-        leaks, n = cls.__parseblocks(src, 'LEAK SUMMARY:', 'leak stack-frame')
+        leaks, n = cls.__parseblocks(src, 'LEAK SUMMARY:', 'leak stack-frame', command)
         try: leaksum, n = cls.__parseleaksummary(src)
         except StopIteration:
             raise ParseError('Incomplete, missing or unterminated leak summary', n)
@@ -521,12 +530,20 @@ class MemCheck (object):
 
     del byline
 
-    def ingest(self, logfile):
-        fd = open(logfile)
-        try: command, ppid, issues, traffic, leaks, leaksum, overall = self.__ingest(fd)
-        finally: fd.close()
-        for it in issues: self.issues.add(it)
-        for it in leaks: self.leaks.add(it)
-        return Report(command, ppid, issues, traffic, leaks, leaksum, overall)
+    def ingest(self, *logs):
+        """Make sense of a bunch of valgrind memcheck log files.
+
+        Each argument should name a log file.  Returns a tuple of Report
+        objects, one per log file supplied.  Updates self with knowledge of the
+        issues (including leaks) found in all such reports.\n"""
+        ans = []
+        for log in logs:
+            fd = open(logfile)
+            try: command, ppid, issues, traffic, leaks, leaksum, overall = self.__ingest(fd)
+            finally: fd.close()
+            for it in issues: self.issues.add(it)
+            for it in leaks: self.leaks.add(it)
+            ans.append(Report(command, ppid, issues, traffic, leaks, leaksum, overall))
+        return tuple(ans)
 
 del re, readint
