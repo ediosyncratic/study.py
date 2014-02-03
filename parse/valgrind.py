@@ -291,6 +291,13 @@ class Leak (Issue):
         self.direct, self.indirect = routes
         self.sure, self.blocks, self.index = sure, count, index
 
+    __upclear = Issue.clear
+    def clear(self):
+        self.__upclear()
+        ans = self.direct + self.indirect
+        if self.sure: return ans, 0
+        else: return 0, ans
+
     __known = {}
     @classmethod
     def get(cls, text, stack, address):
@@ -343,10 +350,17 @@ class MemCheck (object):
             if not it.sure: yield it
 
     def repair(self, frame, leak=True):
+        sure = maybe = 0
         for it in (self.leaks if leak else self.issues):
             if frame in it.stack:
-                it.clear()
+                leak = it.clear()
+                if leak is not None:
+                    s, m = leak
+                    sure += s
+                    maybe += m
                 self.fixed.add(it)
+
+        return sure, maybe
 
     # The (hairy spitball of an ad hoc) parser:
     @staticmethod
