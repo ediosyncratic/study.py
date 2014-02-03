@@ -288,15 +288,30 @@ class Leak (Issue):
     __upinit = Issue.__init__
     def __init__(self, stack, text, sure, routes, count, index):
         self.__upinit(stack, 'Leak: ' + text)
-        self.direct, self.indirect = routes
-        self.sure, self.blocks, self.index = sure, count, index
+        self.size = self.__size(sure, routes, count)
+        self.index = index
+
+    from study.maths.vector import Namely
+    class LeakSize (Namely):
+        _component_names_ = ('blocks', 'maybe', 'direct', 'indirect')
+        @classmethod
+        def fromParsed(cls, sure, blocks, direct, indirect):
+            if sure: return cls(blocks, 0, direct, indirect)
+            return (blocks, direct + indirect, 0, 0)
+    del Namely
+
+    @staticmethod
+    def __size(sure, routes, blocks, gen=LeakSize.fromParsed):
+        return gen(sure, blocks, *routes)
+    del LeakSize
+
+    @property
+    def sure(self): return sum(self.size[2:]) > 0
 
     __upclear = Issue.clear
-    def clear(self):
+    def clear(self): # returns (maybe-leaked, direct-leaked, indirect-leaked, blocks)
         self.__upclear()
-        ans = self.direct + self.indirect
-        if self.sure: return ans, 0
-        else: return 0, ans
+        return self.size
 
     __known = {}
     @classmethod
@@ -351,17 +366,15 @@ class MemCheck (object):
 
     @staticmethod
     def __frame_out(source, frame, dump, each=None):
-        sure = maybe = 0
+        saved = None
         for it in source:
             if frame in it.stack:
                 leak = None if each is None else each(it)
-                if leak is not None:
-                    s, m = leak
-                    sure += s
-                    maybe += m
+                if saved is None: saved = leak
+                elif leak is not None: saved += leak
                 dump.add(it)
 
-        return sure, maybe
+        return saved
 
     def __ditch(self, frame, dump, leak=True, each=None):
         return self.__frame_out(self.leaks if leak else self.issues, frame, dump, each)

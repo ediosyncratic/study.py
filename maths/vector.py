@@ -3,7 +3,7 @@
 Exports:
   Vector -- manages the coordinates of vectors or tensors
   Tensor -- alias for Vector, for use when rank > 1
-  Namely -- for when coordinates are though of by name mostly
+  Namely -- for when coordinates are thought of by name mostly
 
 See the documentation of each for more.
 
