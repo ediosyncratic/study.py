@@ -331,13 +331,13 @@ class Report (object):
 
 class MemCheck (object):
     def __init__(self):
-        self.leaks, self.issues, self.fixed = set(), set(), set()
+        self.leaks, self.issues, self.fixed, self.dull = set(), set(), set(), set()
 
     def __len__(self): return len(tuple(iter(self)))
     def __iter__(self):
         for it in self.__iter():
-            if it in self.fixed: pass
-            elif it.fixed: self.fixed.add(it)
+            if it.fixed: self.fixed.add(it)
+            elif it in self.fixed or it in self.dull: pass
             else: yield it
 
     def __iter(self):
@@ -349,18 +349,28 @@ class MemCheck (object):
         for it in self.leaks:
             if not it.sure: yield it
 
-    def repair(self, frame, leak=True):
+    @staticmethod
+    def __frame_out(source, frame, dump, each=None):
         sure = maybe = 0
-        for it in (self.leaks if leak else self.issues):
+        for it in source:
             if frame in it.stack:
-                leak = it.clear()
+                leak = None if each is None else each(it)
                 if leak is not None:
                     s, m = leak
                     sure += s
                     maybe += m
-                self.fixed.add(it)
+                dump.add(it)
 
         return sure, maybe
+
+    def __ditch(self, frame, dump, leak=True, each=None):
+        return self.__frame_out(self.leaks if leak else self.issues, frame, dump, each)
+
+    def repair(self, frame, leak=True):
+        return self.__ditch(frame, self.fixed, leak, lambda x: x.clear())
+
+    def ignore(self, frame, leak=True):
+        return self.__ditch(frame, self.dull, leak)
 
     # The (hairy spitball of an ad hoc) parser:
     @staticmethod
