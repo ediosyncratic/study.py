@@ -5,9 +5,11 @@ import re
 class ParseError (SyntaxError):
     """Error during parsing of a valgrind memcheck log-file."""
     __upinit = SyntaxError.__init__
-    def __init__(self, message, *details):
-        while len(details) < 2: details += (None,)
+    def __init__(self, message, *details, **what):
+        while len(details) < 2: details += (None,) # SyntaxError is fussy
         self.__upinit(message, *details)
+        while self.args[-1] is None: self.args = self.args[:-1]
+        for k, v in what.items(): setattr(self, k, v)
 
 def readint(text): return int(''.join(text.split(',')))
 
@@ -95,7 +97,7 @@ class Frame (object):
 
 class Stack (object):
     def __init__(self, *frames):
-        assert frames[0].leaf and all(not x.leaf for x in frames[1:])
+        assert frames and frames[0].leaf and all(not x.leaf for x in frames[1:])
         self.__frames = frames
         for f in frames: f.stacks.add(self)
         self.issues = set()
@@ -118,7 +120,7 @@ class Stack (object):
 class Issue (object):
     def __init__(self, stack, grumble):
         self.stack, self.problem = stack, grumble
-        stack.issues.add(self)
+        if stack: stack.issues.add(self)
         self.fixed = False
 
     def __repr__(self): return self.problem
@@ -148,7 +150,7 @@ class Issue (object):
         try: ans = bok[stack]
         except KeyError: ans = bok[stack] = cls(stack, *rest)
         return ans
-
+
 class UMR (Issue):
     """Uninitialised memory read."""
     __known = {}
@@ -165,22 +167,79 @@ class UMR (Issue):
 
 Issue.register(UMR, lambda x: x.startswith('Invalid read of size'))
 Issue.register(UMR, lambda x: 0 <= x.find('uninitialized value'))
-Issue.register(UMR, re.compile(r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match)
+Issue.register(UMR, re.compile(
+        r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match)
+
+class BadFree (Issue):
+    """Releasing unallocated memory."""
+    __known = {}
+    @classmethod
+    def get(cls, text, stack, address):
+        ans = cls._cache_(cls.__known, stack, text)
+        if address is not None: address.usedby(ans)
+        return ans
+
+    __upclear = Issue.clear
+    def clear(self):
+        self.__upclear()
+        MemoryChunk.disuse(self)
+
+Issue.register(BadFree, lambda x: x == 'Invalid free() / delete / delete[] / realloc()')
+
+class UnMapped (Issue):
+    """Access to unmapped memory"""
+    @staticmethod
+    def __parse(text,
+                grab=re.compile('Access not within mapped region at address ' +
+                                r'0x([0-9a-fA-F]+)').match):
+        it = grab(text)
+        if not it: raise ParseError('Unfamiliar non-mapped access message', text)
+        address = it.group(1)
+        return address
+
+    __upinit = Issue.__init__
+    def __init__(self, stack, text, addr):
+        self.__upinit(stack, text)
+        self.address = addr
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack, address):
+        addr = cls.__parse(text)
+        ans = cls._cache_(cls.__known, stack, text, addr)
+        if address is not None: address.usedby(ans)
+        return ans
+
+    __upclear = Issue.clear
+    def clear(self):
+        self.__upclear()
+        MemoryChunk.disuse(self)
+
+Issue.register(UnMapped, lambda x: x.startswith('Access not within mapped region'))
 
 class MemoryChunk (Issue):
     @staticmethod
     def __parse(text, asint=readint,
-                line=re.compile(
-            r"Address 0x([0-9a-fA-F]+) is ([0-9,]+) bytes inside a block of size ([0-9,]+) (\w+)'d")):
-        it = line.match(text)
-        if not it: raise ParseError('Malformed block description line', text)
-        addr, func = it.group(1, 4)
-        offset, size = [asint(x) for x in it.group(2, 3)]
+                stray=re.compile(r"Address 0x([0-9a-fA-F]+) is not stack'd, " +
+                                 r"malloc'd or \(recently\) free'd").match,
+                line=re.compile(r"Address 0x([0-9a-fA-F]+) is ([0-9,]+) " +
+                                r"bytes (inside|after) a block " +
+                                r"of size ([0-9,]+) (\w+)'d").match):
+        it = line(text)
+        if it:
+            addr, func = it.group(1, 5)
+            offset, size = [asint(x) for x in it.group(2, 4)]
+            if it.group(3) == 'after': offset += size
+        else:
+            it = stray(text)
+            if not it: raise ParseError('Malformed block description line', text)
+            addr = it.group(1)
+            func = offset = size = None
         return func, size, offset, addr
 
     __upinit = Issue.__init__
     def __init__(self, stack, text, func):
-        self.__upinit(stack, text)
+        self.__upinit(stack or (), text)
         self.author, self.__eg, self.__users = func, set(), set()
 
     def example(self, *what): self.__eg.add(what)
@@ -226,6 +285,8 @@ class MemoryChunk (Issue):
         return ans
 
 Issue.register(MemoryChunk, lambda x: 0 <= x.find('bytes inside a block of size'))
+Issue.register(MemoryChunk, lambda x: 0 <= x.find('bytes after a block of size'))
+Issue.register(MemoryChunk, lambda x: 0 <= x.find("is not stack'd, malloc'd or (recently) free'd"))
 
 class FMA (MemoryChunk):
     "Free memory access"
@@ -252,6 +313,19 @@ class UHR (MemoryChunk, UMR):
     def get(cls, text, stack):
         return cls._cache_(cls.__known, stack, text, 'alloc')
 MemoryChunk.register(UHR, 'alloc')
+
+class SMA (MemoryChunk):
+    "Stray memory access"
+
+    @classmethod
+    def _active_(cls):
+        for it in cls.__known.values(): yield it
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack):
+        return cls._cache_(cls.__known, stack, text, 'alloc')
+MemoryChunk.register(SMA, None)
 
 class Leak (Issue):
     @staticmethod
@@ -323,6 +397,11 @@ class Leak (Issue):
 Issue.register(Leak, lambda x: 0 <= x.find('lost in loss record'))
 
 # Placeholders: no actual use for them yet
+class Terminal (object):
+    def __init__(self, text, signal, err, addr):
+        self.fatal = text
+        self.signal, self.error, self.address = signal, err, addr
+
 class Traffic (object):
     def __init__(self, lost, block, grab, free, churn):
         self.lost, self.block = lost, block
@@ -337,16 +416,21 @@ class FinalSummary (object):
         self.reports = err, ctx
         self.suppressed = serr, sctx
 
-class Report (object):
-    def __init__(self, command, ppid, issues, traffic, leaks, leaksum, overall):
-        self.command, self.ppid = command, ppid
+class Thread (object):
+    def __init__(self, issues, traffic, leaks, leaksum, overall):
         self.issues, self.traffic = issues, traffic
         self.leaks, self.leaksum = leaks, leaksum
         self.overall = overall
+
+class Report (object):
+    def __init__(self, command, ppid, dead, threads):
+        self.command, self.ppid, self.dead = command, ppid, dead
+        self.threads = threads
 
 class MemCheck (object):
     def __init__(self):
-        self.leaks, self.issues, self.fixed, self.dull = set(), set(), set(), set()
+        self.leaks, self.issues, self.fatal = set(), set(), set()
+        self.fixed, self.dull = set(), set()
 
     def __len__(self): return len(tuple(iter(self)))
     def __iter__(self):
@@ -356,6 +440,10 @@ class MemCheck (object):
             else: yield it
 
     def __iter(self):
+        for it in self.fatal: yield it
+        # The following might repeat entries in fatal; but they should be fixed
+        # by the time we do so, ensuring they get filtered out in __iter__().
+
         for it in self.leaks:
             if it.sure: yield it
 
@@ -387,44 +475,64 @@ class MemCheck (object):
 
     # The (hairy spitball of an ad hoc) parser:
     @staticmethod
-    def __parseheader(src,
+    def __parseheader(dest, pid,
                       head=(re.compile(r'Copyright (C) \d+-\d+.*'),
                             re.compile(r'Using Valgrind.*')),
                       cmd=re.compile(r'Command: (.*)'),
                       parent=re.compile(r'Parent PID: (\d+)')):
-        for it in head:
-            n, line = src.next()
-            it = it.match(line)
-            if it is None: break
-        else: n, line = src.next()
+        try:
+            for it in head:
+                p, n, line = yield
+                assert p == pid
+                it = it.match(line)
+                if it is None: break
+            else:
+                p, n, line = yield
+                assert p == pid
 
-        it = cmd.match(line)
-        if it:
-            command = it.group(1)
-            n, line = src.next()
-        else: command = None
+            it = cmd.match(line)
+            if it:
+                command = it.group(1)
+                p, n, line = yield
+                assert p == pid
+            else: command = None
 
-        it = parent.match(line)
-        if it:
-            ppid = int(it.group(1))
-            n, line = src.next()
-        else: ppid = None
+            it = parent.match(line)
+            if it:
+                ppid = int(it.group(1))
+                p, n, line = yield
+                assert p == pid
+            else: ppid = None
 
-        # Look for blank line at end of header
-        while line: n, line = src.next()
-        return command, ppid
+            # Look for blank line at end of header
+            while line:
+                p, n, line = yield
+                assert p == pid
+        except StopIteration:
+            raise ParseError('Incomplete or unterminated header')
+
+        dest[:] = [ command, ppid ]
 
     @staticmethod
-    def __parseblocks(src, stopper, mode, command,
-                      cruft=re.compile(r'More than (100|1000 different) errors detected\.')):
-        items, stanza, addr, count = [], None, None, None
-        for n, line in src:
+    def __parseblocks(dest, stopper, mode, command,
+                      cruft=re.compile(r'More than (100|1000 different) errors detected\.').match,
+                      died=re.compile('Process terminating with default action of '
+                                      r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
+                      thread=re.compile(r'Thread \d+:$').match):
+        items = []
+        stanza = addr = count = terminal = signal = None
+
+        while True:
+            n, line = yield
             if line == stopper: break
 
             if not line: # end of stanza
-                if addr or stanza: stack = Stack.get(stack)
+                if addr or stanza:
+                    if stack: stack = Stack.get(stack)
+                    else: stack = None
 
                 if addr:
+                    assert stanza
                     addr = MemoryChunk.get(addr, stack)
                     items.append(addr)
                     stack, mode = prior # restore normal parsing
@@ -434,136 +542,256 @@ class MemCheck (object):
                     block, n = Issue.get(stanza, stack, addr)
                     if count is None: count = n
                     else: assert count == n
-
                     items.append(block)
+
+                    if terminal:
+                        assert isinstance(terminal, basestring)
+                        terminal, signal = Terminal(terminal, signal, block, addr), None
+
                     addr = stanza = None
                     del stack
+
                 # else: more than one blank line
-            elif cruft.match(line):
+            elif cruft(line):
                 # Skip notice about reduced reporting:
-                while line: n, line = src.next()
+                while line: n, line = yield
                 # bug: this skips the first report after the 100 errors report.
                 # tolerating this rather than uglify code.
+            elif thread(line): pass # ignore Thread lines.
+            elif line.startswith('Process terminating'):
+                assert terminal is None
+                terminal = line
+                it = died(line)
+                if not it: raise ParseError('Unfamiliar termination', line, lineno=n)
+                signal = int(it.group(1)), it.group(2)
             elif line.startswith('Address'):
-                assert addr is None
+                assert addr is None and stanza
                 prior = Stack.get(stack), mode # stash while parsing allocation block
                 addr, stack, mode = line, [], 'Address block for ' + mode
             elif stanza or addr: # read stack-frame line:
                 try: frame = Frame.get(line, command)
                 except ParseError, what:
-                    # TODO: is there nothing else we can do here ?
-                    what = what.args
-                    while what[-1] is None: what = what[:-1]
-                    raise ParseError('Failed to parse line', mode, n, what)
+                    if terminal is None: # ignore cruft after terminal block
+                        # TODO: is there nothing else we can do here ?
+                        what = what.args
+                        while what[-1] is None: what = what[:-1]
+                        raise ParseError('Failed to parse line', mode, what, lineno=n)
                 stack.append(frame)
 
             else: stack, stanza = [], line # first line of new block
 
         try: stack
         except NameError: pass
-        else: raise ParseError('Missing blank line before', line, n)
+        else: raise ParseError('Missing blank line before', line, lineno=n)
         assert stanza is None
 
-        return tuple(items), n
+        dest[:] = [ tuple(items), terminal ]
 
     @staticmethod
-    def __parsetraffic(src, asint=readint,
+    def __parsetraffic(dest, asint=readint,
                        inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks'),
                        total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated')):
-        n, line = src.next()
-        it = inuse.match(line)
-        if it: lost, block = [asint(x) for x in it.groups()]
-        else: raise ParseError('Failed to parse heap-in-use summary', line, n)
+        try:
+            n, line = yield
+            it = inuse.match(line)
+            if it: lost, block = [asint(x) for x in it.groups()]
+            else: raise ParseError('Failed to parse heap-in-use summary', line, lineno=n)
 
-        n, line = src.next()
+            n, line = yield
+        except GeneratorExit:
+            raise ParseError('Incomplete, missing or unterminated heap summary',
+                             lineno=n)
+
         it = total.match(line)
         if it: grab, free, churn = [asint(x) for x in it.groups()]
-        else: raise ParseError('Failed to parse heap traffic totals', line, n)
+        else: raise ParseError('Failed to parse heap traffic totals', line, lineno=n)
 
-        return Traffic(lost, block, grab, free, churn), n
+        dest[:] = [ Traffic(lost, block, grab, free, churn) ]
 
     def leaksum(text, n, prefix, asint=readint, # tool function for __parseleaksummary
                 chunk=re.compile(r'([0-9,]+) bytes in ([0-9,]+) blocks')):
         if text.startswith(prefix + ': '):
             it = chunk.search(text)
-            if not it: raise ParseError('Malformed "%s" line' % prefix, text, n)
+            if not it: raise ParseError('Malformed "%s" line' % prefix, text, lineno=n)
             return tuple(asint(x) for x in it.groups())
         return None
 
     @staticmethod
-    def __parseleaksummary(src, getsum=leaksum,
+    def __parseleaksummary(dest, getsum=leaksum,
                            prefixes=('definitely lost', 'indirectly lost',
                                      'possibly lost', 'still reachable', 'suppressed'),
                            cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
                                   'To see them, rerun with: --leak-check=full --show-reachable=yes')):
-        n, line = src.next()
-        data = []
-        for it in prefixes:
-            data.append(getsum(line, n, it))
-            if data[-1]: n, line = src.next()
+        try:
+            n, line = yield
+            data = []
+            for it in prefixes:
+                data.append(getsum(line, n, it))
+                if data[-1]: n, line = yield
 
-        while line in cruft: n, line = src.next()
+            while line in cruft: n, line = yield
+        except GeneratorExit:
+            raise ParseError('Incomplete, missing or unterminated leak summary',
+                             lineno = n)
         assert not line
-
-        return LeakSummary(*data), n
+        dest[:] = [ LeakSummary(*data) ]
 
     del leaksum
 
     @staticmethod
-    def __parsetail(src,
+    def __parsetail(dest,
                     errs=re.compile(r'ERROR SUMMARY: (\d+) errors from (\d+) contexts\s*'),
                     skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)'),
                     cruft=('For counts of detected and suppressed errors, rerun with: -v',
                            'Use --track-origins=yes to see where uninitialised values come from')):
-        n, line = src.next()
-        while not line or line in cruft: n, line = src.next()
+        try:
+            n, line = yield
+            while not line or line in cruft: n, line = yield
+        except GeneratorExit:
+            raise ParseError('Incomplete or missing tail-piece', lineno=n)
+
         it = errs.match(line)
-        if not it: raise ParseError('Failed to parse final error summary', line, n)
+        if not it:
+            raise ParseError('Failed to parse final error summary', line, lineno=n)
         data = it.groups()
         line = line[it.end():].strip()
         it = skip.match(line)
-        if line and not it: raise ParseError('Unrecognised tail for final summary', line, n)
+        if line and not it:
+            raise ParseError('Unrecognised tail for final summary', line, lineno=n)
         data = [int(x) for x in data + it.groups()]
-        return FinalSummary(*data)
 
-    def byline(fd, stem): # tool function for __ingest
-        n, off = 1, len(stem) # we got stem off the first line.
+        dest[:] = [ FinalSummary(*data) ]
+
+    @classmethod
+    def __muncher(cls, bok, fatal, pid, command):
+        dest = []
+        munch = cls.__parseblocks(dest, 'HEAP SUMMARY:',
+                                  'issue stack-frame', command)
+        munch.next()
+        try:
+            while True: munch.send((yield))
+        except GeneratorExit:
+            munch.close()
+            raise
+        except StopIteration: pass
+        issues, dead = dest
+        if dead is not None: fatal.add(dead)
+
+        dest = []
+        munch = cls.__parsetraffic(dest)
+        munch.next()
+        try:
+            while True: munch.send((yield))
+        except GeneratorExit:
+            munch.close()
+            raise
+        except StopIteration: pass
+        traffic = dest
+
+        dest = []
+        munch = cls.__parseblocks(dest, 'LEAK SUMMARY:',
+                                  'leak stack-frame', command)
+        munch.next()
+        try:
+            while True: munch.send((yield))
+        except GeneratorExit:
+            munch.close()
+            raise
+        except StopIteration: pass
+        leaks, dead = dest
+        assert dead is None
+
+        dest = []
+        munch = cls.__parseleaksummary(dest)
+        munch.next()
+        try:
+            while True: munch.send((yield))
+        except GeneratorExit:
+            munch.close()
+            raise
+        except StopIteration: pass
+        leaksum = dest
+
+        dest = []
+        munch = cls.__parsetail(dest)
+        munch.next()
+        try:
+            while True: munch.send((yield))
+        except GeneratorExit: munch.close()
+        except StopIteration: pass
+        overall = dest[0]
+
+        bok[pid] = issues, traffic, leaks, leaksum, overall
+
+    def numbered(fd): # tool function for byline
+        n = 0 # line number
         while True:
             line = fd.readline()
-            if not line: break
+            if not line: break # end of file
             n += 1
-            if line.startswith(stem): yield n, line[off:].strip()
+            yield n, line
+
+    def byline(fd, # tool function for ingest
+               each=numbered,
+               front=re.compile(r'==([0-9]+)==\s+').match):
+        lines, stem = each(fd), None
+        for n, line in lines:
+            if stem and line.startswith(stem): pass
             else:
-                raise ParseError("Line doesn't start with expected prefix",
-                                 line, n, stem)
+                it = front(line)
+                if not it:
+                    raise ParseError("Line doesn't start with expected prefix",
+                                     line, lineno=n)
+                stem, proc = it.group(0), int(it.group(1))
+                off = len(stem)
+            yield proc, n, line[off:].strip()
 
     @classmethod
     def __ingest(cls, fd,
                  reader=byline,
-                 first=re.compile(r'(.* )Memcheck, a memory error detector')):
-        line = fd.readline()
-        stem = first.match(line)
-        if not stem: raise ParseError('Unfamiliar first line', line)
+                 first='Memcheck, a memory error detector'):
+        src = reader(fd)
+        pid, n, line = src.next()
+        if line != first:
+            raise ParseError('Unfamiliar first line', line, lineno=1)
 
-        src = reader(fd, stem.group(1))
-        try: command, ppid = cls.__parseheader(src)
-        except StopIteration:
-            raise ParseError('Incomplete or unterminated header')
+        dest = []
+        munch = cls.__parseheader(dest, pid)
+        munch.next()
+        try:
+            while True:
+                p, n, line = src.next()
+                munch.send((p, n, line))
+        except GeneratorExit: munch.close()
+        except StopIteration: pass
+        command, ppid = dest
 
-        issues, n = cls.__parseblocks(src, 'HEAP SUMMARY:', 'issue stack-frame', command)
-        try: traffic, n = cls.__parsetraffic(src)
-        except StopIteration:
-            raise ParseError('Incomplete, missing or unterminated heap summary', n)
+        partial, final, fatal = {}, {}, set()
+        partial[pid] = munch = cls.__muncher(final, fatal, pid, command)
+        munch.next()
+        for p, n, line in src:
+            if p != pid:
+                try: munch = partial[p]
+                except KeyError:
+                    assert not final.has_key(p)
+                    munch = partial[p] = cls.__muncher(final, fatal, p, command)
+                    munch.next()
+                pid = p
 
-        leaks, n = cls.__parseblocks(src, 'LEAK SUMMARY:', 'leak stack-frame', command)
-        try: leaksum, n = cls.__parseleaksummary(src)
-        except StopIteration:
-            raise ParseError('Incomplete, missing or unterminated leak summary', n)
-        try: overall = cls.__parsetail(src)
-        except StopIteration:
-            raise ParseError('Incomplete or missing tail-piece', n)
+            try: munch.send((n, line))
+            except StopIteration:
+                assert final.has_key(pid)
+                try: del partial[pid]
+                except KeyError: assert munch is None
+                else: munch = None
 
-        return command, ppid, issues, traffic, leaks, leaksum, overall
+        n += 1
+        for pid, munch in partial.items():
+            try: munch.send(n, '')
+            except StopIteration: pass
+            else: munch.close()
+
+        return command, ppid, fatal, final
 
     del byline
 
@@ -575,12 +803,23 @@ class MemCheck (object):
         issues (including leaks) found in all such reports.\n"""
         ans = []
         for log in logs:
-            fd = open(logfile)
-            try: command, ppid, issues, traffic, leaks, leaksum, overall = self.__ingest(fd)
+            fd = open(log)
+            try:
+                try: cmd, ppid, dead, final = self.__ingest(fd)
+                except ParseError, what:
+                    what.filename = log
+                    raise what
             finally: fd.close()
-            for it in issues: self.issues.add(it)
-            for it in leaks: self.leaks.add(it)
-            ans.append(Report(command, ppid, issues, traffic, leaks, leaksum, overall))
+
+            threads = []
+            for pid, vs in final.items():
+                issues, traffic, leaks, leaksum, overall = vs
+                for it in issues: self.issues.add(it)
+                for it in leaks: self.leaks.add(it)
+                threads.append(Thread(*vs))
+            ans.append(Report(cmd, ppid, dead, tuple(threads)))
+            for term in dead:
+                self.fatal.add(term.error)
         return tuple(ans)
 
 del re, readint
