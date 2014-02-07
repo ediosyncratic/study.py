@@ -38,6 +38,14 @@ class Source (object):
 
         return ans
 
+from study.snake.sequence import Tuple
+class Tuple (Tuple):
+    """Tuple variant for which Frame entries are natural.
+
+    Its display format is just one entry per line, with no further decoration,
+    which works nicely when each entry is a Frame.\n"""
+    def __repr__(self): return '\n'.join([repr(f) for f in self])
+
 class Frame (object):
     @staticmethod
     def __parse(text,
@@ -78,6 +86,25 @@ class Frame (object):
 
     def __repr__(self): return self.text
 
+    def callers(self, n=1):
+        """Find other entries in self's stacks, at offset n.
+
+        Optional argument n (default: 1) is the number of steps down the stack
+        (i.e. towards main) to go; a negative value means up (i.e. to the
+        functions self called).  Stacks are ignored if the given offset from
+        self isn't recorded.  Returns a Tuple of a set of frames thus
+        found.  With the default n = 1, you get self's (known) callers.\n"""
+
+        ans = set()
+        for it in self.stacks:
+            ind = it.index(self) # shouldn't ValueError !
+            try:
+                if n + ind < 0: raise IndexError
+                set.add(it[n + ind]) # IndexError if out of bounds
+            except IndexError: pass
+
+        return Tuple(ans)
+
     # TODO: frames from different binaries (reported in different log files) may
     # have different addresses for the same file and line, that we would ideally
     # identify; but different addresses within a given binary should not be
@@ -95,26 +122,18 @@ class Frame (object):
         except KeyError: ans = cls.__known[key] = cls(text, *key)
         return ans
 
-class Stack (object):
-    def __init__(self, *frames):
+class Stack (Tuple):
+    def __init__(self, frames):
         assert frames and frames[0].leaf and all(not x.leaf for x in frames[1:])
-        self.__frames = frames
         for f in frames: f.stacks.add(self)
         self.issues = set()
-
-    def __repr__(self): return '\n'.join([repr(f) for f in self.__frames])
-    def __hash__(self):
-        return reduce(lambda x, y: x ^ hash(y), self.__frames, id(self))
-    def __cmp__(self, other): return cmp(self.__frames, other.__frames)
-    def __contains__(self, frame): return frame in self.__frames
-    def __getitem__(self, ind): return self.__frames[ind]
 
     __known = {}
     @classmethod
     def get(cls, frames):
         frames = tuple(frames)
         try: ans = cls.__known[frames]
-        except KeyError: ans = cls.__known[frames] = cls(*frames)
+        except KeyError: ans = cls.__known[frames] = cls(frames)
         return ans
 
 class Issue (object):
