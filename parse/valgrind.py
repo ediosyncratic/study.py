@@ -121,7 +121,7 @@ class Issue (object):
     def __init__(self, stack, grumble):
         self.stack, self.problem = stack, grumble
         if stack: stack.issues.add(self)
-        self.fixed = False
+        self.fixed, self.victim = False, set() # TODO: weakset
 
     def __repr__(self): return self.problem
 
@@ -240,13 +240,15 @@ class MemoryChunk (Issue):
     __upinit = Issue.__init__
     def __init__(self, stack, text, func):
         self.__upinit(stack or (), text)
-        self.author, self.__eg, self.__users = func, set(), set()
+        self.author, self.__eg, self.__users = func, set(), set() # TODO: weakset
 
     def example(self, *what): self.__eg.add(what)
     @property
     def samples(self): return tuple(self.__eg)
 
-    def usedby(self, other): self.__users.add(other)
+    def usedby(self, other):
+        self.__users.add(other)
+        other.victim.add(self)
     @property
     def users(self): return tuple(self.__users)
 
