@@ -9,8 +9,9 @@ Classes:
   List -- mixes ReadSeq and list suitably
   Ordered -- a List that maintains ordering of its entries
 
-Decorator:
+Decorators:
   iterable -- apply WrapIterable to iterators returned by a function
+  iterinstance -- apply .__iterable__ to a method's return
 
 See study.LICENSE for copyright and license information.
 """
@@ -22,20 +23,29 @@ def iterable(func):
     """Decorator to wrap the return from a function as an Iterable.
 
     Takes a single function argument, func, and returns a function which is
-    called as if it were func but the return from func is wrapped as an
-    Iterable (see below).  If the first positional argument is an Iterable,
-    its .__iterable__() is used as wrapper (so that this automatically works
-    as a decorator for methods of any class based on Iterable); otherwise
-    WrapIterable (see below) is used.
+    called as if it were func but the return from func is wrapped as an Iterable
+    (see below), using WrapIterable.  To use some more specific wrapper, see
+    iterinstance, below.
 
     In particular, this can be used to wrap a generator (i.e. a function that
     uses yield, instead of return; this implicitly returns an iterator over
     the values its body yields) so that the resulting iterator supports the
-    methods of Iterable.  Naturally, it is used to decorate the generator
-    methods of Iterable itself.\n"""
+    methods of Iterable.\n"""
     def ans(*args, **kw):
-        try: wrap = args[0].__iterable__
-        except (IndexError, AttributeError): wrap = WrapIterable
+        return WrapIterable(func(*args, **kw))
+    return ans
+
+@mimicking
+def iterinstance(func):
+    """Decorator to wrap a method's return as an Iterable.
+
+    For use on (class and instance) methods whose return should be wrapped by
+    the class's .__iterable__(), rather than by WrapIterable; only applicable if
+    the class is based on Iterable, of course.  Otherwise, the same as
+    @iterable, above.  Naturally, I use it to decorate the generator methods of
+    Iterable itself, and of some classes based on it.\n"""
+    def ans(*args, **kw):
+        wrap = args[0].__iterable__
         return wrap(func(*args, **kw))
     return ans
 del mimicking
@@ -66,13 +76,13 @@ class Iterable (object):
 
         for the usual pseudo-constructor pattern (so only the class that mixes
         in Iterator usually needs to define this).  This method is mostly
-        accessed vai the @iterable decorator (see above).  This base version
-        uses WrapIterable, since Iterator itself has no constructor; it's only
-        a mix-in.  WrapIterable over-rides this version with the class-method
-        quoted above.\n"""
+        accessed vai the @iterable and @iterinstance decorators (see
+        above).  This base version uses WrapIterable, since Iterator itself has no
+        constructor; it's only a mix-in.  WrapIterable over-rides this version
+        with the class-method quoted above.\n"""
         return WrapIterable(what)
 
-    @iterable
+    @iterinstance
     def map(self, *funcs):
         """Map self through a sequence of functions.
 
@@ -90,7 +100,7 @@ class Iterable (object):
         for it in seq: yield it
         while True: yield None
 
-    @iterable
+    @iterinstance
     def mapwith(self, func, *others):
         """Map self and some other iterables through a function.
 
@@ -157,7 +167,7 @@ class Iterable (object):
             if not r: return q
         return tot * 1. / n
 
-    @iterable
+    @iterinstance
     def filter(self, *tests):
         """Filter self with test functions.
 
@@ -175,7 +185,7 @@ class Iterable (object):
             else:
                 yield p
 
-    @iterable
+    @iterinstance
     def enumerate(self):
         i = 0
         for it in self:
@@ -269,7 +279,7 @@ class ReadSeq (Iterable):
 
         raise IndexError(ind)
 
-    @iterable
+    @iterinstance
     def __get(self, ind, S=Slice):
         for i in ind:
             try: yield self[i]
@@ -403,19 +413,19 @@ class ReadSeq (Iterable):
         except StopIteration: return True # it ran out first
         return False # equality, but other may be longer
 
-    @iterable
+    @iterinstance
     def __mul__(self, other):
         while other > 0:
             other -= 1
             for it in self: yield it
 
     __rmul__ = __mul__
-    @iterable
+    @iterinstance
     def __add__(self, other):
         for it in self: yield it
         for it in other: yield it
 
-    @iterable
+    @iterinstance
     def __radd__(self, other):
         for it in other: yield it
         for it in self: yield it
@@ -428,7 +438,7 @@ class ReadSeq (Iterable):
 
         raise ValueError('not in sequence', val)
 
-    @iterable
+    @iterinstance
     def __reversed__(self):
         seq = tuple(self)
         i = len(seq)
@@ -464,7 +474,7 @@ class ReadSeq (Iterable):
     def sorted(self, cmp=cmp, key=None, reverse=False):
         return self.order(cmp, key, reverse)(self)
 
-    @iterable
+    @iterinstance
     def best(self, n, par=cmp):
         """Selects the best n entries in self, preserving self's order.
 
