@@ -379,23 +379,23 @@ class Permutation (Tuple, Cached):
         (i.e. forward-sort) the thus-amended tail.  This is the step used by
         this iterator.\n"""
 
-        if size < 0:
-            raise StopIteration # Nothing to do :-)
+        if size < 0: raise StopIteration # Nothing to do :-)
 
         row = range(size)
         while True:
             yield cls(row)
 
             i = size - 1
-            while i > 0 and row[i-1] > row[i]: i -= 1
+            while i > 0 and row[i - 1] > row[i]: i -= 1
             if i < 1: # row is entirely in decreasing order
                 raise StopIteration # yielded all permutaitons already
 
             i, j = i - 1, size - 1
+            assert row[i] < row[i + 1]
 
             # row[i+1:] is in decreasing order but row[i] < row[i+1]
             # Find smallest row[j] > row[i] with j > i:
-            while row[j] < row[i]: j = j - 1
+            while row[j] < row[i]: j -= 1
             # swap i <-> j:
             row[j], row[i] = row[i], row[j]
 
