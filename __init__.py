@@ -112,9 +112,10 @@ TODO = """There are many things that could be improved.
    (e.g. for differences and times within each day).  c.f. the datetime module.
 
  * New quantity-type; see value.quantity's doc-string.
- * Break out randomness from maths as random ?
 
- * Covnert to python 3 - worth doing on a separate branch !
+ * Break out randomness from maths as chaos ?
+
+ * Convert to python 3 - worth doing on a separate branch !
    - there is a "2to3" utility to help with this
    - convert .next() to .__next__() on iterators
    - s/for $var in $iterable: yield $var/yield from $iterable/g
