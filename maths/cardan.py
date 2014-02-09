@@ -71,7 +71,10 @@ def Cardan(cube, square, linear, constant):
 
 def quadratic(square, linear, constant, realonly=None):
     disc = linear **2 -4. * square * constant
-    try: disc.imag
+    try:
+        if not disc.imag:
+            disc = disc.real
+            raise AttributeError
     except AttributeError:
         if disc < 0:
             if realonly: raise ValueError, 'Positive definite quadratic has no real roots'
