@@ -15,26 +15,27 @@ Provides:
 See study.LICENSE for copyright and license information.
 """
 
-from study.snake.sequence import ReadSeq
-class WeakTuple (ReadSeq):
+from study.snake.sequence import Tuple
+class WeakTuple (Tuple):
     """Read-only sequence of weak references.
 
     Packages a function, taking an index into the sequence as sole parameter,
     as a read-only sequence, cacheing the values using weakref.  Derived
     classes should typically implement __len__, at least.\n"""
-    __upinit = ReadSeq.__init__
+    __upinit = Tuple.__init__
     def __init__(self, getter):
         """Package getter as a tuple-like sequence.
 
         Single argument, getter, shall be called with a single parameter and
         should return the entry desired at that index into the sequence; it
-        should raise IndexError if the parameter is not a suitable
-        index.  Later calls with the same input should produce an equivalent
-        response.\n"""
+        should raise IndexError if the parameter is not a suitable index.  Later
+        calls with the same input should produce an equivalent response and may
+        assume (should this happen to make any difference to them) that all
+        earlier returns with that input have been garbage-collected.\n"""
         self.__seq, self.__get = [], getter
 
     import weakref
-    __upget = ReadSeq.__getitem__
+    __upget = Tuple.__getitem__
     def __getitem__(self, key, ref=weakref.ref, lost = lambda : None):
         try: f = self.__seq[key]
         except IndexError: ans = None
@@ -48,9 +49,9 @@ class WeakTuple (ReadSeq):
 
         return ans
     del weakref
-del ReadSeq
+del Tuple
 
-# TODO: WeakMapping
+# TODO: WeakMapping; or a mixin to weakref.WeakValueDictionary to support it.
 
 from study.snake.property import recurseprop
 from study.cache.property import propstore

@@ -12,5 +12,5 @@ See study.LICENSE for copyright and license information.
 import lockdir
 # import mapping # cycle with study.snake.sequence
 import property
-import weak
+#import weak # cycle with study.snake.sequence.ReadOnlySeq
 #import whole # not until it's stable ...
