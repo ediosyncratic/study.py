@@ -30,13 +30,14 @@ class Solution (Permutation):
                 lambda i, n=len(self)-1: ' ' * i + '#' + ' ' * (n-i), self))
         return ans
 
-    def __peaceful(self):
-        i = len(self) - 1
-        while i:
-            j, n = i, self[i]
+    @staticmethod
+    def __peaceful(seq):
+        i = len(seq) - 1
+        while i > 0:
+            j, n = i, seq[i]
             while j:
                 j -= 1
-                if self[j] - n in (j - i, i - j): # same diagonal
+                if seq[j] - n in (j - i, i - j): # same diagonal
                     return False
             i -= 1
         return True
@@ -48,8 +49,7 @@ class Solution (Permutation):
         They are explored in lexical order.  Value yielded at each step is a
         Solution object - this is a Permutation with a custom repr() as a
         picture.\n"""
-        for it in cls.all(size):
-            if it.__peaceful(): yield it
+        return cls.all(size).filter(cls.__peaceful)
 
     @classmethod
     def unique(cls, size):
