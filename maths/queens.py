@@ -20,13 +20,13 @@ symmetry of the chess board maps one onto another.
 
 See study.LICENSE for copyright and license information.
 """
-
 from permute import Permutation
+
 class Solution (Permutation):
     def __repr__(self):
         try: ans = self.__repr
         except AttributeError:
-            ans = self.__repr = '\n'.join(map(
+            ans = self.__repr = '\n'.join([''] + map(
                 lambda i, n=len(self)-1: ' ' * i + '#' + ' ' * (n-i), self))
         return ans
 
@@ -53,35 +53,51 @@ class Solution (Permutation):
 
     @classmethod
     def unique(cls, size):
-        """Like all, q.v., but skips essentially equivalent solutions."""
-        a = ()
-        for r in cls.solve(size):
-            if r not in a:
-                yield r
-                a = a + cls.__equivalents(r, size)
+        """Like all, q.v., but skips essentially equivalent solutions.
 
-    def entwist(seq, r, n): # tool used by __equivalents
-        seq.append(r)
-        r = map(lambda i: n-i, r) # top-bottom reflection
-        if r not in seq: seq.append(r[:]) # copy before reversing !
-        r.reverse() # left-right reflection
-        if r not in seq:
-            seq.append(r)
-            r = map(lambda i: n-i, r) # top-bottom reflection
-            if r not in seq: seq.append(r)
-            # r.reverse() would restore its initial value
+        Reflecting or rotating the board doesn't give an interestingly different
+        solution.\n"""
+        old = set()
+        for r in cls.solve(size):
+            if r not in old:
+                yield r
+                cls.__add_equivalents(old, r, size)
+
+    def rectangle(seen, r, flip): # tool used by __add_equivalents
+        """Record horizontal and vertical reflections, plus half-turn.
+
+        These are the symmetries of a rectangle.  Arguments are the set to which
+        to add equivalents of r, the permutation r and a function, flip, that
+        does top-bottom reflection in the same sense that reversed() does
+        left-right reflection.  Note that neither of these operations can give
+        the permutation we started with (aside from the () and (0,) trivial
+        cases), although perhaps their combination (half turn) could.\n"""
+        seen.add(r)
+        m = flip(r) # top-bottom reflection
+        assert m in ((), (0,)) or m not in seen
+        seen.add(m)
+        m = reversed(m) # left-right reflection
+        if m != r: # half-turn might have taken us back to r
+            assert m not in seen
+            seen.add(m)
+            seen.add(flip(m)) # top-bottom reflection
+            # The last's reversed() is the r we started with
 
     @staticmethod
-    def __equivalents(r, n, add=entwist):
-        row = []
-        add(row, r, n)
-        r = r.inverse # diagonal reflection
-        if r not in row:
-            add(row, r, n)
-        return tuple(row)
+    def __add_equivalents(seen, r, n, add=rectangle):
+        """Grind through the equivalents of r, adding them to seen.
 
-    del entwist
+        This function looks after the diagonal reflection that, with the other
+        symmetries of a rectangle, generates the full set.\n"""
+        assert r not in seen
+        def flip(seq, m=n-1): return seq.map(lambda i, k=m: k - i)
+        add(seen, r, flip)
+        if n > 1: # trivial otherwise
+            i = r.inverse # diagonal reflection
+            if i not in seen: add(seen, i, flip)
 
+    del rectangle
+
 del Permutation
 # backwards compatibility:
 def Iterator(size=8): return Solution.solve(size)
