@@ -77,8 +77,8 @@ def rationalize(x, tol=1e-7, depth=5):
     for q in s:
         # See real_continued's uncertainty analysis for handling of tol:
         if abs(q) * tol > 1: break
-        if len(seq) >= depth: raise ValueError('Hard to approximate', x)
         seq.append(q)
+        if len(seq) > depth: raise ValueError('Hard to approximate', x, seq)
         tol *= (q - .5)**2
 
     # x == seq[0] + 1/(seq[1] + 1/(...))
@@ -115,10 +115,8 @@ class Cycle (Token):
         i = 0
         while True:
             try: yield self.__values[i]
-            except IndexError:
-                i = 0
-                yield self.__values[i]
-            i += 1
+            except IndexError: i = 0
+            else: i += 1
 
     @property
     def values(self): return self.__values
