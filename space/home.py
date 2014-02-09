@@ -15,7 +15,12 @@ from common import Orbit, Spin, Discovery, Surface, \
 
 from study.chemy.physics import Cosmos
 # some rough data from my Nuffield data book:
-Universe = body.Object('Observable Universe', mass=1e52 * kg, radius=3e26 * metre,
+Universe = body.Object('Observable Universe', None,
+                       """The observable universe
+
+See also chemy.physics.Cosmos
+""",
+                       mass=1e52 * kg, radius=3e26 * metre,
                        # some slightly more definite data:
                        age = Quantity.within(1, .01, 13.7 * giga * year,
                                              """The age of our universe.
