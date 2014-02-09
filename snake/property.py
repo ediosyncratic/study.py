@@ -8,6 +8,13 @@ This module should eventually replace lazy.Lazy; it provides:
 See individual classes for details.
 See also study.cache for related classes.
 See study.LICENSE for copyright and license information.
+
+TODO: notice that property instances have .setter and .deleter attributes that
+work as decorators to turn a function into the setter or deleter of the
+property in question.  Do I want to over-ride these methods in some cases ?
+Can I re-work dictattr to over-ride them instead of doing what it presently
+does with .__set and .__del ?
+TODO: are the kind=None bits redundant ?
 """
 
 class docprop (property):
@@ -125,16 +132,15 @@ class recurseprop (docprop):
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse
         except AttributeError:
-            check = obj.__recurse = {}
+            check = obj.__recurse = set()
 
-        try: check[self] # are we in the midst of computing this already ?
-        except KeyError: check[self] = None # OK, no problem.
-        else: raise AttributeError(obj, self, 'recursive laziness')
+        if self in check: # We're in the midst of computing this already.
+            raise AttributeError(obj, self, 'recursive laziness')
+        check.add(self)
 
         # Do the actual computation:
-        try: ans = self.__upget(obj) # might AttributeError
-        finally: del check[self]
-        return ans
+        try: return self.__upget(obj) # might AttributeError
+        finally: check.discard(self)
 
 class dictattr (recurseprop):
     """Provides support for set/del in an object's __dict__
