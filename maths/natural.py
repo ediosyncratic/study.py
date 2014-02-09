@@ -445,16 +445,18 @@ def lattice(dim, signed=False, mode=True, total=None):
     Returns an iterator which yields dim-tuples whose entries are whole numbers
     of the indicated kind, subject to mode's constraint.  For present purposes,
     use an ordering on the integers in our tuples which treats each negative
-    integer -n as the positive value n-.5; when mode is None or -ve, each tuple
-    yielded is in strictly decreasing order (so entries with smaller absolute
-    value appear later than those with larger absolute values; and, for any
-    natural n, -n appears after n if both appear); when mode is -ve, every entry
-    is, furthermore, less than -mode (which is either a natural or half more
-    than a natural, to encode a negative entry); when mode is False or +ve, each
-    tuple yielded is in never-increasing order (like decreasing, but allows an
-    entry to be repeated); when mode is +ve it is an upper bound on the entries;
-    otherwise, mode is True and there is no constraint on the order of entries
-    in the tuple.\n"""
+    integer -n as the positive value n-.5.
+     * When mode is None or -ve, each tuple yielded is in strictly decreasing
+       order (so entries with smaller absolute value appear later than those
+       with larger absolute values; and, for any natural n, -n appears after n
+       if both appear); when mode is -ve, every entry is, furthermore, less than
+       -mode (which is either a natural or half more than a natural, to encode a
+       negative entry);
+     * when mode is False or +ve, each tuple yielded is in never-increasing
+       order (like decreasing, but allows an entry to be repeated); when mode is
+       +ve it is an upper bound on the entries;
+    * otherwise, mode is True and there is no constraint on the order of entries
+      in the tuple.\n"""
 
     if total is None:
         total = 0
@@ -467,7 +469,8 @@ def lattice(dim, signed=False, mode=True, total=None):
 
     elif dim == 0 and total == 0: yield ()
     elif dim < 1 or total < 0: pass
-    else:
+    else: # The non-trivial case:
+
         # Initialize i to the least allowable first entry in our tuple:
         if signed:
             if mode is True or mode is False: i = - total
@@ -484,6 +487,7 @@ def lattice(dim, signed=False, mode=True, total=None):
                 else:
                     i = - int(mode + .6)
                     if -i * dim < total: raise StopIteration
+
         else:
             i = 0
             if mode is True or mode is False: pass
