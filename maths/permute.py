@@ -23,7 +23,7 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import Cached, lazyprop, lazyattr
-from study.snake.sequence import Tuple
+from study.snake.sequence import Tuple, iterable
 class Permutation (Tuple, Cached):
     """Immutable sequence type representing a permutation.
 
@@ -332,6 +332,7 @@ class Permutation (Tuple, Cached):
 
     # for a rather elegant application, see queens.py's derived iterator
     @classmethod
+    @iterable
     def all(cls, size):
         """Iterator over permutations of given length.
 
@@ -410,7 +411,7 @@ class Permutation (Tuple, Cached):
     # c.f. http://www.chaos.org.uk/~eddy/when/2009/squalor.html
 
     # TODO: add random permutation class method
-del Cached, lazyprop, lazyattr
+del Cached, lazyprop, lazyattr, iterable
 
 def Iterator(size, P=Permutation): # backward compatibility
     """Redundant alias for Permutation.all"""
