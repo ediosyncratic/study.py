@@ -49,7 +49,7 @@ See Quantum.Planck's __doc__ for details. """))
 
 Vacuum = Object(
     c = Quantity(1, second.light / second,
-                 """The speed of light.
+                 """The speed of light in vaguum.
 
 The modern definition of the metre makes this an exact integer, when measured
 in metres/second.  There are important senses, in relativity theory, in which

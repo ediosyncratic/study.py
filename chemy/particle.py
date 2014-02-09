@@ -375,11 +375,7 @@ http://imagine.gsfc.nasa.gov/docs/science/know_l1/spectrum_chart.html
 from the second of which I took the extra-visible spectral data below.
 """
 
-    speed = Vacuum.c
-    speed.document("""The speed of light in vacuum""")
-
-    symbol = '&gamma;'
-    spin = Quantum.hbar # iirc
+    speed, symbol, spin = Vacuum.c, '&gamma;', Quantum.hbar # iirc
 
     __upinit = Boson.__init__
     def __init__(self, *args, **what):
