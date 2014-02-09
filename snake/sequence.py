@@ -178,11 +178,7 @@ class Iterable (object):
         iter(self), whereas self.filter(None) filters out false entries; there
         is no default test function.\n"""
         for p in self:
-            for t in tests:
-                if t is None:
-                    if not p: break
-                elif not t(p): break
-            else:
+            if all((p if t is None else t(p)) for t in tests):
                 yield p
 
     @iterinstance
