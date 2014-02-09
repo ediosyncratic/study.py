@@ -139,6 +139,8 @@ i.e. (given 137*alpha is almost exactly 1) q = e*sqrt(137/2): this would make
 a more natural unit of charge, but the above petty consistency obliges me to
 use 2*q*sqrt(pi) instead (on this object).
 
+== Petty consistency ==
+
 Since I believe Planck used h, c and G as units, and this object is named
 after him, I should be faithful to that choice, as far as it goes: which, with
 sqrt(4*pi*h/Z0) as unit of charge, requires that Z0 be 4*pi, hence so is mu0,
@@ -159,7 +161,7 @@ For a kindred system of units with my preferred choice of constants (kappa, h,
 Z0 and c), instantiate this module's class Planckoid() with no arguments; or
 roll your own - see Planckoid.__doc__ for details.
 
-=== Verlinde ===
+== Verlinde ==
 
 Divide the Planck area by 2*pi to get the area per bit assumed by Verlinde [0]
 when deriving gravity as an entropic force [1].  He introduces G (which shall
