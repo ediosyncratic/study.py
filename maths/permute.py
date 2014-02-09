@@ -387,7 +387,7 @@ class Permutation (Tuple, Cached):
 
             i = size - 1
             while i > 0 and row[i-1] > row[i]: i -= 1
-            if not i: # row is entirely in decreasing order
+            if i < 1: # row is entirely in decreasing order
                 raise StopIteration # yielded all permutaitons already
 
             i, j = i - 1, size - 1
