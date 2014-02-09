@@ -115,7 +115,7 @@ Sources begging to be plundered:
    (also, diverse other quantities are implied).
 """
 
-__notes__ = """\
+_notes_ = """\
 Many units are or have been subject to what amounts to dialect variation, some
 have undergone significant changes of definition over time (as compared to the
 fine-tuning of, for example, the metre in 1975).  This is only to be expected:

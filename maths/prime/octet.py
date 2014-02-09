@@ -197,7 +197,7 @@ class OctetType (Tuple):
         return self
 
     def __repr__(self): return 'OctetType(%s)' % (self.primes,) # tuple-repr gets long fast !
-    def __tuple__(self, val, seq=Tuple): return seq(val) # for slicing, etc.
+    def _tuple_(self, val, seq=Tuple): return seq(val) # for slicing, etc.
     # Tuple.__init__ isn't interesting.
     def __init__(self, ps):
         """Complete initialization of an OctetType object.

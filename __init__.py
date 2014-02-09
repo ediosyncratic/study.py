@@ -70,7 +70,6 @@ TODO = """There are many things that could be improved.
  * PEP 8 conformance.
    - Prefer .startswith(), .endswith() over comparison w/ relevant chunks of strings
    - use __all__ ?
-   - don't use __myname__ (e.g. __quantity__ etc.; currently violated extensively)
    - don't use type(x) == blah comparisons; prefer isinstance(x, blah)
    - check for any isinstance(x, string); check against basestring instead
 

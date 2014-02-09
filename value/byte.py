@@ -10,7 +10,7 @@ from quantity import Quantity, qSample, _quantifier_dictionary
 class bQuantity (Quantity):
     # TODO: fold back into Quantity somehow
     # FIXME: probably doesn't work at present !  e.g. _quantade_split_() doesn't exist.
-    def __quantity__(self, what, units):
+    def _quantity_(self, what, units):
         try: order = units['bit']
         except KeyError: order = 0
         if order: return self.__class__(what, units)

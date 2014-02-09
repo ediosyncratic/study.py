@@ -11,7 +11,7 @@ Classes:
 
 Decorators:
   iterable -- apply WrapIterable to iterators returned by a function
-  iterinstance -- apply .__iterable__ to a method's return
+  iterinstance -- apply ._iterable_ to a method's return
 
 See study.LICENSE for copyright and license information.
 """
@@ -40,12 +40,12 @@ def iterinstance(func):
     """Decorator to wrap a method's return as an Iterable.
 
     For use on (class and instance) methods whose return should be wrapped by
-    the class's .__iterable__(), rather than by WrapIterable; only applicable if
+    the class's ._iterable_(), rather than by WrapIterable; only applicable if
     the class is based on Iterable, of course.  Otherwise, the same as
     @iterable, above.  Naturally, I use it to decorate the generator methods of
     Iterable itself, and of some classes based on it.\n"""
     def ans(*args, **kw):
-        wrap = args[0].__iterable__
+        wrap = args[0]._iterable_
         return wrap(func(*args, **kw))
     return ans
 del mimicking
@@ -62,7 +62,7 @@ class Iterable (object):
 
     __slots__ = ()
     @staticmethod
-    def __iterable__(what):
+    def _iterable_(what):
         """Pseudo-constructor for iterable.
 
         Takes one argument, an iterable (typically a generator function) to be
@@ -71,7 +71,7 @@ class Iterable (object):
         signature, e.g.
 
             @classmethod
-            def __iterable__(cls, what):
+            def _iterable_(cls, what):
                 return cls(what)
 
         for the usual pseudo-constructor pattern (so only the class that mixes
@@ -230,7 +230,7 @@ class Iterable (object):
         argument; each yield of the returned iterator is a Tuple res for which
         res[i] is an entry in seq[i] (so res's length is the number of arguments
         following func); and every such tuple arises.  Thus the iterable
-        returned by this method (via .__iterable__(), so that derived classes can
+        returned by this method (via ._iterable_(), so that derived classes can
         tweak its details) has, as number of entries, the product of the numbers
         of entries in the various iterables in seq.
 
@@ -238,7 +238,7 @@ class Iterable (object):
         length five (there were five 4s), whose entries are in range(4);
         Iterable.cartesian(range, *((n,)*m)) yields every tuple, of length m,
         whose entries are drawn from range(n).\n"""
-        return cls.__iterable__(cls.__renee(func, *whom)).map(Tuple)
+        return cls._iterable_(cls.__renee(func, *whom)).map(Tuple)
 
 class WrapIterable (Iterable):
     # For when you aren't defining a class to mix in with:
@@ -249,7 +249,7 @@ class WrapIterable (Iterable):
     def __getattr__(self, key): return self.__get(key)
     def next(self): return self.__seq.next()
     @classmethod
-    def __iterable__(cls, what): return cls(what)
+    def _iterable_(cls, what): return cls(what)
 
 class ReadSeq (Iterable):
     """Mix-in class extending Iterable to support most tuple methods.
@@ -516,7 +516,7 @@ class Tuple (ReadOnlySeq, tuple):
     # automagically an @staticmethod (whether you like that or not).
 
     @classmethod
-    def __tuple__(cls, val):
+    def _tuple_(cls, val):
         """Pseudo-constructor.
 
         Takes a sequence and returns an instance of Tuple.  If a derived class
@@ -546,20 +546,20 @@ class Tuple (ReadOnlySeq, tuple):
             if not isinstance(key, slice):
                 return self.__upget(key)
 
-        return self.__tuple__(self.__rsget(key))
+        return self._tuple_(self.__rsget(key))
 
     @classmethod
-    def __iterable__(cls, what): return cls.__tuple__(what)
+    def _iterable_(cls, what): return cls._tuple_(what)
     __hash__ = tuple.__hash__
 
     __upmul = tuple.__mul__
-    def __mul__(self, other): return self.__tuple__(self.__upmul(other))
+    def __mul__(self, other): return self._tuple_(self.__upmul(other))
     __uprmul = tuple.__rmul__
-    def __rmul__(self, other): return self.__tuple__(self.__uprmul(other))
+    def __rmul__(self, other): return self._tuple_(self.__uprmul(other))
     __upadd = ReadSeq.__add__
-    def __add__(self, other): return self.__tuple__(self.__upadd(other))
+    def __add__(self, other): return self._tuple_(self.__upadd(other))
     __upradd = ReadSeq.__radd__
-    def __radd__(self, other): return self.__tuple__(self.__upradd(other))
+    def __radd__(self, other): return self._tuple_(self.__upradd(other))
 
     __rsget, __tpget = ReadSeq.__getitem__, tuple.__getitem__
     def __getitem__(self, key):
@@ -568,7 +568,7 @@ class Tuple (ReadOnlySeq, tuple):
             if not isinstance(key, slice):
                 return self.__tpget(key)
 
-        return self.__tuple__(self.__rsget(key))
+        return self._tuple_(self.__rsget(key))
 
 class Dict (dict):
     # Can't use iterable: slot wrappers and method descriptors don't play
@@ -587,7 +587,7 @@ class Dict (dict):
     def values(self, Wrap=Tuple): return Wrap(self.__sqva())
 
     @classmethod
-    def __iterdict__(cls, what=()):
+    def _iterdict_(cls, what=()):
         """Pseudo-constructor for derived classes to over-ride.
 
         Where this class's methods need a new instance, they use this method
@@ -601,7 +601,7 @@ class Dict (dict):
         return cls(what)
 
     __upcopy = dict.copy # returns a dict, even when used via a derived class
-    def copy(self): return self.__iterdict__(self.__upcopy())
+    def copy(self): return self._iterdict_(self.__upcopy())
 
     @staticmethod
     def __unterleave(args, T=Tuple):
@@ -619,9 +619,9 @@ class Dict (dict):
         corresponding mapping in args; and this mapping maps the given key to
         the corresponding entry in val.
 
-        Passing the result to self.__iterdict__() will get you a suitable
-        mapping object with these keys and values; that isn't done here, since
-        you're likely to want, first, to transform the key or value tuples.  For
+        Passing the result to self._iterdict_() will get you a suitable mapping
+        object with these keys and values; that isn't done here, since you're
+        likely to want, first, to transform the key or value tuples.  For
         example, if the mappings represent vectors, mapping names of components
         to values thereof, their tensor product would be obtained by mapping
         each (key, val) to (key, val.product())\n"""
@@ -664,7 +664,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
             if not isinstance(key, slice):
                 return self.__upget(key)
 
-        return self.__list__(self.__rsget(key))
+        return self._list_(self.__rsget(key))
 
     __updel = list.__delitem__
     def __delitem__(self, key):
@@ -695,7 +695,7 @@ class List (ReadSeq, list): # list as base => can't use __slots__
     del Slice
 
     __mul = ReadSeq.__mul__
-    def __mul__(self, other): return self.__list__(self.__mul(other))
+    def __mul__(self, other): return self._list_(self.__mul(other))
     __rmul__ = __mul__
 
     def __add__(self, seq):
@@ -710,16 +710,16 @@ class List (ReadSeq, list): # list as base => can't use __slots__
         return self
 
     __radd = ReadSeq.__radd__
-    def __radd__(self, other): return self.__list__(self.__radd(other))
+    def __radd__(self, other): return self._list_(self.__radd(other))
 
     __map = ReadSeq.map
-    def map(self, *what): return self.__list__(self.__map(*what))
+    def map(self, *what): return self._list_(self.__map(*what))
 
     __mapwith = ReadSeq.mapwith
-    def mapwith(self, *what): return self.__list__(self.__mapwith(*what))
+    def mapwith(self, *what): return self._list_(self.__mapwith(*what))
 
     @classmethod
-    def __list__(cls, *what):
+    def _list_(cls, *what):
         """Create a new object like self, but with other init args.
 
         Takes the same args as list.__init__ (q.v.) but builds a new object of
@@ -739,7 +739,7 @@ class Ordered (List):
     same ways as are supported by the usual list.sort method; calling sort()
     can revise the customisation and .reverse() reverses it.  Slicing with a
     reversed slice order yields a reverse-ordered slice; other operations that
-    would normally yield a list yield an Ordered (but see __ordered__) with
+    would normally yield a list yield an Ordered (but see _ordered_) with
     the same sort properties as self.\n"""
 
     __upinit = List.__init__
@@ -774,8 +774,8 @@ class Ordered (List):
         self.__cmp, self.__key, self.__rev = cmp, key, reverse
         if val is not None: self.extend(val)
 
-    def __list__(self, val=None):
-        return self.__ordered__(val, self.__rev, self.__key, self.__cmp,
+    def _list_(self, val=None):
+        return self._ordered_(val, self.__rev, self.__key, self.__cmp,
                                 self.__attr, self.__unique)
 
     __upget = List.__getitem__
@@ -794,12 +794,12 @@ class Ordered (List):
         except AttributeError:
             return self.__upget(key)
 
-        return self.__ordered__(self.__rsget(key),
+        return self._ordered_(self.__rsget(key),
                                 not self.__rev, self.__key, self.__cmp,
                                 self.__attr, self.__unique)
 
     @classmethod
-    def __ordered__(cls, *what):
+    def _ordered_(cls, *what):
         """Create a new object like self, but with other init args.
 
         Takes the same args as Ordered.__init__ (q.v.) but builds a new object
@@ -895,7 +895,7 @@ class Ordered (List):
 
         if unique is (): unique = self.__unique
 
-        return self.__ordered__(self, reverse, key, cmp, attr, unique)
+        return self._ordered_(self, reverse, key, cmp, attr, unique)
 
     def __reversed__(self):
         return self.sorted(reverse=True)

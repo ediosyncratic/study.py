@@ -36,7 +36,7 @@ class Interpolator (Cached):
             ("Cuts should be sorted", self.cuts)
 
     @classmethod
-    def __interpolator__(cls, cuts, mass):
+    def _interpolator_(cls, cuts, mass):
         """Construct something like self from given cuts and mass.
 
         A derived class whose constructor's signature doesn't match that of
@@ -91,7 +91,7 @@ class Interpolator (Cached):
         cuts = self.split([0] + [1] * count + [0])
         mass = self.weigh(cuts)
         assert not mass[0] and not mass[-1], (mass, cuts, self)
-        return self.__interpolator__(cuts, mass[1:-1])
+        return self._interpolator_(cuts, mass[1:-1])
 
     @iterable
     def filter(self, test=lambda l, h, w: w):
@@ -174,7 +174,7 @@ class Interpolator (Cached):
                 raise ValueError('Inconsistent scaling and target total',
                                  by, to, self.total)
 
-        return self.__interpolator__(self.cuts,
+        return self._interpolator_(self.cuts,
                                      map(lambda x, b=by: x * b, self.mass))
 
     def clip(self, lo=None, hi=None):
@@ -227,7 +227,7 @@ class Interpolator (Cached):
         if sum(mass, 0) <= 0:
             raise ValueError('No weight in interval', (lo, hi, self))
 
-        return self.__interpolator__(cuts, mass)
+        return self._interpolator_(cuts, mass)
 
     # Tools for round():
     @staticmethod
@@ -830,7 +830,7 @@ class PiecewiseConstant (Interpolator):
 
         # Addition of densities is nice and simple :-)
         cuts, mass = self.__clean(cuts, map(lambda x, y: x + y, me, yo))
-        return self.__interpolator__(cuts, mass)
+        return self._interpolator_(cuts, mass)
 
     @classmethod
     def __clean(cls, cuts, mass): # tool for __mul__
@@ -895,7 +895,7 @@ class PiecewiseConstant (Interpolator):
         assert len(mass) + 1 == len(cuts)
 
         cuts, mass = self.__clean(cuts, mass)
-        return self.__interpolator__(cuts, mass)
+        return self._interpolator_(cuts, mass)
 
     # <tools for="combine">
     @iterable
@@ -1238,7 +1238,7 @@ class PiecewiseConstant (Interpolator):
             raise apply(ValueError, ('No data to combine', self) + others)
         try: hi = cut.next()
         except StopIteration:
-            return self.__interpolator__((lo, lo), 1)
+            return self._interpolator_((lo, lo), 1)
 
         zero = 0 * mix[0].weight # a zero weight
         live, wait, step, part = [], [], False, zero
@@ -1275,7 +1275,7 @@ class PiecewiseConstant (Interpolator):
             # We should have drained live before trying to step:
             assert not live or live[-1].stop == lo
 
-        return self.__interpolator__(kink, wait)
+        return self._interpolator_(kink, wait)
     # </tools>
 
 del lazyprop, math, iterable, Tuple

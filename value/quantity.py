@@ -418,7 +418,7 @@ class Quantity (Object):
 
         # Initialise self as a Quantity with the thus-massaged arguments:
         self.__scale, self.__units, self.__doc__ = scale, units, doc
-        # Should __addcheck_() what['best'], what['low'] ... if given.
+        # Should __addcheck() what['best'], what['low'] ... if given.
 
     @staticmethod
     def __clean_scale_units(scale, units,
@@ -513,7 +513,7 @@ class Quantity (Object):
         the quantity self represents, while what.__doc__ indicates how that
         value was obtained.\n"""
 
-        self.__scale.update(self.__addcheck_(what, 'observe'))
+        self.__scale.update(self.__addcheck(what, 'observe'))
         if doc is not None: self.document(doc)
         # NB: don't use inherited what.__doc__, it may come from class, albeit not Quantity.
         try: self.document(what.__dict__['__doc__'])
@@ -523,7 +523,7 @@ class Quantity (Object):
     def copy(self, func=None):
         return self.__obcopy(self.__scale.copy(func), self.__units.copy())
 
-    def __cmp__(self, other): return cmp(self.__scale, self.__addcheck_(other, 'compare'))
+    def __cmp__(self, other): return cmp(self.__scale, self.__addcheck(other, 'compare'))
     def _lazy_get__lazy_hash_(self, ignored):
         return reduce(lambda p, (k, v): p ^ v ^ hash(k),
                       self.__units.items(), hash(self.__scale))
@@ -583,7 +583,7 @@ class Quantity (Object):
         result the same units as self, whatever these may be; .copy() makes no
         attempt to check whether what you asked for makes sense ...\n"""
 
-        return self.__quantity__(self._scalar.copy(f), {})
+        return self._quantity_(self._scalar.copy(f), {})
 
     def __float__(self): return float(self._scalar)
     def __long__(self): return long(self._scalar)
@@ -633,7 +633,7 @@ class Quantity (Object):
             return value
 
     # Support for additive functionality:
-    def __addcheck_(self, other, why):
+    def __addcheck(self, other, why):
         """Checks for additive compatibility and unpacks.
 
         Arguments:
@@ -667,13 +667,13 @@ class Quantity (Object):
             from SI import radian
             units.append(radian)
 
-        return self.__quantity__(self.__scale.join(atan, self.__addcheck_(what, 'arcTan2')), radian)
+        return self._quantity_(self.__scale.join(atan, self.__addcheck(what, 'arcTan2')), radian)
 
     def __hypot(self, other, h=math.hypot):
         """Pythagorean sum.
 
         Adds the squares of self and other, returns the sum's square root.\n"""
-        return self.__kin(self.__scale.join(h, self.__addcheck_(other, 'Hypotenuse')))
+        return self.__kin(self.__scale.join(h, self.__addcheck(other, 'Hypotenuse')))
 
     del math
 
@@ -692,21 +692,21 @@ class Quantity (Object):
         return val
 
     # Addition, subtraction and their reverses.
-    def __kin(self,    scale): return self.__quantity__(scale, self.__units)
+    def __kin(self,    scale): return self._quantity_(scale, self.__units)
 
-    def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck_(other, '+'))
-    def __radd__(self, other): return self.__kin(self.__addcheck_(other, '+') + self.__scale)
-    def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck_(other, '-'))
-    def __rsub__(self, other): return self.__kin(self.__addcheck_(other, '-') - self.__scale)
+    def __add__(self,  other): return self.__kin(self.__scale + self.__addcheck(other, '+'))
+    def __radd__(self, other): return self.__kin(self.__addcheck(other, '+') + self.__scale)
+    def __sub__(self,  other): return self.__kin(self.__scale - self.__addcheck(other, '-'))
+    def __rsub__(self, other): return self.__kin(self.__addcheck(other, '-') - self.__scale)
 
     # multiplicative stuff is easier than additive stuff !
     def unpack(other, one=Prodict()):
         # Using try lets an Object that borrow()s from a Quantity work
-        try: return other.__scale_units__()
+        try: return other._scale_units_()
         except AttributeError: pass # not a Quantity
         return other, one
 
-    def __scale_units__(self):
+    def _scale_units_(self):
         """Provide borrowable access to privates.
 
         Object restricts borrowing to public attributes; but this prevents an
@@ -720,24 +720,24 @@ class Quantity (Object):
             return other * self
 
         ot, her = grab(other)
-        return self.__quantity__(self.__scale * ot, self.__units * her)
+        return self._quantity_(self.__scale * ot, self.__units * her)
 
     def __rmul__(self, other, grab=unpack):
         ot, her = grab(other)
-        return self.__quantity__(ot * self.__scale, her * self.__units)
+        return self._quantity_(ot * self.__scale, her * self.__units)
 
     def __div__(self, other, grab=unpack): 
         ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
-        return self.__quantity__(self.__scale / ot, self.__units / her)
+        return self._quantity_(self.__scale / ot, self.__units / her)
     __truediv__ = __div__
 
     def __rdiv__(self, other, grab=unpack, one=Prodict()):
         if isinstance(other, tuple): # assume study.maths.vector.Vector
-            return other * self.__quantity__(1. / self.__scale, one / self.__units)
+            return other * self._quantity_(1. / self.__scale, one / self.__units)
 
         ot, her = grab(other)
-        return self.__quantity__(ot / self.__scale, her / self.__units)
+        return self._quantity_(ot / self.__scale, her / self.__units)
     __rtruediv__ = __rdiv__
 
     # Whole-quotient division and modulus:
@@ -777,14 +777,14 @@ class Quantity (Object):
         wh, at = grab(what)
         if at: raise TypeError('raising to a dimensioned power', what)
 
-        return self.__quantity__(pow(self.__scale, wh), self.__units ** wh)
+        return self._quantity_(pow(self.__scale, wh), self.__units ** wh)
 
     def __rpow__(self, what, mod=None, grab=unpack):
         assert mod is None, "Ternary pow isn't meant to call __rpow__ !"
         if self.__units: raise TypeError('raising to a dimensioned power', self)
 
         wh, at = grab(what)
-        return self.__quantity__(pow(wh, self.__scale), at ** self.__scale)
+        return self._quantity_(pow(wh, self.__scale), at ** self.__scale)
 
     del unpack
 
@@ -809,7 +809,7 @@ class Quantity (Object):
 
     def _lazy_get_dispersal_(self, ignored): return self.__scale.dispersal
     def _lazy_get_variance_(self, ignored):
-        return self.__quantity__(self.__scale.variance, self.__units ** 2)
+        return self._quantity_(self.__scale.variance, self.__units ** 2)
 
     # lazy string and representation lookups:
 
@@ -961,7 +961,7 @@ class Quantity (Object):
     def _unit_order(self, unit): return self.__units[unit]
 
     # Method to override, if needed, in derived classes ...
-    def __quantity__(self, what, units): return self.__class__(what, units)
+    def _quantity_(self, what, units): return self.__class__(what, units)
 
     # Be sure to keep argument defaults in sync with __init__():
     @classmethod

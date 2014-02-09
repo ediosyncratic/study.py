@@ -123,9 +123,9 @@ class recurseprop (docprop):
     __upget = docprop.__get__
     def __get__(self, obj, kind=None):
         # Compute attribute, but protect from recursion:
-        try: check = obj.__recurse_
+        try: check = obj.__recurse
         except AttributeError:
-            check = obj.__recurse_ = {}
+            check = obj.__recurse = {}
 
         try: check[self] # are we in the midst of computing this already ?
         except KeyError: check[self] = None # OK, no problem.

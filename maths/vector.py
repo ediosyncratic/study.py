@@ -64,7 +64,7 @@ class Vector (Tuple):
     each entry successively.\n"""
 
     @classmethod
-    def __vector__(cls, seq):
+    def _vector_(cls, seq):
         """Pseudo-constructor by which derived classes can mimic base.
 
         By default, various methods of this class create objects of the same
@@ -73,7 +73,7 @@ class Vector (Tuple):
         used as entries in the new object, exactly as for Tuple.  If a derived
         class has a new/constructor with a different signature, it should
         over-ride this method to do something sensible; it is always called as
-        vec.__vector__(seq) with vec either a class based on Vector or an
+        vec._vector_(seq) with vec either a class based on Vector or an
         instance of such a class.\n"""
         return cls(seq)
 
@@ -106,7 +106,7 @@ class Vector (Tuple):
         dims = iter(dims) # no-op if dims is already an iterator
         try: n = dims.next()
         except StopIteration: return leaf
-        return cls.__vector__((cls.xerox(dims, leaf),) * n)
+        return cls._vector_((cls.xerox(dims, leaf),) * n)
 
     @classmethod
     def delta(cls, dim, *ns):
@@ -133,14 +133,14 @@ class Vector (Tuple):
         except TypeError:
             assert isinstance(dim, (int, long))
             assert all(isinstance(n, (int, long)) for n in ns)
-            return cls.__vector__([1 if i in ns else 0 for i in range(dim)])
+            return cls._vector_([1 if i in ns else 0 for i in range(dim)])
         except IndexError: return 1 if () in ns else 0
 
         if tail:
-            return cls.__vector__([cls.delta(tail, *[ts[1:] for ts in ns
+            return cls._vector_([cls.delta(tail, *[ts[1:] for ts in ns
                                                      if not ts or ts[0] == i])
                                    for i in range(n)])
-        return cls.__vector__([1 if i in [ n[0] if n else i for n in ns ] else 0
+        return cls._vector_([1 if i in [ n[0] if n else i for n in ns ] else 0
                                for i in range(n)])
 
     @classmethod
@@ -162,7 +162,7 @@ class Vector (Tuple):
         for i, v in enumerate(seq):
             row.append(cls.delta(f(n), f(i)) * v)
 
-        return cls.__vector__(row)
+        return cls._vector_(row)
 
     @classmethod
     def fromSeq(cls, seq, form=None):
@@ -230,7 +230,7 @@ class Vector (Tuple):
                 if form is None: seq = [ cls.fromSeq(s) for s in seq ]
                 else: seq = [ f.fromSeq(s, f) for s, f in zip(seq, form) ]
 
-        return cls.__vector__(seq)
+        return cls._vector_(seq)
 
     @staticmethod
     def __isnumeric(val):
@@ -336,13 +336,13 @@ class Vector (Tuple):
             scale, n = cls.__rat_over(1), dim
             while n > 0: scale, n = scale / n, n - 1
 
-        if dim < 2: return cls.__vector__((scale,) * dim) # boring
+        if dim < 2: return cls._vector_((scale,) * dim) # boring
 
         # Delegate to private method, mainly to isolate its huge theory doc-string !
         return cls.__antisymmetric(dim,
                                    0 * scale,
                                    { tuple(range(dim)): (scale, -scale) },
-                                   cls.__vector__)
+                                   cls._vector_)
 
     def __repr__(self):
         nom = self.__class__.__name__
@@ -362,19 +362,19 @@ class Vector (Tuple):
 
     def __add__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(x + y for x, y in zip(self, other))
+        return self._vector_(x + y for x, y in zip(self, other))
 
     __radd__ = __add__
     def __neg__(self):
-        return self.__vector__(-x for x in self)
+        return self._vector_(-x for x in self)
 
     def __sub__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(x - y for x, y in zip(self, other))
+        return self._vector_(x - y for x, y in zip(self, other))
 
     def __rsub__(self, other):
         assert len(other) == len(self)
-        return self.__vector__(y - x for x, y in zip(self, other))
+        return self._vector_(y - x for x, y in zip(self, other))
 
     def __mul__(self, other):
         if not (self.__isnumeric(other) or
@@ -384,7 +384,7 @@ class Vector (Tuple):
         return self.__mul(other)
 
     def __mul(self, other):
-        return self.__vector__(s * other for s in self)
+        return self._vector_(s * other for s in self)
 
     def __rmul__(self, other):
         if self.__isnumeric(other): return self.__mul(other)
@@ -424,7 +424,7 @@ class Vector (Tuple):
         except AttributeError: pass
         else: key = ks
         if isinstance(key, slice):
-            return self.__vector__(self.__upget(key))
+            return self._vector_(self.__upget(key))
 
         try: key[:]
         except TypeError:
@@ -589,11 +589,11 @@ class Vector (Tuple):
         elif n >= self.rank:
             raise ValueError("Should be less than rank", n, self.rank)
         elif n == 1:
-            return self.__vector__(self[0].mapwith(
-                    lambda *args: args, *self[1:]).map(self.__vector__))
+            return self._vector_(self[0].mapwith(
+                    lambda *args: args, *self[1:]).map(self._vector_))
         elif n == 0: return self
 
-        return self.__vector__(
+        return self._vector_(
             self.transpose().map(lambda v: v.transpose(n-1))).transpose()
 
     def embed(self, route, other=None):
@@ -1214,7 +1214,7 @@ class Namely (Vector):
         good = [ val for val in args if isinstance(val, Vector) ]
         bad = [ val for val in args if val is not None and not isinstance(val, Vector) ]
         if bad:
-            pass
+            pass # TODO: erm ... what's this about ?
 
         # Need an "is" check, not "None in args" which is an == check, in case
         # some entry in args doesn't like to test == None:
@@ -1230,7 +1230,7 @@ class Namely (Vector):
         return cls.__upnew(cls, args)
 
     @classmethod
-    def __vector__(cls, seq): return cls(*tuple(seq))
+    def _vector_(cls, seq): return cls(*tuple(seq))
 
     def __repr__(self):
         seq, byname, index = [], [], []

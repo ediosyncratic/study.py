@@ -150,7 +150,7 @@ class Permutation (Tuple, Cached):
     permute = __call__
 
     @classmethod
-    def __permutation__(cls, what):
+    def _permutation_(cls, what):
         """Pseudo-constructor for derived classes to over-ride if needed.
 
         Used by instance methods of this class to build new instances of this
@@ -222,7 +222,7 @@ class Permutation (Tuple, Cached):
         # The .isa() check on construction ensures the last and next assertions.
         assert None not in ans
 
-        ans = self.__permutation__(ans)
+        ans = self._permutation_(ans)
         assert ans(self) == range(len(self)) == self(ans)
         assert ans == order(self)
         assert ans.sign == self.sign

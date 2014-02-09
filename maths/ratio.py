@@ -136,17 +136,17 @@ class Rational (Cached):
         return float(num) / den
 
     @classmethod
-    def __rational__(cls, num, den):
+    def _rational_(cls, num, den):
         return cls(num, den)
 
     def __nonzero__(self): return self.__ratio[0] != 0
     def __pos__(self): return self
     def __neg__(self):
         num, den = self.__ratio
-        return self.__rational__(-num, den)
+        return self._rational_(-num, den)
     def __abs__(self):
         num, den = self.__ratio
-        return self.__rational__(abs(num), den)
+        return self._rational_(abs(num), den)
 
     def __long__(self):    return long(self.truncate)
     def __int__(self):     return self.truncate
@@ -157,7 +157,7 @@ class Rational (Cached):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(num * q + p * den, den * q)
+        return self._rational_(num * q + p * den, den * q)
 
     __radd__ = __add__
 
@@ -165,19 +165,19 @@ class Rational (Cached):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(num * q - p * den, den * q)
+        return self._rational_(num * q - p * den, den * q)
 
     def __rsub__(self, other):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(den * p - q * num, q * den)
+        return self._rational_(den * p - q * num, q * den)
 
     def __mul__(self, other):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(num * p, den * q)
+        return self._rational_(num * p, den * q)
 
     __rmul__ = __mul__
 
@@ -185,14 +185,14 @@ class Rational (Cached):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(num * q, den * p)
+        return self._rational_(num * q, den * p)
     __div__ = __truediv__
 
     def __rtruediv__(self, other):
         num, den = self.__ratio
         try: p, q = other.__ratio
         except AttributeError: p, q = other, 1
-        return self.__rational__(p * den, q * num)
+        return self._rational_(p * den, q * num)
     __rdiv__ = __rtruediv__
 
     def __floordiv__(self, other): return self.__truediv(other).floor
@@ -203,7 +203,7 @@ class Rational (Cached):
 
     def __pow__(self, count, mod=None):
         num, den = self.__ratio
-        ans = self.__rational__(num**count, den**count)
+        ans = self._rational_(num**count, den**count)
         if mod is None: return ans
         return ans % mod
 

@@ -23,7 +23,7 @@ class PrimeSlice (Iterable):
         # actually, that's sort of redundant, since this would do the same:
         return self.__boss[self.__slice[key]]
 
-    def __ontains__(self, value):
+    def __contains__(self, value):
         # TODO: make this more efficient ! e.g. binary chop ?
         step = self.__slice.step
 

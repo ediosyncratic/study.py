@@ -58,7 +58,7 @@ class _baseWeighted:
     what Sample actually uses. """
 
     @classmethod
-    def __weighted__(cls, *args, **what):
+    def _weighted_(cls, *args, **what):
         """Method to over-ride to match common constructor signature"""
         return cls(*args, **what)
 
@@ -200,15 +200,15 @@ class curveWeighted (Lazy, _baseWeighted):
 
                 if low is not None: cuts, mass = (low,) + cuts, (way,) + mass
                 if high is not None: cuts, mass = cuts + (high,), mass + (way,)
-                return self.__interpolator__(cuts, mass)
+                return self._interpolator_(cuts, mass)
 
             # else: ignore share - low and high shall be our only points !
             if high is None:
                 if low is None: return self
-                return self.__interpolator__((low, low), 1)
+                return self._interpolator_((low, low), 1)
 
-            if low is None: return self.__interpolator__((high, high), 1)
-            return self.__interpolator__((low, high), 1)
+            if low is None: return self._interpolator_((high, high), 1)
+            return self._interpolator_((low, high), 1)
 
         @classmethod
         def gaussian(cls, mean=0, variance=1, count=None, fudge=1.082):
@@ -530,7 +530,7 @@ class joinWeighted (curveWeighted):
             if prod.total <= 0: prod = gaus.scale()
             else: prod += gaus.scale(to = 1 - prod.total)
 
-        return self.__weighted__(None, smooth=prod).condense(
+        return self._weighted_(None, smooth=prod).condense(
             max(self.__detail, other.__detail))
 
     def condense(self, count=None, middle=lambda i: i.median()):
@@ -540,7 +540,7 @@ class joinWeighted (curveWeighted):
         in the result (default: None).  None is taken to mean the level of
         detail specified for self when it was created.
 
-        Returns a self.__weighted__() whose keys are: the highest and lowest
+        Returns a self._weighted_() whose keys are: the highest and lowest
         of self, and; count-1 points in between, roughly evenly-spaced as to
         self's weight between them.  The weight of each of these points is
         based on carving up self's weights according to who's nearest.\n"""
@@ -557,7 +557,7 @@ class joinWeighted (curveWeighted):
         cuts = smooth.split([ 0, 1 ] + [ 2 ] * count + [ 1, 0 ])
         mass = smooth.weigh(cuts)
         assert 1e-6 * smooth.total > max(mass[0], mass[-1]), (cuts, mass, smooth)
-        return self.__weighted__(None,
+        return self._weighted_(None,
                                  smooth=self.Interpolator(cuts, mass[1:-1]))
 
     def combine(self, other, func, count=None):
@@ -594,7 +594,7 @@ class joinWeighted (curveWeighted):
         centre of each rectangle.\n"""
 
         if not isinstance(other, _baseWeighted):
-            other = self.__weighted__(other)
+            other = self._weighted_(other)
 
         mix = self.interpolator.combine(func, other.interpolator)
 
@@ -609,14 +609,14 @@ class joinWeighted (curveWeighted):
 
         try: mix = mix.scale() # normalise
         except ValueError: pass
-        ans = self.__weighted__(None, smooth=mix)
+        ans = self._weighted_(None, smooth=mix)
         ans.interpolator = mix
         return ans
 
     # Comparison: which is probably greater ?
     def __cmp__(self, other):
         if not isinstance(other, _baseWeighted):
-            other = self.__weighted__(other)
+            other = self._weighted_(other)
 
         return cmp(self.interpolator, other.interpolator)
 
@@ -876,7 +876,7 @@ class Sample (Object):
     _unborrowable_attributes_ = Object._unborrowable_attributes_ + ('best',)
 
     # Sub-classes can use bolt-in replacements for Weighted ...
-    def _weighted_(self, weights, scale=None, smooth=None, cls=Weighted):
+    def _weights_(self, weights, scale=None, smooth=None, cls=Weighted):
         if scale is None:
             try: weights[:]
             except TypeError:
@@ -945,9 +945,9 @@ class Sample (Object):
 
         # Finished massaging inputs: initialise self.
         self.__upinit(*args, **what)
-        weights = self._weighted_(weights)
+        weights = self._weights_(weights)
         if what.has_key('low') or what.has_key('high'):
-            self.__weigh = self._weighted_(
+            self.__weigh = self._weights_(
                 None,
                 smooth=weights.interpolator.reach(
                     what.get('low', None), what.get('high', None)))
@@ -1045,7 +1045,7 @@ class Sample (Object):
         try: self.__weigh
         except AttributeError:
             assert hit
-            self.__weigh = self._weighted_(self.__best)
+            self.__weigh = self._weights_(self.__best)
 
         # If we changed anything, invalidate lazy attributes
         if hit:

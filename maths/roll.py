@@ -70,7 +70,7 @@ class Spread (Dict, Cached):
     @classmethod
     def uniform(cls, seq):
         "Represents a uniform distribution on the given sequence of values"
-        ans = cls.__iterdict__()
+        ans = cls._iterdict_()
         for i in seq: ans[i] += 1
         return ans.freeze()
 
@@ -252,7 +252,7 @@ class Spread (Dict, Cached):
         if isinstance(other, Spread):
             return self.join(binop, self, other)
 
-        ans = self.__iterdict__()
+        ans = self._iterdict_()
         for (k, v) in self.iteritems().map(
             lambda (k, v), o=other, b=binop: (b(k, o), v)):
             ans[k] += v
@@ -307,7 +307,7 @@ class Spread (Dict, Cached):
         return self.map(lambda k, a=start, o=stop: max(min(k, o), a))
 
     def filter(self, test):
-        ans = self.__iterdict__()
+        ans = self._iterdict_()
         for k, v in self.iteritems():
             if test(k): ans[k] = v
         return ans.freeze()
@@ -360,7 +360,7 @@ class Spread (Dict, Cached):
 
         if func is None: func = cls.__tor
         assert what
-        ans = cls.__iterdict__()
+        ans = cls._iterdict_()
         for t, n in cls.cartesian(*what).map(lambda (k, v): (k, v.product())):
             if n: ans[func(*t)] += n
         return ans.freeze()
