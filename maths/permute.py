@@ -90,9 +90,9 @@ class Permutation (Tuple, Cached):
         sequence.  Raises ValueError otherwise; see .isa() if you only want to
         test validity.  For convenience constructors, see .identity() and
         .fromSwaps().\n"""
+        perm = tuple(perm) # so we only read perm once, in case it's an iterator.
         if not cls.isa(perm):
             raise ValueError('Is not a permutation', perm)
-
         return cls.__upnew(cls, perm)
 
     @classmethod
@@ -287,14 +287,16 @@ class Permutation (Tuple, Cached):
         reuse the collection to do this for many sequences of the same length.\n"""
 
         check = range(len(seq))
-        for i in seq:
-            try: seq[i]
-            except (IndexError, TypeError): # entry that doesn't belong
-                return False
+        try:
+            for i in seq:
+                seq[i] # IndexError on bad entry or TypeError on bad seq
 
-            if i < 0 or check[i] is None: # negative or duplicate
-                return False
-            check[i] = None
+                if i < 0 or check[i] is None: # negative or duplicate
+                    return False
+                check[i] = None
+
+        except (IndexError, TypeError): # entry that doesn't belong
+            return False
 
         return all(x is None for x in check) # we did hit each entry
 
@@ -383,24 +385,24 @@ class Permutation (Tuple, Cached):
         while True:
             yield cls(row)
 
-            i = size -1
+            i = size - 1
             while i > 0 and row[i-1] > row[i]: i -= 1
             if not i: # row is entirely in decreasing order
                 raise StopIteration # yielded all permutaitons already
 
-            i, j = i-1, size -1
+            i, j = i - 1, size - 1
 
             # row[i+1:] is in decreasing order but row[i] < row[i+1]
             # Find smallest row[j] > row[i] with j > i:
-            while row[j] < row[i]: j = j-1
+            while row[j] < row[i]: j = j - 1
             # swap i <-> j:
             row[j], row[i] = row[i], row[j]
 
             # row[i+1:] is still in decreasing order: reverse it
-            i, j = 1+i, size -1
+            i, j = 1 + i, size - 1
             while i < j:
                 row[j], row[i] = row[i], row[j]
-                i, j = 1+i, j-1
+                i, j = 1 + i, j - 1
 
     # TODO: devise an alternate-order iterator which ensures each index appears
     # in each position roughly once per n steps.  Useful, e.g., for a "taking
