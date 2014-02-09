@@ -192,12 +192,13 @@ class Iterable (object):
     def __descartes(o, r=((),)): # helper for __renee()
         """Iterate over product of o with r.
 
-        Required argument, o, is an iteratble (and not an iterator).  Optional
-        argument, r, defaults to ((),), a sequence whose sole entry is the
-        empty tuple; if given, it should be an iterable (it may be an
-        iterator: it is fully iterated exactly once) over tuples.  For each
-        tuple in r, this method yields each result of adding an entry in o to
-        the start of the tuple.\n"""
+        Required argument, o, is an iterable (and not an iterator).  Optional
+        argument, r, defaults to ((),), a sequence whose sole entry is the empty
+        tuple; if given, it should be an iterable (it may be an iterator: it is
+        fully iterated exactly once) over tuples.  For each tuple in r, this
+        method yields each result of adding an entry in o to the start of the
+        tuple.  Thus the default for r yields one-tuples, wrapping each entry of
+        o in one such tuple.\n"""
         for em in r:
             for it in o:
                 yield (it,) + em
@@ -223,17 +224,20 @@ class Iterable (object):
         subsequent argument; func shall be called on each and must return an
         iterable that can be repeatedly iterated.  It is important that func's
         return *not* be an iterator, as it is apt to be iterated repeatedly (and
-        an iterable would be exhausted after the first time).  Let seq refer to
-        the returns from func, called on each subsequent argument; each yield of
-        the returned iterator is a Tuple res for which res[i] is an entry in
-        seq[i]; and every such tuple arises.  Thus the iterable returned by this
-        method has, as number of entries, the product of the numbers of entries
-        in the various iterables in seq.
+        an iterable would be exhausted after the first time).
+
+        Let seq refer to the returns from func, called on each subsequent
+        argument; each yield of the returned iterator is a Tuple res for which
+        res[i] is an entry in seq[i] (so res's length is the number of arguments
+        following func); and every such tuple arises.  Thus the iterable
+        returned by this method (via .__iterable__(), so that derived classes can
+        tweak its details) has, as number of entries, the product of the numbers
+        of entries in the various iterables in seq.
 
         Example: Iterable.cartesian(range, 4, 4, 4, 4, 4) yields every tuple, of
-        length five, whose entries are in range(4); Iterable.cartesian(range,
-        *((7,)*7)) yields every tuple, of length seven, whose entries are drawn
-        from range(7).\n"""
+        length five (there were five 4s), whose entries are in range(4);
+        Iterable.cartesian(range, *((n,)*m)) yields every tuple, of length m,
+        whose entries are drawn from range(n).\n"""
         return cls.__iterable__(cls.__renee(func, *whom)).map(Tuple)
 
 class WrapIterable (Iterable):
