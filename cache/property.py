@@ -86,12 +86,12 @@ class lazyprop (propstore, recurseprop):
         self.__upinit(getit, setit, delit, doc)
 
     __upget = recurseprop.__get__
-    def __get__(self, obj, kind=None):
+    def __get__(self, obj, cls=None):
         # Do the lazy lookup:
         bok = self.cache(obj)
         try: ans = bok[self]
         except KeyError:
-            bok[self] = ans = self.__upget(obj, kind)
+            bok[self] = ans = self.__upget(obj, cls)
 
         return ans
 
@@ -106,8 +106,8 @@ class lazyattr (dictattr, lazyprop):
 
     __lget = lazyprop.__get__
     __dget = dictattr.__get__
-    def __get__(self, obj, kind=None):
-        try: return self.__dget(obj, kind)
-        except AttributeError: return self.__lget(obj, kind)
+    def __get__(self, obj, cls=None):
+        try: return self.__dget(obj, cls)
+        except AttributeError: return self.__lget(obj, cls)
 
 del docprop, recurseprop, dictattr

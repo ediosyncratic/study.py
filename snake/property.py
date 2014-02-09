@@ -14,7 +14,6 @@ work as decorators to turn a function into the setter or deleter of the
 property in question.  Do I want to over-ride these methods in some cases ?
 Can I re-work dictattr to over-ride them instead of doing what it presently
 does with .__set and .__del ?
-TODO: are the kind=None bits redundant ?
 """
 
 class docprop (property):
@@ -42,8 +41,8 @@ class docprop (property):
         def __init__(self, group, index):
             self.__all = group
             self.__ind = index
-        def __get__(self, obj, kind=None):
-            return self.__all.__get__(obj, kind)[self.__ind]
+        def __get__(self, obj, cls=None):
+            return self.__all.__get__(obj, cls)[self.__ind]
 
     @classmethod
     def group(cls, count, hvert=each):
@@ -62,7 +61,7 @@ class docprop (property):
         docprop), in an imagined sequence-of-numeric class:
 
             @lazyprop.group(2)
-            def variance(self, kind=None):
+            def variance(self):
                 tot = totsq = 0.
                 for it in self:
                     tot += it
@@ -128,7 +127,7 @@ class recurseprop (docprop):
     be initiated by such an attempt.\n"""
 
     __upget = docprop.__get__
-    def __get__(self, obj, kind=None):
+    def __get__(self, obj, cls=None):
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse
         except AttributeError:
@@ -139,7 +138,7 @@ class recurseprop (docprop):
         check.add(self)
 
         # Do the actual computation:
-        try: return self.__upget(obj) # might AttributeError
+        try: return self.__upget(obj, cls) # might AttributeError
         finally: check.discard(self)
 
 class dictattr (recurseprop):
@@ -181,9 +180,7 @@ class dictattr (recurseprop):
         obj.__dict__[self.__name__] = val
 
     __upget = recurseprop.__get__
-    def __get__(self, obj, kind=None):
-        try:
-            if obj is None: return kind.__dict__[self.__name__]
-            else: return obj.__dict__[self.__name__]
+    def __get__(self, obj, cls=None):
+        try: return obj.__dict__[self.__name__]
         except KeyError: pass
-        return self.__upget(obj, kind)
+        return self.__upget(obj, cls=None)
