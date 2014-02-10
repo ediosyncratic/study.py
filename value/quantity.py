@@ -405,11 +405,12 @@ class Quantity (Object):
             except (TypeError, AttributeError): row = [ scale ]
 
             for val in sample:
-                if val.__units != units:
+                sc, un = val._scale_units_()
+                if un != units:
                     raise TypeError('Sample of wrong dimensions', val, units)
 
-                if row: row.append(val.__scale)
-                else: new.update(val.__scale)
+                if row: row.append(sc)
+                else: new.update(sc)
 
             if row: scale = qSample(row)
             else: scale = new
@@ -435,13 +436,13 @@ class Quantity (Object):
         name-space, some day; and it also makes __init__ easier to read.)\n"""
 
         # Using try allows Object()s that borrow() from Quantity()s work.
-        try: u, s = units.__units, units.__scale
+        try: s, u = units._scale_units_()
         except AttributeError: pass
         else:
             if isinstance(s, scalartypes) and s == 1: units = u
             else: scale, units = scale * s, u
 
-        try: u, s = scale.__units, scale.__scale
+        try: s, u = scale._scale_units_()
         except AttributeError:
             if not isinstance(units, Bok): units = Bok(units)
         else: units, scale = u * units, s
@@ -625,9 +626,10 @@ class Quantity (Object):
         # means dimensioned - and similar is needed for equality comparisons.
 
         try:
-            if value.__units != units:
+            scale, un = value._scale_units_()
+            if un != units:
                 raise TypeError(value._unit_str)
-            return value.__scale
+            return scale
         except AttributeError:
             if units: raise TypeError()
             return value
@@ -990,7 +992,7 @@ class Quantity (Object):
         range of distances (that light travels between the given periods of
         time).\n"""
 
-        try: un, lo = lo.__units, lo.__scale
+        try: lo, un = lo._scale_units_()
         except AttributeError: un = {}
         else: units = un * units
 
@@ -1035,7 +1037,7 @@ class Quantity (Object):
         All other arguments (positional, starting with doc, or keyword) are
         forwarded to .flat(), hence possibly to Quantity().\n"""
 
-        try: un, top = top.__units, top.__scale
+        try: top, un = top._scale_units_()
         except AttributeError: pass
         else: units = un * units
 
@@ -1182,7 +1184,7 @@ class Quantity (Object):
         All other arguments (positional, starting with doc, or keyword) are
         forwarded to .flat(), hence possibly to Quantity().\n"""
 
-        try: un, scale = best.__units, best.__scale
+        try: scale, un = best._scale_units_()
         except AttributeError: scale = best
         else: units, best = un * units, scale
 
@@ -1216,7 +1218,7 @@ class Quantity (Object):
         All other arguments (positional, starting with doc, or keyword) are
         forwarded to Quantity().\n"""
 
-        try: un, mid = best.__units, best.__scale
+        try: mid, un = best._scale_units_()
         except AttributeError: un, mid = {}, best
         else: units = un * units
         sigma = cls.__get_scale(sigma, un)
