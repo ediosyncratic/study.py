@@ -27,6 +27,8 @@ def aslookup(whom):
 
     return lambda k, __w=whom: getattr(__w, k)
     # which coincides with how an Object behaves as a callable.
+# In theory, it might be worth calling whom.__getattr__ if that doesn't come
+# fromits class, since getattr() bypassed this.
 
 from study.snake.lazy import Lazy
 
@@ -40,13 +42,21 @@ class Object (Lazy):
       also(name=value, ...) -- perform assignment in the object's namespace
 
       borrow(lookup) -- arranges for object's attribute lookup to try the given
-      lookup among others.  If the lookup isn't a callable of the right kind for
-      use as a lookup, it is taken to be an object on which attribute lookup
-      should be performed to achieve lookup.
+                        lookup among others.  If the lookup isn't a callable of
+                        the right kind for use as a lookup, it is taken to be an
+                        object on which attribute lookup should be performed to
+                        achieve lookup.
 
     along with a __call__ method which ensures that an Object is a callable of
     the right kind to be used as a lookup - this method just does attribute
     lookup on the object.
+
+    Note that borrow() doesn't give access to private names (those starting, but
+    not ending, with '__'); and builtins that call a magic method of an object
+    do so by asking its class, not by asking the object directly; thus, for
+    example, x.__mul__(y) can work where x * y won't, if x borrowed its .__mul__
+    rather than getting it from its own class.  This can present problems when
+    an object borrows from a value that supports (for example) arithmetic.
 
     Inherits from Lazy and supports an attribute, dir, which is a copy of the
     object's namespace dictionary, omitting names which start with '_'. """
@@ -96,8 +106,14 @@ class Object (Lazy):
         added after all lookups supplied to initialisation, but before self's
         own lazy infrastructure. """
 
-        # Observation: hijacking self.__getattr__ doesn't fool getattr() !
-        # i.e., it'll still ask class's __getattr__, ignoring self's.
+        # Note: setting self.__getattr__ won't work, due to the special handling
+        # of magic methods mentioned in class doc - getattr() uses
+        # self.__class__.__getattr__(self, key) instead of using
+        # self.__getattr__ as such.  Fortunately, Lazy.__getattr__ calls
+        # self._lazy_lookup_ as such, so we can hijack that instead.  TODO:
+        # re-write to have a __getattr__ on this class that removes reliance on
+        # that - I want to retire Lazy - but be sure to catch recursive calls,
+        # which Lazy presently handles.
 
         try: aliases = what['lazy_aliases']
         except KeyError: self.__upinit()
@@ -107,19 +123,21 @@ class Object (Lazy):
 
         self.also(**what)
 
-        # now we prepare to replace self's lazy lookup method with one which
+        # Now we prepare to replace self's lazy lookup method with one which
         # remembers to call the original before it's finished.
         row = list(lookups) + [ self._lazy_lookup_ ]
 
-        def borrow(where, _row=row):
-            _row.insert(-1, aslookup(where))
+        def borrow(where, r=row):
+            r.insert(-1, aslookup(where))
 
-        def getit(key, _row=row, _inalien=self._unborrowable_attributes_):
-            if key in _inalien or ( # Don't borrow if unborrowable
-                # or if private (but magic doesn't count as private):
-                key[:1] == '_' and not (key[:2] == '__' == key[-2:])):
-                row = (_row[-1],)
-            else: row = _row
+        def getit(key, r=row, inalien=self._unborrowable_attributes_):
+            # Don't borrow if unborrowable or if private (but magic doesn't
+            # count as private):
+            if key in inalien or (key.startswith('__') and not key.endswith('__')):
+                row = (r[-1],) # retain only the original _lazy_lookup_
+            else: row = r
+            # Note, however, that Quantity relies on ._scale_units_() being
+            # borrow()ed successfully, so don't block on key[:1] == '_'.
 
             for item in row:
                 try: return item(key)
@@ -147,8 +165,10 @@ class Object (Lazy):
 
     _borrowed_value_ = ()
 
-    # make a value be, at the same time, a lookup ...
     # :^( sadly __call__ = getattr doesn't work )^:
-    def __call__(self, key): return getattr(self, key)
-    # ... which curries self as getattr's first argument.
-    # Then we can borrow from it.
+    def __call__(self, key):
+        """Make each Object callable as a lookup.
+
+        This curries self as getattr's first argument, enabling us to .borrow()
+        from self.\n"""
+        return getattr(self, key)
