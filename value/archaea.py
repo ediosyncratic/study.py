@@ -670,18 +670,6 @@ pressure.  Since the heat capacity of water varies with temperature, this
 definition leads to various actual values for the unit, depending on the
 chosen temperature at which to measure, or range of temperatures over which to
 average.
-
-Water is at its densest at 4 Celsius and also has its highest heat capacity
-there, 4.204 J/K/kg, giving rise to the largest of the range of units known as
-the calorie, the 4-degree calorie, measured for a rise from 3.5 to 4.5
-Centigrade.  The heat capacity of water decreases, via (4.1855 +/- .0005)
-J/K/kg between 14.5 and 15.5 Centigrade, reaching 4.182 J/K/kg between 19.5
-and 20.5 Centigrade
-
-See calorie.nutritional, .thermochemical and .international for particular
-values selected, from among the available candidates, by standards bodies.
-In contrast, calorie.short and .long represent the range of values seen
-between 4 and 20 centigrade.
 """)
 
 calorie = Object(_short,
@@ -702,8 +690,17 @@ avoid using these units entirely, especially as they're deprecated by SI
 temperature at which it's to be taken, despite its variation with
 temperature).
 
-Some values used here are taken from python's
-Scientific.Physics.PhysicalQuantities module.
+Water is at its densest at 4 Celsius and also has its highest heat capacity
+there, 4.204 J/K/kg, giving rise to the largest of the range of units known as
+the calorie, the 4-degree calorie, measured for a rise from 3.5 to 4.5
+Centigrade.  The heat capacity of water decreases, via (4.1855 +/- .0005)
+J/K/kg between 14.5 and 15.5 Centigrade, reaching 4.182 J/K/kg between 19.5
+and 20.5 Centigrade
+
+See calorie.nutritional, .thermochemical and .international for particular
+values selected, from among the available candidates, by standards bodies.
+In contrast, calorie.short and .long represent the range of values seen
+between 4 and 20 centigrade.
 
 Note that using the Celsius degree (defined as one percent of the interval
 between the boiling and freezing temperatures of water) and asking for the
@@ -717,6 +714,9 @@ unit of length, in conjunction with the second, would suffice, yielding
 c. 2720000 cubic metres as unit of volume; a body of water with volume one
 millionth of this would thus have mass around 272 kg, which we could use to
 complete a system of units based on the second and properties of water.
+
+Some values used here are taken from python's
+Scientific.Physics.PhysicalQuantities module.
 """,
                  mean = Quantity(4.19, Joule,
                                         """The mean calorie.
@@ -763,7 +763,7 @@ Calorie = calorie.long
 Clausius = Quantity.unit(1, Calorie / Kelvin, # the heat capacity of a kg of water.
                          "Cl", "Clausius",
                          "Clausius's original unit of entropy.")
-frigorie = calorie / hour # Rate of transfer of heat (in refrigeration).
+frigorie = calorie.short / hour # Rate of transfer of heat (in refrigeration).
 
 # Anglophone units of energy:
 CHU = calorie.short * pound / gram # don't know what CHU stands for ! (KDWB)
