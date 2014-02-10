@@ -1145,9 +1145,9 @@ class Sample (Object):
         try: bok = what.__weigh
         except AttributeError, prior:
             try: return { what: 1 }, what
-            except AttributeError, given:
-                raise apply(AttributeError,
-                            (prior.args + given.args + (what,)))
+            except AttributeError as given:
+                given.args = prior.args + given.args + (what,)
+                raise
         return bok, what.best
 
     def join(self, func, what, grab=extract):

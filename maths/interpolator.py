@@ -424,10 +424,9 @@ class Interpolator (Cached):
         intervals.  (Intervals with zero weight are skipped, using .filter(),
         so each box should have non-zero weight.)  These yields are the atoms
         from which combine() must build up its results.\n"""
-        return apply(cls.__munge,
-                     (tuple,) + tuple(x.filter() for x in whom)
-                     ).map(lambda ts: (tuple(ts.map(lambda x: x[:-1])),
-                                       ts.map(lambda x: x[-1]).product()))
+        return cls.__munge(tuple, *tuple(x.filter() for x in whom)
+                           ).map(lambda ts: (tuple(ts.map(lambda x: x[:-1])),
+                                             ts.map(lambda x: x[-1]).product()))
 
     # API to be implemented by derived classes:
 
@@ -946,8 +945,8 @@ class PiecewiseConstant (Interpolator):
         """Kludge round divide-by-zero errors.
 
         First argument, f, is a function; second is a tuple of arguments
-        suitable for passing to it, as apply(f, xs); third is another tuple,
-        ys, of partners for the xs, for use if that divides by zero.
+        suitable for passing to it, as f(*xs); third is another tuple, ys, of
+        partners for the xs, for use if that divides by zero.
 
         Consider (first) the simple case of f(x) = 1/x with x = 0; you call
         this function as single(f, (x,), (y,)), where we're interested in f's
@@ -980,7 +979,7 @@ class PiecewiseConstant (Interpolator):
         nothing, we can try substituting in each possible pair of parameters;
         and so on for steadily more parameters substituted.  If substituting
         for all parameters still fails, fall back on actually re-raising the
-        divide-by-zero error we originally got from apply(f, xs).\n"""
+        divide-by-zero error we originally got from f(*xs).\n"""
 
         assert len(xs) == len(ys)
         first = True # defer adjusting ys; we probably don't need to
@@ -990,8 +989,7 @@ class PiecewiseConstant (Interpolator):
             row = []
             for ks in seq:
                 assert set(ks).issubset([0, 1])
-                try: row.append(apply(
-                        f, ks.mapwith(lambda k, *vs: vs[k], xs, ys)))
+                try: row.append(f(*ks.mapwith(lambda k, *vs: vs[k], xs, ys)))
                 except ZeroDivisionError, err: pass
 
             # Use average over first size to give any results:
@@ -1057,8 +1055,8 @@ class PiecewiseConstant (Interpolator):
                     bad += more(bad, what.args)
 
         if len(row) < 2:
-            if not bad: bad = ('Division by zero',)
-            raise apply(ZeroDivisionError, bad + ('calling', f, 'on', box))
+            bad = (bad or ('Division by zero',)) + ('calling', f, 'on', box)
+            raise ZeroDivisionError(*bad)
         return row
     del slices, single, morebad
 
@@ -1200,8 +1198,7 @@ class PiecewiseConstant (Interpolator):
         row = each(f, box)
 
         if len(row) < 2:
-            raise apply(ZeroDivisionError,
-                        bad + ('calling', f, 'on', (a, b), (x, y)))
+            raise ZeroDivisionError('calling', f, 'on', (a, b), (x, y))
         all = set(row)
         if len(all) == 1: cls, row = form[0], tuple(all)
         else:
@@ -1235,7 +1232,7 @@ class PiecewiseConstant (Interpolator):
         cut = iter(kink)
         try: lo = cut.next()
         except StopIteration:
-            raise apply(ValueError, ('No data to combine', self) + others)
+            raise ValueError('No data to combine', self, *others)
         try: hi = cut.next()
         except StopIteration:
             return self._interpolator_((lo, lo), 1)
