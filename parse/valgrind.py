@@ -173,7 +173,7 @@ class Issue (object):
                 if isinstance(ans, tuple): return ans
                 return ans, 0
 
-        assert address is None, (text, stack, address)
+        assert address is None, text
         return cls._cache_(cls.__known, stack, text), 0
 
     @classmethod
@@ -373,7 +373,7 @@ class Leak (Issue):
             if not it: raise ParseError('No byte-total on leak-line', text)
             routes = [asint(x) for x in it.groups()]
             total, routes = routes[0], tuple(routes[1:])
-            assert total == sum(routes)
+            assert total == sum(routes), text
         else: routes = (asint(it.group(1)), 0)
         text = text[it.end():].strip()
 
@@ -423,7 +423,7 @@ class Leak (Issue):
     __known = {}
     @classmethod
     def get(cls, text, stack, address):
-        assert address is None
+        assert address is None, text
         sure, routes, count, index, total = cls.__parse(text)
         return cls._cache_(cls.__known, stack, text, sure, routes, count, index), total
 
@@ -565,7 +565,7 @@ class MemCheck (object):
                     else: stack = None
 
                 if addr:
-                    assert stanza
+                    assert stanza, line
                     addr = MemoryChunk.get(addr, stack)
                     items.append(addr)
                     stack, mode = prior # restore normal parsing
@@ -574,11 +574,11 @@ class MemCheck (object):
                 if stanza:
                     block, n = Issue.get(stanza, stack, addr)
                     if count is None: count = n
-                    else: assert count == n
+                    else: assert count == n, line
                     items.append(block)
 
                     if terminal:
-                        assert isinstance(terminal, basestring)
+                        assert isinstance(terminal, basestring), line
                         terminal, signal = Terminal(terminal, signal, block, addr), None
 
                     addr = stanza = None
@@ -592,13 +592,13 @@ class MemCheck (object):
                 # tolerating this rather than uglify code.
             elif thread(line): pass # ignore Thread lines.
             elif line.startswith('Process terminating'):
-                assert terminal is None
+                assert terminal is None, line
                 terminal = line
                 it = died(line)
                 if not it: raise ParseError('Unfamiliar termination', line, lineno=n)
                 signal = int(it.group(1)), it.group(2)
             elif line.startswith('Address'):
-                assert addr is None and stanza
+                assert addr is None and stanza, line
                 prior = Stack.get(stack), mode # stash while parsing allocation block
                 addr, stack, mode = line, [], 'Address block for ' + mode
             elif stanza or addr: # read stack-frame line:
@@ -666,7 +666,7 @@ class MemCheck (object):
         except GeneratorExit:
             raise ParseError('Incomplete, missing or unterminated leak summary',
                              lineno = n)
-        assert not line
+        assert not line, line
         dest[:] = [ LeakSummary(*data) ]
 
     del leaksum
@@ -806,16 +806,16 @@ class MemCheck (object):
             if p != pid:
                 try: munch = partial[p]
                 except KeyError:
-                    assert not final.has_key(p)
+                    assert not final.has_key(p), line
                     munch = partial[p] = cls.__muncher(final, fatal, p, command)
                     munch.next()
                 pid = p
 
             try: munch.send((n, line))
             except StopIteration:
-                assert final.has_key(pid)
+                assert final.has_key(pid), line
                 try: del partial[pid]
-                except KeyError: assert munch is None
+                except KeyError: assert munch is None, line
                 else: munch = None
 
         n += 1
