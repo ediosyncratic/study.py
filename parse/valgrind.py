@@ -498,6 +498,7 @@ class MemCheck (object):
         return saved
 
     def __ditch(self, frame, dump, leak=True, each=None):
+        if isinstance(leak, Issue): leak = isinstance(leak, Leak)
         return self.__frame_out(self.leaks if leak else self.issues, frame, dump, each)
 
     def repair(self, frame, leak=True):
