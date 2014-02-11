@@ -573,9 +573,9 @@ class MemCheck (object):
                     del prior
 
                 if stanza:
-                    block, n = Issue.get(stanza, stack, addr)
-                    if count is None: count = n
-                    else: assert count == n, line
+                    block, m = Issue.get(stanza, stack, addr)
+                    if count is None: count = m
+                    else: assert count == m, line
                     items.append(block)
 
                     if terminal:
