@@ -197,7 +197,7 @@ class UMR (Issue):
         MemoryChunk.disuse(self)
 
 Issue.register(UMR, lambda x: x.startswith('Invalid read of size'))
-Issue.register(UMR, lambda x: 0 <= x.find('uninitialized value'))
+Issue.register(UMR, lambda x: 0 <= x.find('uninitialised value'))
 Issue.register(UMR, re.compile(
         r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match)
 
