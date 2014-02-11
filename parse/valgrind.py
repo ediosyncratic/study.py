@@ -15,9 +15,16 @@ def readint(text): return int(''.join(text.split(',')))
 
 class Source (object):
     def __init__(self, sfile, line=None):
+        assert sfile
         self.source = sfile
         if line is not None: self.line = line
         self.frames = set() # TODO: need a weakset()
+
+    def __repr__(self):
+        try: n = self.line
+        except AttributeError:
+            return self.source
+        return ':'.join([self.source, str(n)])
 
     def __hash__(self):
         ans = hash(self.source)
@@ -25,7 +32,13 @@ class Source (object):
         except AttributeError: return ans
         return ans ^ hash(line)
 
+    def __rcmp__(self, other):
+        if other is None: return -1
+        return (cmp(other.source, self.source) or
+                cmp(getattr(other, 'line', None), getattr(self, 'line', None)))
+
     def __cmp__(self, other):
+        if other is None: return +1
         return (cmp(self.source, other.source) or
                 cmp(getattr(self, 'line', None), getattr(other, 'line', None)))
 
@@ -62,14 +75,13 @@ class Frame (object):
         src = inlib.match(tail)
         if src is None:
             src = sause.match(tail)
-            if src is not None:
-                src = Source.get(src.group(1), int(src.group(2)))
-        else:
-            src = Source.get(src.group(1))
+            if src is None: assert not tail and func is None, text
+            else: src = Source.get(src.group(1), int(src.group(2)))
+        else: src = Source.get(src.group(1))
 
         return leaf, addr, func, src
 
-    def __init__(self, text, leaf, addr, func, source):
+    def __init__(self, text, leaf, addr, func=None, source=None):
         self.text, self.leaf = text, leaf
         self.addr, self.func, self.source = addr, func, source
         self.stacks = set()
