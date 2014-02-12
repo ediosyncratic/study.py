@@ -50,6 +50,85 @@ class Source (object):
             ans = cls.__known[sfile, line] = cls(sfile, line)
 
         return ans
+
+    @classmethod
+    def mungibles(cls):
+        """Iterator over potentially aliasing frames.
+
+        If a Source has a .line and distinct entries in .frames from
+        distinct binaries, it's possible some of the distinct frames
+        are really aliases for one another.  This iterates over the
+        candidates.\n"""
+        for src in cls.__known.values():
+            try: src.line
+            except AttributeError: pass
+            else:
+                addrs = set(frm.addr for frm in src.frames)
+                if len(addr) > 1:
+                    bag = set()
+                    while addrs:
+                        it = addrs.pop()
+                        bag = bag.union(it.mayalias(oth) for oth in addrs)
+                    if None not in bag: yield src, addrs, bag
+
+class Program (object):
+    def __init__(self, name): self.name = name
+    def __hash__(self): return hash(self.name)
+    def __cmp__(self, other): return cmp(self.name, other.name)
+    __known = {}
+    @classmethod
+    def get(cls, name):
+        try: ans = cls.__known[name]
+        except KeyError:
+            ans = cls.__known[name] = cls(name)
+
+        return ans
+
+class Address (object):
+    def __init__(self, addr, prog):
+        self.where = { prog: addr }
+        self.frames = set() # TODO: weekset
+
+    def __len__(self): return len(self.where)
+    def __hash__(self): return id(self.where)
+    def __cmp__(self, other):
+        return cmp(id(self.where), id(other.where))
+
+    def mayalias(self, other):
+        count = 0
+        for p in set(self.where.keys()).intesection(other.where.keys()):
+            if self.where[p] != other.where[p]:
+                return None
+            count += 1
+        return count
+
+    def conflate(self, *rest):
+        for addr in rest:
+            if addr is self: continue
+
+            fs = tuple(addr.frames)
+            addr.frames.clear()
+            for frame in fs:
+                frame.addr = self
+                self.frames.add(frame)
+
+            for p, a in addr.where.items():
+                try: was = self.where[p]
+                except KeyError: self.where[p] = a
+                else:
+                    if was != a:
+                        raise ValueError('Conflating two addresses in one program',
+                                         p, was, a, self, addr)
+                assert self.__known[a, p] is addr
+                self.__known[a, p] = self
+
+    __known = {}
+    @classmethod
+    def get(cls, addr, prog):
+        try: ans = cls.__known[addr, prog]
+        except KeyError:
+            ans = cls.__known[addr, prog] = cls(addr, prog)
+        return ans
 
 from study.snake.sequence import Tuple
 class Tuple (Tuple):
@@ -61,7 +140,7 @@ class Tuple (Tuple):
 
 class Frame (object):
     @staticmethod
-    def __parse(text,
+    def __parse(text, prog,
                 locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+(\S+)\s*'),
                 inlib=re.compile(r'\s*\(in ([^)]*)\)'),
                 sause=re.compile(r'\s*\(([^)]*):(\d+)\)')):
@@ -70,6 +149,7 @@ class Frame (object):
         leaf = place.group(1) == 'at'
         addr, func = place.group(2, 3)
         if func == '???': func = None
+        addr = Address.get(addr, prog)
         tail = text[place.end():].strip()
 
         src = inlib.match(tail)
@@ -117,19 +197,34 @@ class Frame (object):
 
         return Tuple(ans)
 
-    # TODO: frames from different binaries (reported in different log files) may
-    # have different addresses for the same file and line, that we would ideally
-    # identify; but different addresses within a given binary should not be
-    # conflated, even if they come from the same line.  Not easy to resolve
-    # this: probably needs an iteration over Source.__known()'s values whose
-    # .frames has more than two entries; requires interactive decision about
-    # which ones to conflate.  For now, ignoring command passed to .get(), but
-    # it's the hook by which I hope to be able to make this possible.
+    def conflate(self, *rest):
+        """Treat each parameter as an alias for self.
+
+        Pass arbitrarily many frames as parameters, each of which is
+        just a different binary's way of referring to the same
+        instruction as self.  These frames are then conflated.  This
+        changes the hashes of the others, which requires some
+        juggling.\n"""
+        allstacks = self.stacks
+        for f in rest:
+            if f is self: continue
+            if f.source is not None:
+                f.source.frames.remove(f)
+            allstacks = allstacks.union(f.stacks)
+
+        self.addr.conflate(*[f.addr for f in rest])
+
+        for f in rest:
+            if f is self: continue
+            if f.source is not None:
+                f.source.frames.add(f)
+            f.stacks = allstacks
+        self.stacks = allstacks
 
     __known = {}
     @classmethod
-    def get(cls, text, command): # ignoring command; see TODO above.
-        key = cls.__parse(text)
+    def get(cls, text, command):
+        key = cls.__parse(text, Program.get(command))
         try: ans = cls.__known[key]
         except KeyError: ans = cls.__known[key] = cls(text, *key)
         return ans
