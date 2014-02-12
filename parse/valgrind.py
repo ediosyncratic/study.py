@@ -602,6 +602,14 @@ class MemCheck (object):
     def ignore(self, frame, leak=True):
         return self.__ditch(frame, self.dull, leak)
 
+    def liberate(self, source):
+        """Ignore all UMRs from a given source.
+
+        For use with libssl and libcrypto."""
+        for item in self.issues:
+            if isinstance(item, UMR) and any(f.source is source for f in item.stack):
+                self.dull.add(item)
+
     # The (hairy spitball of an ad hoc) parser:
     @staticmethod
     def __parseheader(dest, pid,
