@@ -581,23 +581,23 @@ class MemCheck (object):
             if not it.sure: yield it
 
     @staticmethod
-    def __frame_out(source, frame, dump, each=None):
+    def __frame_out(source, frame, dump):
         saved = None
         for it in source:
             if frame in it.stack:
-                leak = None if each is None else each(it)
+                leak = it.clear()
                 if saved is None: saved = leak
                 elif leak is not None: saved += leak
                 dump.add(it)
 
         return saved
 
-    def __ditch(self, frame, dump, leak=True, each=None):
+    def __ditch(self, frame, dump, leak=True):
         if isinstance(leak, Issue): leak = isinstance(leak, Leak)
-        return self.__frame_out(self.leaks if leak else self.issues, frame, dump, each)
+        return self.__frame_out(self.leaks if leak else self.issues, frame, dump)
 
     def repair(self, frame, leak=True):
-        return self.__ditch(frame, self.fixed, leak, lambda x: x.clear())
+        return self.__ditch(frame, self.fixed, leak)
 
     def ignore(self, frame, leak=True):
         return self.__ditch(frame, self.dull, leak)
