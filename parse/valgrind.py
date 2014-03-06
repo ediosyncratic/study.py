@@ -346,27 +346,37 @@ Issue.register(UnMapped, lambda x: x.startswith('Access not within mapped region
 class MemoryChunk (Issue):
     @staticmethod
     def __parse(text, asint=readint,
-                stray=re.compile(r"Address 0x([0-9a-fA-F]+) is not stack'd, " +
-                                 r"malloc'd or \(recently\) free'd").match,
-                line=re.compile(r"Address 0x([0-9a-fA-F]+) is ([0-9,]+) " +
-                                r"bytes (inside|after) a block " +
-                                r"of size ([0-9,]+) (\w+)'d").match):
+                intro=re.compile(r"Address 0x([0-9a-fA-F]+) is").match,
+                stray=re.compile("not stack'd, malloc'd or " +
+                                 r"\(recently\) free'd").match,
+                line=re.compile(r"([0-9,]+) bytes (inside|after) a " +
+                                r"block of size ([0-9,]+) (\w+)'d").match,
+                thread=re.compile(r"on thread (\d+)'s stack").match):
+        it = intro(text)
+        if not it: raise ParseError('Malformed address description line', text)
+        addr = it.group(1)
+        text = text[it.end():].strip()
+
         it = line(text)
         if it:
-            addr, func = it.group(1, 5)
-            offset, size = [asint(x) for x in it.group(2, 4)]
-            if it.group(3) == 'after': offset += size
-        else:
-            it = stray(text)
-            if not it: raise ParseError('Malformed block description line', text)
-            addr = it.group(1)
-            func = offset = size = None
-        return func, size, offset, addr
+            func = it.group(4)
+            offset, size = [asint(x) for x in it.group(1, 3)]
+            if it.group(2) == 'after': offset += size
+            return func, size, offset, None, addr
+
+        it = stray(text)
+        if it: return None, None, None, None, addr
+
+        it = thread(text)
+        if it: return 'stack', None, None, asint(it.group(1)), addr
+
+        raise ParseError('Malformed block description line', text)
 
     __upinit = Issue.__init__
-    def __init__(self, stack, text, func):
+    def __init__(self, stack, text, func=None):
         self.__upinit(stack or (), text)
-        self.author, self.__eg, self.__users = func, set(), set() # TODO: weakset
+        self.__eg, self.__users = set(), set() # TODO: weakset
+        if func is not None: self.author = func
 
     def example(self, *what): self.__eg.add(what)
     @property
@@ -398,23 +408,26 @@ class MemoryChunk (Issue):
 
     __subs = {}
     @classmethod
-    def register(cls, sub, func): cls.__subs[func] = sub
+    def register(cls, sub, func):
+        cls.__subs[func] = sub
+        sub.author = func
 
     __known = {}
     @classmethod
     def get(cls, text, stack, address=None):
-        func, size, off, addr = cls.__parse(text)
+        func, size, off, tid, addr = cls.__parse(text)
         try: sub = cls.__subs[func]
         except KeyError:
             print 'Encountered unexpected MemoryChunk function:', func
             ans = cls._cache_(cls.__known, stack, text, func)
         else: ans = sub.get(text, stack)
-        ans.example(addr, off, size)
+        ans.example(addr, off, size, tid)
         return ans
 
 Issue.register(MemoryChunk, lambda x: 0 <= x.find('bytes inside a block of size'))
 Issue.register(MemoryChunk, lambda x: 0 <= x.find('bytes after a block of size'))
 Issue.register(MemoryChunk, lambda x: 0 <= x.find("is not stack'd, malloc'd or (recently) free'd"))
+Issue.register(MemoryChunk, lambda x: x.endswith("'s stack"))
 
 class FMA (MemoryChunk):
     "Free memory access"
@@ -425,7 +438,7 @@ class FMA (MemoryChunk):
     __known = {}
     @classmethod
     def get(cls, text, stack):
-        return cls._cache_(cls.__known, stack, text, 'free')
+        return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(FMA, 'free')
 
 class UHR (MemoryChunk, UMR):
@@ -439,8 +452,20 @@ class UHR (MemoryChunk, UMR):
     __known = {}
     @classmethod
     def get(cls, text, stack):
-        return cls._cache_(cls.__known, stack, text, 'alloc')
+        return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(UHR, 'alloc')
+
+class USR (MemoryChunk):
+    "Uninitialized stack access"
+    @classmethod
+    def _active_(cls):
+        for it in cls.__known.values(): yield it
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack):
+        return cls._cache_(cls.__known, stack, text)
+MemoryChunk.register(UHR, 'stack')
 
 class SMA (MemoryChunk):
     "Stray memory access"
@@ -452,7 +477,7 @@ class SMA (MemoryChunk):
     __known = {}
     @classmethod
     def get(cls, text, stack):
-        return cls._cache_(cls.__known, stack, text, 'alloc')
+        return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(SMA, None)
 
 class Leak (Issue):
@@ -934,7 +959,7 @@ class MemCheck (object):
 
         n += 1
         for pid, munch in partial.items():
-            try: munch.send(n, '')
+            try: munch.send((n, ''))
             except StopIteration: pass
             else: munch.close()
 
