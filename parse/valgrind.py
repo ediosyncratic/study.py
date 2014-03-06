@@ -663,59 +663,64 @@ class MemCheck (object):
             n, line = yield
             if line == stopper: break
 
-            if not line: # end of stanza
-                if addr or stanza:
-                    if stack: stack = Stack.get(stack)
-                    else: stack = None
+            try:
+                if not line: # end of stanza
+                    if addr or stanza:
+                        if stack: stack = Stack.get(stack)
+                        else: stack = None
 
-                if addr:
-                    assert stanza, line
-                    addr = MemoryChunk.get(addr, stack)
-                    items.append(addr)
-                    stack, mode = prior # restore normal parsing
-                    del prior
+                    if addr:
+                        assert stanza, line
+                        addr = MemoryChunk.get(addr, stack)
+                        items.append(addr)
+                        stack, mode = prior # restore normal parsing
+                        del prior
 
-                if stanza:
-                    block, m = Issue.get(stanza, stack, addr)
-                    if count is None: count = m
-                    else: assert count == m, line
-                    items.append(block)
+                    if stanza:
+                        block, m = Issue.get(stanza, stack, addr)
+                        if count is None: count = m
+                        else: assert count == m, line
+                        items.append(block)
 
-                    if terminal:
-                        assert isinstance(terminal, basestring), line
-                        terminal, signal = Terminal(terminal, signal, block, addr), None
+                        if terminal:
+                            assert isinstance(terminal, basestring), line
+                            terminal, signal = Terminal(terminal, signal, block, addr), None
 
-                    addr = stanza = None
-                    del stack
+                        addr = stanza = None
+                        del stack
 
-                # else: more than one blank line
-            elif cruft(line):
-                # Skip notice about reduced reporting:
-                while line: n, line = yield
-                # bug: this skips the first report after the 100 errors report.
-                # tolerating this rather than uglify code.
-            elif thread(line): pass # ignore Thread lines.
-            elif line.startswith('Process terminating'):
-                assert terminal is None, line
-                terminal = line
-                it = died(line)
-                if not it: raise ParseError('Unfamiliar termination', line, lineno=n)
-                signal = int(it.group(1)), it.group(2)
-            elif line.startswith('Address'):
-                assert addr is None and stanza, line
-                prior = Stack.get(stack), mode # stash while parsing allocation block
-                addr, stack, mode = line, [], 'Address block for ' + mode
-            elif stanza or addr: # read stack-frame line:
-                try: frame = Frame.get(line, command)
-                except ParseError, what:
-                    if terminal is None: # ignore cruft after terminal block
-                        # TODO: is there nothing else we can do here ?
-                        what = what.args
-                        while what[-1] is None: what = what[:-1]
-                        raise ParseError('Failed to parse line', mode, what, lineno=n)
-                stack.append(frame)
+                    # else: more than one blank line
+                elif cruft(line):
+                    # Skip notice about reduced reporting:
+                    while line: n, line = yield
+                    # bug: this skips the first report after the 100 errors report.
+                    # tolerating this rather than uglify code.
+                elif thread(line): pass # ignore Thread lines.
+                elif line.startswith('Process terminating'):
+                    assert terminal is None, line
+                    terminal = line
+                    it = died(line)
+                    if not it: raise ParseError('Unfamiliar termination', line, lineno=n)
+                    signal = int(it.group(1)), it.group(2)
+                elif line.startswith('Address'):
+                    assert addr is None and stanza, line
+                    prior = Stack.get(stack), mode # stash while parsing allocation block
+                    addr, stack, mode = line, [], 'Address block for ' + mode
+                elif stanza or addr: # read stack-frame line:
+                    try: frame = Frame.get(line, command)
+                    except ParseError, what:
+                        if terminal is None: # ignore cruft after terminal block
+                            # TODO: is there nothing else we can do here ?
+                            what = what.args
+                            while what[-1] is None: what = what[:-1]
+                            raise ParseError('Failed to parse line', mode, what, lineno=n)
+                    stack.append(frame)
 
-            else: stack, stanza = [], line # first line of new block
+                else: stack, stanza = [], line # first line of new block
+
+            except ParseError as what:
+                what.lineno = n
+                raise
 
         try: stack
         except NameError: pass
@@ -801,6 +806,11 @@ class MemCheck (object):
 
     @classmethod
     def __muncher(cls, bok, fatal, pid, command):
+        """FIXME: cope with 'FILE DESCRIPTORS: %d open at exit' stanza
+        before HEAP SUMMARY.  In any case, the __parseblocks()
+        approach is wrong, presuming we know what line shall follow
+        it.  This depends what reports we've got; so we need to
+        recognise which summary block ended whatever came before.\n"""
         dest = []
         munch = cls.__parseblocks(dest, 'HEAP SUMMARY:',
                                   'issue stack-frame', command)
@@ -943,7 +953,7 @@ class MemCheck (object):
             fd = open(log)
             try:
                 try: cmd, ppid, dead, final = self.__ingest(fd)
-                except ParseError, what:
+                except ParseError as what:
                     what.filename = log
                     raise what
             finally: fd.close()
