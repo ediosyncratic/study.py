@@ -141,10 +141,10 @@ class Tuple (Tuple):
 class Frame (object):
     @staticmethod
     def __parse(text, prog,
-                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+(\S+)\s*'),
-                inlib=re.compile(r'\s*\(in ([^)]*)\)'),
-                sause=re.compile(r'\s*\(([^)]*):(\d+)\)')):
-        place = locat.search(text)
+                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+(\S+)\s*').search,
+                inlib=re.compile(r'\s*\(in ([^)]*)\)').match,
+                sause=re.compile(r'\s*\(([^)]*):(\d+)\)').match):
+        place = locat(text)
         if not place: raise ParseError('No (at|by) stack-frame data', text)
         leaf = place.group(1) == 'at'
         addr, func = place.group(2, 3)
@@ -152,9 +152,9 @@ class Frame (object):
         addr = Address.get(addr, prog)
         tail = text[place.end():].strip()
 
-        src = inlib.match(tail)
+        src = inlib(tail)
         if src is None:
-            src = sause.match(tail)
+            src = sause(tail)
             if src is None: assert not tail and func is None, text
             else: src = Source.get(src.group(1), int(src.group(2)))
         else: src = Source.get(src.group(1))
@@ -483,13 +483,13 @@ MemoryChunk.register(SMA, None)
 class Leak (Issue):
     @staticmethod
     def __parse(text, asint=readint,
-                direct=re.compile(r'([0-9,]+) bytes\s*'),
-                burden=re.compile(r'([0-9,]+) \(([0-9,]*) direct, ([0-9,]+) indirect\) bytes\s*'),
-                blocks=re.compile(r'in ([0-9,]+) blocks are\s*'),
-                record=re.compile(r'lost in loss record ([0-9,]+) of ([0-9,]+)')):
-        it = direct.match(text)
+                direct=re.compile(r'([0-9,]+) bytes\s*').match,
+                burden=re.compile(r'([0-9,]+) \(([0-9,]*) direct, ([0-9,]+) indirect\) bytes\s*').match,
+                blocks=re.compile(r'in ([0-9,]+) blocks are\s*').match,
+                record=re.compile(r'lost in loss record ([0-9,]+) of ([0-9,]+)').search):
+        it = direct(text)
         if not it:
-            it = burden.match(text)
+            it = burden(text)
             if not it: raise ParseError('No byte-total on leak-line', text)
             routes = [asint(x) for x in it.groups()]
             total, routes = routes[0], tuple(routes[1:])
@@ -497,7 +497,7 @@ class Leak (Issue):
         else: routes = (asint(it.group(1)), 0)
         text = text[it.end():].strip()
 
-        it = blocks.match(text)
+        it = blocks(text)
         if not it: raise ParseError('No block-count on leak-line', text)
         count = asint(it.group(1))
         text = text[it.end():].strip()
@@ -506,7 +506,7 @@ class Leak (Issue):
         if not (sure or text.startswith('possibly')):
             raise ParseError('Neither "possibly" nor "definitely" on leak-line', text)
 
-        it = record.search(text)
+        it = record(text)
         if not it: raise ParseError('No loss record details in leak-line', text)
         index, total = [asint(x) for x in it.groups()]
 
@@ -638,28 +638,28 @@ class MemCheck (object):
     # The (hairy spitball of an ad hoc) parser:
     @staticmethod
     def __parseheader(dest, pid,
-                      head=(re.compile(r'Copyright (C) \d+-\d+.*'),
-                            re.compile(r'Using Valgrind.*')),
-                      cmd=re.compile(r'Command: (.*)'),
-                      parent=re.compile(r'Parent PID: (\d+)')):
+                      head=(re.compile(r'Copyright (C) \d+-\d+.*').match,
+                            re.compile(r'Using Valgrind.*').match),
+                      cmd=re.compile(r'Command: (.*)').match,
+                      parent=re.compile(r'Parent PID: (\d+)').match):
         try:
             for it in head:
                 p, n, line = yield
                 assert p == pid
-                it = it.match(line)
+                it = it(line)
                 if it is None: break
             else:
                 p, n, line = yield
                 assert p == pid
 
-            it = cmd.match(line)
+            it = cmd(line)
             if it:
                 command = it.group(1)
                 p, n, line = yield
                 assert p == pid
             else: command = None
 
-            it = parent.match(line)
+            it = parent(line)
             if it:
                 ppid = int(it.group(1))
                 p, n, line = yield
@@ -756,11 +756,11 @@ class MemCheck (object):
 
     @staticmethod
     def __parsetraffic(dest, asint=readint,
-                       inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks'),
-                       total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated')):
+                       inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks').match,
+                       total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated').match):
         try:
             n, line = yield
-            it = inuse.match(line)
+            it = inuse(line)
             if it: lost, block = [asint(x) for x in it.groups()]
             else: raise ParseError('Failed to parse heap-in-use summary', line, lineno=n)
 
@@ -769,16 +769,17 @@ class MemCheck (object):
             raise ParseError('Incomplete, missing or unterminated heap summary',
                              lineno=n)
 
-        it = total.match(line)
+        it = total(line)
         if it: grab, free, churn = [asint(x) for x in it.groups()]
         else: raise ParseError('Failed to parse heap traffic totals', line, lineno=n)
 
         dest[:] = [ Traffic(lost, block, grab, free, churn) ]
 
-    def leaksum(text, n, prefix, asint=readint, # tool function for __parseleaksummary
-                chunk=re.compile(r'([0-9,]+) bytes in ([0-9,]+) blocks')):
+    def leaksum(text, n, prefix, # tool function for __parseleaksummary
+                asint=readint,
+                chunk=re.compile(r'([0-9,]+) bytes in ([0-9,]+) blocks').search):
         if text.startswith(prefix + ': '):
-            it = chunk.search(text)
+            it = chunk(text)
             if not it: raise ParseError('Malformed "%s" line' % prefix, text, lineno=n)
             return tuple(asint(x) for x in it.groups())
         return None
@@ -808,8 +809,8 @@ class MemCheck (object):
 
     @staticmethod
     def __parsetail(dest,
-                    errs=re.compile(r'ERROR SUMMARY: (\d+) errors from (\d+) contexts\s*'),
-                    skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)'),
+                    errs=re.compile(r'ERROR SUMMARY: (\d+) errors from (\d+) contexts\s*').match,
+                    skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)').match,
                     cruft=('For counts of detected and suppressed errors, rerun with: -v',
                            'Use --track-origins=yes to see where uninitialised values come from')):
         try:
@@ -818,12 +819,12 @@ class MemCheck (object):
         except GeneratorExit:
             raise ParseError('Incomplete or missing tail-piece', lineno=n)
 
-        it = errs.match(line)
+        it = errs(line)
         if not it:
             raise ParseError('Failed to parse final error summary', line, lineno=n)
         data = it.groups()
         line = line[it.end():].strip()
-        it = skip.match(line)
+        it = skip(line)
         if line and not it:
             raise ParseError('Unrecognised tail for final summary', line, lineno=n)
         data = [int(x) for x in data + it.groups()]
