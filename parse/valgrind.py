@@ -788,7 +788,8 @@ class MemCheck (object):
                            prefixes=('definitely lost', 'indirectly lost',
                                      'possibly lost', 'still reachable', 'suppressed'),
                            cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
-                                  'To see them, rerun with: --leak-check=full --show-reachable=yes')):
+                                  'To see them, rerun with: --leak-check=full --show-reachable=yes',
+                                  'To see them, rerun with: --leak-check=full --show-leak-kinds=all')):
         try:
             n, line = yield
             data = []
