@@ -231,9 +231,11 @@ class Frame (object):
 
 class Stack (Tuple):
     def __init__(self, frames):
-        assert frames and frames[0].leaf and all(not x.leaf for x in frames[1:])
-        for f in frames: f.stacks.add(self)
-        self.issues = set()
+        if frames and frames[0].leaf and all(not x.leaf for x in frames[1:]):
+            for f in frames: f.stacks.add(self)
+            self.issues = set()
+        else:
+            raise ParseError('Expected one leaf, first', frames)
 
     __known = {}
     @classmethod
@@ -676,7 +678,7 @@ class MemCheck (object):
         dest[:] = [ command, ppid ]
 
     @staticmethod
-    def __parseblocks(dest, stopper, mode, command,
+    def __parseblocks(dest, mode, command,
                       cruft=re.compile(r'More than (100|1000 different) errors detected\.').match,
                       died=re.compile('Process terminating with default action of '
                                       r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
@@ -686,7 +688,7 @@ class MemCheck (object):
 
         while True:
             n, line = yield
-            if line == stopper: break
+            if all(x.isupper() for x in line.split(None)[:2]): break
 
             try:
                 if not line: # end of stanza
@@ -752,12 +754,11 @@ class MemCheck (object):
         else: raise ParseError('Missing blank line before', line, lineno=n)
         assert stanza is None
 
-        dest[:] = [ tuple(items), terminal ]
+        dest[:] = [ tuple(items), terminal, line ]
 
-    @staticmethod
-    def __parsetraffic(dest, asint=readint,
-                       inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks').match,
-                       total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated').match):
+    def traffic(dest, asint=readint,
+                inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks').match,
+                total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated').match):
         try:
             n, line = yield
             it = inuse(line)
@@ -784,13 +785,12 @@ class MemCheck (object):
             return tuple(asint(x) for x in it.groups())
         return None
 
-    @staticmethod
-    def __parseleaksummary(dest, getsum=leaksum,
-                           prefixes=('definitely lost', 'indirectly lost',
-                                     'possibly lost', 'still reachable', 'suppressed'),
-                           cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
-                                  'To see them, rerun with: --leak-check=full --show-reachable=yes',
-                                  'To see them, rerun with: --leak-check=full --show-leak-kinds=all')):
+    def leaksummary(dest, getsum=leaksum,
+                    prefixes=('definitely lost', 'indirectly lost',
+                              'possibly lost', 'still reachable', 'suppressed'),
+                    cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
+                           'To see them, rerun with: --leak-check=full --show-reachable=yes',
+                           'To see them, rerun with: --leak-check=full --show-leak-kinds=all')):
         try:
             n, line = yield
             data = []
@@ -832,59 +832,52 @@ class MemCheck (object):
         dest[:] = [ FinalSummary(*data) ]
 
     @classmethod
-    def __muncher(cls, bok, fatal, pid, command):
-        """FIXME: cope with 'FILE DESCRIPTORS: %d open at exit' stanza
+    def __muncher(cls, bok, fatal, pid, command,
+                  handler={ 'HEAP SUMMARY': ('leak stack-frame', traffic),
+                            'LEAK SUMMARY': ('TODO: what mode ?', leaksummary) }):
+        """Consumes the content for one pid.
+
+        FIXME: cope with 'FILE DESCRIPTORS: %d open at exit' stanza
         before HEAP SUMMARY.  In any case, the __parseblocks()
         approach is wrong, presuming we know what line shall follow
         it.  This depends what reports we've got; so we need to
         recognise which summary block ended whatever came before.\n"""
-        dest = []
-        munch = cls.__parseblocks(dest, 'HEAP SUMMARY:',
-                                  'issue stack-frame', command)
-        munch.next()
-        try:
-            while True: munch.send((yield))
-        except GeneratorExit:
-            munch.close()
-            raise
-        except StopIteration: pass
-        issues, dead = dest
-        if dead is not None: fatal.add(dead)
 
-        dest = []
-        munch = cls.__parsetraffic(dest)
-        munch.next()
-        try:
-            while True: munch.send((yield))
-        except GeneratorExit:
-            munch.close()
-            raise
-        except StopIteration: pass
-        traffic = dest
+        mode = 'issue stack-frame'
+        result = []
+        while True:
+            dest = []
+            munch = cls.__parseblocks(dest, mode, command)
+            munch.next()
+            try:
+                while True: munch.send((yield))
+            except GeneratorExit:
+                munch.close()
+                raise
+            except StopIteration: pass
+            issues, dead, line = dest
+            result.append(issues)
+            if dead is not None: fatal.add(dead)
+            # line has been 'HEAP SUMMARY:'
 
-        dest = []
-        munch = cls.__parseblocks(dest, 'LEAK SUMMARY:',
-                                  'leak stack-frame', command)
-        munch.next()
-        try:
-            while True: munch.send((yield))
-        except GeneratorExit:
-            munch.close()
-            raise
-        except StopIteration: pass
-        leaks, dead = dest
-        assert dead is None
+            key, tail = line.split(':')
+            try: mode, block = handler[key]
+            except KeyError:
+                raise ParseError('Unrecognised section terminator', key, tail)
 
-        dest = []
-        munch = cls.__parseleaksummary(dest)
-        munch.next()
-        try:
-            while True: munch.send((yield))
-        except GeneratorExit:
-            munch.close()
-            raise
-        except StopIteration: pass
-        leaksum = dest
+            dest = []
+            munch = block(dest)
+            munch.next()
+            try:
+                while True: munch.send((yield))
+            except GeneratorExit:
+                munch.close()
+                raise
+            except StopIteration: pass
+            assert(len(dest) == 1)
+            result.append(dest[0])
+
+            # TODO: how do we know when to break out to parsetail ?
 
         dest = []
         munch = cls.__parsetail(dest)
@@ -896,6 +889,8 @@ class MemCheck (object):
         overall = dest[0]
 
         bok[pid] = issues, traffic, leaks, leaksum, overall
+
+    del traffic, leaksummary
 
     def numbered(fd): # tool function for byline
         n = 0 # line number
