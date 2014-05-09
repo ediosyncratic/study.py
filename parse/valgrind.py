@@ -710,12 +710,9 @@ class MemCheck (object):
 
     @staticmethod
     def __parseblocks(dest, mode, command,
-                      cruft=re.compile(r'More than (100|1000 different) errors detected\.').match,
                       died=re.compile('Process terminating with default action of '
                                       r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
-                      thread=re.compile(r'Thread \d+:$').match,
-                      ignore=('For counts of detected and suppressed errors, rerun with: -v',
-                              'Use --track-origins=yes to see where uninitialised values come from')):
+                      thread=re.compile(r'Thread \d+:$').match):
         items = []
         stanza = addr = count = terminal = signal = None
 
@@ -748,13 +745,8 @@ class MemCheck (object):
 
                         addr = stanza = None
                         del stack
-
                     # else: more than one blank line
-                elif cruft(line):
-                    # Skip notice about reduced reporting:
-                    while line: n, line = yield
-                    # bug: this skips the first report after the 100 errors report.
-                    # tolerating this rather than uglify code.
+
                 elif thread(line): pass # ignore Thread lines.
                 elif line.startswith('Process terminating'):
                     assert terminal is None, line
@@ -776,7 +768,6 @@ class MemCheck (object):
                             raise ParseError('Failed to parse line', mode, what, lineno=n)
                     stack.append(frame)
 
-                elif line in ignore: pass
                 else: stack, stanza = [], line # first line of new block
 
             except ParseError as what:
@@ -919,6 +910,39 @@ class MemCheck (object):
 
     del traffic, leaksummary, filedescribe, parsetail
 
+    def waffle(line,
+               flood=re.compile(r'More than (100|1000 different) errors detected\.').match,
+               boss=re.compile(r'TO (CONTROL|DEBUG) THIS PROCESS USING').match,
+               embed=re.compile(r'embedded gdbserver:\s+').match,
+               burble=('For counts of detected and suppressed errors, rerun with: -v',
+                       'Use --track-origins=yes to see where uninitialised values come from'),
+               # Discard everything up to (but not including) the next blank line:
+               untilempty=lambda k: k or None):
+        """Decides what lines to simply ignore.
+
+        Returns None for lines to not ignore.  Otherwise, returns a
+        callable; call this on each line after the one that returned
+        it; if the return is true, ignore the line and continue using
+        the callable on later lines; if None use the line and discard
+        the callable; otherwise, a false return means the line is the
+        last to be ignored on account of the one that provoked this
+        callable.\n"""
+        # Single-line cruft:
+        if line in burble or embed(line): return lambda k: None
+
+        # Blocks of cruft:
+        if boss(line):
+            return untilempty
+
+        it = flood(line)
+        if it:
+            if it.group(1) == '100':
+                return lambda k: not k.endswith('less detail than before')
+            return untilempty
+
+        # Not cruft:
+        return None
+
     def numbered(fd): # tool function for byline
         n = 0 # line number
         while True:
@@ -928,10 +952,10 @@ class MemCheck (object):
             yield n, line
 
     def byline(fd, # tool function for ingest
-               each=numbered,
-               skip=re.compile(r'--[0-9]+--\s+').match,
-               front=re.compile(r'==([0-9]+)==\s+').match):
-        lines, stem = each(fd), None
+               each=numbered, ignore=waffle,
+               front=re.compile(r'==([0-9]+)==\s+').match,
+               skip=re.compile(r'--[0-9]+--\s+').match):
+        lines, stem, wait = each(fd), None, None
         for n, line in lines:
             if stem and line.startswith(stem): pass
             elif skip(line): continue
@@ -942,7 +966,16 @@ class MemCheck (object):
                                      line, lineno=n)
                 stem, proc = it.group(0), int(it.group(1))
                 off = len(stem)
-            yield proc, n, line[off:].strip()
+            line = line[off:].strip()
+
+            # See waffle()'s doc-string:
+            if wait is None: wait, it = ignore(line), True
+            else:
+                it = wait(line)
+                if it is None: wait = None
+
+            if wait is None: yield proc, n, line
+            if not it: wait = None
 
     @classmethod
     def __ingest(cls, fd,
@@ -1008,7 +1041,7 @@ class MemCheck (object):
                 try: cmd, ppid, dead, final = self.__ingest(fd)
                 except ParseError as what:
                     what.filename = log
-                    raise what
+                    raise
             finally: fd.close()
 
             threads = []
