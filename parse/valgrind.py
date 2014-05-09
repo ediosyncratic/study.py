@@ -141,16 +141,21 @@ class Tuple (Tuple):
 class Frame (object):
     @staticmethod
     def __parse(text, prog,
-                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+(\S+)\s*').search,
+                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+').search,
+                funky=re.compile(r'(\(below main\)|[^(]\S+)\s*').match,
                 inlib=re.compile(r'\s*\(in ([^)]*)\)').match,
                 sause=re.compile(r'\s*\(([^)]*):(\d+)\)').match):
-        place = locat(text)
-        if not place: raise ParseError('No (at|by) stack-frame data', text)
-        leaf = place.group(1) == 'at'
-        addr, func = place.group(2, 3)
+        it = locat(text)
+        if not it: raise ParseError('No (at|by) stack-frame data', text)
+        leaf = it.group(1) == 'at'
+        addr = Address.get(it.group(2), prog)
+        tail = text[it.end():].strip()
+
+        it = funky(tail)
+        if not it: raise ParseError('No function identification', text)
+        func = it.group(1)
         if func == '???': func = None
-        addr = Address.get(addr, prog)
-        tail = text[place.end():].strip()
+        tail = tail[it.end():].strip()
 
         src = inlib(tail)
         if src is None:
