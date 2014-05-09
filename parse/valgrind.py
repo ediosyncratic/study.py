@@ -274,8 +274,8 @@ class Issue (object):
         for sub, key in cls.__subs:
             if key(text):
                 ans = sub.get(text, stack)
-                if isinstance(ans, tuple): ans, count = ans
-                else: count = 0
+                if isinstance(ans, Issue): count = 0
+                else: ans, count = ans
                 if address is not None: address.usedby(ans)
                 if value is not None: value.usedby(ans)
                 return ans, count
@@ -547,7 +547,7 @@ class Leak (Issue):
                 direct=re.compile(r'([0-9,]+) bytes\s*').match,
                 burden=re.compile(r'([0-9,]+) \(([0-9,]*) direct, ([0-9,]+) indirect\) bytes\s*').match,
                 blocks=re.compile(r'in ([0-9,]+) blocks are\s*').match,
-                record=re.compile(r'lost in loss record ([0-9,]+) of ([0-9,]+)').search):
+                record=re.compile(r'in loss record ([0-9,]+) of ([0-9,]+)').search):
         it = direct(text)
         if not it:
             it = burden(text)
@@ -561,11 +561,9 @@ class Leak (Issue):
         it = blocks(text)
         if not it: raise ParseError('No block-count on leak-line', text)
         count = asint(it.group(1))
-        text = text[it.end():].strip()
 
-        sure = text.startswith('definitely')
-        if not (sure or text.startswith('possibly')):
-            raise ParseError('Neither "possibly" nor "definitely" on leak-line', text)
+        text = text[it.end():].strip()
+        sure = text.startswith('definitely lost')
 
         it = record(text)
         if not it: raise ParseError('No loss record details in leak-line', text)
@@ -607,7 +605,7 @@ class Leak (Issue):
         sure, routes, count, index, total = cls.__parse(text)
         return cls._cache_(cls.__known, stack, text, sure, routes, count, index), total
 
-Issue.register(Leak, lambda x: 0 <= x.find('lost in loss record'))
+Issue.register(Leak, lambda x: 0 <= x.find('in loss record'))
 
 # Placeholders: no actual use for them yet
 class Terminal (object):
@@ -747,6 +745,8 @@ class MemCheck (object):
     def __parseblocks(dest, mode, command,
                       died=re.compile('Process terminating with default action of '
                                       r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
+                      # Cruft:
+                      fore=re.compile(r'\d+ errors in context \d+ of \d+').match,
                       thread=re.compile(r'Thread \d+:$').match):
         items = []
         stanza = addr = value = count = terminal = signal = None
@@ -792,7 +792,7 @@ class MemCheck (object):
                         del stack
                     # else: more than one blank line
 
-                elif thread(line): pass # ignore Thread lines.
+                elif thread(line) or fore(line): pass # ignore cruft.
                 elif line.startswith('Process terminating'):
                     assert terminal is None, line
                     terminal = line
@@ -895,9 +895,7 @@ class MemCheck (object):
 
     def parsetail(dest,
                   errs=re.compile(r'(\d+) errors from (\d+) contexts\s*').match,
-                  skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)').match,
-                  cruft=('For counts of detected and suppressed errors, rerun with: -v',
-                         'Use --track-origins=yes to see where uninitialised values come from')):
+                  skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)').match):
         line = dest[0].strip()
         it = errs(line)
         if not it:
@@ -916,7 +914,7 @@ class MemCheck (object):
     @classmethod
     def __muncher(cls, bok, fatal, pid, command,
                   handler={ 'HEAP SUMMARY': ('leak stack-frame', traffic),
-                            'LEAK SUMMARY': ('TODO: what mode ?', leaksummary),
+                            'LEAK SUMMARY': ('error stack-frame', leaksummary),
                             'FILE DESCRIPTORS': ('files', filedescribe),
                             'ERROR SUMMARY': ('tail', parsetail)}):
         """Consumes the content for one pid.
@@ -927,22 +925,21 @@ class MemCheck (object):
         it.  This depends what reports we've got; so we need to
         recognise which summary block ended whatever came before.\n"""
 
-        mode = 'issue stack-frame'
-        result = []
-        while not (result and isinstance(result[-1], FinalSummary)):
+        mode, result, loop = 'issue stack-frame', [], True
+        while loop:
             dest = []
+            if mode == 'tail': loop, mode = False, 'error stack-frame'
             munch = cls.__parseblocks(dest, mode, command)
             munch.next()
             try:
                 while True: munch.send((yield))
             except GeneratorExit:
                 munch.close()
-                raise
+                if loop: raise
             except StopIteration: pass
             issues, dead, line = dest
             result.append(issues)
             if dead is not None: fatal.add(dead)
-            # line has been 'HEAP SUMMARY:'
 
             key, tail = line.split(':', 1)
             try: mode, block = handler[key]
@@ -957,6 +954,12 @@ class MemCheck (object):
             except GeneratorExit:
                 munch.close()
                 raise
+            except ParseError:
+                # Duplicate ERROR SUMMARY line before error details is spurious
+                if loop and mode == 'tail':
+                    assert not result[-1][0] and dead is None
+                    result.pop()
+                else: raise
             except StopIteration: pass
             assert(len(dest) == 1)
             result.append(dest[0])
@@ -968,6 +971,7 @@ class MemCheck (object):
     def waffle(line, # tool function for byline
                flood=re.compile(r'More than (100|1000 different) errors detected\.').match,
                boss=re.compile(r'TO (CONTROL|DEBUG) THIS PROCESS USING').match,
+               gc=re.compile(r'Searching for pointers to \S+ not-freed blocks').match,
                embed=re.compile(r'embedded gdbserver:\s+').match,
                burble=('For counts of detected and suppressed errors, rerun with: -v',
                        'Use --track-origins=yes to see where uninitialised values come from'),
@@ -986,7 +990,7 @@ class MemCheck (object):
         if line in burble or embed(line): return lambda k: None
 
         # Blocks of cruft:
-        if boss(line):
+        if boss(line) or gc(line):
             return untilempty
 
         it = flood(line)
