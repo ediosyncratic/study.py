@@ -102,7 +102,7 @@ class Address (object):
             count += 1
         return count
 
-    def conflate(self, *rest):
+    def conflate(self, *rest): # TODO: make this work
         for addr in rest:
             if addr is self: continue
 
@@ -224,7 +224,8 @@ class Frame (object):
     __known = {}
     @classmethod
     def get(cls, text, command):
-        key = cls.__parse(text, Program.get(command))
+        if text == '<inherited from parent>': key = (text, True, None)
+        else: key = cls.__parse(text, Program.get(command))
         try: ans = cls.__known[key]
         except KeyError: ans = cls.__known[key] = cls(text, *key)
         return ans
@@ -482,6 +483,28 @@ class SMA (MemoryChunk):
         return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(SMA, None)
 
+class FDLeak (Issue):
+    @staticmethod
+    def __parse(text, asint=readint,
+                front=re.compile(r'Open file descriptor (\d+):').match):
+        it = front(text)
+        if not it: raise ParseError('Unrecognised file descriptor block', text)
+        return text[it.end():].strip(), asint(it.group(1))
+
+    __upinit = Issue.__init__
+    def __init__(self, stack, text, name, fd):
+        self.__upinit(stack, text)
+        self.fd, self.name = fd, name
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack, address):
+        assert address is None, text
+        name, fd = cls.__parse(text)
+        return cls._cache_(cls.__known, stack, text, name, fd)
+
+Issue.register(FDLeak, lambda x: x.startswith('Open file descriptor'))
+
 class Leak (Issue):
     @staticmethod
     def __parse(text, asint=readint,
@@ -566,16 +589,24 @@ class LeakSummary (object):
     def __init__(self, sure, more, maybe, reach, skip):
         self.sure, self.more, self.maybe, self.reach, self.skip = sure, more, maybe, reach, skip
 
+class FDSummary (object):
+    def __init__(self, text): self.text = text
+
 class FinalSummary (object):
     def __init__(self, err, ctx, serr=0, sctx=0):
         self.reports = err, ctx
         self.suppressed = serr, sctx
 
 class Thread (object):
-    def __init__(self, issues, traffic, leaks, leaksum, overall):
-        self.issues, self.traffic = issues, traffic
-        self.leaks, self.leaksum = leaks, leaksum
-        self.overall = overall
+    def __init__(self, *parts):
+        self.parts = parts
+
+    def issues(self):
+        for part in self.parts:
+            if isinstance(part, tuple):
+                for it in part:
+                    if isinstance(it, Issue):
+                        yield it
 
 class Report (object):
     def __init__(self, command, ppid, dead, threads):
@@ -682,13 +713,15 @@ class MemCheck (object):
                       cruft=re.compile(r'More than (100|1000 different) errors detected\.').match,
                       died=re.compile('Process terminating with default action of '
                                       r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
-                      thread=re.compile(r'Thread \d+:$').match):
+                      thread=re.compile(r'Thread \d+:$').match,
+                      ignore=('For counts of detected and suppressed errors, rerun with: -v',
+                              'Use --track-origins=yes to see where uninitialised values come from')):
         items = []
         stanza = addr = count = terminal = signal = None
 
         while True:
             n, line = yield
-            if all(x.isupper() for x in line.split(None)[:2]): break
+            if line and all(x.isupper() for x in line.split(None)[:2]): break
 
             try:
                 if not line: # end of stanza
@@ -743,6 +776,7 @@ class MemCheck (object):
                             raise ParseError('Failed to parse line', mode, what, lineno=n)
                     stack.append(frame)
 
+                elif line in ignore: pass
                 else: stack, stanza = [], line # first line of new block
 
             except ParseError as what:
@@ -759,6 +793,7 @@ class MemCheck (object):
     def traffic(dest, asint=readint,
                 inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks').match,
                 total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated').match):
+        assert not dest[0]
         try:
             n, line = yield
             it = inuse(line)
@@ -791,6 +826,7 @@ class MemCheck (object):
                     cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
                            'To see them, rerun with: --leak-check=full --show-reachable=yes',
                            'To see them, rerun with: --leak-check=full --show-leak-kinds=all')):
+        assert not dest[0]
         try:
             n, line = yield
             data = []
@@ -806,19 +842,17 @@ class MemCheck (object):
         dest[:] = [ LeakSummary(*data) ]
 
     del leaksum
+    def filedescribe(dest):
+        dest[:] = [ FDSummary(dest) ]
+        raise StopIteration
+        yield # to make this be a generator !
 
-    @staticmethod
-    def __parsetail(dest,
-                    errs=re.compile(r'ERROR SUMMARY: (\d+) errors from (\d+) contexts\s*').match,
-                    skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)').match,
-                    cruft=('For counts of detected and suppressed errors, rerun with: -v',
-                           'Use --track-origins=yes to see where uninitialised values come from')):
-        try:
-            n, line = yield
-            while not line or line in cruft: n, line = yield
-        except GeneratorExit:
-            raise ParseError('Incomplete or missing tail-piece', lineno=n)
-
+    def parsetail(dest,
+                  errs=re.compile(r'(\d+) errors from (\d+) contexts\s*').match,
+                  skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)').match,
+                  cruft=('For counts of detected and suppressed errors, rerun with: -v',
+                         'Use --track-origins=yes to see where uninitialised values come from')):
+        line = dest[0].strip()
         it = errs(line)
         if not it:
             raise ParseError('Failed to parse final error summary', line, lineno=n)
@@ -830,11 +864,15 @@ class MemCheck (object):
         data = [int(x) for x in data + it.groups()]
 
         dest[:] = [ FinalSummary(*data) ]
+        raise StopIteration
+        yield # to make this be a generator !
 
     @classmethod
     def __muncher(cls, bok, fatal, pid, command,
                   handler={ 'HEAP SUMMARY': ('leak stack-frame', traffic),
-                            'LEAK SUMMARY': ('TODO: what mode ?', leaksummary) }):
+                            'LEAK SUMMARY': ('TODO: what mode ?', leaksummary),
+                            'FILE DESCRIPTORS': ('files', filedescribe),
+                            'ERROR SUMMARY': ('tail', parsetail)}):
         """Consumes the content for one pid.
 
         FIXME: cope with 'FILE DESCRIPTORS: %d open at exit' stanza
@@ -845,7 +883,7 @@ class MemCheck (object):
 
         mode = 'issue stack-frame'
         result = []
-        while True:
+        while not (result and isinstance(result[-1], FinalSummary)):
             dest = []
             munch = cls.__parseblocks(dest, mode, command)
             munch.next()
@@ -860,15 +898,15 @@ class MemCheck (object):
             if dead is not None: fatal.add(dead)
             # line has been 'HEAP SUMMARY:'
 
-            key, tail = line.split(':')
+            key, tail = line.split(':', 1)
             try: mode, block = handler[key]
             except KeyError:
                 raise ParseError('Unrecognised section terminator', key, tail)
 
-            dest = []
+            dest = [ tail ]
             munch = block(dest)
-            munch.next()
             try:
+                munch.next()
                 while True: munch.send((yield))
             except GeneratorExit:
                 munch.close()
@@ -877,20 +915,9 @@ class MemCheck (object):
             assert(len(dest) == 1)
             result.append(dest[0])
 
-            # TODO: how do we know when to break out to parsetail ?
+        bok[pid] = Thread(*result)
 
-        dest = []
-        munch = cls.__parsetail(dest)
-        munch.next()
-        try:
-            while True: munch.send((yield))
-        except GeneratorExit: munch.close()
-        except StopIteration: pass
-        overall = dest[0]
-
-        bok[pid] = issues, traffic, leaks, leaksum, overall
-
-    del traffic, leaksummary
+    del traffic, leaksummary, filedescribe, parsetail
 
     def numbered(fd): # tool function for byline
         n = 0 # line number
@@ -981,11 +1008,9 @@ class MemCheck (object):
             finally: fd.close()
 
             threads = []
-            for pid, vs in final.items():
-                issues, traffic, leaks, leaksum, overall = vs
-                for it in issues: self.issues.add(it)
-                for it in leaks: self.leaks.add(it)
-                threads.append(Thread(*vs))
+            for pid, thread in final.items():
+                for it in thread.issues(): self.issues.add(it)
+                threads.append(thread)
             ans.append(Report(cmd, ppid, dead, tuple(threads)))
             for term in dead:
                 self.fatal.add(term.error)
