@@ -929,10 +929,12 @@ class MemCheck (object):
 
     def byline(fd, # tool function for ingest
                each=numbered,
+               skip=re.compile(r'--[0-9]+--\s+').match,
                front=re.compile(r'==([0-9]+)==\s+').match):
         lines, stem = each(fd), None
         for n, line in lines:
             if stem and line.startswith(stem): pass
+            elif skip(line): continue
             else:
                 it = front(line)
                 if not it:
@@ -991,6 +993,8 @@ class MemCheck (object):
 
     del byline
 
+    # TODO: also support chowing down on a whole directory, optionally
+    # with glob to limit selection of files within it.
     def ingest(self, *logs):
         """Make sense of a bunch of valgrind memcheck log files.
 
