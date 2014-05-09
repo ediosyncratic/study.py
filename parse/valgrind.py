@@ -241,6 +241,7 @@ class Stack (Tuple):
     __known = {}
     @classmethod
     def get(cls, frames):
+        if frames is None: return None
         frames = tuple(frames)
         try: ans = cls.__known[frames]
         except KeyError: ans = cls.__known[frames] = cls(frames)
@@ -264,14 +265,17 @@ class Issue (object):
 
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
+    def get(cls, text, stack, address, value):
         for sub, key in cls.__subs:
             if key(text):
-                ans = sub.get(text, stack, address)
-                if isinstance(ans, tuple): return ans
-                return ans, 0
+                ans = sub.get(text, stack)
+                if isinstance(ans, tuple): ans, count = ans
+                else: count = 0
+                if address is not None: address.usedby(ans)
+                if value is not None: value.usedby(ans)
+                return ans, count
 
-        assert address is None, text
+        assert address is None and value is None, text
         return cls._cache_(cls.__known, stack, text), 0
 
     @classmethod
@@ -284,9 +288,8 @@ class UMR (Issue):
     """Uninitialised memory read."""
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
+    def get(cls, text, stack):
         ans = cls._cache_(cls.__known, stack, text)
-        if address is not None: address.usedby(ans)
         return ans
 
     __upclear = Issue.clear
@@ -303,9 +306,8 @@ class BadFree (Issue):
     """Releasing unallocated memory."""
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
+    def get(cls, text, stack):
         ans = cls._cache_(cls.__known, stack, text)
-        if address is not None: address.usedby(ans)
         return ans
 
     __upclear = Issue.clear
@@ -317,10 +319,10 @@ Issue.register(BadFree, lambda x: x == 'Invalid free() / delete / delete[] / rea
 
 class UnMapped (Issue):
     """Access to unmapped memory"""
+    preamble = 'Access not within mapped region at address '
     @staticmethod
     def __parse(text,
-                grab=re.compile('Access not within mapped region at address ' +
-                                r'0x([0-9a-fA-F]+)').match):
+                grab=re.compile(preamble + r'0x([0-9a-fA-F]+)').match):
         it = grab(text)
         if not it: raise ParseError('Unfamiliar non-mapped access message', text)
         address = it.group(1)
@@ -333,10 +335,9 @@ class UnMapped (Issue):
 
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
+    def get(cls, text, stack):
         addr = cls.__parse(text)
         ans = cls._cache_(cls.__known, stack, text, addr)
-        if address is not None: address.usedby(ans)
         return ans
 
     __upclear = Issue.clear
@@ -344,12 +345,61 @@ class UnMapped (Issue):
         self.__upclear()
         MemoryChunk.disuse(self)
 
-Issue.register(UnMapped, lambda x: x.startswith('Access not within mapped region'))
+Issue.register(UnMapped, lambda x: x.startswith(UnMapped.preamble))
 
-class MemoryChunk (Issue):
+class Origin (Issue):
+    __upinit = Issue.__init__
+    def __init__(self, stack, text):
+        self.__upinit(stack, text)
+        self.__users = set() # TODO: weakset
+
+    def usedby(self, other):
+        self.__users.add(other)
+        other.victim.add(self)
+    @property
+    def users(self): return tuple(self.__users)
+
+    @classmethod
+    def disuse(cls, umr):
+        """Notice that a given abuse has been resolved.
+
+        If this is the last in some chunk's list of known abusers, that chunk
+        can be considered fixed (no-one is abusing it, after all).\n"""
+
+        for it in cls._active_():
+            if umr in it.__users:
+                if all(x.fixed for x in it.__users):
+                    it.clear()
+
+class NoValue (Origin):
+    preamble = 'Uninitialised value was created by'
+    @staticmethod
+    def __parse(text,
+                form=re.compile(preamble + r' a (heap|stack) allocation').match):
+        it = form(text)
+        if not it: raise ParseError('Malformed value provenance line', text, form)
+        return it.group(1)
+
+    __upinit = Origin.__init__
+    def __init__(self, stack, text, source):
+        self.__upinit(stack, text)
+        self.source = source
+
+    @classmethod
+    def _active_(cls):
+        for it in cls.__known.values(): yield it
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack):
+        source = cls.__parse(text)
+        return cls._cache_(cls.__known, stack, text, source)
+
+class MemoryChunk (Origin):
+    preamble = 'Address'
     @staticmethod
     def __parse(text, asint=readint,
-                intro=re.compile(r"Address 0x([0-9a-fA-F]+) is").match,
+                intro=re.compile(preamble + r" 0x([0-9a-fA-F]+) is").match,
                 stray=re.compile("not stack'd, malloc'd or " +
                                  r"\(recently\) free'd").match,
                 line=re.compile(r"([0-9,]+) bytes (inside|after) a " +
@@ -375,33 +425,15 @@ class MemoryChunk (Issue):
 
         raise ParseError('Malformed block description line', text)
 
-    __upinit = Issue.__init__
+    __upinit = Origin.__init__
     def __init__(self, stack, text, func=None):
         self.__upinit(stack or (), text)
-        self.__eg, self.__users = set(), set() # TODO: weakset
+        self.__eg = set() # TODO: weakset
         if func is not None: self.author = func
 
     def example(self, *what): self.__eg.add(what)
     @property
     def samples(self): return tuple(self.__eg)
-
-    def usedby(self, other):
-        self.__users.add(other)
-        other.victim.add(self)
-    @property
-    def users(self): return tuple(self.__users)
-
-    @classmethod
-    def disuse(cls, umr):
-        """Notice that a given abuse has been resolved.
-
-        If this is the last in some chunk's list of known abusers, that chunk
-        can be considered fixed (no-one is abusing it, after all).\n"""
-
-        for it in cls._active_():
-            if umr in it.__users:
-                if all(x.fixed for x in it.__users):
-                    it.clear()
 
     @classmethod
     def _active_(cls):
@@ -417,7 +449,7 @@ class MemoryChunk (Issue):
 
     __known = {}
     @classmethod
-    def get(cls, text, stack, address=None):
+    def get(cls, text, stack):
         func, size, off, tid, addr = cls.__parse(text)
         try: sub = cls.__subs[func]
         except KeyError:
@@ -498,8 +530,7 @@ class FDLeak (Issue):
 
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
-        assert address is None, text
+    def get(cls, text, stack):
         name, fd = cls.__parse(text)
         return cls._cache_(cls.__known, stack, text, name, fd)
 
@@ -567,8 +598,7 @@ class Leak (Issue):
 
     __known = {}
     @classmethod
-    def get(cls, text, stack, address):
-        assert address is None, text
+    def get(cls, text, stack):
         sure, routes, count, index, total = cls.__parse(text)
         return cls._cache_(cls.__known, stack, text, sure, routes, count, index), total
 
@@ -714,7 +744,7 @@ class MemCheck (object):
                                       r'signal ([0-9]+) \(([A-Z0-9]+)\)').match,
                       thread=re.compile(r'Thread \d+:$').match):
         items = []
-        stanza = addr = count = terminal = signal = None
+        stanza = addr = value = count = terminal = signal = None
 
         while True:
             n, line = yield
@@ -722,9 +752,19 @@ class MemCheck (object):
 
             try:
                 if not line: # end of stanza
-                    if addr or stanza:
+                    if addr or stanza or value:
                         if stack: stack = Stack.get(stack)
                         else: stack = None
+
+                    if value:
+                        assert stanza or addr, line
+                        value = NoValue.get(value, stack)
+                        if isinstance(prior[-1], tuple):
+                            addr, stack, prior = prior
+                        else:
+                            assert not addr
+                            stack, mode = prior
+                            del prior
 
                     if addr:
                         assert stanza, line
@@ -734,7 +774,7 @@ class MemCheck (object):
                         del prior
 
                     if stanza:
-                        block, m = Issue.get(stanza, stack, addr)
+                        block, m = Issue.get(stanza, stack, addr, value)
                         if count is None: count = m
                         else: assert count == m, line
                         items.append(block)
@@ -743,7 +783,7 @@ class MemCheck (object):
                             assert isinstance(terminal, basestring), line
                             terminal, signal = Terminal(terminal, signal, block, addr), None
 
-                        addr = stanza = None
+                        value = addr = stanza = None
                         del stack
                     # else: more than one blank line
 
@@ -754,10 +794,20 @@ class MemCheck (object):
                     it = died(line)
                     if not it: raise ParseError('Unfamiliar termination', line, lineno=n)
                     signal = int(it.group(1)), it.group(2)
-                elif line.startswith('Address'):
+
+                elif line.startswith(NoValue.preamble):
+                    assert value is None and (stanza or addr), line
+                    if addr:
+                        mode = prior[-1]
+                        prior = addr, Stack.get(stack), prior
+                    else: prior = Stack.get(stack), mode
+                    value, stack, mode = line, [], 'Source of value for ' + mode
+
+                elif line.startswith(MemoryChunk.preamble):
                     assert addr is None and stanza, line
                     prior = Stack.get(stack), mode # stash while parsing allocation block
                     addr, stack, mode = line, [], 'Address block for ' + mode
+
                 elif stanza or addr: # read stack-frame line:
                     try: frame = Frame.get(line, command)
                     except ParseError, what:
@@ -910,7 +960,7 @@ class MemCheck (object):
 
     del traffic, leaksummary, filedescribe, parsetail
 
-    def waffle(line,
+    def waffle(line, # tool function for byline
                flood=re.compile(r'More than (100|1000 different) errors detected\.').match,
                boss=re.compile(r'TO (CONTROL|DEBUG) THIS PROCESS USING').match,
                embed=re.compile(r'embedded gdbserver:\s+').match,
@@ -954,11 +1004,14 @@ class MemCheck (object):
     def byline(fd, # tool function for ingest
                each=numbered, ignore=waffle,
                front=re.compile(r'==([0-9]+)==\s+').match,
-               skip=re.compile(r'--[0-9]+--\s+').match):
+               # Valgrind burbling about how it's been configured:
+               skip=re.compile(r'--[0-9]+--\s+').match,
+               # Stray output from cfengine itself:
+               shrug=re.compile(r'\d+-\d+-\d+T\d+:\d+:\d+-\d+\s+').match):
         lines, stem, wait = each(fd), None, None
         for n, line in lines:
             if stem and line.startswith(stem): pass
-            elif skip(line): continue
+            elif skip(line) or shrug(line): continue
             else:
                 it = front(line)
                 if not it:
@@ -976,6 +1029,7 @@ class MemCheck (object):
 
             if wait is None: yield proc, n, line
             if not it: wait = None
+    del numbered, waffle
 
     @classmethod
     def __ingest(cls, fd,
