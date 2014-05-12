@@ -520,7 +520,9 @@ class SMA (MemoryChunk):
         return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(SMA, None)
 
-class FDLeak (Issue):
+class LeakBase (Issue): pass # Common base-class
+
+class FDLeak (LeakBase):
     @staticmethod
     def __parse(text, asint=readint,
                 front=re.compile(r'Open file descriptor (\d+):').match):
@@ -528,7 +530,7 @@ class FDLeak (Issue):
         if not it: raise ParseError('Unrecognised file descriptor block', text)
         return text[it.end():].strip(), asint(it.group(1))
 
-    __upinit = Issue.__init__
+    __upinit = LeakBase.__init__
     def __init__(self, stack, text, name, fd):
         self.__upinit(stack, text)
         self.fd, self.name = fd, name
@@ -541,7 +543,7 @@ class FDLeak (Issue):
 
 Issue.register(FDLeak, lambda x: x.startswith('Open file descriptor'))
 
-class Leak (Issue):
+class Leak (LeakBase):
     @staticmethod
     def __parse(text, asint=readint,
                 direct=re.compile(r'([0-9,]+) bytes\s*').match,
@@ -571,7 +573,7 @@ class Leak (Issue):
 
         return sure, routes, count, index, total
 
-    __upinit = Issue.__init__
+    __upinit = LeakBase.__init__
     def __init__(self, stack, text, sure, routes, count, index):
         self.__upinit(stack, 'Leak: ' + text)
         self.size = self.__size(sure, routes, count)
@@ -594,7 +596,7 @@ class Leak (Issue):
     @property
     def sure(self): return sum(self.size[2:]) > 0
 
-    __upclear = Issue.clear
+    __upclear = LeakBase.clear
     def clear(self): # returns (maybe-leaked, direct-leaked, indirect-leaked, blocks)
         self.__upclear()
         return self.size
@@ -684,7 +686,7 @@ class MemCheck (object):
         return saved
 
     def __ditch(self, frame, dump, leak=True):
-        if isinstance(leak, Issue): leak = isinstance(leak, Leak)
+        if isinstance(leak, Issue): leak = isinstance(leak, LeakBase)
         return self.__frame_out(self.leaks if leak else self.issues, frame, dump)
 
     def repair(self, frame, leak=True):
@@ -1109,7 +1111,9 @@ class MemCheck (object):
 
             threads = []
             for pid, thread in final.items():
-                for it in thread.issues(): self.issues.add(it)
+                for it in thread.issues():
+                    if isinstance(it, LeakBase): self.leaks.add(it)
+                    else: self.issues.add(it)
                 threads.append(thread)
             ans.append(Report(cmd, ppid, dead, tuple(threads)))
             for term in dead:
