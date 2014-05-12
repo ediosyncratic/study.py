@@ -609,6 +609,19 @@ class Leak (LeakBase):
 
 Issue.register(Leak, lambda x: 0 <= x.find('in loss record'))
 
+# Package the data __muncher() gathers from one thread's output:
+class Thread (object):
+    def __init__(self, *parts):
+        self.parts = parts
+        # Alternating place-holders, for summaries, with tuples of issues.
+
+    def issues(self):
+        for part in self.parts:
+            if isinstance(part, tuple):
+                for it in part:
+                    if isinstance(it, Issue):
+                        yield it
+
 # Placeholders: no actual use for them yet
 class Terminal (object):
     def __init__(self, text, signal, err, addr):
@@ -631,17 +644,6 @@ class FinalSummary (object):
     def __init__(self, err, ctx, serr=0, sctx=0):
         self.reports = err, ctx
         self.suppressed = serr, sctx
-
-class Thread (object):
-    def __init__(self, *parts):
-        self.parts = parts
-
-    def issues(self):
-        for part in self.parts:
-            if isinstance(part, tuple):
-                for it in part:
-                    if isinstance(it, Issue):
-                        yield it
 
 class Report (object):
     def __init__(self, command, ppid, dead, threads):
