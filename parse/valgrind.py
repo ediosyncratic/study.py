@@ -986,10 +986,12 @@ class MemCheck (object):
         Returns None for lines to not ignore.  Otherwise, returns a
         callable; call this on each line after the one that returned
         it; if the return is true, ignore the line and continue using
-        the callable on later lines; if None use the line and discard
-        the callable; otherwise, a false return means the line is the
-        last to be ignored on account of the one that provoked this
-        callable.\n"""
+        the callable on later lines; if false, discard the callable.
+        A return of None means the block of waffle actually ended on
+        the preceding line, so the present line should be examined as
+        a candidate for use (but might be fresh waffle); any other
+        false return means the line given was the last line of the
+        waffle.\n"""
         # Single-line cruft:
         if line in burble or embed(line): return lambda k: None
 
@@ -1038,7 +1040,7 @@ class MemCheck (object):
             if wait is None: wait, it = ignore(line), True
             else:
                 it = wait(line)
-                if it is None: wait = None
+                if it is None: wait, it = ignore(line), True
 
             if wait is None: yield proc, n, line
             if not it: wait = None
