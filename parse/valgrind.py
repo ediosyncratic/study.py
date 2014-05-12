@@ -912,7 +912,7 @@ class MemCheck (object):
         yield # to make this be a generator !
 
     @classmethod
-    def __muncher(cls, bok, fatal, pid, command,
+    def __muncher(cls, fatal, bok, pid, command,
                   handler={ 'HEAP SUMMARY': ('leak stack-frame', traffic),
                             'LEAK SUMMARY': ('error stack-frame', leaksummary),
                             'FILE DESCRIPTORS': ('files', filedescribe),
@@ -1061,14 +1061,14 @@ class MemCheck (object):
         command, ppid = dest
 
         partial, final, fatal = {}, {}, set()
-        partial[pid] = munch = cls.__muncher(final, fatal, pid, command)
+        partial[pid] = munch = cls.__muncher(fatal, final, pid, command)
         munch.next()
         for p, n, line in src:
             if p != pid:
                 try: munch = partial[p]
                 except KeyError:
                     assert not final.has_key(p), line
-                    munch = partial[p] = cls.__muncher(final, fatal, p, command)
+                    munch = partial[p] = cls.__muncher(fatal, final, p, command)
                     munch.next()
                 pid = p
 
