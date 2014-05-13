@@ -585,7 +585,7 @@ class Leak (LeakBase):
         @classmethod
         def fromParsed(cls, sure, blocks, direct, indirect):
             if sure: return cls(blocks, 0, direct, indirect)
-            return (blocks, direct + indirect, 0, 0)
+            return cls(blocks, direct + indirect, 0, 0)
     del Namely
 
     @staticmethod
