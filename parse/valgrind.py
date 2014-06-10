@@ -944,6 +944,8 @@ class MemCheck (object):
                 munch.close()
                 if loop: raise
             except StopIteration: pass
+            if loop: assert dest
+            elif not dest: break
             issues, dead, line = dest
             result.append(issues)
             if dead is not None: fatal.add(dead)
