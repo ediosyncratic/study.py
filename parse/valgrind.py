@@ -228,9 +228,8 @@ class Frame (object):
 
     __known = {}
     @classmethod
-    def get(cls, text, command):
-        if text == '<inherited from parent>':
-            key = (True, None, None, Source.get(text))
+    def get(cls, text, command, heir='<inherited from parent>'):
+        if text == heir: key = (True, None, None, Source.get(heir))
         else: key = cls.__parse(text, Program.get(command))
         try: ans = cls.__known[key]
         except KeyError: ans = cls.__known[key] = cls(text, *key)
@@ -535,7 +534,7 @@ class FDLeak (LeakBase):
     def __init__(self, stack, text, name, fd):
         self.__upinit(stack, text)
         self.fd, self.name = fd, name
-        # <inherited from parent> isn't really a leak; has .addr = None.
+        # '<inherited from parent>' isn't really a leak; has .addr = None.
         self.sure = not (len(stack) == 1 and stack[0].addr is None)
 
     __known = {}
