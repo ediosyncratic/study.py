@@ -982,7 +982,8 @@ class MemCheck (object):
                gc=re.compile(r'Searching for pointers to \S+ not-freed blocks').match,
                embed=re.compile(r'embedded gdbserver:\s+').match,
                burble=('For counts of detected and suppressed errors, rerun with: -v',
-                       'Use --track-origins=yes to see where uninitialised values come from'),
+                       'Use --track-origins=yes to see where uninitialised values come from',
+                       'WARNING: new redirection conflicts with existing -- ignoring it'),
                # Discard everything up to (but not including) the next blank line:
                untilempty=lambda k: k or None):
         """Decides what lines to simply ignore.
