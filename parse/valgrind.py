@@ -520,7 +520,18 @@ class SMA (MemoryChunk):
         return cls._cache_(cls.__known, stack, text)
 MemoryChunk.register(SMA, None)
 
-class LeakBase (Issue): pass # Common base-class
+class LeakBase (Issue): # Common base-class
+    from study.maths.vector import Namely
+    class _LeakSize (Namely):
+        _component_names_ = ('fds', 'blocks', 'maybe', 'direct', 'indirect')
+        @classmethod
+        def fromParsed(cls, sure, blocks, direct, indirect):
+            if sure: return cls(0, blocks, 0, direct, indirect)
+            return cls(0, blocks, direct + indirect)
+
+        @classmethod
+        def fileLeak(cls): return cls(1)
+    del Namely
 
 class FDLeak (LeakBase):
     @staticmethod
@@ -536,6 +547,11 @@ class FDLeak (LeakBase):
         self.fd, self.name = fd, name
         # '<inherited from parent>' isn't really a leak; has .addr = None.
         self.sure = not (len(stack) == 1 and stack[0].addr is None)
+
+    __upclear = LeakBase.clear
+    def clear(self, one=LeakBase._LeakSize.fileLeak()):
+        self.__upclear()
+        return one
 
     __known = {}
     @classmethod
@@ -581,19 +597,9 @@ class Leak (LeakBase):
         self.size = self.__size(sure, routes, count)
         self.index = index
 
-    from study.maths.vector import Namely
-    class LeakSize (Namely):
-        _component_names_ = ('blocks', 'maybe', 'direct', 'indirect')
-        @classmethod
-        def fromParsed(cls, sure, blocks, direct, indirect):
-            if sure: return cls(blocks, 0, direct, indirect)
-            return cls(blocks, direct + indirect, 0, 0)
-    del Namely
-
     @staticmethod
-    def __size(sure, routes, blocks, gen=LeakSize.fromParsed):
+    def __size(sure, routes, blocks, gen=LeakBase._LeakSize.fromParsed):
         return gen(sure, blocks, *routes)
-    del LeakSize
 
     @property
     def sure(self): return sum(self.size[2:]) > 0
