@@ -176,7 +176,13 @@ class Frame (object):
         return hash(self.leaf) ^ hash(self.addr) ^ hash(self.func) ^ hash(self.source)
 
     def __cmp__(self, other):
-        return (cmp(self.addr, other.addr) or
+        if self.addr is None:
+            if other.addr is not None: return -1
+            addr = 0
+        elif other.addr is None: return +1
+        else: addr = cmp(self.addr, other.addr)
+
+        return (addr or
                 cmp(self.func, other.func) or
                 cmp(self.source, other.source) or
                 cmp(self.leaf, other.leaf))
