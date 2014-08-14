@@ -528,7 +528,7 @@ MemoryChunk.register(SMA, None)
 
 class LeakBase (Issue): # Common base-class
     from study.maths.vector import Namely
-    class _LeakSize (Namely):
+    class LeakSize (Namely):
         _component_names_ = ('fds', 'blocks', 'maybe', 'direct', 'indirect')
         @classmethod
         def fromParsed(cls, sure, blocks, direct, indirect):
@@ -555,7 +555,7 @@ class FDLeak (LeakBase):
         self.sure = not (len(stack) == 1 and stack[0].addr is None)
 
     __upclear = LeakBase.clear
-    def clear(self, one=LeakBase._LeakSize.fileLeak()):
+    def clear(self, one=LeakBase.LeakSize.fileLeak()):
         self.__upclear()
         return one
 
@@ -604,7 +604,7 @@ class Leak (LeakBase):
         self.index = index
 
     @staticmethod
-    def __size(sure, routes, blocks, gen=LeakBase._LeakSize.fromParsed):
+    def __size(sure, routes, blocks, gen=LeakBase.LeakSize.fromParsed):
         return gen(sure, blocks, *routes)
 
     @property
