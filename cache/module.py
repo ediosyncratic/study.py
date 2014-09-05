@@ -60,7 +60,8 @@ class Module (modbase):
                              key, self.__name__)
 
     def __repr__(self):
-        return '<' + ' '.join(self.__doc__.split('\n')) + '>'
+        return """<lazily-loaded Module %s, from file %s in %s>""" % (
+            self.__name__, self.__src, self.__dir)
 
     @classmethod
     def __sub_mod(cls, name, directory, src):
@@ -75,24 +76,35 @@ Loaded from file %s
         inst.__path__ = path
         return inst
 
+    import sys
     @staticmethod
-    def __load_file(path, into, indir):
+    def __load_file(path, into, indir, modmap=sys.modules, searchpath=sys.path):
         """Load python code into the namespace of an object.
 
         The object should be based on the builtin module type. It is returned,
         after its .__dict__ has been populated from the loaded file.\n"""
-        import sys
-        sys.path.insert(0, indir)
+
+        # Fake up participation in the module protocol:
+        name = into.__name__ # cached in case into.__name__ gets changed
+        try: prior, restore = modmap[name], True
+        except KeyError: restore = False
+        modmap[name] = into
+        searchpath.insert(0, indir)
+
         try:
             fd = open(path)
             try: exec fd in into.__dict__
             finally: fd.close()
-        finally:
-            try: ind = sys.path.index(indir)
+        finally: # Restore module protocol status quo:
+            try: ind = searchpath.index(indir)
             except ValueError: pass
-            else: del sys.path[:ind+1]
+            else: del searchpath[:ind+1]
+
+            if restore: modmap[name] = prior
+            else: del modmap[name]
 
         return into
+    del sys
 
     import os
     def __load_sub(self, key,
