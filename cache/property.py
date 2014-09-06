@@ -54,7 +54,7 @@ class propstore (docprop):
 
     def __clear(self, obj):
         try: del obj.__cache[self]
-        except AttributeError: pass # uninitialized caache
+        except AttributeError: pass # uninitialized cache
         except KeyError: pass # uninitialized attribute
 
     __updel = docprop.__delete__
