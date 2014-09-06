@@ -233,7 +233,124 @@ def postcompose(post, *more):
         return ans
     return decor
 
-# Hide tunnelled args:
+class RecursionError (RuntimeError):
+    "A function called itself recursively with the same arguments."
+
+def recurseproof(*args, **kw):
+    """Returns a decorator protecting against recursive calling.
+
+    Arguments are booleans, one per (relevant) argument of the function to be
+    decorated, indicating whether the argument is hash()able; if it is, the
+    argument is used as is in the key used internally to track the call stack;
+    otherwise, the argument's id() is used instead.  Raises RecursionError if it
+    detects a call to the function with the same key computed for its parameters
+    as one already on the stack.
+
+    An argument whose hashability is given as None here means that the matching
+    argument to a call of the decorated function should be ignored.  Arguments
+    for which nothing specifies whether they are hashable or not are also
+    ignored (details below).  Two calls differing only in ignored arguments are
+    deemed to conflict, so if one happens during the other's evaluation it is
+    treated as bad recursion.
+
+    If the positional argument here at index 1+n is the builtin Ellipsis, all
+    later positional arguments here are ignored and the argument at index n is
+    used for each positional argument (if any) passed to the actual function
+    call at index n or greater; this can be used to characterise an optional
+    *args tail to the parameter list.  If Ellipsis is the first argument (n <
+    0), a ValueError is raised when invoking recurseproof (i.e. before we even
+    get to defining the function to be decorated).
+
+    In the absence of Ellipsis, if the parameter list given here is shorter than
+    that used for the decorated function, later arguments passed to the
+    decorated function shall be ignored (useful when, for example, these later
+    arguments are function detaults used to tunnel a value from the calling
+    scope into the function).  If the function is called with fewer arguments
+    than were supplied here, the later arguments from here are ignored (i.e. no
+    attempt is made to infer what the extras shall get from .func_defaults).
+
+    For keyword arguments, an empty keyword (you'll need to pass this to
+    recurseproof() using **{'': val} at the end of the parameters) supplies the
+    boolean for all unspecified keys; without this, unspecified keys are ignored
+    in the actual function call.  (If an actual function call is given an empty
+    keyword argument, by whatever contrivance, it shall be treated as if it were
+    an unspecified key.)  All other keywords passed to recurseproof specify, as
+    for positional parameters, whether the thus-named parameter to a the
+    decorated function can be hashed or must be represented by its id() in the
+    key used to check for recursion.  (Specifying None can be used to ignore
+    particular keywords when the empty keyword is specified.)  Keywords specifid
+    in the call to recurseproof but absent from the call to the decorated
+    function are also ignored.  Note that positional parameters passed by
+    keyword do not show up as keyword parameters to the internals of a call, so
+    there is no point mentioning positional parameters of the decorated function
+    in recurseproof's parameter list.
+
+    Arguments to recurseproof other than None and, for positional arguments,
+    Ellipsis are interpreted as booleans in the usual way; while use of True and
+    False is recommended, you can use anything you like.  (The values are not
+    copied, merely remembered; so, if you use a list (for example), changes to
+    that list later on may cause its boolean value to change; if this happens
+    during recursive calls to a function using the resulting decorator, strange
+    things may happen.  If this breaks your code, you get to keep all the
+    pieces.  With any luck, though, it'll just delay detection of bad
+    recursion.  I do not recommend doing this deliberately.)  In particular, if
+    used for a keyword argument, Ellipsis is just another true value.
+
+    This is not completely generic (a *args might alternate hashable entries
+    with non-hashable ones, for example; or you might want to specify keyword
+    hashability by a regex) and is moderately heavy-weight compared to specific
+    well-crafted protection in many simple cases, but it copes with a fairly
+    broad class of possible applications and lets you be lazy in the simple
+    cases.  Hand-code it later if it turns out to matter.\n"""
+
+    try: cut = args.index(Ellipsis)
+    except ValueError: pass
+    else:
+        if cut: args = args[:1 + cut]
+        else: raise ValueError('Ellipsis needs a preceding positional parameter', args)
+
+    @mimicking
+    def decor(decorated, pos=args, bok=tuple(kw.items())):
+        def key(args, kw):
+            ks, i = [], 0
+            for arg in args:
+                if pos[i] is not Ellipsis:
+                    h = pos[i]
+                    i += 1
+                else: assert i > 0 # so h *has* been set
+                if h is not None:
+                    ks.append(arg if h else id(arg))
+
+            rest, k = kw.keys(), None
+            for nom, h in bok:
+                if not nom: k = h
+                else:
+                    try: rest.remove(nom)
+                    except ValueError: pass
+                    else:
+                        if h is not None:
+                            ks.append((nom, kw[nom] if h else id(kw[nom])))
+
+            if k is not None and rest:
+                rest.sort()
+                for nom in rest:
+                    ks.append((nom, kw[nom] if k else id(kw(nom))))
+
+            return tuple(ks)
+
+        pending = set()
+        def ans(*args, **kw):
+            k = key(args, kw)
+            if k in pending: raise RecursionError(decorated, args, kw)
+            pending.add(k)
+            ret = decorated(*args, **kw)
+            pending.discard(k)
+            return ret
+
+        return ans
+    return decor
+
+# Hide tunnelled args (where used):
 accepting = mimic(accepting, accepting, lambda prototype: None)
 overriding = mimic(overriding, overriding, lambda base: None)
 aliasing = mimic(aliasing, aliasing, decodeco)
