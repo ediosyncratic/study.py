@@ -200,9 +200,9 @@ Proof:
   (q.r).(q.r).m.
 
   Expressing p, q.r and m in terms of their prime factors we now find that every
-  prime factor of m has multiplicity 1 (which is odd) as a factor of p.p, all of
-  whose factors have even multiplicity; thus m has no prime factors, so m is 1
-  and p = q.r has q as a factor so p/q = r is a positive integer."""
+  prime factor of m has odd multiplicity as a factor of p.p, all of whose
+  factors have even multiplicity; thus m has no prime factors, so m is 1 and p =
+  q.r has q as a factor so p/q = r is a positive integer.\n"""
 
 _early_primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
 def factorsum(N):
@@ -258,12 +258,13 @@ def perfect():
 def desquare(val):
     """Whole square root with remainder.
 
-    Input, val, is a non-negative reaal, typically a natural.  Raises
-    ValueError if negative.  Otherwise, returns a twople n, v with n natural,
-    n*n + v == val and 0 <= v < 2*n+1.\n"""
+    Input, val, is a non-negative real, typically a natural.  Raises ValueError
+    if negative.  Otherwise, returns a twople n, v with n natural, n*n + v ==
+    val and 0 <= v < 2*n+1.\n"""
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
 
+    # Find least bit = 2**ind > sqrt(val):
     v, ind, bit = val, 0, 1
     while v >= 1:
         v /= 4
@@ -285,7 +286,7 @@ def desquare(val):
             v |= bit
             val -= up
 
-    # v**2 <= input < (1+v)**2
+    assert 0 <= val < 1 + (v << 1) # v**2 <= input < (1+v)**2
     return v, val
 
 def unsquare(val):
@@ -298,14 +299,25 @@ def sqrt(val):
     "max({natural n: n*n <= val})"
     return desquare(val)[0]
 
-def isprime(n):
-    "Tests whether a natural is prime"
-    s, r = desquare(n)
-    if not r: return False # n = s * s
+def factor(n):
+    """Returns a proper factor of n, if it has one.
+
+    If n is prime, returns None; if n < 0, returns -1; if n is 0 (everything is
+    a factor of it) or 1 (has a multiplicative inverse), returns n.  Otherwise,
+    returns a number s, strictly between 1 and n, for which n % s = 0.  This
+    number need not be prime, but is a proper factor of n.\n"""
+    if n < 0: return -1
+    if n in (0, 1): return n
+    s, r = desquare(n) # (s+1)**2 > n >= s**2
+    if not r: return s # n is s * s
     while s > 1:
         if n % s: s -= 1
-        else: return False
-    return True
+        else: return s
+    return None
+
+def isprime(n):
+    "Tests whether a natural is prime"
+    return factor(n) is None
 
 def eachprime():
     """A trivial iterator over all primes.
