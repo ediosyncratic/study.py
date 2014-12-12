@@ -346,7 +346,7 @@ def depower(val, p):
         if val == 1: return 1, 0
         raise ValueError("Zeroth power only produces 1 as value", val, p)
     elif p == 1:
-        n = int(val)
+        n = int(val) # int() rounds towards zero
         return n, val - n
     elif p == 2: return desquare(val) # more efficient
     elif p < 3 or p != int(p):
@@ -361,6 +361,7 @@ def depower(val, p):
 
     elif val < 1: return 0, val # trivial
 
+    # Find least bit = 1 << ind with bit**p > val:
     v, ind, bit, pb, tp = val, 0, 1, 1, 1 << p
     while v >= tp:
         v /= tp
@@ -379,7 +380,7 @@ def depower(val, p):
         while i < p:
             # term(i) = (term(i-1) >> ind)*v*(p+1-i)/i
             t >>= ind
-            assert not t % i
+            assert 0 == t % i
             t *= v * (p + 1 - i) / i
             up += t
             i += 1
@@ -390,7 +391,7 @@ def depower(val, p):
             v |= bit
             val -= up
 
-        assert pb == 1 << (p * ind) and bit == 1 << ind and v & (bit - 1) == 0
+        assert pb == 1 << (p * ind) and bit == 1 << ind and not v & (bit - 1)
         ind -= 1
         bit >>= 1
         pb >>= p
