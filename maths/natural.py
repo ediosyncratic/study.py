@@ -361,40 +361,45 @@ def depower(val, p):
 
     elif val < 1: return 0, val # trivial
 
-    # Find least bit = 1 << ind with bit**p > val:
-    v, ind, bit, pb, tp = val, 0, 1, 1, 1 << p
-    while v >= tp:
-        v /= tp
+    # Find highest bit = 1 << ind with bit**p <= val:
+    v, ind, bit, pb = int(val), 0, 1, 1
+    while True:
+        v >>= p
+        if not v: break
         ind += 1
         bit <<= 1
         pb <<= p
-    assert val / tp < pb <= val and pb == bit**p
+    assert val >> p < pb <= val and pb == bit**p
 
+    v = bit # start building our answer, one bit at a time
     # input = val # hereafter, val shall store input - v**p
-    v = 0
-    while bit:
+    val -= pb
+
+    while val and ind > 0:
+        ind -= 1
+        bit >>= 1
+        pb >>= p
+        assert pb == bit**p and not v & bit
         # term = lambda i: v**i * bit**(p-i) * p!/i!/(p-i)!
         # sum(map(term, range(p))) +v**p is (v + bit)**p
         # We need to compare sum(map(term, range(p))) with val.
         i, t, up = 1, pb, pb # i, term(i-1), sum(term, range(i))
         while i < p:
             # term(i) = (term(i-1) >> ind)*v*(p+1-i)/i
-            t >>= ind
-            assert 0 == t % i
-            t *= v * (p + 1 - i) / i
+            assert not t & (bit - 1) # i.e. t % bit is 0
+            t *= v * (p + 1 - i)
+            t, r = divmod(t >> ind, i) # t /= bit * i
+            assert 0 == r # the division was exact
             up += t
             i += 1
 
         assert up == (v | bit)**p - v**p
-        if up == val: return v | bit, 0
-        if up < val:
+        if up <= val:
             v |= bit
             val -= up
 
         assert pb == 1 << (p * ind) and bit == 1 << ind and not v & (bit - 1)
-        ind -= 1
-        bit >>= 1
-        pb >>= p
+    assert not val or bit == 1 # i.e the next >>= 1 would have wiped it.
 
     return v, val
 
