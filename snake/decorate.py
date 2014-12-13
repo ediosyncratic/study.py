@@ -275,15 +275,15 @@ def recurseproof(*args, **kw):
     in the actual function call.  (If an actual function call is given an empty
     keyword argument, by whatever contrivance, it shall be treated as if it were
     an unspecified key.)  All other keywords passed to recurseproof specify, as
-    for positional parameters, whether the thus-named parameter to a the
-    decorated function can be hashed or must be represented by its id() in the
-    key used to check for recursion.  (Specifying None can be used to ignore
-    particular keywords when the empty keyword is specified.)  Keywords specifid
-    in the call to recurseproof but absent from the call to the decorated
-    function are also ignored.  Note that positional parameters passed by
-    keyword do not show up as keyword parameters to the internals of a call, so
-    there is no point mentioning positional parameters of the decorated function
-    in recurseproof's parameter list.
+    for positional parameters, whether the thus-named parameter to the decorated
+    function can be hashed or must be represented by its id() in the key used to
+    check for recursion.  (Specifying None can be used to ignore particular
+    keywords when the empty keyword is specified.)  Keywords specifid in the
+    call to recurseproof but absent from the call to the decorated function are
+    also ignored.  Note that positional parameters passed by keyword do not show
+    up as keyword parameters to the internals of a call, so there is no point
+    mentioning positional parameters of the decorated function as keywords to
+    recurseproof.
 
     Arguments to recurseproof other than None and, for positional arguments,
     Ellipsis are interpreted as booleans in the usual way; while use of True and
