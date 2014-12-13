@@ -28,7 +28,7 @@ def aslookup(whom):
     return lambda k, __w=whom: getattr(__w, k)
     # which coincides with how an Object behaves as a callable.
 # In theory, it might be worth calling whom.__getattr__ if that doesn't come
-# fromits class, since getattr() bypassed this.
+# from its class, since getattr() bypassed this.
 
 from study.snake.lazy import Lazy
 
@@ -137,7 +137,7 @@ class Object (Lazy):
                 row = (r[-1],) # retain only the original _lazy_lookup_
             else: row = r
             # Note, however, that Quantity relies on ._scale_units_() being
-            # borrow()ed successfully, so don't block on key[:1] == '_'.
+            # borrow()ed successfully, so don't block on key.startswith('_').
 
             for item in row:
                 try: return item(key)
