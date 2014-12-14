@@ -76,7 +76,8 @@ class weakprop (propstore, recurseprop):
     import weakref
     __upget = recurseprop.__get__
     @decorate.overriding(__upget)
-    def __get__(self, obj, ref=weakref.ref):
+    def __get__(self, obj, cls=None, ref=weakref.ref):
+        if objs is None: return self
         bok = self.cache(obj)
         try: f = bok[self]
         except KeyError: ans = None
@@ -182,7 +183,8 @@ class weakprop (propstore, recurseprop):
                 __upget = cls.__get__
                 __reget = reflex.__get__
                 @extend(__upget)
-                def __get__(self, obj):
+                def __get__(self, obj, cls=None):
+                    if obj is None: return self
                     ans = self.__upget(obj)
                     self.__reget(obj, ans, self.cache(ans))
                     return ans
@@ -278,7 +280,7 @@ class weakattr (dictattr, weakprop):
     __wget = weakprop.__get__
     __dget = dictattr.__get__
     @decorate.overriding(__dget)
-    def __get__(self, obj):
+    def __get__(self, obj, cls=None):
         try: return self.__dget(obj, cls)
         except AttributeError: return self.__wget(obj, cls)
 del dictattr, decorate

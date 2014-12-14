@@ -87,6 +87,7 @@ class lazyprop (propstore, recurseprop):
 
     __upget = recurseprop.__get__
     def __get__(self, obj, cls=None):
+        if obj is None: return self
         # Do the lazy lookup:
         bok = self.cache(obj)
         try: ans = bok[self]

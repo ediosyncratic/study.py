@@ -5,6 +5,9 @@ This module provides:
   recurseprop -- extend docprop to manage recursion in getters
   dictattr -- extend recurseprop by implementing set/del via object's __dict__
 
+The properties defined here are data descriptors; for details, see
+https://docs.python.org/3/howto/descriptor.html
+
 See individual classes for details.
 See also study.cache for related classes.
 See study.LICENSE for copyright and license information.
@@ -42,6 +45,7 @@ class docprop (property):
             self.__all = group
             self.__ind = index
         def __get__(self, obj, cls=None):
+            if obj is None: return self
             return self.__all.__get__(obj, cls)[self.__ind]
 
     @classmethod
@@ -128,6 +132,7 @@ class recurseprop (docprop):
 
     __upget = docprop.__get__
     def __get__(self, obj, cls=None):
+        if obj is None: return self
         # Compute attribute, but protect from recursion:
         try: check = obj.__recurse
         except AttributeError:
@@ -182,5 +187,5 @@ class dictattr (recurseprop):
     __upget = recurseprop.__get__
     def __get__(self, obj, cls=None):
         try: return obj.__dict__[self.__name__]
-        except KeyError: pass
+        except (KeyError, AttributeError): pass
         return self.__upget(obj, cls=None)
