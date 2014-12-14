@@ -106,7 +106,7 @@ class weakprop (propstore, recurseprop):
         x.a.b.c so as to mark the last's .d as being x), so as to be able to
         close the loop back to the object we started from.  However, even
         inlining the methods below into __back()'s class, I failed to work out
-        how __get__/noteback can compute the onwards attributes round the
+        how __get__/link-back can compute the onwards attributes round the
         loop.  Perhaps it could overtly call __get__ with an extra parameter
         on the successor properties.\n"""
 
@@ -210,7 +210,7 @@ class weakprop (propstore, recurseprop):
         in place of a and b; they may be the same).
 
         Arguments are optional:
-          pair -- the property paird with this one, if any.
+          pair -- the property paired with this one, if any.
           check -- enables a consistency check, see below.
 
         This method returns a decorator which can be applied to the getter for
@@ -218,8 +218,8 @@ class weakprop (propstore, recurseprop):
         the decorator sorts out the rest.
 
         If pair is not None it should be a property built using a prior call
-        to mutual.  This need not have been on the same class derived from
-        weakprop as the present call to mutual; nor need it be a property of
+        to mutual.  This need not have been of the same class derived from
+        weakprop as the present call to mutual; nor need it be a property on
         the same class.  Values of the paired property must be of the class in
         which .mutual() is being used and the property being created must take
         values of the class to which the paired property belongs (i.e. if
@@ -245,9 +245,10 @@ class weakprop (propstore, recurseprop):
         is set to x.
 
         If A.a is created without pair but later passed as pair when defining
-        property B.b (where B may be A), then any instance x of A, when asked
-        for x.a, will set x.a.b to x; and any instance y of B, when asked for
-        y.b, will set y.b.a to y.
+        property B.b (where B may be A; no instance of A should attempt to
+        access its .a before this pairing happens), then any instance x of A,
+        when asked for x.a, will set x.a.b to x; and any instance y of B, when
+        asked for y.b, will set y.b.a to y.
 
         If check is true, it enables an assertion that round-tripping the
         computation of the properties does actually return a value equal to
@@ -263,8 +264,8 @@ class weakprop (propstore, recurseprop):
         naive value for y.b.a) is in fact equal to y, to which y.b.a shall be
         set; naturally, this only makes sense if B defines equality
         comparison.  Conversely, if B.b's creation set check true, then
-        computation of A.a shall verify that-tripping x.a.b would have been
-        equal to x.\n"""
+        computation of A.a shall verify that round-tripping x.a.b would have
+        been equal to x.\n"""
 
         @wrap
         def decor(get, mutual=cls.__back(), chk=check, par=pair):
