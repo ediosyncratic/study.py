@@ -307,10 +307,11 @@ class Interpolator (Cached):
         if base < 2 or long(base) != base:
             raise ValueError("Unworkable number base", base)
 
+        log = self.__log
         if best is None: best = self.split((1, 1))[0] # median
         best *= 1. # make sure it's not of an integral type
         if self.weigh((best, best), 2)[1] >= 1:
-            ent = self.__log(best / spike, base)
+            ent = log(best / spike, base)
             if ent is None: return best, None
             ent -= len(self.mass)
             scale = base**ent
@@ -326,7 +327,7 @@ class Interpolator (Cached):
         if lo > best: lo = best
         if hi < best: hi = best
 
-        ent = self.__log(hi - lo, base) # expon-ent
+        ent = log(hi - lo, base) # expon-ent
         assert ent is not None, "lo, hi and best don't all coincide"
         scale = base ** ent
         while True:
