@@ -1,13 +1,13 @@
 """Miscellaneous things to do with exceptions.
 
-  exceptionlist([bok]) -- list exceptions names (or keys in bok with exception values)
+  exceptions([bok]) -- iterator over exceptions names (or keys in bok with exception values)
   printexceptions([es]) -- pretty-print table of exceptions (from list)
   showexception(exc [, pre]) -- print information about (usually) an exception
 
 See study.LICENSE for copyright and license information.
 """
 
-def exceptionlist(bok=None):
+def exceptions(bok=None):
     """Returns a list of exception names.
 
     Optional argument, bok, maps names to values; otherwise, the builtin
@@ -18,18 +18,16 @@ def exceptionlist(bok=None):
             row = map(lambda nom: (nom, getattr(__builtins__, nom)), dir(__builtins__))
     else: row = bok.items()
 
-    def ok((k, v), b=Exception, t=type(Exception)):
-        return isinstance(v, t) and issubclass(v, b) # ignoring k
-    return map(lambda (k,v): k, filter(ok, row))
+    return (k for k, v in row if isinstance(v, type) and issubclass(v, Exception))
 
 from show import printmenu
 def printexceptions(row=None, *args, **what):
     """Display exceptions
 
-    Optional first argument is a sequence of strings; exceptionlist() is used by
+    Optional first argument is a sequence of strings; exceptions() is used by
     default.  All other positional and keyword arguments are passed with it to
     show.printmenu (q.v.); the strings are printed out in a tidy table.\n"""
-    if row is None: row = exceptionlist()
+    if row is None: row = list(exceptions())
     return printmenu(row, *args, **what)
 
 def showexception(exc, preamble=None):
