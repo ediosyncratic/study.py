@@ -986,7 +986,7 @@ bushel.US = Quantity(2150.42, inch**3,
 
 This is the volume of an 8 inch cylinder with 18.5 inch diameter.
 However, the US bushel is also a unit of mass for various types of grain.
-See dir(bushel.US) for details.
+See bushel.US.dir for details.
 """,
     wheat = 60 * pound,
     soybean = 60 * pound,
