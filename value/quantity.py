@@ -463,16 +463,17 @@ class Quantity (Object):
 
             if text.find('\n ') >= 0 or text.find('\n\t') >= 0:
                 # Remove any ubiquitous common indent (and any dangling hspace
-                # - expanding tabs as spaces, while we're at it):
-                lines = map(lambda x: x.rstrip().expandtabs(),
-                            text.split('\n'))
+                # or final blank lines - expanding tabs as spaces, as we go):
+                lines = [ x.rstrip().expandtabs() for x in text.rstrip().split('\n') ]
                 # First line typically lacks the common indent.
-                text, lines = lines[0] + '\n', lines[1:]
-                ind = min(map(lambda x: len(x) - len(x.lstrip()),
-                              filter(None, lines)))
-                assert not ind or not \
-                    filter(lambda x, i=ind: x and not x[:i].isspace(), lines)
-                text += '\n'.join(map(lambda x, i=ind: x[i:], lines))
+                text, lines = lines[0], lines[1:]
+                if lines:
+                    ind = min(len(x) - len(x.lstrip()) for x in lines if x)
+                    assert not ind or all(not x or x[:ind].isspace() for x in lines)
+                    # Strip indent from first line, if it has it, though:
+                    if text[:ind].isspace(): text = text[ind:]
+                    else: text = text.lstrip()
+                    text += '\n' + '\n'.join(x[ind:] for x in lines)
 
             if text: return text + '\n'
         # else: implicitly return None.
