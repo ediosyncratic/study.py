@@ -843,11 +843,10 @@ class CacheDir (Node, LockDir):
         first = True
         for k in self.__listing:
             if k in skip:
-                assert len(filter(lambda s, p=k: s == p, skip)) == 1
-                assert len(filter(lambda k, f=filter(lambda s, p=k: s == p,
-                                                     skip)[0]: k == f,
-                                  self.__listing)) == 1
-                skip = filter(lambda s, p=k: s != p, skip)
+                # Should appear in skip and .__listing exactly once each:
+                assert len([s in skip if s == k]) == 1
+                assert len([h in self.__listing if h == k]) == 1
+                skip = [s in skip if s != k]
                 continue
 
             ts.update(k.types)
@@ -1534,9 +1533,9 @@ class WriteDir (WriteNode, CacheDir):
             # ... but that ma be put back when we tidy() children.
             assert self.depth == 1 or changes
 
-            idx = filter(lambda k, c=self._contrary: k.index < c, changes)
+            idx = [k for k in changes if k.index < self._contrary]
             idx.reverse()
-            idx += filter(lambda k, c=self._contrary: k.index >= c, changes)
+            idx += [k for k in changes if k.index >= self._contrary]
             # Traversing kids away from zero ensures near-zero nodes are always
             # tidy if they can be.
 
@@ -1566,10 +1565,10 @@ class WriteDir (WriteNode, CacheDir):
             # two previously disjoint ones of different depths colliding.
             split = []
             for chunk in chunks:
-                ds = map(lambda x: x.depth, chunk)
+                ds = [ x.depth for x in chunk ]
                 hi, lo = max(ds), min(ds)
-                early = min(filter(lambda x, h=hi: x.depth  < h, chunk))
-                late  = max(filter(lambda x, h=hi: x.depth >= h, chunk))
+                early = min(x for x in chunk if x.depth <  hi)
+                late  = max(x for x in chunk if x.depth >= hi)
                 if hi - lo > 1 or early < late:
                     hi, lo = self.__consolidate(chunk, hi-1)
 
@@ -1705,19 +1704,19 @@ class WriteDir (WriteNode, CacheDir):
                     if node.parent is None:
                         # Have we run off the end of a contiguous block ?
                         if step < 0:
-                            check = lambda k, s=down.span.stop: k.span.start <= s
+                            check = any(k for k in kids if k.span.start <= down.span.stop)
                         else:
-                            check = lambda k, s=down.span.start: k.span.stop >= s
-                        if not filter(check, kids): # No kid meets down
+                            check = any(k for k in kids if k.span.stop >= down.span.start)
+
+                        if not check: # No kid meets down
                             tidy = False
                             i -= step
                             down = node.listing[i]
-                        del check
 
                 elif step < 0: down = node.listing[0]
                 else: down = node.listing[-1]
 
-                if filter(lambda x, d=down.depth-1: x.depth >= d, kids):
+                if any(x for x in kids if x.depth >= down.depth - 1):
                     down, kids = down.__adopt(tidy, kids)
                     if not tidy:
                         while kids:
@@ -1756,7 +1755,7 @@ class WriteDir (WriteNode, CacheDir):
         if kids:
             # We've removed the ones in self.listing; the rest are moving in:
             assert all(k.stop is not None for k in kids)
-            span = span.meet(*map(lambda k: k.span, kids))
+            span = span.meet(*[ k.span for k in kids ])
             types = self.__child_types(kids, types)
         else:
             types = str(types)
@@ -1800,39 +1799,36 @@ class WriteDir (WriteNode, CacheDir):
 
         # kids should either all be before listing[0] or all be after listing[-1]:
         assert all(x * self.sign >= 0 for x in
-                   map((lambda k, b=self.listing[0].span.start: b - k.span.stop)
-                       if before else
-                       (lambda k, e=self.listing[-1].span.stop: k.span.start - e),
-                       kids))
+                   [(self.listing[0].span.start - k.span.stop)
+                    if before else
+                    (k.span.start - self.listing[-1].span.stop) for k in kids])
 
-        all = seq(self.listing)
-        for kid in kids: all.append(kid)
-        all = tuple(all)
+        mess = seq(self.listing)
+        for kid in kids: mess.append(kid)
+        mess = tuple(mess)
 
         if self.sign > 0:
             def after(a, b): return a.span > b.span
         else:
             def after(a, b): return a.span < b.span
         # Either way: after(a, b) iff a belongs (wholly) after b in self.listing
-        assert all(not after(y, x) for x, y in zip(all[:-1], all[1:])), \
+        assert all(not after(y, x) for x, y in zip(mess[:-1], mess[1:])), \
             'Broken sorting in Ordered :-('
 
         # Where do we want to cut all ?
-        n = len(all)
-        if before == tidy: # We'll keep all[:cut]
+        n = len(mess)
+        if before == tidy: # We'll keep mess[:cut]
             cut, lo, hi = 12, 6, min(n, 24)
-        else: # We'll keep all[cut:]
+        else: # We'll keep mess[cut:]
             cut, lo, hi = n - 12, max(1, n - 24), n - 6
 
-        # Where can we cut all ?
-        cs = filter(lambda i, k=all, a=after: a(k[i], k[i-1]), range(lo, hi+1))
-        # For c in cs, all[c] is fully after all[c-1]; but a clean cut also
-        # needs all i < c-1 to have all[i] before all[c] and all i > c to have
-        # all[c-1] before all[i]; so refine initial pass at cs:
-        cs = filter(lambda c, k=all, a=after: not(
-                filter(lambda p, m=k[c], a=after: not a(m, p), k[:c]) +
-                filter(lambda p, m=k[c-1], a=after: not a(p, m), k[c:])),
-                    cs)
+        # Where can we cut mess ?
+        cs = [i for i in range(lo, hi + 1) if after(mess[i], mess[i - 1])]
+        # For c in cs, mess[c] is fully after mess[c-1]; but a clean cut also
+        # needs all i < c-1 to have mess[i] before mess[c] and all i > c to have
+        # mess[c-1] before mess[i]; so refine initial pass at cs:
+        cs = [c for c in cs if (all(after(mess[c],     p) for p in mess[:c]) and
+                                all(after(p, mess[c - 1]) for p in mess[c:]))]
 
         if cut in cs: pass
         elif cs: # Make do with the closest cs[i] to cut:
@@ -1857,16 +1853,16 @@ class WriteDir (WriteNode, CacheDir):
             raise NotImplementedError # TODO: create a suitable split-point
         else: # Arrange to keep all and live with the untidiness:
             if before: cut = 0
-            else: cut = len(all)
+            else: cut = len(mess)
             self._onchange_()
 
-        lo, hi = all[:cut], all[cut:]
+        lo, hi = mess[:cut], mess[cut:]
         if before == tidy: keep, ans = lo, hi
         else: keep, ans = hi, lo
-        assert len(keep) > min(5, len(all))
+        assert len(keep) > min(5, len(mess))
 
         ts = self.__child_types(keep)
-        span = keep[0].span.meet(*map(lambda k: k.span, keep[1:]))
+        span = keep[0].span.meet(*[ k.span for k in keep[1:] ])
         peer = self._update_name_(span, ts)
 
         # NB: relocate *after* _update_name_, to ensure directory exists !
