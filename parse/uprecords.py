@@ -7,6 +7,7 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import lazyprop
+from study.snake.sequence import iterable
 import time, datetime
 
 class Record (tuple):
@@ -86,6 +87,7 @@ class Record (tuple):
 
         return last, most
 
+    @iterable
     def bydate(self):
         try:
             while True:
@@ -93,6 +95,7 @@ class Record (tuple):
                 self = self.__prior
         except AttributeError: pass
 
+    @iterable
     def bylength(self):
         try:
             while True:
@@ -100,7 +103,7 @@ class Record (tuple):
                 self = self.__less
         except AttributeError: pass
 
-del time, datetime, lazyprop
+del time, datetime, lazyprop, iterable
 
 class History (object):
     def __init__(self, file="/var/spool/uptimed/records"):
