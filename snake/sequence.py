@@ -20,7 +20,7 @@ from study.snake.decorate import mimicking
 # Decorator deploying WrapIterable (q.v., at end of this page):
 @mimicking
 def iterable(func):
-    """Decorator to wrap the return from a function as an Iterable.
+    """Decorator to wrap the return from a function as a WrapIterable.
 
     Takes a single function argument, func, and returns a function which is
     called as if it were func but the return from func is wrapped as an Iterable
@@ -37,7 +37,7 @@ def iterable(func):
 
 @mimicking
 def iterinstance(func):
-    """Decorator to wrap a method's return as an Iterable.
+    """Decorator to wrap a method's return as a suitable Iterable.
 
     For use on (class and instance) methods whose return should be wrapped by
     the class's ._iterable_(), rather than by WrapIterable; only applicable if
