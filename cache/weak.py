@@ -127,8 +127,16 @@ class weakprop (propstore, recurseprop):
                     pair.__partner = ref(self)
 
         def __get__(self, src, val, bok, ref=weakref.ref):
-            # Not usable as a getter; only named __get__ to limit
-            # namespace pollution.
+            # Not an actual getter; only named __get__ to limit namespace
+            # pollution; shows up as .__reget(), below.
+            """Implements the back-again half of mutual referencing.
+
+            First argument, src, is an object with a mutual attribute; second,
+            val, is the value just computed for that attribute; third is the
+            attribute cache (a dictionary, implemented in propstore) of
+            val.  Arranges for the last to contain a back-reference to src, that
+            the paired weak attribute shall find and dereference as if it had
+            put it there; and performs the round-trip check when relevant.\n"""
 
             try: f = self.__partner
             except AttributeError: pair = self
