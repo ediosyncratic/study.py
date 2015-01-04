@@ -22,7 +22,8 @@ the same things as the following.
 See study.LICENSE for copyright and license information.
 """
 
-from study.cache.property import Cached, lazyprop, lazyattr
+from study.cache.property import Cached, lazyprop
+from study.cache.weak import weakprop
 from study.snake.sequence import Tuple, iterable
 class Permutation (Tuple, Cached):
     """Immutable sequence type representing a permutation.
@@ -159,7 +160,7 @@ class Permutation (Tuple, Cached):
         signature should over-ride this with something suitable that does.\n"""
         return cls(what)
 
-    @lazyattr
+    @weakprop.mutual()
     def inverse(self):
         """Inverts the permutation.
 
@@ -226,7 +227,6 @@ class Permutation (Tuple, Cached):
         assert ans(self) == range(len(self)) == self(ans)
         assert ans == order(self)
         assert ans.sign == self.sign
-        ans.inverse = self
         return ans
 
     @lazyprop
@@ -411,7 +411,7 @@ class Permutation (Tuple, Cached):
     # c.f. http://www.chaos.org.uk/~eddy/when/2009/squalor.html
 
     # TODO: add random permutation class method
-del Cached, lazyprop, lazyattr, iterable
+del Cached, lazyprop, weakprop, iterable
 
 def Iterator(size, P=Permutation): # backward compatibility
     """Redundant alias for Permutation.all"""
