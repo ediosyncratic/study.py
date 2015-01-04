@@ -102,7 +102,13 @@ class lazyattr (dictattr, lazyprop):
     preference to the latter, thereby ensuring that any explicitly set value
     over-rides the lazily-computed one.  Note that clear_propstore_cache() on
     the object only clears the lazily-computed values; to also clear any entry
-    in __dict__, you need to del the attribute explicitly.\n"""
+    in __dict__, you need to del the attribute explicitly.
+
+    If the only place you need to set the attribute is in a getter(), possibly
+    of another lazy attribute, then you may find weakprop.mutual() better suited
+    to your needs; see study.cache.weak.  If two getters are setting one
+    anotehr's attributes, you may find lazyprop.group() works better; see
+    docprop.group() in study.anake.property.\n"""
 
     __lget = lazyprop.__get__
     __dget = dictattr.__get__
