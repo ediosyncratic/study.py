@@ -511,27 +511,25 @@ class ReadOnlySeq (ReadSeq, Cached):
 del lazyprop, Cached
 
 class Tuple (ReadOnlySeq, tuple):
-    """Pretend to be a tuple.
+    """Repackage tuple.
 
-    Note that classes based on this need to over-ride __new__(), which
-    *returns* the newly created object (obtained by calling base-class's
-    __new__(), of course), instead of (or as well as) __init__().\n"""
-
-    # Reminder, since I keep needing it: bt.__new__() must be passed, as first
-    # argument, the type based on bt that's to be instantiated, followed by
-    # the other args normally passed overtly to bt(); and __new__() is
-    # automagically an @staticmethod (whether you like that or not).
+    Note that classes based on this need to over-ride __new__() instead of (or
+    as well as) __init__().  Remember that __new__() is automagically an
+    @staticmethod, taking the class it's instantiating as first argument (as if
+    it were an @classmethod); and it *returns* the newly created object -
+    obtained, typically, by calling the __new__() of some base of the class
+    passed as first argument.\n"""
 
     @classmethod
     def _tuple_(cls, val):
         """Pseudo-constructor.
 
         Takes a sequence and returns an instance of Tuple.  If a derived class
-        has __new__ or __init__ with a different signature, it should
-        over-ride this with something suitable; if it doesn't support
-        arithmetic and slicing, it should over-ride this with something that
-        raises an error.  Otherwise, this uses the class of self to construct
-        a new Tuple of suitable type.\n"""
+        has __new__ or __init__ with a different signature, it should over-ride
+        this with something suitable; if it doesn't support arithmetic and
+        slicing, it should over-ride this with something that raises an
+        error.  Otherwise, this uses the class on (an instance of) which it's
+        called to construct a new Tuple of suitable type.\n"""
         return cls(val)
 
     # Fix an infelicity in tuple:
