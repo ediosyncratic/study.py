@@ -10,9 +10,9 @@ from study.cache.property import lazyprop
 
 class Sample (tuple):
     @lazyprop
-    def order(self):
+    def order(self, lazy=lazyprop):
         from study.maths.permute import order
-        Sample.order = order
+        Sample.order = lazy(order)
         return order(self)
 
     @lazyprop
