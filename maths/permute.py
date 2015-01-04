@@ -33,6 +33,10 @@ class Permutation (Tuple, Cached):
       .sign -- the signature, +1 for an even permutation, -1 for an odd one
       .period -- number of times you must repeat self to get back where you started
 
+    (Permutation also inherits lazy attributes .order and .sorted via Tuple; the
+    former is a synonym for .inverse, the latter for range(len(self)), each
+    computed more expensively; they are seldom what you want !)
+
     Provides methods:
       cycle([by=1]) -- cycle self by the given number of steps
       permute(seq [, seq...]) -- a.k.a. __call__, compose permutations

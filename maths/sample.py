@@ -7,17 +7,9 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.cache.property import lazyprop
+from study.snake.sequence import Tuple
 
-class Sample (tuple):
-    @lazyprop
-    def order(self, lazy=lazyprop):
-        from study.maths.permute import order
-        Sample.order = lazy(order)
-        return order(self)
-
-    @lazyprop
-    def sorted(self): return self.order.permute(self)
-
+class Sample (Tuple):
     @lazyprop
     def span(self):
         all = self.sorted
@@ -400,4 +392,5 @@ class Sample (tuple):
             # 1/dense/r should be adequately tiny.
 
         return cut
-del lazyprop
+
+del lazyprop, Tuple

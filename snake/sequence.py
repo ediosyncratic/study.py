@@ -501,6 +501,13 @@ class ReadOnlySeq (ReadSeq, Cached):
     @lazyprop
     def geomean(self): return self.__upgeom()
 
+    # Turn some methods of ReadSeq into (lazy) properties:
+    __order = ReadSeq.order
+    @lazyprop
+    def order(self, lazy=lazyprop): return self.__order()
+    @lazyprop
+    def sorted(self): return self.order.permute(self)
+
 del lazyprop, Cached
 
 class Tuple (ReadOnlySeq, tuple):
