@@ -70,7 +70,7 @@ Ediosyncrasies
 All of the above can be considered idiosyncratic, but the following are
 particularly so and I might be a bit more willing to change them ...
 
-I tend to end doc-strings in ``"""... final words.\\n"""`` so that (in an
+I tend to end doc-strings in ``"""... final words.\n"""`` so that (in an
 interactive session) they print cleanly; I'm a bit skeptical of the recommended
 practice of leaving a blank line and indentation at the end of a doc-string.  A
 good doc-gen tool might talk me round, though.
@@ -79,10 +79,11 @@ I have had a tendency to spell in/equality comparisons with ``-1`` in terms of
 adding one to the value to be compared and using the result as a boolean, via
 the usual implicit comparison with zero.  (This habit arises from a murky past
 in which I worked on a system where the signedness of some abstract types, for
-which ``-1`` was sometimes used as a sentinal value, was indeterminate;
-compilers warn about signed/unsigned comparison if one tests against ``-1`` when
-the type is unsigned (neither test works properly if the unsigned type's size is
-less than that of int) but we knew the types in question were big enough, so the
-``+1`` test avoided the warning and worked in all the same cases as ``!=
--1``.  This is all irrelevant to python, of course.)  To anyone used to that
-practice, it's just as readable; but may be a bit confusing for others !
+which ``-1`` was sometimes used as a sentinal value, was
+indeterminate.  Compilers warn about signed/unsigned comparison if one tests
+against ``-1`` when the type is unsigned.  Neither test works properly if the
+unsigned type's size is less than that of ``int``; but we knew the types in
+question were big enough, so the ``+1`` test avoided the warning and worked in
+all the same cases as comparing with ``-1``.  This is all irrelevant to python,
+of course.)  To the few who are used to that practice, it's just as readable;
+but it confuses everyone else !
