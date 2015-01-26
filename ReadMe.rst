@@ -41,27 +41,31 @@ History
 -------
 
 The first toy (April 1998) was an early version of ``study.maths.ratio``'s
-Rational and approximate().  The next (Jan 1999) was a first stab at what has
-since become the Quantity class, initially just supporting a numeric value and
-its units; it soon grew the ability to track error bars on its numeric
-values.  Right at the outset, Quantity included the SI units, some derived
-units, and a few silly archaic units (that now live in
-``study.value.archaea``).  The next innovation was the first incarnation of Lazy
-(now in ``study.snake.lazy`` and deprecated in favour of
+``Rational`` and ``approximate()``.  The next (Jan 1999) was a first stab at
+what has since become the ``Quantity`` class, initially just supporting a
+numeric value and its units; it soon grew the ability to track error bars on its
+numeric values.  Right at the outset, ``Quantity`` included the SI units, some
+derived units, and a few silly archaic units (that now live in
+``study.value.archaea``).  The next innovation was the first incarnation of
+``Lazy`` (now in ``study.snake.lazy`` and deprecated in favour of
 ``study.cache.property``).  This sets the pattern for the three main areas of
 development: mathematical toys, scientific quantities and pythonic support
 infrastructure.
 
 All of this happened in RCS; later, I migrated it to CVS.  The way I'd been
-using RCS made this easy, as it happened: I had all my RCS files in a directory
+using RCS made this easy, as it happened.  I had all my RCS files in a directory
 tree mirroring the source tree, whose top-level directory had a symlink named
-RCS pointing at the top of the RCS tree; each sub-directory then had an RCS ->
-../RCS/name symlink using its own name.  In this era of history, I could
-re-arrange the directory tree at whim, without making any changes visible in the
-commit history, aside from the consequent changes to how modules import one
-another.  I think the last major re-structuring was 614f6ac in 2007/March,
-although a few relatively minor moves may still be hidden from the
-version-control history between then and the summer of 2010, when I imported the
-whole lot into git.  So checking out historical revisions before summer 2010
-may, and before spring 2007 certainly shall, give you a source tree that
-probably doesn't even import cleanly.
+RCS pointing at the top of the RCS tree; each sub-directory then had
+an ``RCS -> ../RCS/name`` symlink using its own ``name``.  The resulting RCS
+tree was thus a ready-made CVS module, that I merely had to move into my
+``CVSROOT``.  There's consequently no obvious sign of when I did that, but I can
+guess it was at the same time (2001/Autumn) as I converted my web-site to CVS.
+
+In the RCS/CVS era of history, I could re-arrange the directory tree at whim,
+without making any changes visible in the commit history, aside from the
+consequent changes to how modules import one another.  I think the last major
+re-structuring was 614f6ac in 2007/March, although a few relatively minor moves
+may still be hidden from the version-control history between then and the summer
+of 2010, when I imported the whole lot from CVS into git.  So checking out
+historical revisions before summer 2010 may, and before spring 2007 certainly
+shall, give you a source tree that probably doesn't even import cleanly.
