@@ -88,8 +88,7 @@ TODO = """There are many things that could be improved.
  * Break up archaea into a sub-package - it's huge.  Replace the ad hoc
    classification with a registration mechanism for the diverse namespaces (by
    nationality, by name of unit) causing mere creation of the unit object to
-   get it registered in relevant namespaces.  See:
-   http://docutils.sourceforge.net/rst.html
+   get it registered in relevant namespaces.
 
  * Add a test-suite as sub-package study.trial; simply importing study.trial
    should verify that everything (else) imports; it should provide functions
@@ -99,7 +98,8 @@ TODO = """There are many things that could be improved.
    that should be fixed, but not run as part of regression testing.
 
  * Convert documentation to use reStructuredText.
-   - See: http://docutils.sourceforge.net/docs/user/rst/quickstart.html
+   - See: http://docutils.sourceforge.net/rst.html
+     and: http://docutils.sourceforge.net/docs/user/rst/quickstart.html
    - In each converted module, set global __docformat__ = 'restructuredtext'
 
  * Add a DateTime type that knows about (and its instances can represent
