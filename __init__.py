@@ -19,7 +19,7 @@ what I have in the mean time ;-)
 
 LICENSE = """\
 Eddy's python package to support the study of science and mathematics.
-Copyright (C) 1998--2012, Edward Welbourne (eddy [at] chaos [dot] org [dot] uk)
+Copyright (C) 1998--2015, Edward Welbourne (eddy [at] chaos [dot] org [dot] uk)
 
 This package is free software: you can redistribute it and/or modify it under
 the terms of version 3 of the GNU General Public License as published by the
