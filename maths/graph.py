@@ -46,18 +46,18 @@ class Partition:
     other will be consulted for the information it lacks.  Thus Unite presumes
     that you won't ask it to join two nodes unless you know they are in
     different parts: it thereby saves itself the expensive (for it) job of
-    checking this. """
+    checking this.\n"""
 
     def peers(self, node):
-        """Returns a list of the nodes in the same connected component as the given node. """
+        """Returns a list of the nodes in the same connected component as the given node."""
         raise NotImplementedError
 
     def join(self, node, vertex):
-        """Joins the connected components of the given nodes. """
+        """Joins the connected components of the given nodes."""
         raise NotImplementedError
 
     def joined(self, node, *nodes):
-        """Returns true iff all the given nodes are in one connected component. """
+        """Returns true iff all the given nodes are in one connected component."""
         raise NotImplementedError
 
 class Unite (Partition):
@@ -86,15 +86,13 @@ class Unite (Partition):
 
         Result is a list of nodes in the given node's component.
         If it ever involves duplicates, something's gone wrong.
-        Probably so wrong you won't see the answer ... """
-        # This should be implemented to yield an iterator ...
+        Probably so wrong you won't see the answer ...\n"""
 
-        f, n, row = self.__forward, node, []
+        f, n = self.__forward, node
         while True:
-            row.append(n)
+            yield n
             n = f[n]
-            assert self.__backward[n] == row[-1]
-            if n is node: return row
+            if n is node: break
 
     def append(self, ind):
         assert len(self.__forward) == ind == len(self.__backward), \
@@ -110,7 +108,7 @@ class Unite (Partition):
         Arguments are nodes, one from each component.
 
         The nodes must not be peers: this is *not* checked.
-        They will be peers after join is called. """
+        They will be peers after join is called.\n"""
 
         f, b = self.__forward, self.__backward
         pod, wer = f[nod], f[ver]
@@ -149,7 +147,7 @@ class Find (Partition):
         Single argument is a node (index): returns the node reached from this by
         chasing i->self.__up[i] to a fixed point.  Side-effect: changes the
         __up[] of all nodes it visits on the way to point at the answer
-        returned, so as to speed this chase next time around. """
+        returned, so as to speed this chase next time around.\n"""
 
         trail = []
         while True:
@@ -171,14 +169,14 @@ class Find (Partition):
 
         Arguments are node indices; at least one must be given.  Result is true
         precisely if all nodes are in the same connected component of the graph
-        of edges thus far passed to self.join(). """
+        of edges thus far passed to self.join().\n"""
 
-        nod = self.__chase(node)
+        node = self.__chase(node)
         for vertex in nodes:
-            if self.__chase(vertex) != nod:
-                return None # i.e. No.
+            if self.__chase(vertex) != node:
+                return False
 
-        return 1>0 # i.e. Yes
+        return True
 
     def append(self, ind):
         assert len(self.__count) == ind == len(self.__up), \
@@ -192,9 +190,8 @@ class Find (Partition):
     def join(self, node, vertex):
         """Joins two nodes.
 
-        Returns None if nodes were already joined: else, a true value.
-        Consequently its return is what `not self.joined()' would have yielded
-        previously. """
+        Return is true precisely if the nodes were previously in disjoint parts,
+        i.e. what `not self.joined()' would have returned previously."""
 
         nod, ver = self.__chase(node), self.__chase(vertex)
         if nod is ver: return # nothing to do
@@ -206,14 +203,14 @@ class Find (Partition):
 
         # Hang smaller tree below bigger:
         self.__up[ver], count[nod] = nod, n + v
-
-        return 1>0      # did something
+        return True
 
     def disjoint(self):
-        """Returns a list containing one sample member from each connected component. """
+        """Returns a list containing one sample member from each connected component.\n"""
         # the sample members being the fixed-points of __up
 
-        return filter(lambda x, _u=self.__up: x is _u[x], range(len(self.__up)))
+        for i, x in enumerate(self.__up):
+            if i == x: yield i
 
 class FindUnite (Find, Unite):
     """An implementation of the find-unite algorithm.
@@ -226,7 +223,7 @@ class FindUnite (Find, Unite):
     Create an instance of FindUnite(); for each edge in a graph, identify the
     two ends and invoke the instance's .join(thisend, thatend).  At any stage,
     invoke .peers(node) to get a list of all nodes in the given one's connected
-    component. """
+    component.\n"""
 
     def __init__(self, size=0):
         """Initialises an empty FindUnite."""
@@ -243,8 +240,7 @@ class FindUnite (Find, Unite):
 
         Takes two arguments: the end-nodes of an edge in your graph.  Joins
         their connected components, if disjoint, together.  Nodes not previously
-        known to self are added, initially connected to nothing; they are then
-        joined as for familiar nodes. """
+        known to self should be append()ed before join()ing them.\n"""
 
         # Unite doesn't want to join things if they're already joined.
         # Find knows whether they're already joined:
@@ -256,9 +252,10 @@ class FindUnite (Find, Unite):
         """Returns a list of disjoint lists describing the partition.
 
         Each entry in the list returned is a list of nodes representing a
-        connected component of the graph described by the FindUnite object. """
+        connected component of the graph described by the FindUnite object.\n"""
 
-        return map(self.peers, self.disjoint())
+        for i in self.disjoint():
+            yield tuple(self.peers(i))
 
 class Graph:
     """Represents a network of nodes joined by edges.
@@ -314,20 +311,19 @@ class Graph:
 
     Note that .span() provides a sub-graph `grown outwards from' its given
     nodes, while .chop() provides a sub-graph `stripped down to only' the given
-    nodes. """
+    nodes.\n"""
 
     # Creation:
     def __init__(self, *nodes):
         self.__edges, self.__nodes, self.__connect = [], list(nodes), FindUnite(len(nodes))
 
-    # Attributes:
-    def __getattr__(self, key):
-        # Read-only copies:
-        if key == 'nodes': return tuple(self.__nodes)
-        if key == 'edges': return tuple(self.__edges)
-        if key == 'partition': return map(self.__peers, self.__connect.disjoint())
-
-        raise AttributeError, key
+    # Read-only access to private members:
+    @property
+    def nodes(self): return tuple(self.__nodes)
+    @property
+    def edges(self): return tuple(self.__edges)
+    @property
+    def partition(self): return [self.__peers(i) for i in self.__connect.disjoint()]
 
     # Command: .join() with support from .__node()
 
@@ -336,7 +332,7 @@ class Graph:
 
         If node has been met before, an index has been recorded for it: this is
         returned.  Otherwise, the node is added to internal datastructures with
-        a previously-unused index, which is returned.  For internal use only. """
+        a previously-unused index, which is returned.  For internal use only.\n"""
 
         # Could be more efficient using an inverse-lookup here.
         try: return self.__nodes.index(node)
@@ -349,7 +345,7 @@ class Graph:
         return ind
 
     def join(self, start, stop):
-        """Connects two nodes in the present graph, adding the nodes if necessary. """
+        """Connects two nodes in the present graph, adding the nodes if necessary.\n"""
 
         self.__edges.append((start, stop))
         self.__connect.join(self.__node(start), self.__node(stop))
@@ -359,23 +355,24 @@ class Graph:
     def joined(self, *nodes): # requires at least one node, in fact
         if len(nodes) < 1:
             raise ValueError('no nodes provided: how can I check whether they are joined ?')
-        if len(nodes) < 2: return 1 # every node is implicitly connected to itself
+        if len(nodes) < 2: return True # every node is implicitly connected to itself
 
         try: indices = map(self.__nodes.index, nodes)
-        except ValueError: return None
+        except ValueError: return False
 
         return self.__connect.joined(*indices)
 
     def peercount(self, node):
         try: nod = self.__nodes.index(node)
-        except ValueError: return 1
+        except ValueError: return True
 
         return self.__connect.peercount(nod)
 
     def __peers(self, nod):
-        return map(lambda i, _r=self.__nodes: _r[i], self.__connect.peers(nod))
+        return [self.__nodes[i] for i in self.__connect.peers(nod)]
 
     def peers(self, node):
+        # NB: does not add node to graph if it wasn't in it previously
         try: nod = self.__nodes.index(node)
         except ValueError: return [ node ]
 
@@ -384,19 +381,19 @@ class Graph:
     # sub-Graph()s: span(), chop()
 
     def span(self, *nodes):
-        """Returns a full sub-graph containing the given nodes. """
+        """Returns the sub-graph of everything reached from the given nodes.\n"""
 
         # collect the union of the connected components of the given nodes:
-        all = []
+        full = []
         for node in nodes:
-            if node not in all:
-                all = all + self.peers(node)
+            if node not in full:
+                full = full + self.peers(node)
 
         # build a graph out of them:
-        ans = Graph(*all)
+        ans = Graph(*full)
         for a, b in self.__edges:
-            assert (a in all) == (b in all), 'I thought we had a partition here !'
-            if a in all: ans.join(a, b)
+            assert (a in full) == (b in full), 'I thought we had a partition here !'
+            if a in full: ans.join(a, b)
 
         # return that graph:
         return ans
@@ -406,7 +403,7 @@ class Graph:
 
         Includes each edge of self whose ends are both in the restriction.  In
         particular, doesn't include linkage via nodes omitted (see .span() for
-        that). """
+        that).\n"""
 
         # build a graph using only the given nodes:
         ans = Graph(*nodes)
