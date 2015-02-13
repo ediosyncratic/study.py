@@ -3,11 +3,20 @@
 See also units.py for a huge bestiary of other units; and
         http://physics.nist.gov/cuu/Units/current.html
         http://www.bipm.org/en/si/si_brochure/
-for definitive sources of information about units.
+for definitive sources of information about units.  The definitions in use here
+are those from the turn of the millennium; a proposal for major reworking of the
+units - to base them on measured physical constants of nature, thereby
+eliminating the prototype kilogram artefact - is (2015) in preparation, with
+2018 set as the likely date for transition.  Details of that are available at:
+        http://en.wikipedia.org/wiki/New_SI_definitions
+        http://www.bipm.org/utils/common/pdf/si_brochure_draft_ch2.pdf
+TODO: the latter contains many useful details (unchanged from older versions of
+the standard) that I should probably incorporate in this and units.py at some
+point.
 
 Note that Quantity equips certain kinds of quantity with extra attributes:
-time.light, mass.weight or mass.force, trigonometric attributes for angles,
-their inverses and a few relatives for scalars, Centigrade and Fahrenheit
+time.light; mass.weight or mass.force; trigonometric attributes for angles;
+their inverses and a few relatives for scalars; Centigrade and Fahrenheit
 equivalents for temperatures.  See quantity.py for details.
 
 See study.LICENSE for copyright and license information.
