@@ -90,7 +90,9 @@ rad = radian = Quantity.base_unit(
     'rad', 'Radian', """The SI supplementary unit of angle.
 
 The angle subtended at the centre of a circle by an arc of the circumference
-equal in length to the radius of the circle.  Equal to turn/2/pi.
+equal in length to the radius of the circle.  Equal to turn/2/pi.  SI deems the
+radian to be a synonym for the dimensionless number 1; for my thoughts on that,
+see http://www.chaos.org.uk/~eddy/math/angle.html#Scalar
 """)
 
 sr = steradian = Quantity.base_unit(
@@ -101,7 +103,10 @@ of radius r by a portion of the surface of the sphere having area r*r.  By
 considering the case of small square solid angles, it may readilly be seen
 that solid angle is simply the square of angle; indeed, the steradian is
 simply the square of the radian, sr = rad**2; see, e.g.,
-http://www.chaos.org.uk/~eddy/math/angle.html
+http://www.chaos.org.uk/~eddy/math/angle.html#Solid
+
+Consistent with this and its treatment of the radian (see radian.__doc__), SI
+deems the steradian to be a synonym for the dimensionless number 1.
 """)
 
 # Composite SI units
