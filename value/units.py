@@ -162,6 +162,10 @@ This is a mere 26 seconds longer than the tropical year, so the seasons drift
 so slowly we don't notice; in ten millennia (longer than documented history)
 they'll only drift by about three days, which is still small enough to be lost
 in the fuzziness of the seasons' boundaries.
+
+Example code, for the Gregorian calendar, to calculate, whether a year is leap
+and to map a date to a day of the week are given in appendices B and C to:
+http://www.ietf.org/rfc/rfc3339.txt
 """,
                                           leap=lambda yrno: (
             yrno % 4 == 0 and (yrno % 100 != 0 or yrno % 400 == 0))),
