@@ -190,7 +190,7 @@ def aliasing(decorator, mime=mimic, rator=funcorator):
     decoration retain the name and doc-string of the functions they package.\n"""
     def decor(function, base=decorator, label=labelas):
         return label(base(function), function)
-    return mimic(decor, decorator, rator)
+    return mime(decor, decorator, rator)
 
 def mimicking(decorator, mime=mimic, rator=funcorator):
     """Decorator-decorator to make original's wrappers mimic what they wrap.
