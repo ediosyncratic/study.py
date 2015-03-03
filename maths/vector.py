@@ -1167,19 +1167,31 @@ del lazyprop, Tuple
 class Namely (Vector):
     """A vector with more emphasis on the names of its components.
 
+    This is the class to use if you want to refer to the pos.x and pos.y members
+    of a position pos, instead of typing pos[0] and pos[1] for them; it makes
+    the entries in the vector accessible as named attributes.  It'll also give
+    you field.x.y and similar for tensor quantities, if you prefer that way of
+    writing them.  You can still refer to the components by index, though,
+    e.g. when you want to iterate over them.  Rejects construction with too many
+    parameters and fills in omissions with suitable zeros; combined with use of
+    keyword arguments, this can make it easier to describe sparse matrices, for
+    example.
+
     Derived classes need to define _component_names_ to a sequence (preferably a
     tuple; all manner of nonsense would happen if it changed during the lifetime
     of an object) of names of components.  These serve as attribute names for
     the components of the vector and can be used as keyword names for arguments
     to the constructor.  Components can be passed simply as positional arguments
-    to the constructor (not as entries in a list passed as first argument,
-    unlike Vector); any not supplied either positionally or as keywords default
-    to zero.  The repr() of the vector uses whichever of these forms is tersest
-    (so, unless many components are zero, usually the positional form); str() is
-    as for Vector.
+    to the constructor, too; and they *can't* all be passed together as entries
+    in a list passed as first argument, unlike Vector.  On construction, any
+    component not supplied either positionally or as a keyword defaults to
+    zero.  The repr() of the vector uses whichever form of construction is
+    tersest (so, unless many components are zero, usually the positional form);
+    str() is as for Vector.
 
     Based on Vector, so supports everything it does, although the results may
-    prove a bit odd in some cases.\n"""
+    prove a bit odd in some cases (e.g. sparse tensors, mixing positional and
+    keyword forms in the repr).\n"""
 
     # Data to over-ride in derived classes:
     _component_names_ = () # names of components, in order
