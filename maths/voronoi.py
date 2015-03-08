@@ -17,10 +17,9 @@ class Catchment (set):
     .centres; has one method, .nearest(vec [, elide]), that finds the nearest in
     .centres (but not in elide, if passed) to the given vec.\n"""
 
-    __upnew = set.__new__
     def __new__(cls, centres, count=1):
         if count < 1: raise ValueError('Demanding unrealistic subdivision', count)
-        return cls.__upnew(cls, map(cls.__vectorise, centres))
+        return set.__new__(cls, map(cls.__vectorise, centres))
 
     __upinit = set.__init__
     def __init__(self, centres, count=1):

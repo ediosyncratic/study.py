@@ -169,7 +169,7 @@ class OctetType (Tuple):
     system scheduler killed the python process in which I'd tried it.  Creating
     a tuple whose length is a 24-digit number can do that.)\n"""
 
-    __upnew = Tuple.__new__ # takes derived type as second argument
+    # Takes derived type as first arg
     def __new__(cls, ps): # automagically class method
         """Create a descriptor for a type of octet-based block.
 
@@ -192,7 +192,7 @@ class OctetType (Tuple):
         # 2's not crucial.  But I want an initial chunk of primes, anyway.
 
         mod, vals = coprimes(ps)
-        self = cls.__upnew(cls, vals)
+        self = Tuple.__new__(cls, vals)
         self.modulus = mod
         return self
 

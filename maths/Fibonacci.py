@@ -113,9 +113,8 @@ class Fibpair (tuple):
     used to seed that.  See beyond() for an iterator like this.
 
     See http://www.chaos.org.uk/~eddy/craft/Fibonacci.html#Poly for details.\n"""
-    __upnew = tuple.__new__
     # automagically @classmethod:
-    def __new__(cls, a, b): return cls.__upnew(cls, (a, b))
+    def __new__(cls, a, b): return tuple.__new__(cls, (a, b))
     # def __init__(self, a, b): pass # over-ride tuple.__init__'s different signature.
 
     # Support for arithmetic:

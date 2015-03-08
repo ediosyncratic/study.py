@@ -1197,7 +1197,6 @@ class Namely (Vector):
     _component_names_ = () # names of components, in order
     _component_aliases_ = () # .items() of { alias: name } mapping
 
-    __upnew = Vector.__new__
     def __new__(cls, *args, **kw):
         """Create the instance.
 
@@ -1239,7 +1238,7 @@ class Namely (Vector):
             # replace each None with zero:
             args = (zero if val is None else val for val in args)
 
-        return cls.__upnew(cls, args)
+        return Vector.__new__(cls, args)
 
     @classmethod
     def _vector_(cls, seq): return cls(*tuple(seq))

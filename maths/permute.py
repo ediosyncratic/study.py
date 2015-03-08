@@ -86,7 +86,7 @@ class Permutation (Tuple, Cached):
     permutations, the `pidgeon-hole principle' makes the above sum up
     `one-to-one' neatly.\n"""
 
-    __upnew = Tuple.__new__ # takes derived type as first arg
+    # Takes derived type as first arg
     def __new__(cls, perm): # automagically an @staticmethod
         """Create a permutation.
 
@@ -98,7 +98,7 @@ class Permutation (Tuple, Cached):
         perm = tuple(perm) # so we only read perm once, in case it's an iterator.
         if not cls.isa(perm):
             raise ValueError('Is not a permutation', perm)
-        return cls.__upnew(cls, perm)
+        return Tuple.__new__(cls, perm)
 
     @classmethod
     def identity(cls, n, cycle=0):

@@ -178,9 +178,8 @@ class NordeaParser (HTMLParser):
         class Transaction (tuple):
             # A simple named tuple type:
             __names = 'booked', 'interest', 'text', 'bunch', 'ref', 'change'
-            __upnew = tuple.__new__
             def __new__(cls, bok): # automagically an @staticmethod
-                return cls.__upnew(cls, map(bok.get, cls.__names))
+                return tuple.__new__(cls, map(bok.get, cls.__names))
 
             for i, nom in enumerate(__names):
                 exec('\n'.join(['@property',
