@@ -293,7 +293,7 @@ class curveWeighted (Lazy, _baseWeighted):
             i = self.interpolator
         elif 1./(1./i.total) == 0:
             assert False, 'Does this ever even happen ?'
-            # cope with infinitessimals by going via two half-way houses:
+            # cope with infinitesimals by going via two half-way houses:
             s = pow(max(self.values()), -.5)
             self = self.copy(scale=s).copy(scale=s)
             i = self.interpolator
@@ -682,7 +682,7 @@ class statWeighted (_baseWeighted):
             sum = self.total()
 
         elif 1./(1./sum) == 0:
-            # infinitessimal - similar, but in two steps
+            # infinitesimal - similar, but in two steps
             # since 1./max(self.values()) may be zero ...
             s = pow(max(self.values()), -.5)
             self = self.copy(scale=s).copy(scale=s)
