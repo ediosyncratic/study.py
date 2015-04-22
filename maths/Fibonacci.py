@@ -222,7 +222,7 @@ class Fibpair (tuple):
     def fibonacci(cls, n, zero=0, one=1):
         return (cls(zero, one) * cls(1, 0)**n)[0]
 
-class Fibonacci:
+class Fibonacci (object):
     """Cached computation of Fibonacci's sequence."""
     def __init__(self, zero=0, one=1):
         self.__natural, self.__negative = [ zero, one ], [ one - zero, 2 * zero - one ]
@@ -254,6 +254,16 @@ class Fibonacci:
         return row[n-1]
 
     def __getitem__(self, n):
+        if isinstance(n, slice):
+            seq, i = [], n.start or 0
+            if n.step is None: step = -1 if n.start > n.stop else 1
+            else: step = n.step
+            while i < n.stop:
+                seq.append(self[i])
+                i += step
+
+            return tuple(seq)
+
         if n < 0: return self.__down(-n)
         return self.__up(n)
 
