@@ -121,12 +121,13 @@ class Iterable (object):
 
         # assert all(x.next() is None for x in others) ?
 
-    def reduce(self, func, init=None):
+    def reduce(self, func, init=None, count=False):
         """Combine entries using a given function.
 
         Required argument, func, is a function of two args, used for combining
         entries.  Optional arguments:
           init -- initial value, combined with entries; ignored if None (default)
+          count -- if true, pair number of entries in self with return value
 
         If init is not supplied (or is None), the first value is used in its
         placed and skipped from the remaining values.  Each func(init, value) is
@@ -143,29 +144,47 @@ class Iterable (object):
         empty.  Other values may be passed for init, for example where
         func(init, x) is a different type of value from x, an entry, and init is
         a 'seed' value that combines with the first entry to produce a value of
-        the right type right type.\n"""
+        the right type.
 
-        it = iter(self)
+        If count is true then the return value is a twople (n, init) of the
+        number n of entries seen in self with the accumulated answer that would
+        have been returned otherwise.\n"""
+
+        it, n = iter(self), 0
         if init is None:
             try: init = it.next()
             except StopIteration:
                 raise ValueError('Reducing empty with no initial value')
+            else: n = 1
 
-        for p in it: init = func(init, p)
+        for p in it:
+            init = func(init, p)
+            n += 1
+
+        if count: return n, init
         return init
 
     import operator
     def sum(self, zero=None, add=operator.add): return self.reduce(add, zero)
     def product(self, one=None, mul=operator.mul): return self.reduce(mul, one)
-    del operator
-    def geomean(self): return self.product() ** (1. / len(self))
-    def mean(self):
-        tot, n = self.sum(), len(self)
+
+    def geomean(self, one=None, mul=operator.mul):
+        try: n, prod = self.reduce(mul, one, True)
+        except ValueError:
+            # The product of the empty list is 1; and pow(1/0, 1) is still 1.
+            return 1 if one is None else one
+
+        return prod ** (1. / n)
+
+    def mean(self, zero=None, add=operator.add):
+        n, tot = self.reduce(add, zero, True)
         try: q, r = divmod(tot, n)
         except (TypeError, ValueError): pass
         else: # avoid making it a float when it doesn't need to be:
             if not r: return q
         return tot * 1. / n
+
+    del operator
 
     @iterinstance
     def filter(self, *tests):
