@@ -148,7 +148,16 @@ class Iterable (object):
 
         If count is true then the return value is a twople (n, init) of the
         number n of entries seen in self with the accumulated answer that would
-        have been returned otherwise.\n"""
+        have been returned otherwise.  This simplifies a common case that would
+        otherwise need a non-trivial func and init.
+
+        Example: to compute moments (averages of the first n powers), you could
+        use study.maths.vector's Vector class in:
+            .map(lambda x, v=Vector, r=range(n+1): v([x**i for i in r])).sum()
+        and divide the result by its [0] entry; the [i] entry is then the i-th
+        moment of the data iterated by self.  (Note that the n=1 case of this is
+        one of the cases count simplifies so you don't need such a heavy-weight
+        solution.)\n"""
 
         it, n = iter(self), 0
         if init is None:
