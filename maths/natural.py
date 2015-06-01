@@ -203,6 +203,8 @@ Proof:
   prime factor of m has odd multiplicity as a factor of p.p, all of whose
   factors have even multiplicity; thus m has no prime factors, so m is 1 and p =
   q.r has q as a factor so p/q = r is a positive integer.\n"""
+
+from study.snake.sequence import iterable
 
 _early_primes = (2, 3, 5, 7, 11, 13, 17, 19, 23, 29)
 def factorsum(N):
@@ -223,6 +225,7 @@ def factorsum(N):
 
     return S
 
+@iterable
 def perfect():
     """Returns an iterator over the perfect numbers.
 
@@ -319,6 +322,7 @@ def isprime(n):
     "Tests whether a natural is prime"
     return factor(n) is None
 
+@iterable
 def eachprime():
     """A trivial iterator over all primes.
 
@@ -403,6 +407,7 @@ def depower(val, p):
 
     return v, val
 
+@iterable
 def Collatz(n):
     """Iterator for the Collatz conjecture's sequence for n.
 
@@ -444,6 +449,7 @@ naturals = Naturals()
 del Naturals
 # NB: len(str(naturals[1+n])) + 2 = 13 * 3**n
 
+@iterable
 def lattice(dim, signed=False, mode=True, total=None):
     """Iterator over {({whole numbers}:|dim)}
 
@@ -537,3 +543,5 @@ def lattice(dim, signed=False, mode=True, total=None):
 
             for it in lattice(dim-1, signed, clip, total - abs(i)):
                 yield (i,) + it
+
+del iterable
