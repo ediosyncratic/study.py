@@ -295,9 +295,25 @@ class ReadSeq (Iterable):
         for it in self: i += 1
         return i
 
-    from regular import Slice
-    def __getitem__(self, ind, S=Slice):
-        if isinstance(ind, slice): ind = S(ind)
+    seq = [] # lazy access to regular.Slice; else we get an import cycle ...
+    @staticmethod
+    def _isslice_(item, cache=seq):
+        if not cache:
+            from study.snake.regular import Slice
+            cache.append(Slice)
+
+        return isinstance(item, cache[0])
+
+    def _asslice_(item, cache=seq):
+        if not cache:
+            from study.snake.regular import Slice
+            cache.append(Slice)
+
+        return cache[0](item)
+    del seq
+
+    def __getitem__(self, ind):
+        if isinstance(ind, slice): ind = self._asslice_(ind)
         try: iter(ind)
         except TypeError: pass
         else: return self.__get(ind)
@@ -308,7 +324,7 @@ class ReadSeq (Iterable):
         raise IndexError(ind)
 
     @iterinstance
-    def __get(self, ind, S=Slice):
+    def __get(self, ind):
         for i in ind:
             try: yield self[i]
             except IndexError:
@@ -317,13 +333,12 @@ class ReadSeq (Iterable):
                 # entries.  To support arbitrary sequences as ind, or a slice
                 # that starts outside self's range but works its way in, yet
                 # avoid spinning on maxint, apply a Slice-specific check:
-                if isinstance(ind, S):
+                if self._isslice_(ind):
                     if ind.step > 0:
                         if i > len(self): break
                     elif ind.step < 0:
                         if i < 0: break
                     else: break # not getting any different i hereafter !
-    del Slice
 
     def __repr__(self):
         row = []
@@ -707,12 +722,11 @@ class List (ReadSeq, list): # list as base => can't use __slots__
 
         for it in k: self.__updel[it]
 
-    from regular import Slice
     __upset = list.__setitem__
-    def __setitem__(self, key, val, S=Slice):
+    def __setitem__(self, key, val):
         try: iter(key)
         except TypeError:
-            if isinstance(key, slice): key = S(key)
+            if isinstance(key, slice): key = self._asslice_(key)
             else: return self.__upset(key, val)
 
         try:
@@ -724,8 +738,6 @@ class List (ReadSeq, list): # list as base => can't use __slots__
                 'Mismatched lengths in extended slice assignment', key, val)
         src = iter(val) # TypeError if non-sequence given to assign to slice
         for it in key: self[it] = src.next()
-
-    del Slice
 
     __mul = ReadSeq.__mul__
     def __mul__(self, other): return self._list_(self.__mul(other))

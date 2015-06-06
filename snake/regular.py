@@ -216,10 +216,15 @@ class Regular (object):
 
     __radd__ = __add__
 
-    from study.maths.natural import hcf, Euclid
-    from study.snake.row import unique, deltas
-    __meet_tools = (Euclid, hcf, unique, deltas)
-    del hcf, Euclid, unique, deltas
+    @classmethod
+    def __meet_tools(cls, cache=[]):
+        # Lazy access to avoid import cycles:
+        if not cache:
+            from study.maths.natural import hcf, Euclid
+            from study.snake.row import unique, deltas
+            cache.extend((Euclid, hcf, unique, deltas))
+
+        return cache
 
     def meet(self, *others):
         """The minimal Regular that subsumes all.
@@ -249,7 +254,7 @@ class Regular (object):
         if hi is None and lo is None:
             raise ValueError, 'Sequence is bounded at neither end'
 
-        hcf, unique, deltas = self.__meet_tools[1:]
+        hcf, unique, deltas = self.__meet_tools()[1:]
         step = hcf(*(deltas(unique(map(lambda x: x.start, fall + rise + stay))) +
                      map(lambda x: x.step or 1,
                          # All the sequences of length > 1:
@@ -290,7 +295,7 @@ class Regular (object):
         except AttributeError: raise TypeError("Can't intersect", self, other)
         if ep is None: ep = 1
 
-        i, j = self.__meet_tools[0](ep, self.step)
+        i, j = self.__meet_tools()[0](ep, self.step)
         j = -j
         h = i * ep - j * self.step # highest common factor
         if h: q, r = divmod(self.start - ar, h)
