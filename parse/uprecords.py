@@ -26,6 +26,11 @@ class Record (tuple):
     def duration(self, fmt=time.strftime):
         return fmt('%c', self.start)
 
+    @lazyprop
+    def days(self): return self.hours / 24
+    @lazyprop
+    def hours(self): return self.ran / 36e2
+
     def __sane(self, end=None, time=time.time):
         if end is None: end = time()
         if self.end > end:
