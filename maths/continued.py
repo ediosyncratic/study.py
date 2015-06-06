@@ -3,11 +3,15 @@
 Exports:
   real_continued(val) -- iterator over continued fraction approximation to val
   rationalize(x [, tol, depth]) -- try to approximate x = n / d for whole n, d
+  Token, Cycle, Series -- integer iterators for use with Continued
   Continued -- class implementing continued fractions
 
 See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
+For more on the theory of continued fractions, see Continued (below) and
+http://en.wikipedia.org/wiki/Continued_fraction
+
 See study.LICENSE for copyright and license information.
 """
 
@@ -16,40 +20,43 @@ def real_continued(val, whole=int):
 
     Required argument, val, is a real number - although it need not be
     represented by a python object of type real; it suffices that it plays
-    nicely with divmod(val,1), 1./val and behaves as a false value, when used
-    as a boolean, exactly when it is 0.  Optional argument, whole, is a
-    callable that takes the first return of divmod(val,1) and does any
-    suitable coercion (default, int, turns an integer-valued float into the
-    corresponding int) prior to yielding it.  Returned iterator yields a
-    sequence n of such values, for which n[0] +1/(n[1] +1/(n[2] + ...)) is a
-    progressively more refined approximation to val.  Aside from n[0],
-    abs(n[i]) is always at least 2 (when val is actually a float and whole is
-    int).
+    nicely with divmod(val,1), 1./val and, when used as a boolean, is false
+    exactly if it is 0.  Optional argument, whole, is a callable that takes the
+    first return of divmod(val, 1), after possibly adding one to make this round
+    to nearest instead of rounding down, and does any suitable coercion
+    (default, int, turns an integer-valued float into the corresponding int)
+    prior to yielding it.  Returned iterator yields a sequence n of such values,
+    for which n[0] +1/(n[1] +1/(n[2] + ...)) is a progressively more refined
+    approximation to val.  Aside from n[0], abs(n[i]) is always at least 2 (when
+    val is actually a float and whole is int).
 
     The sequence terminates when the approximation is exact, if this ever
-    arises.  Note, however, that (if val is of type real) the vagaries of
-    floating-point arithmetic may prevent an exact match from being noticed,
-    or permit an inexact match to appear exact.  Callers may want to treat any
+    arises.  Note, however, that (if val is a float) the vagaries of
+    floating-point arithmetic may prevent an exact match from being noticed, or
+    permit an inexact match to appear exact.  Callers may want to treat any
     sufficiently huge yield as meaning the previous yield was the end of the
     sequence.
 
     == On knowing when to stop ==
 
     A small uncertainty dx in x - p = 1/(q + y), with p, q integers having x-p
-    and y between -1/2 and +1/2, implies an uncertainty in y of dy; with 1 =
-    x.y -p.q -p.y +q.x we have 0 = x.dy +y.dx -p.dy +q.dx = dx.(y + q) -dy.(p
-    - x) so dy = dx.(y+q)/(p-x) = -dx.(y+q)**2.  Going forward, if we know an
-    upper bound u on abs(dx), we can infer u.(q.q +abs(q) +1/4) as an upper
-    bound on abs(dy); if this ever gets above 1/2 there is little point
-    continuing the sequence.  Working backwards, e.g. to work out when we can
-    truncate while ensuring some upper bound u on the error in x, the upper
-    bound we must impose on the possible error in y is u.(q.q -abs(q) +1/4);
-    if this ever gets as high as 1/2, we can truncate.\n"""
+    and y between -1/2 and +1/2, implies an uncertainty in y of dy; with 1 = (x
+    - p)*(y + q), we have = dx*(y+q) +dy*(x-p) so dy = dx*(y+q)/(p-x) =
+    -dx*(y+q)**2.  Going forward, if we know an upper bound u on abs(dx), we can
+    infer u.(q.q +abs(q) +1/4) as an upper bound on abs(dy); if this ever gets
+    above 1/2 there is little point continuing the sequence.  Working backwards,
+    e.g. to work out when we can truncate while ensuring some upper bound u on
+    the error in x, the upper bound we must impose on the possible error in y is
+    u.(q.q -abs(q) +1/4); if this ever gets as high as 1/2, we might as well
+    truncate.  See rationalize(), below, for application of this.\n"""
 
     if not val: yield 0
     while val:
         q, r = divmod(val, 1) # r > 0 even if val < 0
-        if r > .5: q, r = q+1, r-1
+        # Round to nearest (favouring even on exact half):
+        if r > .5 or (2 * r == 1 and q % 2):
+            q, r = q + 1, r - 1
+
         yield whole(q)
         if r: val = 1. / r
         else: break
@@ -67,10 +74,7 @@ def rationalize(x, tol=1e-7, depth=5):
     Result is sought by using continued fractions; that is, by first trying to
     approximate x as s[0] + 1./(s[1] + 1./(s[2] + ...)) for some sequence s of
     integers, then unwinding this expression to obtain n and d.  The search
-    aborts if it needs more than depth entries in s to get within tol of x.
-
-    For more on the theory of continued fractions, see
-    http://en.wikipedia.org/wiki/Continued_fraction\n"""
+    aborts if it needs more than depth entries in s to get within tol of x.\n"""
 
     s = real_continued(x)
     seq = [ s.next() ]
@@ -79,7 +83,7 @@ def rationalize(x, tol=1e-7, depth=5):
         if abs(q) * tol > 1: break
         seq.append(q)
         if len(seq) > depth: raise ValueError('Hard to approximate', x, seq)
-        tol *= (q - .5)**2
+        tol *= (abs(q) - .5)**2
 
     # x == seq[0] + 1/(seq[1] + 1/(...))
     n, d = seq.pop(), 1
@@ -105,10 +109,9 @@ class Cycle (Token):
     A Cycle(*seq) object is recognized by Continued (q.v.) as a 'value' in a
     sequence of integers that means 'the rest of the values you want are just
     the entries in seq, repeated endlessly.'  The given sequence must be
-    non-empty. Such a sequence is commonly used in the representation of
+    non-empty.  Such a sequence is commonly used in the representation of
     various algebraic numbers, particularly square roots of rationals.  The
-    sequence of values to be yielded is exposed as property .values, a
-    tuple.\n"""
+    sequence of values to be yielded is exposed as property .values, a tuple.\n"""
 
     def __init__(self, first, *rest): self.__values = (first,) + rest
     def __iter__(self):
