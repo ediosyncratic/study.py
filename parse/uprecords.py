@@ -118,18 +118,19 @@ class History (object):
         default is the file uptimed uses as its database.\n"""
 
         last = most = None
-        fd, count = open(file), 0
-        try:
-            for line in iter(fd):
-                last, most = self.__parse(line).insert(last, most)
-                count += 1
-        finally: fd.close()
+        count = 0
+        for it in self.__parse(file):
+            last, most = it.insert(last, most)
+            count += 1
+
         self.latest, self.longest, self.count = last, most, count
 
     @staticmethod
-    def __parse(line):
-        ran, start, note = line.rstrip().split(':')
-        return Record((int(ran), int(start), note))
+    def __parse(file):
+        with open(file) as fd:
+            for line in fd:
+                ran, start, note = line.rstrip().split(':', 2)
+                yield Record((int(ran), int(start), note))
 
     def __len__(self): return self.count
 
