@@ -42,8 +42,37 @@ class Record (tuple):
         if not merge or self.start != other.start or self.note != other.note:
             raise ValueError("Overlapping ranges", self, other)
         other.__sane(was) # self is safe, but need to check other !
-        self.ran = max(self.ran, other.ran)
+        if other.ran > self.ran:
+            self.ran = other.ran
+            self.end = self.start + self.ran
         return True
+
+    def __resort(self, most):
+        # Move self (possibly) up most's .__less chain:
+        if self is most: return most # already at top
+
+        run = most
+        # We can be sure self is *in* the .__less chain:
+        while run.__less is not self: run = run.__less
+        # Nothing to do if still below next record up:
+        if run.ran >= self.ran: return most
+
+        try: run.__less = self.__less # snip self out of chain
+        except AttributeError: del run.__less # self was last in chain
+
+        if self.ran >= most.ran: # moved up to first place:
+            self.__less = most
+            return self
+
+        run = most
+        # This definitely ends before run gets to where we changed .__less,
+        # above; so no need to worry that .__less might run out:
+        while run.__less.ran > self.ran: run = run.__less
+        assert run.ran > self.ran
+        # Insert self after run:
+        self.__less = run.__less
+        run.__less = self
+        return most
 
     def insert(self, last, most, merge=False):
         """Insert self into the lists sorted by date and duration.
@@ -58,24 +87,32 @@ class Record (tuple):
         end-point is in the future.
 
         Returns the heads of the two lists, i.e. last and most, except that
-        self may have replaced either of them.\n"""
+        self may have replaced either (or both) of them.\n"""
 
         if last is None:
             assert most is None
             self.__sane()
             return self, self
 
-        if last.__check(self, merge): return last, most
-        if self.start > last.start:
+        if last.__check(self, merge):
+            # Merged into old last entry instead of inserting anew.
+            # May have increased .ran, so maybe revise .__less order:
+            return last, last.__resort(most)
+
+        if self.start >= last.start:
             self.__sane()
+            last.__sane(self.start)
             self.__prior, last = last, self
         else:
             run = last
             try:
                 while self.start < run.__prior.start:
                     run, was = run.__prior, run.start
-                    if run.__check(self, merge, was): return last, most
-            except AttributeError: pass # no prior
+                    if run.__check(self, merge, was):
+                        # Merged into old entry instead of inserting anew, as above.
+                        return last, run.__resort(most)
+
+            except AttributeError: pass # no .__prior
             else: self.__prior = run.__prior
             self.__sane(run.start) # check self ended before next
             run.__prior = self
@@ -86,7 +123,7 @@ class Record (tuple):
             try:
                 while self.ran < run.__less.ran:
                     run = run.__less
-            except AttributeError: pass # no less
+            except AttributeError: pass # no .__less
             else: self.__less = run.__less
             run.__less = self
 
