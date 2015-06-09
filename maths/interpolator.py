@@ -778,6 +778,7 @@ class PiecewiseConstant (Interpolator):
             zero += w
             one += w * (c + last) / 2
             two += w * (c * c + last * c + last * last) / 3
+            # TODO: can we adapt Welford's algorithm ?
 
         if not zero: raise ValueError(
             'Degenerate distribution has no mean or variance', self)

@@ -61,13 +61,13 @@ class docprop (property):
         docprop), in an imagined sequence-of-numeric class:
 
             @lazyprop.group(2)
-            def variance(self):
-                tot = totsq = 0.
+            def variance(self): # Using Welford's algorithm
+                count = mean = vary = 0.
                 for it in self:
-                    tot += it
-                    totsq += it**2
-                mean = tot / len(self)
-                return mean, totsq / (len(self) - 1.) - mean**2
+                    delta = it - mean
+                    mean += delta / count
+                    vary += delta * (it - mean)
+                return mean, vary / (count - 1)
             mean, variance = variance
 
         Instances of the sequence class are then equipped with independently
