@@ -19,7 +19,7 @@ class Variate (Integrator, Cached):
         self.__upinit(func, lower, upper, width)
         self.__moments = ()
         if not (lower is None and upper is None and width is None):
-            self.__cut = None
+            self.__cut = None # else unset; access to error on invalid use of self
 
     def moments(self, n):
         """Returns expected values of various powers of the variate.
@@ -64,7 +64,6 @@ class Variate (Integrator, Cached):
             else: return mid
         return lo
 
-    # TODO: make Variate an endless iterator (over sample values) instead.
     def sample(self):
         """Returns a sample value from this distribution.
 
@@ -74,6 +73,11 @@ class Variate (Integrator, Cached):
         """
         raise NotImplementedError
 
+    @property
+    def samples(self):
+        while True:
+            yield self.sample()
+
 del lazyprop, lazyattr, Integrator, Cached
 
 from random import random # 0 <= uniform < 1
@@ -82,7 +86,7 @@ class Uniform (Variate):
     def __init__(self, lo=1, hi=None):
         if hi is None: lo, hi = 0 * lo, lo # i.e. lo has default 0, really hi was supplied ...
         self.min, self.max = lo, hi
-        self.__height = 1./(hi - lo)
+        self.__height = 1. / (hi - lo)
         self.__upinit(lambda x, h=self.__height: h, lo, hi)
 
     def __w(self, r=random): r() / self.__height
