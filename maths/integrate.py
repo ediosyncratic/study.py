@@ -37,16 +37,16 @@ class Integrator:
     added to an error bar whose width is the last change.
 
     By default, the code is geared up to deal with values of class Quantity (see
-    study.value.quantity) and, in that case, the integrators return Quantity()s.  If
-    the first estimate at the integral (plus optional offset) has a positive
-    .width attribute, it is presumed to be a Quantity() and the default test
-    simply compares the change in estimate with the .width of the new estimate;
-    if the change is within this existing error bar, it is taken to be small
-    enough. In the absence of .width, or if the .width is not positive, the
-    default test simply looks to see whether the change in estimate is smaller
-    than 1e-6 times the estimate (plus optional offset); in the absence of an
-    offset, this last test will work poorly if the integral should yield
-    zero.\n"""
+    study.value.quantity) and, in that case, the integrators return
+    Quantity()s.  If the first estimate at the integral (plus optional offset)
+    has a positive .width attribute, it is presumed to be a Quantity() and the
+    default test simply compares the change in estimate with the .width of the
+    new estimate; if the change is within this existing error bar, it is taken
+    to be small enough.  In the absence of .width, or if the .width is not
+    positive, the default test simply looks to see whether the change in
+    estimate is smaller than 1e-6 times the estimate (plus optional offset); in
+    the absence of an offset, this last test will work poorly if the integral
+    should yield zero.\n"""
 
     def __init__(self, func, lower=None, upper=None, width=None):
         """Initialises an integrator.
@@ -64,7 +64,7 @@ class Integrator:
         upper are supplied (and not None), width should normally be None; if it
         is, in this case, it shall be inferred from lower and upper.  It is only
         needed if .beyond() or .before() is liable to be called with bound
-        zero. It should ideally be approximately the difference between highest
+        zero.  It should ideally be approximately the difference between highest
         and lowest inputs for which the integrand differs significantly from 0;
         e.g., if func is the density of a random variate, 5 standard deviations
         would be prudent.\n"""
@@ -153,7 +153,7 @@ class Integrator:
         """Integral over a range.
 
         Two required arguments, start and stop, give the bounds of the
-        range. Also accepts the usual optional tolerance specifiers, test and
+        range.  Also accepts the usual optional tolerance specifiers, test and
         offset: see class doc for details.  If start > stop, they are reversed
         and the resulting integral is negated.\n"""
 
