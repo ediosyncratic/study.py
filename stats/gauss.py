@@ -49,7 +49,7 @@ import math
 def gauss(x, e=math.exp, n=(2*math.pi)**.5): return e(-x*x/2)/n
 del math
 
-from variate import Variate
+from study.stats.variate import Variate
 class Normal (Variate):
     __upinit = Variate.__init__
     def __init__(self, mean, stddev):

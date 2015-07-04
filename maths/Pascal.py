@@ -166,7 +166,7 @@ def c2nno4n(n):
 
     Note that this ~ (n*pi)**.5 for large n; evaluating lambda x:
     x*(1+2./(9+(8*x)**2)) at n+.25, multiplying by pi and taking 1/sqrt()
-    gives a good approximation to the answer; see study.maths.stirling.c2nn()
+    gives a good approximation to the answer; see study.stats.stirling.c2nn()
     and http://www.chaos.org.uk/~eddy/math/factorial.html#Approx\n"""
     ans, each = 1, lambda k, q = .25 * n: q / k + .25 # (n+k)/4/k
     i = j = n // 3 # solves n+k = 4*k, rounding down

@@ -1,13 +1,12 @@
 """How big a buffer do you need for printing decimals ?
 
-The answer is 53 * n // 22 plus an offset.  The 53 // 22 is a
-reasonably good (obtained using continued.real_continued(), naturally)
-approximation to log(256)/log(10), erring slightly on the high side
-(so that we can be confident of safety at large size).  The offset
-includes one for the '\0' that a C string needs; skip that if you're
-in a better language that doesn't need it.  Aside from that, unsigned
-needs +1 (for random bumpiness of base 256 vs base 10 lengths) and
-signed needs another +1 for the minus sign.
+The answer is 53 * n // 22 plus an offset.  The 53 // 22 is a reasonably good
+(obtained using maths.continued.real_continued(), naturally) approximation to
+log(256)/log(10), erring slightly on the high side (so that we can be confident
+of safety at large size).  The offset includes one for the '\0' that a C string
+needs; skip that if you're in a better language that doesn't need it.  Aside
+from that, unsigned needs +1 (for random bumpiness of base 256 vs base 10
+lengths) and signed needs another +1 for the minus sign.
 """
 def bigenough(n): return 53 * n // 22
 

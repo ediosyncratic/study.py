@@ -43,9 +43,10 @@ our integral of p up to X pretty close to
 
 See study.LICENSE for copyright and license information.
 """
-from variate import Variate
+from study.stats.variate import Variate
+from study.stats import stirling
 from study.cache.property import lazyattr
-import math, stirling
+import math
 
 class Gamma (Variate):
     __upinit = Variate.__init__

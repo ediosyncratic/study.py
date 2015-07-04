@@ -5,6 +5,7 @@ Sub-packages:
  chemy -- fundamental physics through to chemistry
  crypt -- tools for encoding and decoding
  maths -- assorted mathematical tools
+ stats -- statistical analysers and chaotic generators
  parse -- parsers, serializers and objects to manage the data in between
  snake -- general pythonic helper infrastructure
  space -- the solar system and some of the rest of the universe
@@ -42,6 +43,7 @@ import cache
 # Extensions:
 import crypt
 import maths
+import stats
 import parse
 
 # The Quantity-based universe:

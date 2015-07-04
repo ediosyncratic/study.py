@@ -141,7 +141,7 @@ def massage_text(text, times,
     return sign + head + tail
 
 del _exponent_to_quantifier
-from sample import Sample
+from study.value.sample import Sample
 
 class qSample (Sample):
     # Massage Sample's answers, which use any integer for the exponent
