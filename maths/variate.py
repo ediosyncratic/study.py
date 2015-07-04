@@ -50,19 +50,43 @@ class Variate (Integrator, Cached):
 
     @lazyprop
     def median(self):
+        # Get two distinct values of our variate:
         lo = hi = self.sample()
         while lo == hi: lo = self.sample()
         if lo > hi: lo, hi = hi, lo
+
         wlo, whi, tgt = self.before(lo), self.before(hi), self.__total / 2
         while lo < hi:
+            # Linearly {inter,extra}polate an estimate at the median:
             mid = ((tgt - wlo) * hi + (whi - tgt) * lo) / (whi - wlo)
             wmid = self.before(mid)
+            # Move bounds to straddle median, if they don't already:
             if mid > hi: lo, hi, wlo, whi = hi, mid, whi, wmid
             elif mid < lo: lo, hi, wlo, whi = mid, lo, wmid, wlo
+            # Narrow bound towards the median, if within:
             elif wmid < tgt: lo, wlo = mid, wmid
             elif wmid > tgt: hi, whi = mid, wmid
+            # Arrival:
             else: return mid
         return lo
+
+    @lazyprop
+    def Pareto(self):
+        """Compute Pareto parameter.
+
+        This is the x for which: the upper portion of self's range that holds a
+        proportion x of self's weight holds a proportion 1 - x of self's
+        expectation; i.e. there is some y for which self.beyond(y) == x and
+        self.measure(lambda t: t, y).total() == 1 - x; see
+        http://www.chaos.org.uk/~eddy/politics/Pareto.xhtml\n"""
+        rate, weight = 1. / self.__total, self.measure(lambda t: t).total()
+        y = self.median # Lower bound; use Newton-Raphson to refine it.
+        while True:
+            x, w = self.beyond(y) * rate, self.measure(lambda t: t, y).total() / weight
+            s = x + w - 1
+            # TODO: introduce a suitable tolerance check !
+            if s: y -= s / self.integrand(y) / (rate + y / weight)
+            else: return x
 
     def sample(self):
         """Returns a sample value from this distribution.
