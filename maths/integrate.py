@@ -34,7 +34,7 @@ class Integrator:
     argument, the new estimate, with offset (if supplied) added to it.  If the
     change is small enough that further refinement is a waste of time, test
     should return true.  The integrator will then return the given estimate
-    added to an error bar whose width is the last change.
+    (without offset) added to an error bar whose width is the last change.
 
     By default, the code is geared up to deal with values of class Quantity (see
     study.value.quantity) and, in that case, the integrators return
@@ -46,7 +46,9 @@ class Integrator:
     positive, the default test simply looks to see whether the change in
     estimate is smaller than 1e-6 times the estimate (plus optional offset); in
     the absence of an offset, this last test will work poorly if the integral
-    should yield zero.\n"""
+    should yield zero.  Supplying an offset saves the test for an integral from
+    demanding pointless precision when the result is going to be added to
+    something bigger than it, or with a large error bar.\n"""
 
     def __init__(self, func, lower=None, upper=None, width=None):
         """Initialises an integrator.
@@ -120,13 +122,13 @@ class Integrator:
     def total(self, cut=None, test=None, offset=None):
         """Total integral, from minus infinity to plus infinity.
 
-        Semi-optional argument, cut, is a valid input to self.integrand at which
-        to split the integral; if the constructor was given any of lower, upper
-        and width, this is not needed (but supplying it is
-        permitted).  Otherwise, if it is not supplied, 1 is used (which may be
-        wildly inappropriate for some integrands).  Also accepts the usual
-        optional tolerance specifiers, test and offset: see class doc for
-        details.\n"""
+        Semi-optional argument, cut, is a valid input to self.integrand around
+        which to split the integral; the integral is actually split at 1/2 it
+        and 3/2 of it, if given.  Otherwise, if the constructor was given any of
+        lower, upper and width, a suitable interval based on these is
+        used.  Failing that, cut=1 is used (which may be wildly inappropriate
+        for some integrands).  Also accepts the usual optional tolerance
+        specifiers, test and offset: see class doc for details.\n"""
         lo, hi = self.__span(cut, cut)
         if lo is None or hi is None:
             try: wide = self.__unit
@@ -139,7 +141,7 @@ class Integrator:
             else:
                 if lo is None:
                     if hi is None: hi = wide
-                    lo = hi - wide
+                    lo = hi - wide # "zero"
                 elif hi is None:
                     hi = lo + wide
 
