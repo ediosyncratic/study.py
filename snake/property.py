@@ -1,6 +1,6 @@
 """Cached properties, with lazy and weekly referenced variants.
 
-This module should eventually replace lazy.Lazy; it provides:
+This module provides:
   docprop -- extend property by borrowing getter's doc-string and name
   recurseprop -- extend docprop to manage recursion in getters
   dictattr -- extend recurseprop by implementing set/del via object's __dict__
