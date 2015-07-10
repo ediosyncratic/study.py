@@ -64,7 +64,7 @@ class docprop (property):
             def variance(self): # Using Welford's algorithm
                 count = mean = vary = 0.
                 for it in self:
-                    delta = it - mean
+                    delta, count = it - mean, count + 1
                     mean += delta / count
                     vary += delta * (it - mean)
                 return mean, vary / (count - 1)
