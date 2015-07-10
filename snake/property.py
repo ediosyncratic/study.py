@@ -76,8 +76,8 @@ class docprop (property):
         tuple returned).\n"""
 
         def deco(get, k=cls, n=count, e=hvert):
-            all = k(get) # apply underlying decorator to "method"
-            return tuple(map(lambda i, a=all, h=e: h(a, i), range(n)))
+            full = k(get) # apply underlying decorator to "method"
+            return tuple(map(lambda i, a=full, h=e: h(a, i), range(n)))
         return deco
     del each
 
