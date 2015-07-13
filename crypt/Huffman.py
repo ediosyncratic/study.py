@@ -117,12 +117,8 @@ class Huffman (Lazy):
             try: P[:] # sequence
             except: raise ValueError(P,
                                      'Probability distribution must be mapping or sequence')
-            # Convert P to a mapping:
-            bok = {}
-            for i in range(len(P)):
-                bok[i] = P[i] # raises exception if P is not a sequence ...
-
-            self.__distribution = bok
+            # Convert P to a mapping (and raise an exception if not iterable):
+            self.__distribution = dict(enumerate(P))
         else: self.__distribution = P
 
         # Are our symbols strings or are we working with sequences ?
