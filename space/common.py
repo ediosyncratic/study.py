@@ -114,8 +114,8 @@ class Orbit (Round):
         self.__upinit(radius, self.__spin(spin, ws, tilt), **what)
         self.centre, self.eccentricity = centre, eccentricity
 
-    def __spin(self, maybe, ws, tilt, squish=lambda x, tp=2*pi: tp/x):
-        periods = map(squish, ws)
+    def __spin(self, maybe, ws, tilt, twopi=2*pi):
+        periods = [ twopi / x for x in ws ]
         if maybe is None:
             assert periods # tested by constructor
             if tilt is None: maybe = Spin(periods[0]) # use Spin's default tilt

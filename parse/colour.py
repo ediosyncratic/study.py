@@ -12,7 +12,7 @@ def get_x11_rgb(src='/etc/X11/rgb.txt'):
             if line[0] == '!': continue
             row = line.split()
             if len(row) > 3:
-                try: bok[' '.join(row[3:])] = tuple(map(int, row[:3]))
+                try: bok[' '.join(row[3:])] = tuple(int(x) for x in row[:3])
                 except ValueError:
                     print 'Ignoring malformed line in %s:' % src, line
                     # wilful blank line after error message.
@@ -98,10 +98,10 @@ class Colour (object):
                     w = w[2:]
                 cols.append(w)
             if len(cols) == 3:
-                r, g, b = map(lambda x: int(x, 16), cols)
+                r, g, b = [int(x, 16) for x in cols]
                 a = None
             elif len(cols) == 4:
-                r, g, b, a = map(lambda x: int(x, 16), cols)
+                r, g, b, a = [int(x, 16) for x in cols]
             else:
                 raise ValueError('Malformed #... graphviz colour value', txt)
 
@@ -109,7 +109,7 @@ class Colour (object):
 
         row = txt.split('+')
         if len(row) == 3: # HSV; 0.0 <= min(row) <= max(row) <= 1.0
-            return Colour.from_hsv(*map(float(row)))
+            return Colour.from_hsv(*[float(x) for x in row])
         elif len(row) > 1:
             raise ValueError('Malformed HSV-style graphviz colour code', txt)
 

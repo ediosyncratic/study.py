@@ -61,8 +61,7 @@ class Object (Lazy):
     Inherits from Lazy and supports an attribute, dir, which is a copy of the
     object's namespace dictionary, omitting names which start with '_'. """
 
-    def copy(self, *args): return self.__class__(*args, **self.__star())
-    def _lazy_get_dir_(self, ignored): return self.__star()
+    def copy(self, *args): return self.__class__(*args, **self.dir)
     def help(self): print self.__doc__
 
     def __ephem(self):
@@ -156,12 +155,12 @@ class Object (Lazy):
         except KeyError:
             raise AttributeError('No such attribute to delete', key)
 
-    def __star(self):
-        bok = {}
-        for key in filter(lambda k: k[0] != '_', self.__dict__.keys()):
-            if not (key in self._borrowed_value_ or self._lazy_ephemeral_(key)):
-                bok[key] = self.__dict__[key]
-        return bok
+    def _lazy_get_dir_(self, ignored):
+        # Note that we borrow more than .dir reports, hence more than we .copy().
+        return dict((key, val) for key, val in self.__dict__.items() if not (
+                key.startswith('_') or
+                key in self._borrowed_value_ or
+                self._lazy_ephemeral_(key)))
 
     _borrowed_value_ = ()
 

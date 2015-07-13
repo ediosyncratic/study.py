@@ -82,6 +82,8 @@ class Counter (dict):
 
     import os
     def scan(self, dir, entities=False, checker=None,
+              # Skip version-control subdirs:
+             ignored=('CVS', '.git'), # any more ?
              walk=os.walk, join=os.path.join):
         """Scan a directory tree for files to .digest()
 
@@ -102,13 +104,11 @@ class Counter (dict):
         Thus if checker is re.compile('\.x?html$').search, all .html and .xhtml
         files shall be processed.\n"""
 
-        if checker is None: prune = lambda s: s
-        else: prune = lambda s, c=checker: filter(c, s)
-
         for d, ss, fs in walk(dir):
-            for x in ('CVS', '.git'): # any more ?
-                if x in ss: ss.remove(x) # skip version-control subdirs.
+            for x in ignored:
+                if x in ss: ss.remove(x)
 
-            for name in prune(fs):
+            if checker is not None: fs = (x for x in fs if checker(x))
+            for name in fs:
                 self.digest(join(d, name), entities)
     del os

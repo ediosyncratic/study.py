@@ -105,13 +105,13 @@ def logrange(a, b=None, c=None):
 def median(seq, fn=None):
     """Find the median of a sequence.
 
-    Required first argument, seq, is a sequence of values.  Optional second
+    Required first argument, seq, is an iterable of values.  Optional second
     argument, fn, is a comparison function or None (the default) to use the
     built-in comparison, cmp().  Doesn't go to all the trouble of sorting (a
     copy of) the sequence, just moves the middle element or two to the
     middle.\n"""
-    if not seq: raise IndexError, 'empty sequence has no median'
-    row = list(seq) # always gets a copy
+    row = list(seq) # always gets a copy; and iterate only once
+    if not row: raise IndexError, 'empty sequence has no median'
 
     # Adapted from Wirth's "Data Structures + Algorithms = Programs"
     def split(L, R, m, s=row, cmp=fn or cmp):
@@ -149,13 +149,12 @@ def median(seq, fn=None):
 def gradients(fn, arg, *deltas):
     if len(deltas) == 1 and isinstance(deltas[0], (tuple, list)):
         deltas = deltas[0]
-    try: result = map(lambda e, f=fn, a=arg: (f(a+e)-f(a-e))*.5/e, deltas)
-    except (OverflowError, ZeroDivisionError, ValueError):
-        result = []
-        for e in deltas:
-            try: r = (fn(arg + e) - fn(arg - e)) * .5 / e
-            except (OverflowError, ZeroDivisionError, ValueError): pass
-            result.append(e)
+
+    result = []
+    for e in deltas:
+        try: r = (fn(arg + e) - fn(arg - e)) * .5 / e
+        except (OverflowError, ZeroDivisionError, ValueError): pass
+        else: result.append(r)
 
     # However, if the last few deltas are so small df is lost in rounding, throw
     # them away !
@@ -172,11 +171,11 @@ def gradient(fn, arg):
     # i.e. [ 1, -.1, .01, -.001, ... ]
     grads = gradients(fn, arg, deltas)
     try: # does fn cope with complex values ?
-        more = gradients(fn, arg, map(lambda x: 1j*x, deltas))
-        grads = map(lambda x: x+0j, grads) + more # add 0j to coerce complex
+        more = gradients(fn, arg, [1j * x for x in deltas])
+        grads = [x + 0j for x in grads] + more # add 0j to coerce complex
         # return meadian of real parts + 1j * median of imaginary parts:
-        return median(map(lambda x: x.real, grads)) \
-        + 1j * median(map(lambda x: x.imag, grads))
+        return median(x.real for x in grads) \
+        + 1j * median(x.imag for x in grads)
 
     except (AttributeError, TypeError): return median(grads)
 

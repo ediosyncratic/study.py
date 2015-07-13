@@ -385,9 +385,9 @@ def depower(val, p):
         pb >>= p
         assert pb == bit**p and not v & bit
         # term = lambda i: v**i * bit**(p-i) * p!/i!/(p-i)!
-        # sum(map(term, range(p))) +v**p is (v + bit)**p
-        # We need to compare sum(map(term, range(p))) with val.
-        i, t, up = 1, pb, pb # i, term(i-1), sum(term, range(i))
+        # sum(term(i) for i in range(p)) +v**p is (v + bit)**p
+        # We need to compare sum(term(i) for i in range(p)) with val.
+        i, t, up = 1, pb, pb # i, term(i-1), sum(term(j) for j in range(i))
         while i < p:
             # term(i) = (term(i-1) >> ind)*v*(p+1-i)/i
             assert not t & (bit - 1) # i.e. t % bit is 0

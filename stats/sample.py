@@ -26,9 +26,9 @@ class Sample (Tuple):
 
         Note that a negative value for step will be read as len(self)-step;
         this might not be as useful as you'd suppose.  If you want reverse
-        steps, use a positive value for step and map(lambda x: -x, ...) the
+        steps, use a positive value for step and negate each entry in the
         result.  A step of zero will is silly but allowed; you'll get the same
-        as map(lambda x: x-x, seq).\n"""
+        as [x - x for x in seq].\n"""
         return [y - x for x, y in zip(seq[:-step], seq[step:])]
 
     def partition(self, cuts):
@@ -72,10 +72,9 @@ class Sample (Tuple):
             weigh.append(idx[-1] - idx[-1-wide])
             gaps.append(cuts[-1] - cuts[-1-wide])
 
-        return tuple(map(lambda *args: args,
-                         cuts[:-1], self.__diff(cuts),
+        return tuple(zip(cuts[:-1], self.__diff(cuts),
                          # density in each interval:
-                         map(lambda x, y: x / y, weigh, gaps)))
+                         [x / y for x, y in zip(weigh, gaps)]))
 
     def density(self, n):
         """Compute density using a moving interval.
@@ -228,7 +227,7 @@ class Sample (Tuple):
             if (gap // s) * s == gap: gap = gap // 2
             else: gap = gap * 1. / s
             # What we'll insert between cuts[i] and cuts[i+1]:
-            knife = map(lambda j, b=cuts[i], g=gap: j * g + b, range(1, s))
+            knife = [j * gap + cuts[i] for j in range(1, s)]
             # work out the corresponding indices for idx:
             index, low, m, j = [], idx[i], idx[i+1], s - 1
             # Think of m as index[s-j], even when index is empty
@@ -343,10 +342,10 @@ class Sample (Tuple):
 
         while len(cuts) > 2:
             gaps = self.__diff(cuts)
-            dense = map(lambda x, y: x / y, self.__diff(idx), gaps)
+            dense = [x / y for x, y in zip(self.__diff(idx), gaps)]
             # dense[i] = (idx[i+1] - idx[i]) / (cuts[i+1] - cuts[i])
-            ratio = map(lambda x, y: max(x * 1. / y, y * 1. / x),
-                        dense[1:], dense[:-1])
+            ratio = [max(x * 1. / y, y * 1. / x)
+                     for x, y in zip(dense[1:], dense[:-1])]
             worst = max(ratio)
             if worst < r: break
             j = ratio.index(worst)
@@ -354,8 +353,8 @@ class Sample (Tuple):
             if gaps[j] > gaps[j+1]: j += 1
             # gaps[j] is the narrower of the two
             if j == 0 or (j+1 < len(gaps) and gaps[j-1] > gaps[j+1]): j += 1
-            #print "Culling", j, 'from', map(lambda x: '%.2f' % x, dense),
-            #print "to kill", worst, 'in', map(lambda x: '%.2f' % x, ratio)
+            #print "Culling", j, 'from', ['%.2f' % x for x in dense],
+            #print "to kill", worst, 'in', ['%.2f' % x for x in ratio]
             del idx[j], cuts[j] # the boundary between these two intervals
 
         all = self.sorted

@@ -103,7 +103,7 @@ class Diagram (object):
         filter which accepts classes whose .__module__ either is the string or
         begins with it followed by a dot; these filters is then forwarded to
         self.add_filter (q.v.).\n"""
-        self.add_filter(*map(self.__isinmod, mods))
+        self.add_filter(*[self.__isinmod(m) for m in mods])
 
     class FakeClass (object):
         def __init__(self, name, module, bases):

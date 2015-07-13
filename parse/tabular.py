@@ -27,23 +27,21 @@ class Table (Cached):
 
     def __tidy_text(self):
         # Eliminate extraneous space from text:
-        lines = map(str.rstrip, self.__text.split('\n'))
+        lines = [x.rstrip() for x in self.__text.split('\n')]
         del self.__text
         # Any common indentation (except possibly on first line):
-        indents = map(lambda txt: txt[:-len(txt.lstrip())],
-                      filter(None, lines[1:]))
+        indents = [txt[:-len(txt.lstrip())] for txt in lines[1:] if txt]
         if indents:
-            cut = min(map(len, indents))
+            cut = min(len(i) for i in  indents)
             while cut > 0:
                 seq = iter(indents)
                 dent = seq.next()[:cut]
                 for it in seq:
                     if it[:cut] != dent: break
                 else: # they all agree :-)
-                    trim = lambda x, c=cut: x[c:]
                     if lines[0] and lines[0][:cut] != dent:
-                        lines[1:] = map(trim, lines[1:])
-                    else: lines = map(trim, lines)
+                        lines[1:] = [x[cut:] for x in lines[1:]]
+                    else: lines = [x[cut:] for x in lines]
                     break
                 cut -= 1
 
@@ -142,7 +140,7 @@ class Table (Cached):
             Anything goes.  This basic version simply .strip()s each
             entry in the row and returns the results as a tuple.\n"""
 
-            return tuple(map(lambda x: x.strip(), row))
+            return tuple(x.strip() for x in row)
 
         @staticmethod
         def package(all):

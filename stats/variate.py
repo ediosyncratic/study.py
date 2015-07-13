@@ -30,8 +30,8 @@ class Variate (Integrator, Cached):
         entry is the expected value of the n-th power of the variate.\n"""
 
         if n > len(self.__moments):
-            self.__moments += tuple(map(lambda i, t=self.__total, m=self.__moment: m(i)/t,
-                                        range(1+len(self.__moments), 1+n)))
+            self.__moments += tuple(self.__moment(i) / self.__total
+                                    for i in range(1 + len(self.__moments), 1 + n))
         return self.__moments[:n]
 
     def __moment(self, i):

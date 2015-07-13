@@ -8,7 +8,7 @@ class Golden (object):
     """Iterator over the generalised golden ratios.
 
     The (n-1)-th golden ratio is the unique x with 1 <= x < 2 satisfying
-        x**n = sum(map(lambda i: x**i, range(n)))
+        x**n = sum(x**i for i in range(n))
     The zeroth golden ratio has n-1 = 0 so n = 1, giving x = 1 trivially; the
     first has n = 2 and is what's usually known as The Golden Ratio,
     satisfying x*x = x + 1; subsequent yields of this iterator solve for a

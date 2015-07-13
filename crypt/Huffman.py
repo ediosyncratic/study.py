@@ -7,8 +7,8 @@ Provides:
 See study.LICENSE for copyright and license information.
 """
 from study.snake.lazy import Lazy
-alphabet = ''.join(filter(lambda c: len(repr(c)) < 4 and not c.isspace() and c != "'",
-                          map(chr, range(32, 126))))
+alphabet = ''.join(c for c in [chr(i) for i in range(32, 126)]
+                   if len(repr(c)) < 4 and not c.isspace() and c != "'")
 
 class Huffman (Lazy):
     """Implementation of Huffman encoding.
@@ -126,11 +126,10 @@ class Huffman (Lazy):
         else: self.__distribution = P
 
         # Are our symbols strings or are we working with sequences ?
-        self.__str = len(filter(lambda x: not(isinstance(x, basestring) and len(x) == 1),
-                                P.keys())) == 0
+        self.__str = all(isinstance(x, basestring) and len(x) == 1 for x in P.keys())
 
         # Verify no negative weights:
-        bad = filter(lambda (x,y): y < 0, P.items())
+        bad = [(x, y) for x, y in P.items() if y < 0]
         if bad: raise ValueError('Negative token frequencies', dict(bad))
 
         # Input padding:
@@ -183,7 +182,7 @@ class Huffman (Lazy):
                     try: pad = self.__tail
                     except AttributeError: pass
                     else:
-                        cut = max(map(len, code.keys()))
+                        cut = max(len(k) for k in code.keys())
                         while i < cut and not code.has_key(txt):
                             txt, i = txt + tail, i + 1
 
@@ -207,20 +206,17 @@ class Huffman (Lazy):
         shows the string encoding each below it.\n"""
         try: ans = self.__repr
         except AttributeError:
-            its = self.mapping.items()
-            its.sort(lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
+            its = sorted(self.mapping.items(), lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
             if not self.__str:
-                if self.__block_size == 1:
-                    its = map(lambda ((k,), v): (k, v), its)
-                its = map(lambda (k, v): (str(k), v), its)
-            fmt = map(lambda (k, v): '%%%ds' % max(len(k), len(v)), its)
-            ans = '\n'.join(map(lambda x, f=' | '.join(fmt): f % x,
-                                map(lambda *args: args, *its)))
-            self.__repr = ans
+                if self.__block_size == 1: # each its entry is ((k,), v); flatten
+                    its = ((p[0][0], p[1]) for p in its)
+                its = [ (str(k), v) for k, v in its ]
+            fmt = ' | '.join('%%%ds' % max(len(k), len(v)) for k, v in its)
+            self.__repr = ans = '\n'.join(fmt % x for x in zip(*its))
 
         return ans
 
-    def _lazy_get__block_map_(self, ig, possible=lambda (k, v): v):
+    def _lazy_get__block_map_(self, ig):
         """Mapping from possible blocks to their probabilities."""
         if self.__str:
             bok = { '': 1 }
@@ -229,10 +225,10 @@ class Huffman (Lazy):
             bok = { (): 1 }
             def add(seq, item): return seq + (item,)
 
-        N, dist = self.__block_size, filter(possible, self.__distribution.items())
+        N, dist = self.__block_size, [p for p in self.__distribution.items() if p[1]]
         while N > 0:
             N -= 1
-            old = filter(possible, bok.items())
+            old = [p for p in bok.items() if p[1]]
 
             bok = {}
             for k, v in old:
@@ -243,10 +239,8 @@ class Huffman (Lazy):
 
     def _lazy_get_reverse_(self, ig):
         """.reverse maps encoded string fragments to decoded blocks.\n"""
-        bok = {}
-        for k, v in self.mapping.items():
-            bok[v] = k
-        return bok # { 'code' => block }, block is tuple or string of length .__block_size
+        # { 'code' => block }, block is tuple or string of length .__block_size
+        return dict((v, k) for k, v in self.mapping.items())
 
     def _lazy_get_length_(self, ig):
         """Expected output length per input token."""
@@ -292,7 +286,7 @@ class Huffman (Lazy):
     class Tree:
         def __init__(self, kids):
             self.kids = tuple(kids)
-            self.weight = sum(map(lambda x: x.weight, kids))
+            self.weight = sum(x.weight for x in kids)
 
         def mark(self, stem, bok, sym):
             i = len(self.kids)

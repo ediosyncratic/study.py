@@ -72,7 +72,8 @@ class Laguerre (Polynomial):
             last = last * (j * (j+1) - L) / (j - n)
 
         assert last == 0
-        return map(lambda x, e=gcd(*f): x // e, f)
+        e = gcd(*f)
+        return [x // e for x in f]
     del factorial
 
     def _lazy_get_scale_(self, ig, linear=Polynomial((0,1))):

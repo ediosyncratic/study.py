@@ -39,7 +39,7 @@ class StockPageParser (HTMLParser):
             what = what.args[0]
             wrap.append(nomen(what.__class__))
 
-        ans = map(repr, what.args)
+        ans = [`a` for a in what.args]
         if isinstance(what, BadHTTP):
             ans.append('HTTP error %d: %s' % (what.code, what.msg))
             last = what.read() or None

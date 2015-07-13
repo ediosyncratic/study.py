@@ -16,7 +16,7 @@ from decay import ratedDecay
 
 def decay(what, halflife, *modes):
     what.decays = ratedDecay(what, halflife,
-                             *map(lambda m: (m[0], m[1] * eV) + tuple(m[2:]), modes))
+                             *[(m[0], m[1] * eV) + tuple(m[2:]) for m in modes])
 
 def photon(erg):
     return Photon(energy= erg * eV)

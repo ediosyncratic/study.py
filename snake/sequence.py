@@ -114,7 +114,7 @@ class Iterable (object):
         thus similar to using the builtin map(self, *others), except that it
         returns an iterator over the values.  Contrast with cartesian().\n"""
 
-        others = map(self.__endless, others)
+        others = [self.__endless(o) for o in others]
         if func is None: func = lambda *args: args
         for val in self:
             yield func(val, *[x.next() for x in others])
@@ -654,7 +654,7 @@ class Dict (dict):
     @staticmethod
     def __unterleave(args, T=Tuple):
         assert all(len(it) == 2 for it in args)
-        return tuple(map(T, map(lambda *kv: kv, *args)))
+        return tuple(T(kv) for kv in zip(*args))
 
     @classmethod
     def cartesian(cls, *args):
@@ -673,7 +673,7 @@ class Dict (dict):
         example, if the mappings represent vectors, mapping names of components
         to values thereof, their tensor product would be obtained by mapping
         each (key, val) to (key, val.product())\n"""
-        return Tuple.cartesian(tuple, *tuple(o.items() for o in args)
+        return Tuple.cartesian(tuple, *[o.items() for o in args]
                                ).map(cls.__unterleave)
 
 class List (ReadSeq, list): # list as base => can't use __slots__

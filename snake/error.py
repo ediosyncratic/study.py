@@ -15,7 +15,7 @@ def exceptions(bok=None):
     if bok is None:
         try: row = __builtins__.items()
         except AttributeError:
-            row = map(lambda nom: (nom, getattr(__builtins__, nom)), dir(__builtins__))
+            row = [(nom, getattr(__builtins__, nom)) for nom in  dir(__builtins__)]
     else: row = bok.items()
 
     return (k for k, v in row if isinstance(v, type) and issubclass(v, Exception))

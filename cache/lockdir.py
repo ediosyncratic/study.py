@@ -289,11 +289,11 @@ class LockableDir (object):
             if got: ids = [(int(got), self.__file)]
         else: got = ''
 
-        ids = filter(sid, ids)
+        ids = [x for x in ids if sid(x)]
         if ids:
             raise IOError(BLOCKS,
                           'Lock contention: ' +
-                          ', '.join(map('pid %d (%s)'.__mod__, ids)),
+                          ', '.join('pid %d (%s)' % x for x in ids),
                           ids[0][1])
         return got
 

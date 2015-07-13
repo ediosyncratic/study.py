@@ -45,16 +45,16 @@ for key, val in encoding.items(): decoding[val] = key
 
 def encode(text):
     # should really pre-process {'.': 'stop', ',': 'comma', '-': 'dash', ...}
-    return ' '.join(map(lambda x, g=encoding.get: g(x, ' '), text.upper()))
+    return ' '.join(encoding.get(x, ' ') for x in text.upper())
 
 def decode(message):
-    ans = ''.join(map(lambda x, g=decoding.get: g(x, ' '), message.split(' ')))
+    ans = ''.join(decoding.get(x, ' ') for x in message.split(' '))
     return ' '.join(ans.split()) # tidy up spacing
 
 def decipher(message):
     # like decode, but when there are no spaces.
     row = [ ( '', message ) ]
-    while filter(lambda x: x[1], row):
+    while any(x[1] for x in row):
         old = row
         row = []
         for it in old:
@@ -66,4 +66,4 @@ def decipher(message):
                 # NB we discard it if no initial segment of code matches an encoding.
             else: row.append(it)
 
-    return map(lambda it: it[0], row)
+    return [it[0] for it in row]

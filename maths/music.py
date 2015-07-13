@@ -118,8 +118,8 @@ class MultiIter (object):
     def __iter__(self): return self
     def __init__(self, seqs):
         self.__srcs = seqs
-        self.__its = map(iter, seqs)
-        try: self.__vals = map(lambda i: i.next(), self.__its[:-1]) + [None]
+        self.__its = [iter(s) for s in seqs]
+        try: self.__vals = [ i.next() for i in self.__its[:-1] ] + [None]
         except StopIteration: self.next = self.__empty
 
     def __empty(self): raise StopIteration
@@ -183,7 +183,8 @@ class Scale (object):
             good.index = i
             seq.append(good)
 
-        gaps = map(lambda r: r.index, seq.filter(lambda r: len(r) < 1))
+        gaps = [r.index for r in seq if len(r) < 1]
+        # TODO: did I intend to do more with gaps ?
         work, nice, take, neg = len(gaps) > 0, False, 1, 0
         seq = seq.filter(None)
         while work:
@@ -217,8 +218,8 @@ class Scale (object):
         return True
 
     @lazyprop
-    def best(self, unlack=(None,)):
-        return map(lambda s, u=unlack: (s or u)[0], self.__rough)
+    def best(self):
+        return [s[0] if s else None for s in self.__rough]
 
     def prefer(self, *primes):
         self.__ps = primes

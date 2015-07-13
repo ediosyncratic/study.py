@@ -218,7 +218,7 @@ class Vector (Tuple):
             if form is not None and len(seq) != form.dimension[0]:
                 raise ValueError('Mismatched dimension', form.dimension[0], seq)
 
-            isnum = map(cls.__isnumeric, seq)
+            isnum = [cls.__isnumeric(x) for x in seq]
             if all(isnum):
                 if form is not None:
                     if form.rank > 0:
@@ -618,9 +618,9 @@ class Vector (Tuple):
         with max(route[i]) < other.dimension[i] >= self.dimension[i] for each
         i.  In particular, self and other must have equal
         .dimension[len(route):] to make the 'leaf' values of the embedding match
-        up.  (We could pad with map(range, self.dimension[len(route):]) if this
-        condition were not met, but it'd be less efficient and risk hiding
-        errors; the caller can do such padding if really intended.)
+        up.  (We could pad with [range(d) for d in self.dimension[len(route):]]
+        if this condition were not met, but it'd be less efficient and risk
+        hiding errors; the caller can do such padding if really intended.)
 
         Example: for n < k > m,
         Tensor.circulate(a).embed(((n, m), (n, m)), Tensor.diagonal([1] * k))
@@ -828,9 +828,10 @@ class Vector (Tuple):
         if bad:
             raise ValueError("Each index pair's length should be two", bad)
 
-        bad = filter(lambda (i, j), d=self.dimension: d[i] != d[j], pairs)
+        dim = self.dimension
+        bad = [ (i, j) for i, j in pairs if dim[i] != dim[j] ]
         if bad: raise ValueError(
-            "Traced ranks must have equal dimension", bad, self.dimension)
+            "Traced ranks must have equal dimension", bad, dim)
 
         bok = set()
         for i in reduce(lambda x, y: x+y, pairs, ()):

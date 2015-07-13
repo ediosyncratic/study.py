@@ -317,20 +317,20 @@ class Permutation (Tuple, Cached):
         is less than size, extending it to the requested length.\n"""
 
         fix = tuple(fix)
-        js = filter(lambda j: j is not None, fix)
+        js = [j for j in fix if j is not None]
         if js and (max(js) >= size or min(js) < 0):
             raise ValueError('Bad fixed entry in permutation template',
-                             filter(lambda i, m=size: i >= m or i < 0, js), fix, size)
+                             [i for i in js if i >= size or i < 0], fix, size)
         if len(fix) < size: fix += ( None, ) * (size - len(fix))
 
         # numbers we can use to fill the gaps:
-        vs = filter(lambda i, js=js: i not in js, range(size))
+        vs = [i for i in range(size) if i not in js]
         # indices at which the gaps appear:
-        ns = filter(lambda n, f=fix: f[n] is None, range(size))
+        ns = [n for n in range(size) if fix[n] is None]
 
         for perm in cls.all(len(vs)):
             ans = list(fix)
-            for n, v in map(lambda *x: x, ns, perm(vs)): ans[n] = v
+            for n, v in zip(ns, perm(vs)): ans[n] = v
             assert None not in ans
             yield cls(ans)
 
@@ -439,7 +439,7 @@ def permute(*indices):
 
     while indices:
         indices, last = indices[:-1], indices[-1]
-        ans = map(lambda i, r=last: r[i], ans)
+        ans = [last[i] for i in ans]
 
     if classy:
         try: return Permutation(ans)
@@ -457,7 +457,7 @@ def compose(*perms):
     implemented with the two loops rolled out the other way (to implement the
     identity-default behaviour by catching IndexErrors)."""
 
-    try: n = max(map(len, perms))
+    try: n = max(len(p) for p in perms)
     except IndexError: n = 0 # Permutation([]) is an implicit identity.
 
     result, i = [], 0

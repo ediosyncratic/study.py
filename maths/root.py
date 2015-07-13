@@ -86,7 +86,7 @@ class Search (Cached):
         if not cut:
             data.sort(lambda (k,v), (x,y), g=self.goal: cmp(g(v), g(y)))
             x, y = data[0]
-            data = filter(lambda (k, v), x=x, y=y: k!=x and v!=y, data)
+            data = [(k, v) for k, v in data if k != x and v != y]
             data.sort(lambda (k,v), (w, z), x=x, y=y: cmp((v-y)/(k-x), (z-y)/(w-x)))
             k, v = data[-1] # we're doomed if that hits IndexError
             cut.append((self.goal(y), (x,y), (k,v)))

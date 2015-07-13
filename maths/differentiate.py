@@ -55,7 +55,7 @@ class Single (object):
     import cmath
     ninth = 2j * cmath.pi / 9
     @staticmethod
-    def __swirly(star=tuple(map(cmath.exp, (ninth, 4*ninth, 7*ninth))),
+    def __swirly(star=tuple(cmath.exp(x) for x in (ninth, 4*ninth, 7*ninth)),
                  count=10, step=.4j-.3):
         """A bunch of points near zero, denser the nearer they get.
 
@@ -69,7 +69,7 @@ class Single (object):
         for x in star: yield x
         while count > 0:
             count -= 1
-            star = map(lambda x, s=step: x*s, star)
+            star = [x * step for x in star]
             for x in star: yield x
     del ninth, cmath
 
@@ -125,7 +125,8 @@ class Single (object):
         if scale is None: scale = self.__scale
         # Populate cache with data near val:
         self.__f(val)
-        map(lambda x, v=val, s=scale, f=self.__f: f(v + x * s), self.__dust)
+        [self.__f(val + x * scale) for x in self.__dust]
+
         # Get available chord-gradients near val:
         data = self.__gradients(val, self.__known().filter(
                 # All cached data within scale of val:
@@ -137,12 +138,12 @@ class Single (object):
         # indicate numerical instability.
         while len(data) > 15: # we start with over 100
             n = min(5, len(data) / 5)
-            cuts = map(lambda i, t=len(data), n=n: (i * t + n/2)/n, range(1+n))
-            part = map(lambda i, j, d=data: d[i:j], cuts[:-1], cuts[1:])
+            cuts = [(i * len(data) + n / 2) / n for i in range(1 + n)]
+            part = [data[i:j] for i, j in zip(cuts[:-1], cuts[1:])]
             assert len(part) == n
 
             # Find the part with smallest variance:
-            score = map(self.__variance, part)
+            score = [self.__variance(p) for p in part]
             best = score.index(min(score)) # favour earlier parts over later, if equal
             data = part[best]
 

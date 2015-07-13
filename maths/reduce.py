@@ -168,11 +168,11 @@ class System (Lazy):
         self.__diag()
         return self.__tidy()
 
-    def freeze(row): return tuple(map(tuple, row)) # local function, del'd later
+    def freeze(row): return tuple(tuple(r) for r in row) # local function, del'd later
 
     def _lazy_get_inverse_(self, ig, gcd=natural.hcf, safe=freeze):
         can, how, ker = self.solution
-        how = map(list, how) # deep copy; it'll be our result
+        how = [list(h) for h in how] # deep copy; it'll be our result
         # Conveniently, .__tidy() is sure to have left this diagonal if invertible.
 
         dim, ava = self.__ca
@@ -272,8 +272,8 @@ class System (Lazy):
         return tot, den
 
     def denominate(pairs, scale, lcm=natural.lcm, gcd=natural.hcf):
-        den = lcm(*map(lambda (n, d): d, pairs))
-        ans = map(lambda (n, d), s=den: n * s / d, pairs) + [ den * scale ]
+        den = lcm(*[d for n, d in pairs])
+        ans = [n * den / d for n, d in pairs] + [ den * scale ]
 
         f = gcd(*ans)
         if ans[-1] < 0: f = -f
@@ -291,15 +291,15 @@ class System (Lazy):
 
     def __lincomb(self, row, scale, comb=denominate):
         """As for .contract(), but with row of correct length and scale separate."""
-        return comb(map(lambda j, c=self.__contract, r=row: c(j, r),
-                        range(self.__ca[0])), scale)
+        return comb([self.__contract(j, row)
+                     for j in range(self.__ca[0])], scale)
 
     def __obtain(self, row, scale=1, comb=denominate, dot=dragwith):
         """As for .obtain(), but with row of correct length and scale separate."""
         # Unfortunately, inadequate to the case where the span of our system
         # isn't the whole space, even though row is within it.
-        return comb(map(lambda j, r=row, d=dot, m=self.inverse: d(m, j, r),
-                        range(len(self.inverse[0]))), scale)
+        return comb([dot(self.inverse, j, row)
+                     for j in range(len(self.inverse[0]))], scale)
 
     del dragwith, denominate
 
@@ -376,8 +376,8 @@ class System (Lazy):
         have integer components.  Note that it is this column of vectors that is
         permuted by .__swap(), not the basis or availables.\n"""
 
-        self.__matrix = map(lambda r: list(r[:-1]), self.problem)
-        self.__result = diag(map(lambda r: r[-1], self.problem))
+        self.__matrix = [list(r[:-1]) for r in self.problem]
+        self.__result = diag([r[-1] for r in self.problem])
         self.__column = range(self.__ca[0])
 
     del scaling
@@ -427,7 +427,7 @@ class System (Lazy):
             i += 1
 
     # TODO: study choices for peak; natural.lcm, number of non-zero entries ...
-    def __select(self, i, peak=lambda r: max(map(abs, r))):
+    def __select(self, i, peak=lambda rs: max(abs(r) for r in rs)):
         """Find a good candidate for self.__entry(i, i).
 
         This prefers a row with low, but non-zero, peak entry; and selects a
@@ -476,7 +476,7 @@ class System (Lazy):
                 row[k] = row[k] * nj - top[k] * ni
 
         f = gcd(* self.__matrix[j] + self.__result[j])
-        r = filter(None, self.__matrix[j])
+        r = [i for i in self.__matrix[j] if i]
         if r and r[0] < 0: f = -f
         if f > 1 or f < 0:
             mat, row = self.__matrix[j], self.__result[j]

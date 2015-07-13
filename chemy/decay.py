@@ -70,8 +70,8 @@ def ratedDecay(source, halflife, *procs):
       proportional to its rate.  Thus the rate for each process is just sum(r)
       times the proportion of decays that follow that process.\n"""
 
-    scale = sum(map(lambda x: x[0], procs)) * halflife / _ln2
-    procs = tuple(map(lambda p, s=scale: (p[0] / s,) + tuple(p[1:]), procs))
+    scale = sum(x[0] for x in procs) * halflife / _ln2
+    procs = tuple((p[0] / scale,) + tuple(p[1:]) for p in procs)
     return Decay(source, *procs)
 
 from study.snake.lazy import Lazy
@@ -123,14 +123,14 @@ class Decay (Lazy):
             if energy is not None: self.energy = energy
 
         def _lazy_get_energy_(self, ignored):
-            return self.source.energy - sum(map(lambda x: x.energy, self.__bits))
+            return self.source.energy - sum(x.energy for x in self.__bits)
 
         def _lazy_get_fragments_(self, ignored):
             """Mapping from particles emitted to likely kinetic energy.
 
             Assumes kinetic energy is distributed in proportion to rest mass. """
 
-            bok, scale = {}, self.energy / sum(map(lambda x: x.mass, self.__bits))
+            bok, scale = {}, self.energy / sum(x.mass for x in self.__bits)
             for bit in self.__bits:
                 bok[bit] = scale * bit.mass
             return bok

@@ -570,7 +570,7 @@ class PlanetList (Lazy):
         else:
             raise ValueError, 'Zero step makes for a bad sequence ...'
 
-        return map(self.__getitem__, range(at, to, step))
+        return [self[x] for x in range(at, to, step)]
 
     def _lazy_get_inner_(self, ignored):
         from inner import Mercury, Venus, Earth, Mars

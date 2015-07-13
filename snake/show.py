@@ -36,13 +36,9 @@ def printmenu(menu=None, width=wide,
     # This would make the single-column case less anomalous.
     if not menu: return
 
-    def lines(fmt, seq):
-        print reduce(lambda x, y: x + '\n' + y,
-                     map(lambda r, f=fmt: f % r, seq[1:]),
-                     fmt % seq[0])
-        return
+    def lines(fmt, seq): print '\n'.join(fmt % r for r in seq)
 
-    siz, wide = max(map(len, menu)), '%%%ds'
+    siz, wide = max(len(x) for x in menu), '%%%ds'
 
     if 2 * (1 + siz) > (width or 0):
         # single-column output; if we can't do it well, we can at least do it cheaply.
@@ -73,9 +69,6 @@ def printmenu(menu=None, width=wide,
         cols.append(menu[lo:hi])
         lo = hi
 
-    # formats of the columns (wide % n is a format string, for integer n):
-    formats = map(lambda w, f=wide: f % w, map(lambda c: len(c[-1]), cols))
-
     def tidy(seq):
         """Minor tidy-up *after* transpose.
 
@@ -89,7 +82,8 @@ def printmenu(menu=None, width=wide,
         if not seq[-1]: return tuple(seq[:-1]) + ('',)
         return tuple(seq)
 
-    return lines(reduce(lambda x,y: x + ' ' + y, formats),
-                 map(tidy, flip(cols)))
+    # Format the columns (wide % n is a format string, for integer n):
+    return lines(' '.join(wide % len(c[-1]) for c in cols),
+                 (tidy(r) for r in flip(cols)))
 
 del transpose, wide

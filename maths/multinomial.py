@@ -180,8 +180,11 @@ class Multinomial (Lazy):
     def _lazy_get_uniform_(self, ig): # a.k.a. homogeneous
         return all(x == self.rank for x in self._ranks)
 
-    def _lazy_get_profile_(self, ig):
-        return tuple(map(* [lambda *x: max((0,) + filter(None, x))] + self.__coefs.keys()))
+    def _lazy_get_profile_(self, ig, top=lambda *x: max([0] + [e for e in x if e])):
+        # For each variable, the highest power of it in any term of self:
+        return tuple(map(top, *self.__coefs.keys()))
+    # NB: need map(), to pad short keys with None instead of zip()'s truncation;
+    # top() takes out the None entries for us.
 
     # support ...
 
@@ -232,7 +235,7 @@ class Multinomial (Lazy):
     del format, powname
 
     def _lazy_get__ranks_(self, ign):
-        return tuple(map(sum, self.__coefs.keys()))
+        return tuple(sum(k) for k in self.__coefs.keys())
 
     def keyorder(that, this):
         sign = cmp(sum(this), sum(that)) or cmp(len(this), len(that))

@@ -19,7 +19,7 @@ class Catchment (set):
 
     def __new__(cls, centres, count=1):
         if count < 1: raise ValueError('Demanding unrealistic subdivision', count)
-        return set.__new__(cls, map(cls.__vectorise, centres))
+        return set.__new__(cls, (cls.__vectorise(c) for c in centres))
 
     __upinit = set.__init__
     def __init__(self, centres, count=1):

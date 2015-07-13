@@ -26,8 +26,8 @@ class Solution (Permutation):
     def __repr__(self):
         try: ans = self.__repr
         except AttributeError:
-            ans = self.__repr = '\n'.join([''] + map(
-                lambda i, n=len(self)-1: ' ' * i + '#' + ' ' * (n-i), self))
+            ans = self.__repr = '\n'.join([''] + [
+                    ' ' * i + '#' + ' ' * (len(self) - 1 - i) for i in self ])
         return ans
 
     @staticmethod

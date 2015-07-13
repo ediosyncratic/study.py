@@ -29,7 +29,8 @@ class Legendre (Polynomial):
         assert q + j == b
         k.append(last)
 
-        self.__upinit(map(lambda x, n=hcf(*k): x // n, k))
+        e = hcf(*k)
+        self.__upinit([x // e for x in k])
 
     del hcf, factorial
 

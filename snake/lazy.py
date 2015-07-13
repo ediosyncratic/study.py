@@ -378,8 +378,8 @@ class Lazy (object):
         computed; or after heavy use of the object, when you know you won't be
         using it again for a while. """
 
-        for key in filter(self._lazy_ephemeral_, self.__dict__.keys()):
-            if key not in preserve:
+        for key in self.__dict__.keys():
+            if self._lazy_ephemeral_(key) and key not in preserve:
                 delattr(self, key)
 
     def __hash__(self):

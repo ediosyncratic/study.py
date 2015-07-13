@@ -246,8 +246,8 @@ class Integrator:
         while True:
             n, was = 3 * n, now
             h = gap / n
-            now = (sum(map(lambda i, b=start, s=h, f=self.__integrand: f(b+i*s),
-                           range(1, n))) + edge) * h
+            now = (sum(self.__integrand(start + i * h) for i in range(1, n)) +
+                   edge) * h
 
             dif = now - was
             if test(dif, now + offset): return blur(now, dif)
@@ -312,5 +312,5 @@ class Integrator:
     def __probe(self, base, scale,
                 samples=[1, math.exp(1/math.pi), math.sqrt(2.0), 2, math.e, 3, math.pi]):
         """Scale of integrand's values for inputs base + of order scale."""
-        return max(map(lambda x, f=self.integrand, s=scale, b=base: abs(f(b + x*s)), samples))
+        return max(abs(self.integrand(base + x * scale)) for x in samples)
     del math

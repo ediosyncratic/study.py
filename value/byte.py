@@ -79,7 +79,7 @@ etc. above.  Indeed, it is mainly in order to do this that I bother defining
 the byte ...
 """)
 
-_row = filter(lambda x: x > 0, _quantifier_dictionary.keys())
+_row = [x for x in _quantifier_dictionary.keys() if x > 0]
 _row.sort()
 for _key in _row:
     if _key % 3: continue # skip deka, hecto

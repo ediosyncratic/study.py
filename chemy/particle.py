@@ -88,8 +88,8 @@ class Particle (Object):
         bits, ans = bits.copy(), {}
 
         def carve(obj,
-                  m=filter(lambda x: issubclass(x, Particle), primitives),
-                  p=filter(lambda x: isinstance(x, Particle), primitives)):
+                  m=[x for x in primitives if issubclass(x, Particle)],
+                  p=[x for x in primitives if isinstance(x, Particle)]):
             """Returns None if obj is primitive, else its constituents. """
 
             try: bok = obj.__bits
@@ -130,7 +130,7 @@ class Particle (Object):
 
     def bindingenergyper(self, *primitives):
         bok = self.constituents(*primitives)
-        return self.__bindener(bok) / reduce(lambda a,b: a+b, map(abs, bok.values()), 0)
+        return self.__bindener(bok) / sum(abs(v) for v in bok.values())
 
     class __ItemCarrier (Lazy):
         __upinit = Lazy.__init__

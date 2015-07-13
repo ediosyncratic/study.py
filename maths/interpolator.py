@@ -145,7 +145,7 @@ class Interpolator (Cached):
 
         Returns the list of values obtained by calling func on each of the
         intervals making up self.\n"""
-        return map(func, self.cuts[:-1], self.cuts[1:], self.mass, *more)
+        return [func(*a) for a in zip(self.cuts[:-1], self.cuts[1:], self.mass, *more)]
 
     def scale(self, by=None, to=None):
         """Returns a rescaled version of self.
@@ -174,8 +174,7 @@ class Interpolator (Cached):
                 raise ValueError('Inconsistent scaling and target total',
                                  by, to, self.total)
 
-        return self._interpolator_(self.cuts,
-                                     map(lambda x, b=by: x * b, self.mass))
+        return self._interpolator_(self.cuts, (x * by for x in self.mass))
 
     def clip(self, lo=None, hi=None):
         """Returns self with its weight outside a range discarded.
@@ -693,7 +692,7 @@ class PiecewiseConstant (Interpolator):
         if not self.total: return tuple(result)
         if len(load) < 2:
             # special case: only one weight, delta function.
-            s = len(filter(lambda x, r=cut[0]: x < r, seq))
+            s = len([x for x in seq if x < cut[0]])
             assert s == len(seq) or seq[s] >= cut[0], \
                 ('mis-sorted positions', seq)
             if s < len(seq) and cut[0] == seq[s]: # even split
@@ -758,7 +757,8 @@ class PiecewiseConstant (Interpolator):
 
         if total is not None:
             assert 0 != sum(result) # == self.total, known non-zero
-            result = map(lambda x, r=total * 1. / sum(result): x * r, result)
+            total *= 1. / sum(result)
+            result = (x * total for x in result)
             # assert sum(result) == total, give or take rounding errors.
 
         return tuple(result)
@@ -830,7 +830,7 @@ class PiecewiseConstant (Interpolator):
         assert len(cuts) - 1 == len(me) == len(yo) > 0
 
         # Addition of densities is nice and simple :-)
-        cuts, mass = self.__clean(cuts, map(lambda x, y: x + y, me, yo))
+        cuts, mass = self.__clean(cuts, [x + y for x, y in zip(me, yo)])
         return self._interpolator_(cuts, mass)
 
     @classmethod
@@ -845,7 +845,7 @@ class PiecewiseConstant (Interpolator):
         mass in the second of them is added into that of the first and the
         entry for the second's mass is deleted (so later mass entries remain
         in sync with the modified cuts).\n"""
-        dens = iter(map(cls.density, cuts[:-1], cuts[1:], mass))
+        dens = (cls.density(a, b, m) for a, b, m in zip(cuts[:-1], cuts[1:], mass))
         i, last = 0, dens.next()
         for d in dens:
             if d == last:
@@ -877,7 +877,7 @@ class PiecewiseConstant (Interpolator):
         assert 1e-6 * self.total > max(me[0], me[-1])
         assert 1e-6 * other.total > max(yo[0], yo[-1])
         me, yo = me[1:-1], yo[1:-1]
-        assert max(map(abs, (sum(me)-1, sum(yo)-1))) < 1e-5
+        assert max(abs(v - 1) for v in (sum(me), sum(yo))) < 1e-5
         assert len(cuts) - 1 == len(me) == len(yo) > 0
 
         # Want pointwise product of input densities; on an interval with
@@ -891,8 +891,8 @@ class PiecewiseConstant (Interpolator):
         elif self.span: assert self.span == cuts[-1] - cuts[0]
         elif other.span: assert other.span == cuts[-1] - cuts[0]
         else: assert cuts[-1] == cuts[0]
-        mass = map(lambda x, n=scale: x * n,
-                   map(self.__mul, cuts[:-1], cuts[1:], me, yo))
+        mass = [self.__mul(*v) * scale for v in
+                zip(cuts[:-1], cuts[1:], me, yo)]
         assert len(mass) + 1 == len(cuts)
 
         cuts, mass = self.__clean(cuts, mass)
@@ -1002,7 +1002,7 @@ class PiecewiseConstant (Interpolator):
             if first:
                 assert ks == (0,) * len(xs) # so we didn't use ys yet
                 what = err # seq only gave us one ks; save its error
-                ys = map(lambda x, y: (3 * x + y) * .25, xs, ys)
+                ys = [(3 * x + y) * .25 for x, y in zip(xs, ys)]
                 first = False # don't do this again
 
         assert not first # i.e. traversal gave us at least *something*
@@ -1050,8 +1050,8 @@ class PiecewiseConstant (Interpolator):
         row, bad = [], ()
         for seq in all(len(box)):
             for ks in seq:
-                xs = tuple(map(lambda p, i: p[i], box, ks))
-                ys = tuple(map(lambda p, i: p[1-i], box, ks))
+                xs = tuple(p[i] for p, i in zip(box, ks))
+                ys = tuple(p[1-i] for p, i in zip(box, ks))
                 try: row.append(s(f, xs, ys))
                 except ZeroDivisionError, what:
                     bad += more(bad, what.args)

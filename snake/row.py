@@ -14,7 +14,9 @@ def transpose(rows):
     Only argument is a sequence of sequences.  Result is a list of tuples.  Each
     inner sequence of the input is effectively padded with None entries to the
     length of the longest, so that we may read the input as a `rectangular'
-    array: output[i][j] is input[j][i] for all relevant i, j.
+    array: output[i][j] is input[j][i] for all relevant i, j.  (Contrast with
+    the built-in zip(), which truncates to the shortest input instead of padding
+    to the longest.)
 
     The first inner sequence of the input provides the first members of the
     tuples in the result list; the first tuple of the result list consists of
@@ -47,7 +49,7 @@ def deltas(seq, step=1):
     Required argument, seq, is a sequence of values between which subtraction is
     feasible.  Optional argument, step, defaults to 1.  Returns the list
     (: seq[i+step] - seq[i] &larr; i :).\n"""
-    return map(lambda x, y: y - x, seq[:-step], seq[step:])
+    return [y - x for x, y in zip(seq[:-step], seq[step:])]
 
 def median(seq):
     """Find an entry of seq with as many >= it as <= it.

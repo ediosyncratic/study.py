@@ -133,9 +133,9 @@ class WriteNode (Node, whole.WriteNode):
             # recursively to sequence entries.
 
             if isinstance(value, tuple):
-                return '(\n' + ',\n'.join(map(myrepr, value)) + '\n)'
+                return '(\n' + ',\n'.join(myrepr(v) for v in value) + '\n)'
             if isinstance(value, list):
-                return '[\n' + ',\n'.join(map(myrepr, value)) + '\n]'
+                return '[\n' + ',\n'.join(myrepr(v) for v in value) + '\n]'
 
             if isinstance(v, basestring) and len(v) > 80 and '\n' in v:
                 txt = repr(v).replace('\\n', '\n')
@@ -330,8 +330,7 @@ class WriteRoot (WriteDir, whole.WriteRoot):
     __save = WriteDir._save_
     def _save_(self, formatter, **what):
         if self.span.stop is None:
-            what['top'] = max(filter(None, map(lambda x: x.span.stop,
-                                               self.listing)))
+            what['top'] = max(x.span.stop for x in self.listing if x.span.stop)
         else: what['top'] = self.span.stop
         what['octet'] = self.octet.primes
         return self.__save(formatter, **what)
@@ -373,7 +372,7 @@ class oldCache (object):
         row, self.__sparse = [], List(unique=True)
         for name in os.listdir(cdir):
             if name[:1] == 'c' and name[-3:] == '.py' and '-' in name[1:-3]:
-                try: lo, hi = map(int, name[1:-3].split('-'))
+                try: lo, hi = [int(x) for x in name[1:-3].split('-')]
                 except ValueError:
                     print 'ignored malformed name', name, 'in old cache', cdir
                 else: row.append((lo, hi, os.path.join(cdir, name)))

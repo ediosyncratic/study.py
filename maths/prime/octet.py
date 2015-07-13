@@ -129,11 +129,7 @@ def coprimes(primes):
 
     row, last = (0,), 1
     for p in primes:
-        row = filter(lambda i, p=p: i % p != 0,
-                     reduce(lambda x, y: x + y,
-                            map(lambda i, s=last, r=row: map(lambda j, n=s*i: j+n, r),
-                                range(p)),
-                            []))
+        row = [k for k in sum(([j + last * i for j in row] for i in range(p)), []) if k % p]
         last *= p
 
     return last, tuple(row)
@@ -306,8 +302,8 @@ class Octet (object):
         self.span = gap(base, count * kind.modulus)
 
     def keys(self): return range(self.span.start, self.span.stop)
-    def items(self): return map(lambda k, b=self: (k, b[k]), self.span)
-    def values(self): return map(lambda k, b=self: b[k], self.span)
+    def items(self): return [(k, self[k]) for k in self.span]
+    def values(self): return [self[k] for k in self.span]
     # But you probably don't want to use those last three !
     def __len__(self): return len(self.span)
 
@@ -520,8 +516,8 @@ class FactorOctet (Octet):
         for off in self.span.trim(slice(self.base, None, self.kind.modulus)):
             for n in ns:
                 bit, byte = 1, 0
-                for flag in map(lambda p, o=off, s=self: self[p+o] is None, self.kind[n:n+8]):
-                    if flag: byte |= bit
+                for p in self.kind[n:n+8]:
+                    if self[p + off] is None: byte |= bit
                     bit <<= 1
                 text += chr(byte)
 

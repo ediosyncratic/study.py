@@ -106,10 +106,10 @@ class curveWeighted (Lazy, _baseWeighted):
 
         What should be happening here ?
         repWeighted (or its replacement, e.g. a Bezier interpolator) provides:
-          between([low, high]) -- defaults, None, mean relevant infinity; yeilds weight
-          weights(row) -- map(self.between, [ None ] + row, row + [ None ])
-          carve(weights) -- yields tuple for which map(self.between, (), yield) = weights.
-          round([estim]) -- yields string describing estim to self's accuracy.
+          between([low, high]) -- weight in specified interval
+          weights(row) -- [self.between(x, y) for x, y in zip([None] + row, row + [None]]
+          carve(weights) -- tuple t for which welf.weights(t) == weights.
+          round([estim]) -- string describing estim to self's accuracy.
 
         The meaning of a distribution is:
         we have { position: weight, ... }
@@ -151,11 +151,10 @@ class curveWeighted (Lazy, _baseWeighted):
                 mids = weigher.keys()
                 mids.sort()
 
-            return cls(cls.__cuts(mids),
-                       map(lambda k, w=weigher: w[k], mids))
+            return cls(cls.__cuts(mids), [weigher[k] for k in mids])
 
         @staticmethod
-        def __cuts(row, mean=lambda a, b: .5*(a+b)):
+        def __cuts(row):
             # computes cut points and ensures they're floats.
             if len(row) < 2:
                 if not row: return ()
@@ -173,7 +172,7 @@ class curveWeighted (Lazy, _baseWeighted):
             if top > 0 and row[-1] <= 0: top = 0.
             if bot < 0 and row[0] >= 0: bot = 0.
 
-            return ( bot, ) + tuple(map(mean, row[:-1], row[1:])) + ( top, )
+            return ( bot, ) + tuple((x + y) * .5 for x, y in zip(row[:-1], row[1:])) + ( top, )
 
         def reach(self, low=None, high=None, share=1e-6):
             """Return self extended to span given values.
@@ -219,12 +218,12 @@ class curveWeighted (Lazy, _baseWeighted):
             ans = cls.fromSample(bok)
             return ans
 
-        def toWeights(self, mean=lambda x, y: .5 * (x + y)):
+        def toWeights(self):
             # Turn a distribution into a weight dictionary:
             bok, cut = {}, self.cuts
             if len(self) == 1 and cut[0] < cut[1]:
                 # Split simple interval evenly in two:
-                cut = (cut[0], mean(cut[0], cut[1]), cut[1])
+                cut = (cut[0], (cut[0] + cut[1]) * .5, cut[1])
                 mass = self.mass[0] * .5
                 mass = (mass, mass)
             else: mass = self.mass
@@ -232,8 +231,8 @@ class curveWeighted (Lazy, _baseWeighted):
             if len(mass) > 1:
                 seq = iter(mass)
                 bok[(cut[0] + 2*cut[1])/3.] = seq.next()
-                for k in map(mean, cut[1:-2], cut[2:-1]):
-                    bok[k] = seq.next()
+                for x, y in zip(cut[1:-2], cut[2:-1]):
+                    bok[(x + y) * .5] = seq.next()
                 bok[(2*cut[-2] + cut[-1])/3.] = seq.next()
                 try: seq.next()
                 except StopIteration: pass
@@ -241,7 +240,7 @@ class curveWeighted (Lazy, _baseWeighted):
             else:
                 assert len(cut) == 2
                 assert cut[0] == cut[1] # conjecture !
-                bok[mean(cut[0], cut[1])] = 1. # any value will do ...
+                bok[(cut[0] + cut[1]) * .5] = 1. # any value will do ...
 
             return bok
     # end of inner class Interpolator
@@ -314,7 +313,7 @@ class repWeighted (curveWeighted):
         """Returns the weight associated with an interval.
 
         Arguments are the low and high bounds of the interval.  Either may be
-        None, indicating an interval unbounded at that end. """
+        None (their default), indicating an interval unbounded at that end.\n"""
 
         row = []
         if low is not None: row.append(low)
@@ -431,17 +430,15 @@ class joinWeighted (curveWeighted):
 
         try: mites = weights.items()
         except AttributeError:
-            try: mites = map(lambda x, s=scale: (x, s), weights)
+            try: mites = [(x, scale) for x in weights]
             except (TypeError, AttributeError): mites = [ (weights, scale) ]
-        else: mites = map(lambda (k, v), s=scale: (k, v*s), mites)
+        else: mites = [(k, v * scale) for k, v in mites]
 
         if smooth is None:
-            # Filter out those handleb by the recursive calls to .add():
-            smooth = filter(lambda (k,v): not isinstance(
-                    k, (Sample, joinWeighted)), mites)
+            # Filter out those handled by the recursive calls to .add():
+            smooth = [ (k if func is None else f(k), v) for k, v in mites \
+                           if not isinstance(k, (Sample, joinWeighted)) ]
             if smooth:
-                if func is not None:
-                    smooth = map(lambda (k, v), f=func: (f(k), v))
                 smooth = cls.Interpolator.fromSample(dict(smooth))
 
         if smooth: smooth = smooth.scale(by=scale)
@@ -941,7 +938,7 @@ class Sample (Object):
 
             else:
                 if not weights: weights = best
-                self.__best = map(flatten, best)
+                self.__best = [flatten(b) for b in best]
 
         # Finished massaging inputs: initialise self.
         self.__upinit(*args, **what)

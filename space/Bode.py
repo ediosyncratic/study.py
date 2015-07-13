@@ -124,13 +124,13 @@ Public methods:
             cache.append(bodytypes)
 
         for k in bodytypes:
-            row = filter(lambda x, k=k: isinstance(x, k), seq)
+            row = [x for x in seq if isinstance(x, k)]
             if len(row) < plenty: continue
 
             # try to eliminate any initial or final arithmetic sequences
-            row = map(lambda x: x.orbit.radius, row)
-            gap = map(lambda x, y: y - x, row[:-1], row[1:])
-            rat = map(lambda x, y: (y / x).log, gap[:-1], gap[1:])
+            row = [ x.orbit.radius for x in row ]
+            gap = [ y - x for x, y in zip(row[:-1], row[1:]) ]
+            rat = [ (y / x).log for x, y in zip(gap[:-1], gap[1:]) ]
             cut = mid(rat) / 5
 
             # Could perhaps do better by considering every ratio of differences
@@ -153,7 +153,7 @@ Public methods:
             if len(row) >= plenty:
                 return row
 
-        return map(lambda x: x.orbit.radius, seq)
+        return [ x.orbit.radius for x in seq ]
 
     from study.value.SI import metre
     Unit = Quantity(tera * metre / 7) # Arbitrary Unit of length (approximates the AU)
@@ -181,12 +181,12 @@ Public methods:
             self.__base = self.base.log
 
     def _lazy_get_unit_(self, ig, mid=median, AU=Unit):
-        row = map(lambda x, z=self.zero: x - z, filter(lambda x, z=self.zero: x > z, self.__seq))
+        row = [x - self.zero for x in self.__seq if x > self.zero]
         # That forced computation of zero, making base available ...
-        offs = map(lambda x, b=self.__base, u=AU: ((x/u).log/b) % 1, row)
+        offs = [ ((x / AU).log / self.__base) % 1 for x in row ]
         frac = offs[:]
         frac.sort()
-        gaps = [ frac[0] + 1 - frac[-1] ] + map(lambda x, y: y - x, frac[:-1], frac[1:])
+        gaps = [ frac[0] + 1 - frac[-1] ] + [y - x for x, y in zip(frac[:-1], frac[1:])]
         ind = gaps.index(max(gaps)) # frac[ind-1] and frac[ind] differ by max(gaps)
         dim = (frac[ind-1] + frac[ind]) * .5 # the anti-middle
 
@@ -199,11 +199,11 @@ Public methods:
             n = (row[i] / AU).log / self.__base - r
             ind.insert(0, int(n.best))
         # but that leaves an arbitrary offset in ind.
-        offs = map(lambda n, i: n - i - 1, ind, range(len(ind)))
+        offs = [n - i - 1 for i, n in enumerate(ind)]
         # print 'offsets:', offs
         offs.sort()
-        ind = map(lambda i, n=offs[len(offs)/3]: i - n, ind)
-        return mid(map(lambda r, i, b=self.base: r / b**i, row, ind))
+        n = offs[len(offs) / 3]
+        return mid([ r / self.base**(i - n) for r, i in zip(row, ind) ])
 
     del median
 
@@ -218,11 +218,12 @@ Public methods:
         # it may be prudent to frob oz ...
         oz = (zero / self.__seq[0] / 10).evaluate(lambda x: x + 1/x)
 
-        row = filter(lambda x, z=zero: x > z, self.__seq)
+        row = [x for x in self.__seq if x > zero]
         if b > 0 and len(row) > 1:
-            row = map(lambda x, b=b, u=AU: ((x/u).log/b) % 1, row)
+            row = [ ((x / AU).log / b) % 1 for x in row ]
             row.sort()
-            gap = max([ row[0] + 1 - row[-1] ] + map(lambda x, y: y - x, row[:-1], row[1:]))
+            gap = max([ row[0] + 1 - row[-1] ] +
+                      [ y - x for x, y in zip(row[:-1], row[1:]) ])
             span, oz = ((1 - gap) / len(row)).best, (oz / len(row)).best
         else:
             count = len(self.__seq) + 1 - len(row)

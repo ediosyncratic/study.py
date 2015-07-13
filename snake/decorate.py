@@ -117,7 +117,7 @@ def inherit(function, base, join=joinlines, wrap=wrapas):
     ans.__name__ = function.__name__
     # TODO: match up base indentation of docs
     # TODO: add "over-rides base-class blah blah" language
-    ans.__doc__ = join(filter(None, (base.__doc__, function.__doc__))) or None
+    ans.__doc__ = join(x.__doc__ for x in (base, function) if x.__doc__) or None
     ans.__dict__.update(base.__dict__)
     ans.__dict__.update(function.__dict__)
     return ans

@@ -181,9 +181,8 @@ when speaking of this base, as 050, with the result that it is commonly called
 
 import string
 def intbase(n,
-            seq=list(string.digits) + map(lambda s: ''.join(s),
-                                          zip(string.lowercase,
-                                              string.uppercase))):
+            seq=list(string.digits) + [
+        ''.join(s) for s in zip(string.lowercase, string.uppercase)]):
     """Returns the base comensurate with int(string, n)
 
     Python's int() built-in, when given a second argument, takes that as base,

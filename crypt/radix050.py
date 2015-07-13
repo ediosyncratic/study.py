@@ -54,7 +54,7 @@ def decode(number, wordsize=None, halfword=rootmaxint):
         number, here = divmod(number, 40)
         row.append(_charset[here])
 
-    return reduce(lambda x,y: y+x, row, '')
+    return ''.join(row)
 del rootmaxint
 
 def encode(text):

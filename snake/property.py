@@ -81,7 +81,7 @@ class docprop (property):
 
         def deco(get, k=cls, n=count, e=hvert):
             full = k(get) # apply underlying decorator to "method"
-            return tuple(map(lambda i, a=full, h=e: h(a, i), range(n)))
+            return tuple(e(full, i) for i in range(n))
         return deco
     del each
 

@@ -17,7 +17,7 @@ class OrdBok:
             while True:
                 line = fd.readline()
                 if not line: break
-                key = filter(lambda i: i.isalnum(), line.lower())
+                key = ''.join(i for i in line.lower() if i.isalnum())
                 try: row = self.__bok[key]
                 except KeyError: row = self.__bok[key] = []
                 row.append(line.strip())

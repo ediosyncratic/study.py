@@ -323,7 +323,7 @@ class Graph:
     @property
     def edges(self): return tuple(self.__edges)
     @property
-    def partition(self): return [self.__peers(i) for i in self.__connect.disjoint()]
+    def partition(self): return tuple(self.__peers(i) for i in self.__connect.disjoint())
 
     # Command: .join() with support from .__node()
 
@@ -357,7 +357,7 @@ class Graph:
             raise ValueError('no nodes provided: how can I check whether they are joined ?')
         if len(nodes) < 2: return True # every node is implicitly connected to itself
 
-        try: indices = map(self.__nodes.index, nodes)
+        try: indices = [self.__nodes.index(n) for n in nodes]
         except ValueError: return False
 
         return self.__connect.joined(*indices)

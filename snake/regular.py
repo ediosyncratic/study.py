@@ -236,32 +236,30 @@ class Regular (object):
             if isinstance(x, Regular): return x
             return Slice(x)
 
-        others = [ self ] + map(regulate, others)
-        fall = filter(lambda x: (x.step is not None and x.step < 0 and
-                                 (x.stop is None or x.stop < x.start)), others)
-        rise = filter(lambda x: ((x.step is None or x.step > 0) and
-                                 (x.stop is None or x.stop > x.start)), others)
-        stay = filter(lambda x: (x.step is not None and x.step == 0 and
-                                 (x.stop is None or x.stop != x.start)), others)
+        others = [ self ] + [ regulate(o) for o in others ]
+        fall = [x for x in others if (x.step is not None and x.step < 0 and
+                                      (x.stop is None or x.stop < x.start))]
+        rise = [x for x in others if ((x.step is None or x.step > 0) and
+                                      (x.stop is None or x.stop > x.start))]
+        stay = [x for x in others if (x.step is not None and x.step == 0 and
+                                      (x.stop is None or x.stop != x.start))]
 
-        if filter(lambda x: x.stop is None, fall): lo = None
-        else: lo = min(map(lambda x: x.last, fall) +
-                       map(lambda x: x.start, rise + stay))
-        if filter(lambda x: x.stop is None, rise): hi = None
-        else: hi = max(map(lambda x: x.last, rise) +
-                       map(lambda x: x.start, fall + stay))
+        if any(x.stop is None for x in fall): lo = None
+        else: lo = min([x.last for x in fall] +
+                       [x.start for x in rise + stay])
+        if any(x.stop is None for x in rise): hi = None
+        else: hi = max([x.last for x in rise] +
+                       [x.start for x in fall + stay])
 
         if hi is None and lo is None:
             raise ValueError, 'Sequence is bounded at neither end'
 
         hcf, unique, deltas = self.__meet_tools()[1:]
-        step = hcf(*(deltas(unique(map(lambda x: x.start, fall + rise + stay))) +
-                     map(lambda x: x.step or 1,
-                         # All the sequences of length > 1:
-                         filter(lambda x: x.stop is None or \
-                                (x.stop - x.start - (x.step or 1)
-                                 ) * (x.step or 1) > 0,
-                                fall + rise))))
+        step = hcf(*(deltas(unique([x.start for x in fall + rise + stay])) +
+                     [x.step or 1 for x in fall + rise
+                      # All the sequences of length > 1:
+                      if x.stop is None or \
+                          (x.stop - x.start - (x.step or 1)) * (x.step or 1) > 0]))
 
         stop = wide = None
         if lo is None: start, step = hi, -step

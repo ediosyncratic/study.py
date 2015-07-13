@@ -156,7 +156,7 @@ def Isotope(Q, N, cls=Isotope, rack=all):
     return ans
 
 Isotopes = all.values
-naturalIsotopes = lambda : filter(lambda x: getattr(x, 'abundance', None), Isotopes())
+naturalIsotopes = lambda : [x for x in Isotopes() if getattr(x, 'abundance', None)]
 del all
 
 # Local function, del'd below:
@@ -245,7 +245,7 @@ class Element (Substance):
         return name + 'ium'
 
     def _lazy_get_symbol_(self, ig):
-        return ''.join(map(lambda x: x[0], self._nom)).capitalize()
+        return ''.join(x[0] for x in self._nom).capitalize()
 
     def __getitem__(self, key):
         try: ans = self.__isotopes[key]
@@ -498,7 +498,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
         except AttributeError: pass # no information
         else:
             # dictionary: { isotope: relative abundance }
-            weights = filter(None, isos.values())
+            weights = [ x for x in isos.values() if x ]
             total = sum(weights)
             if total == 1: fix, scale = None, 1 # weights given as fractions
             else:
@@ -509,7 +509,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
                 else: # bodge: blur the non-tiny weights to make it all sum right ...
                     assert 80 < total < 120, "Perhaps these aren't percentages after all"
                     fix = 1 + (100 - total) * Quantity.below(2) \
-                          / sum(filter(lambda x: x > 1, weights))
+                          / sum(x for x in weights if x > 1)
 
             # Perhaps we can improve on this ...
             for k, v in isos.items():

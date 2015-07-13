@@ -15,8 +15,8 @@ def Cardan(cube, square, linear, constant):
     *every* input yields zero output - i.e. all arguments are zero); this can
     only happen if the first argument is zero.
 
-    To be specific: all entries in
-        map(lambda x: ((a*x +b)*x +c)*x +d, Cardan(a, b, c, d))
+    To be specific: for each x in Cardan(a, b, c, d)
+        ((a*x +b)*x +c)*x +d 
     will be tiny.  See cardan(), which wraps Cardan and asserts this.
 """
 
@@ -122,7 +122,8 @@ def cardan(u, s, i, c, realonly=1, tol=1e-14):
     # debug wrapper on the above, doing the assertion
     ans = cubic(u, s, i, c, realonly)
 
-    for x, v in map(lambda x, u=u, s=s, i=i, c=c: (x, ((u*x +s)*x +i)*x +c), ans):
+    for x in ans:
+        v = ((u * x + s) * x + i) * x + c
         if v:
             #print '%s -> %s' % (x, v)
             assert abs(v) < tol, '%s -> %s' % (x, v)

@@ -509,10 +509,10 @@ class Polynomial (Lazy):
         if self.rank < 1: return ()
         if self.rank < 3:
             # for quadratics, we know how to be exact ...
-            return cub(*map(self.__numerator, (3, 2, 1, 0)))
+            return cub(*[self.__numerator(i) for i in (3, 2, 1, 0)])
         elif self.rank == 3 and self.__pure_real():
             # and, for cubics, pretty accurate:
-            rough, tol = cub(*map(self.__numerator, (3, 2, 1, 0))), 1e-9
+            rough, tol = cub(*[self.__numerator(i) for i in (3, 2, 1, 0)]), 1e-9
         else:
             rough, tol = self.Weierstrass(1e-9), 1e-7
 
@@ -690,7 +690,7 @@ class Polynomial (Lazy):
     # assert: self.derivative.integral(x, self(x)) == self, for any x
 
     def sum(self, start=0, base=0):
-        """Returns lambda n: sum(map(self, range(n)))
+        """Returns lambda n: sum(self(i) for i in range(n))
 
         This is the discrete equivalent of integral.  Also accepts optional
         arguments, start and base, as for integral(): each defaults to zero and,
@@ -970,7 +970,7 @@ class Polynomial (Lazy):
     def _lazy_get__bigcoef_(self, ignored):
         if self.__denom is None: scale = 1
         else: scale = 1. / abs(self.__denom)
-        return max(map(abs, self.__coefs.values())) * scale
+        return max(abs(i) for i in self.__coefs.values()) * scale
 
     def __istiny(self, scale=1, maxrank=0):
         if self.rank > maxrank: return None
@@ -986,7 +986,7 @@ class Polynomial (Lazy):
 
     def resultant(self, other):
         """See .Sylvester(other); this is its determinant.\n"""
-        return reduce(lambda x, y: x * y, map(other, self.roots),
+        return reduce(lambda x, y: x * y, (other(z) for z in self.roots),
                       self.coefficient(self.rank) ** other.rank)
 
     def __Sylvester(self, i):
@@ -994,7 +994,7 @@ class Polynomial (Lazy):
         while i > 0:
             i -= 1
             if ans: row = row[:-1] + row[-1:]
-            else: row = map(self.coefficient, range(self.rank, -1, -1)) + [ 0 ] * i
+            else: row = [self.coefficient(i) for i in range(self.rank, -1, -1)] + [ 0 ] * i
             ans.append(tuple(row))
 
         return tuple(ans)
@@ -1098,7 +1098,7 @@ class Polynomial (Lazy):
         For the closely-related lambda x: (x+gap)!/x!/gap!, you can use
         Polynomial.Chose(gap)(Polynomial((gap, 1)))
 
-        Note that, when gap is natural, sum(map(Chose(gap), range(n))) ==
+        Note that, when gap is natural, sum(Chose(gap)(i) for i in range(n)) ==
         Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html -
         this is exploited by the implementation of PowerSum (q.v.).\n"""
 
@@ -1133,7 +1133,7 @@ class Polynomial (Lazy):
                 tum, ten = term.__coefs, term.__denom
                 assert i == max(tum.keys()) and tum[i] == 1
                 # the lambda h: h**len(cache) we want to sum is the leading term
-                # in term(h), while num(n) is sum(map(term, range(n))) since:
+                # in term(h), while num(n) is sum(term(i) for i in range(n)) since:
                 assert den == ten * j
                 # Now, from num, subtract contributions from term's non-leading powers:
                 while i > 0:

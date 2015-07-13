@@ -26,10 +26,7 @@ class WordList (dict):
     def __count(self, Bok=Unique):
         ws = Bok()
         ws.digest(self.__file)
-        seq = map(lambda (ch, n): (n, ch), ws.items())
-        seq.sort()
-        seq.reverse()
-        self.__freq = tuple(seq)
+        self.__freq = tuple(sorted(((n, ch) for ch, n in ws.items()), reverse=True))
     del Unique
 
     def frequent(self, count=None):
@@ -50,7 +47,7 @@ class WordList (dict):
 
         if count is None: seq = self.__freq
         else: seq = self.__freq[:count]
-        return ''.join(map(lambda (n, ch): ch, seq))
+        return ''.join(ch for (n, ch) in seq)
 
     def select(self, checker):
         """Returns an iterator over words accepted by a given test.

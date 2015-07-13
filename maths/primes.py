@@ -34,8 +34,8 @@ class Prodict (prodict.Prodict):
     (q.v.).\n"""
 
     def __long__(self):
-        return reduce(lambda a,b: a*b,
-                      map(pow, *map(lambda *args: args, *self.items())), 1)
+        return reduce(lambda a, b: a * b,
+                      (pow(x, p) for x, p in self.items()), 1)
 
     def __int__(self): return int(long(self))
     def __float__(self): return float(long(self))
@@ -520,7 +520,7 @@ class cachePrimes(_Prime, Lazy):
         for name in row:
             if name[:lang] == stem and name[-3:] == '.py' and '-' in name[lang:-3]:
                 result[os.path.join(loc, name)
-                       ] = map(_read_int, name[lang:-3].split('-'))
+                       ] = [_read_int(x) for x in name[lang:-3].split('-')]
 
         return result
 

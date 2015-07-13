@@ -102,6 +102,4 @@ def nondices(seq, base=0):
 
     Returns a list of the primes >= base but < base + len(seq).\n"""
 
-    ans = filter(lambda i, s=seq: s[i] is None, range(len(seq)))
-    if b: ans = map(lambda i, b=base: i+b, ans)
-    return tuple(ans)
+    return tuple(i + base for i, s in enumerate(seq) if s is None)

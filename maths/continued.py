@@ -284,19 +284,17 @@ class Continued (object):
 
             P(X, cs)
               = cs[0] +cs[1]*X[0] +cs[2]*X[1] +cs[3]*X[0]*X[1] +cs[4]*X[2] +...
-              = sum(map(lambda c, xs: reduce(lambda x, y: x * y, xs, c),
-                        cs,
-                        map(lambda i: map(lambda b, X=X: X(b),
-                                          filter(lambda b, i=i: i & (1<<b),
-                                                 range(len(srcs)))),
-                            range(1<<len(srcs)))))
+              = sum(reduce(lambda x, y: x * y, xs, c) for c, xs in
+                    zip(cs,
+                        [[X(b) for b in range(len(srcs)) if i & (1 << b)]
+                         for i in range(1 << len(srcs))]))
 
             Note that the case len(srcs) is explicitly allowed; then self just
             represents numerator[0] / denominator[0].  A typical term in P(X,
             cs) can be understood as
 
             T(X, cs, bs) =
-              reduce(lambda b, p, X=X: X[b] * p, bs, cs[sum(map(lambda b: 1<<b, bs))])
+              reduce(lambda b, p, X=X: X[b] * p, bs, cs[sum(1 << b for b in bs)])
 
             for some sorted tuple bs of distinct (so the sum in cs[...]
             implements | on the bits) naturals < len(srcs); when srcs is
@@ -329,7 +327,7 @@ class Continued (object):
 
         @property
         def status(self):
-            return tuple(map(self.__show, self.__x))
+            return tuple(self.__show(x) for x in self.__x)
 
         @staticmethod
         def _pop(p, ns, ds):
@@ -342,7 +340,7 @@ class Continued (object):
             expression for F to represent 1/(F-p). Note, however, that Digits
             (q.v.) does a different re-arrangement.\n"""
 
-            return ds, map(lambda n, d, c=p: n -c*d, ns, ds)
+            return ds, [n - p * d for n, d in zip(ns, ds)]
 
         def edges(i, bit): # tool used by other tools and __prune
             """Yields naturals < i in pairs, without and with the given bit.
@@ -369,7 +367,7 @@ class Continued (object):
 
             ns, ds = self.__n, self.__d
 
-            n, d = sum(map(abs, ns)), sum(map(abs, ns))
+            n, d = sum(abs(n) for n in ns), sum(abs(d) for d in ds)
             if all(n * e == d * i for i, e in zip(self.__n, self.__d)):
                 # self just represents the rational n/d.
                 i = gcd(n, d) or 1
@@ -379,8 +377,8 @@ class Continued (object):
 
             # Which bits aren't set in any index with a non-zero coefficient ?
             zs = ~ reduce(lambda x, y: x | y,
-                          filter(lambda i, ns=ns, ds=ds: not(ns[i] == 0 == ds[i]),
-                                 range(1, len(ns))), 0)
+                          (i for i in range(1, len(ns)) if not (ns[i] == 0 == ds[i])),
+                          0)
             if zs:
                 b, bit = len(self.__x), len(ns)
                 assert bit == 1<<b
@@ -398,8 +396,8 @@ class Continued (object):
             i = gcd(*(ns + ds))
             assert i > 0
             if i > 1:
-                ns[:] = map(lambda n, i: n/i, ns)
-                ds[:] = map(lambda n, i: n/i, ds)
+                ns[:] = [n / i for n in ns]
+                ds[:] = [d / i for d in ds]
 
             # TODO: any special magic we can do when len(self.__x) == 1 ?
         del hcf
@@ -574,7 +572,7 @@ class Continued (object):
                     n, d = self.__n[0], self.__d[0]
                     if d < 0: n, d = -n, -d
                     qs = self._nice(n, d)
-                    if len(qs) > 1: qs = filter(lambda q: q % 2 == 1, qs)
+                    if len(qs) > 1: qs = [q for q in qs if q % 2 == 1]
                     self.__n, self.__d = self._pop(qs[0], self.__n, self.__d)
                     return qs[0]
 
@@ -622,7 +620,7 @@ class Continued (object):
             """See if corner values agree on a single integer."""
 
             n, d = cs[0]
-            if filter(lambda (m, e): e * d <= 0, cs[1:]):
+            if any(e * d <= 0 for m, e in cs[1:]):
                 raise ValueError, "Denominator's sign varies"
 
             if d > 0: j = 1
@@ -634,11 +632,12 @@ class Continued (object):
                 i -= 1
                 n, d = cs[i]
                 n, d = n * j, d * j
-                ok = filter(lambda q, n=n, d=d, y=match: y(q, n, d), ok)
+                ok = [q for q in ok if match(q, n, d)]
 
             if len(ok) > 1: # When we have a choice, prefer even
-                ok = filter(lambda q: q % 2 == 0, ok)
-                assert ok
+                assert any(q % 2 == 0 for q in ok), q
+                ok = [q for q in ok if q % 2 == 0]
+                # Should we sort what's left in ok ?
             elif len(ok) < 1:
                 raise ValueError, "No consensus integer"
 
@@ -780,7 +779,8 @@ class Continued (object):
                 assert p == 0
                 raise StopIteration
 
-            return map(lambda n, d, s=self.__src.next(), c=p: s * (n - c * d), ns, ds), ds
+            s = self.__src.next()
+            return [s * (n - p * d) for n, d in zip(ns, ds)], ds
 
         @staticmethod
         def _nice(n, d):

@@ -109,8 +109,7 @@ class NordeaParser (HTMLParser):
         @staticmethod
         def _parsedate(text, date=date,
                        keys=('day', 'month', 'year')):
-            return date(**dict(map(lambda *kv: kv, keys,
-                                   map(int, text.split('.')))))
+            return date(**dict(zip(keys, [int(x) for x in text.split('.')])))
         del date
 
         from decimal import Decimal
@@ -179,7 +178,7 @@ class NordeaParser (HTMLParser):
             # A simple named tuple type:
             __names = 'booked', 'interest', 'text', 'bunch', 'ref', 'change'
             def __new__(cls, bok): # automagically an @staticmethod
-                return tuple.__new__(cls, map(bok.get, cls.__names))
+                return tuple.__new__(cls, [bok.get(n) for n in cls.__names])
 
             for i, nom in enumerate(__names):
                 exec('\n'.join(['@property',
@@ -188,7 +187,7 @@ class NordeaParser (HTMLParser):
             del i, nom
 
             def as_dict(self, ns=__names):
-                return dict(map(lambda *kv: kv, ns, self))
+                return dict(zip(ns, self))
 
             def __cmp__(self, other):
                 """Comparison of Transaction objects.
@@ -224,10 +223,9 @@ class NordeaParser (HTMLParser):
                          'In': 'change', 'Out': 'change' }):
             assert frozenset(short.values()) == frozenset(self.__names)
             bok = {}
-            for k, v in map(lambda *kv: kv,
-                            self.__keys,
+            for k, v in zip(self.__keys,
                             # Apply any needed text transformations:
-                            map(lambda f, e: f(e.strip()), self.__xfrm, row)):
+                            [f(e.strip()) for f, e in zip(self.__xfrm, row)]):
                 assert (k != 'In' or v > 0) and (k != 'Out' or v < 0)
                 bok[short[k]] = v
 

@@ -89,7 +89,7 @@ class Spread (Dict, Cached):
         for vector (q.v.).  Thus dice(4, 6, 8) shall describe a variate whose
         first component is uniformly distributed on 1 through 4 and so on.\n"""
 
-        return cls.join(None, *map(cls.die, ns)).freeze()
+        return cls.join(None, *[cls.die(n) for n in ns]).freeze()
 
     def sum(self): return self.itervalues().sum()
     def p(self, key): return self.__rat(self[key], self.sum())
@@ -191,9 +191,7 @@ class Spread (Dict, Cached):
     @lazyprop
     def modes(self):
         top = max(self.values())
-        return tuple(self.iteritems().filter(
-                lambda (k, v), m=top: v == m).map(
-                lambda (k, v): k))
+        return tuple(k for k, v in self.iteritems() if v == top)
 
     @lazyprop
     def mode(self):
@@ -244,7 +242,7 @@ class Spread (Dict, Cached):
                 ans = (mid(ks[i-1], ks[i]),) + ans
             m += 1
 
-        assert sum(map(self.p, ks[:i])) * n <= 1
+        assert sum(self.p(k) for k in ks[:i]) * n <= 1
         assert len(ans) + 1 == n
         return ans
 
@@ -253,9 +251,8 @@ class Spread (Dict, Cached):
             return self.join(binop, self, other)
 
         ans = self._iterdict_()
-        for (k, v) in self.iteritems().map(
-            lambda (k, v), o=other, b=binop: (b(k, o), v)):
-            ans[k] += v
+        for k, v in self.iteritems():
+            ans[binop(k, other)] += v
         ans.simplify()
         return ans.freeze()
 
@@ -379,6 +376,6 @@ class Spread (Dict, Cached):
         hi[:0] # shouldn't raise TypeError
         try: return lo.map(cls.__mid, hi)
         except AttributeError:
-            return tuple(map(cls.__mid, lo, hi))
+            return tuple(cls.__mid(x, y) for x, y in zip(lo, hi))
 
 del Dict, lazyprop, Cached, postcompose

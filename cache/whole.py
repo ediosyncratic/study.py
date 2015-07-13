@@ -987,7 +987,7 @@ class CacheDir (Node, LockDir):
             self.__upinit(get)
             self.__who, self.__att, self.__test = cdir, getseq, test
 
-        def __len__(self): return len(filter(self.__test, self.__att(self.__who)))
+        def __len__(self): return len([x in self.__att(self.__who) if self.__test(x)])
 
     @staticmethod
     def weaklisting(picker, W=WeakSubSeq, L=lazyprop):

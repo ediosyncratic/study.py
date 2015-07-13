@@ -22,7 +22,7 @@ from common import Discovery, Orbit, Spheroid
 from rock import NASAmoon, NASAshell
 
 # Rough stab at tilt of the asteroid belt - at least as much as any inner planet:
-tilted = max(map(lambda x: abs(x.orbit.spin.tilt), [ Mercury, Venus, Earth, Mars ]))
+tilted = max(abs(x.orbit.spin.tilt) for x in (Mercury, Venus, Earth, Mars))
 del Mercury, Venus, Earth # keep Mars for its moons:
 
 # Mars' moons are just captured asteroids ...

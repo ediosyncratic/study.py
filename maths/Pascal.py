@@ -155,7 +155,7 @@ def Pascal(tot, scale=1):
     Pascal[0] = (1,).  Optional second argument is an over-all scaling to apply
     to all entries in the row; thus sum(Pascal(n, .5**n)) == 1.\n"""
 
-    return tuple(map(lambda i, t=tot, s=scale: chose(t, i) * s, range(1+tot)))
+    return tuple(chose(tot, i) * scale for i in range(1 + tot))
 
 def c2nno4n(n):
     """n => chose(2n, n)/4**n
