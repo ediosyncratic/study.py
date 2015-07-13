@@ -115,8 +115,8 @@ class Huffman (Lazy):
         try: P.items() # mapping
         except AttributeError:
             try: P[:] # sequence
-            except: raise ValueError(P,
-                                     'Probability distribution must be mapping or sequence')
+            except:
+                raise ValueError(P, 'Probability distribution must be mapping or sequence')
             # Convert P to a mapping (and raise an exception if not iterable):
             self.__distribution = dict(enumerate(P))
         else: self.__distribution = P
