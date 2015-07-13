@@ -110,12 +110,12 @@ def median(seq, fn=None):
     built-in comparison, cmp().  Doesn't go to all the trouble of sorting (a
     copy of) the sequence, just moves the middle element or two to the
     middle.\n"""
-    row = list(seq) # always gets a copy; and iterate only once
-    if not row: raise IndexError, 'empty sequence has no median'
+    seq = list(seq) # always gets a copy; and iterate only once
+    if not seq: raise IndexError, 'empty sequence has no median'
 
     # Adapted from Wirth's "Data Structures + Algorithms = Programs"
-    def split(L, R, m, s=row, cmp=fn or cmp):
-        """Move the m-th highest entry in row to index m.
+    def split(L, R, m, s=seq, cmp=fn or cmp):
+        """Move the m-th highest entry in seq to index m.
 
         This actually works for any m; it requires that we know the m-th
         highest is actually no earlier than index L and no later than
@@ -138,12 +138,12 @@ def median(seq, fn=None):
             if j < m: L = i
             if m < i: R = j
 
-    mid, bit = divmod(len(row), 2)
-    split(0, len(row) - 1, mid)
-    if bit: return row[mid]
+    mid, bit = divmod(len(seq), 2)
+    split(0, len(seq) - 1, mid)
+    if bit: return seq[mid]
     split(0, mid, mid-1)
-    q, r = divmod(row[mid] + row[mid-1], 2)
-    if r: return (row[mid] + row[mid-1]) * .5
+    q, r = divmod(seq[mid] + seq[mid-1], 2)
+    if r: return (seq[mid] + seq[mid-1]) * .5
     return q
 
 def gradients(fn, arg, *deltas):
@@ -173,7 +173,7 @@ def gradient(fn, arg):
     try: # does fn cope with complex values ?
         more = gradients(fn, arg, [1j * x for x in deltas])
         grads = [x + 0j for x in grads] + more # add 0j to coerce complex
-        # return meadian of real parts + 1j * median of imaginary parts:
+        # take medians of real and imaginary parts independently:
         return median(x.real for x in grads) \
         + 1j * median(x.imag for x in grads)
 
