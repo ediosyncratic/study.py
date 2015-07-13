@@ -12,8 +12,8 @@ from study.snake.sequence import Tuple
 class Sample (Tuple):
     @lazyprop
     def span(self):
-        all = self.sorted
-        return all[0], all[-1]
+        full = self.sorted
+        return full[0], full[-1]
 
     @staticmethod
     def __diff(seq, step=1):
@@ -33,11 +33,11 @@ class Sample (Tuple):
 
     def partition(self, cuts):
         assert all(x < y for x, y in zip(cuts[:-1], cuts[1:])), "Mis-ordered cuts"
-        all, idx, j = self.sorted, [], 0
-        # all[idx[i]-1] <= cuts[i] < all[idx[i]], strict where possible
+        full, idx, j = self.sorted, [], 0
+        # full[idx[i]-1] <= cuts[i] < full[idx[i]], strict where possible
         for cut in cuts:
             try:
-                while all[j] <= cut: j += 1
+                while full[j] <= cut: j += 1
             except IndexError: assert j == len(self)
             idx.append(j)
 
@@ -130,21 +130,21 @@ class Sample (Tuple):
             raise ValueError("Demanding too much", n, len(self))
 
         i, j, pts = 0, n-1, []
-        all = self.sorted
-        # t = all[0], c = all[n-1]
-        lo, hi = all[i], all[j]
+        full = self.sorted
+        # t = full[0], c = full[n-1]
+        lo, hi = full[i], full[j]
         pts.append((self.__half(5*lo -3*hi), 0))
         pts.append((self.__half(lo +hi), n * 1. / (hi - lo)))
         while i + n < len(self):
             if i + n < j + 1: # we have spare points; advance i
                 i += 1
-                if all[i] <= lo: continue
-                lo = all[i]
+                if full[i] <= lo: continue
+                lo = full[i]
 
             else: # need wider interval
                 j += 1
-                if all[j] <= hi: continue
-                hi = all[j]
+                if full[j] <= hi: continue
+                hi = full[j]
 
             pts.append((self.__half(lo + hi), n * 1. / (hi - lo)))
         pts.append((self.__half(5*hi -3*lo), 0))
@@ -177,24 +177,24 @@ class Sample (Tuple):
 
         if len(self) == 1: return ( self[0], ) * (1 + n)
 
-        all, cuts, i = self.sorted, [], 1
+        full, cuts, i = self.sorted, [], 1
         if n > 1:
             while i < n:
                 j = (len(self) * i) // n
-                if j < 1: cut = all[0]
-                else: cut = self.__half(all[j] + all[j-1])
+                if j < 1: cut = full[0]
+                else: cut = self.__half(full[j] + full[j-1])
 
                 if i == 1: # prepend the i = 0 entry:
-                    cuts.append(all[0] + cut - all[j])
+                    cuts.append(full[0] + cut - full[j])
                 cuts.append(cut)
                 i += 1
         else:
-            cut = self.__half(all[0] + all[1])
-            cuts.append(all[0] + cut - all[0])
-            cut = self.__half(all[-2] + all[-1])
+            cut = self.__half(full[0] + full[1])
+            cuts.append(full[0] + cut - full[0])
+            cut = self.__half(full[-2] + full[-1])
             j = -1
 
-        cuts.append(all[-1] + all[j] - cut)
+        cuts.append(full[-1] + full[j] - cut)
         return tuple(cuts)
 
     @staticmethod
@@ -216,7 +216,7 @@ class Sample (Tuple):
         return ans
 
     @classmethod
-    def __split(cls, i, idx, cuts, all, c, s, base):
+    def __split(cls, i, idx, cuts, full, c, s, base):
         """Try to split cuts[i:i+1]
 
         ... into up to s pieces containing at least c entries.
@@ -234,20 +234,20 @@ class Sample (Tuple):
             while j > 0:
                 # We need to insert j entries at the start of index
                 # For each k in range(j, s),
-                # all[index[k-j]-1 <= knife[k] < all[index[k-j]]
+                # full[index[k-j]-1 <= knife[k] < full[index[k-j]]
                 # s/idx[i+1]/index[s-j]/, s/cuts[i+1]/knife[s]/ for k = s.
-                if m - c * j < low: break # too few entries in all remain
+                if m - c * j < low: break # too few entries in full remain
                 j -= 1
-                # Find m s.t. all[m-1] <= knife[j] < all[m]
+                # Find m s.t. full[m-1] <= knife[j] < full[m]
                 # Require: m + c < index[0], which is our prior m
-                if all[m - c] <= knife[j]: break # too few entries in interval
+                if full[m - c] <= knife[j]: break # too few entries in interval
                 m -= c
-                while m > low and all[m] > knife[j]: m -= 1
+                while m > low and full[m] > knife[j]: m -= 1
                 if m < low + c: break # too few entries below interval
                 # Tweak knife[j] to mid-point:
-                assert all[m+1] > knife[j]
-                knife[j] = cls.__mid(all[m], all[m+1], base)
-                m += 1 # restore knife[j] < all[m]
+                assert full[m+1] > knife[j]
+                knife[j] = cls.__mid(full[m], full[m+1], base)
+                m += 1 # restore knife[j] < full[m]
                 index.insert(0, m)
             else: # didn't break; success !
                 i += 1
@@ -258,23 +258,23 @@ class Sample (Tuple):
         return False
 
     @classmethod
-    def __relax(cls, cuts, idx, all, base):
+    def __relax(cls, cuts, idx, full, base):
         """Adjusts cuts to terse values.
 
         Rounds each cuts[i] to a multiple of 1./base**n (for the smallest n,
-        in each case, that allows this) that lies between the same
-        all[idx[i]-1] <= cuts[i] < all[idx[i]].\n"""
+        in each case, that fullows this) that lies between the same
+        full[idx[i]-1] <= cuts[i] < full[idx[i]].\n"""
         i = len(cuts)
         while i > 0:
             i -= 1
             j = idx[i]
             if j < 1: # no lo
-                lo, hi = cuts[i], all[j]
+                lo, hi = cuts[i], full[j]
                 lo -= hi - lo
-            elif j < len(all):
-                lo, hi = all[j-1], all[j]
+            elif j < len(full):
+                lo, hi = full[j-1], full[j]
             else: # no hi
-                lo, hi = all[j-1], cuts[i]
+                lo, hi = full[j-1], cuts[i]
                 hi += hi - lo
 
             if lo < hi: # else: can't help this one
@@ -299,9 +299,9 @@ class Sample (Tuple):
         cuts, idx = list(self.niles(1)), [0, len(self)]
         if n is None: check = lambda m: True
         else: check = lambda m, n=n: m <= n
-        all = self.sorted
-        self.__relax(cuts, idx, all, base)
-        # all[idx[i]-1] <= cuts[i] < all[idx[i]], strict when possible
+        full = self.sorted
+        self.__relax(cuts, idx, full, base)
+        # full[idx[i]-1] <= cuts[i] < full[idx[i]], strict when possible
 
         while check(len(cuts)):
             gaps = self.__diff(idx)
@@ -313,7 +313,7 @@ class Sample (Tuple):
                     # idx[i+1] - idx[i] is a maximal candidate for splitting
                     t = min(s, wide / c)
                     if n is not None: t = min(t, 2 + n - len(cuts))
-                    if self.__split(i, idx, cuts, all, c, t, base): break
+                    if self.__split(i, idx, cuts, full, c, t, base): break
             else: break # wide wound down to 0; no split possible
 
         return cuts
@@ -330,10 +330,10 @@ class Sample (Tuple):
 
         Returns a list of cut-points between which to aggregate self's
         values.\n"""
-        all, cuts, idx = iter(self.sorted), [], []
-        # all[idx[i]-1] < cuts[i] < all[idx[i]]
-        was, j = all.next(), 0
-        for it in all: # self.sorted[j] == was
+        full, cuts, idx = iter(self.sorted), [], []
+        # full[idx[i]-1] < cuts[i] < full[idx[i]]
+        was, j = full.next(), 0
+        for it in full: # self.sorted[j] == was
             j += 1
             if it > was: # self.sorted[j] == it
                 cuts.append(self.__mid(was, it, base))
@@ -357,15 +357,15 @@ class Sample (Tuple):
             #print "to kill", worst, 'in', ['%.2f' % x for x in ratio]
             del idx[j], cuts[j] # the boundary between these two intervals
 
-        all = self.sorted
+        full = self.sorted
         # That will never ditch the outermost cuts:
-        assert all[0] == all[idx[0] - 1]
-        assert all[-1] == all[idx[-1]]
+        assert full[0] == full[idx[0] - 1]
+        assert full[-1] == full[idx[-1]]
 
         # Add outliers for start and end:
-        cuts.insert(0, self.__outlier(all[0], cuts[0], idx[0],
+        cuts.insert(0, self.__outlier(full[0], cuts[0], idx[0],
                                       r, dense[0], dense[1], -1))
-        cuts.append(self.__outlier(all[-1], cuts[-1], len(self) - idx[-1],
+        cuts.append(self.__outlier(full[-1], cuts[-1], len(self) - idx[-1],
                                    r, dense[-1], dense[-2], +1))
         return cuts
 

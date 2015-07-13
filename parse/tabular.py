@@ -181,6 +181,6 @@ class Table (Cached):
 
         transform = factory(self.caption)
         seq = iter(self.rows)
-        all = transform.first(seq.next())
-        for it in seq: all.append(transform.each(it))
-        return transform.package(all)
+        full = transform.first(seq.next())
+        for it in seq: full.append(transform.each(it))
+        return transform.package(full)

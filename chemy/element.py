@@ -149,15 +149,15 @@ class Isotope (Substance):
     def __repr__(self): return self.name
     def __str__(self): return self.symbol
 
-all = {}
-def Isotope(Q, N, cls=Isotope, rack=all):
+full = {}
+def Isotope(Q, N, cls=Isotope, rack=full):
     try: ans = rack[(Q,N)]
     except KeyError: ans = rack[(Q,N)] = cls(Q, N)
     return ans
 
-Isotopes = all.values
+Isotopes = full.values
 naturalIsotopes = lambda : [x for x in Isotopes() if getattr(x, 'abundance', None)]
-del all
+del full
 
 # Local function, del'd below:
 def Noble(n, cache=[2]):

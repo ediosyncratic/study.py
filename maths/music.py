@@ -51,9 +51,9 @@ class LeastBad (Ordered):
 
     def prefer(self, ps):
         self.__ps = ps
-        all = tuple(self)
+        full = tuple(self)
         del self[:]
-        for it in all: self.append(it)
+        for it in full: self.append(it)
 
     chatty = False
 

@@ -1023,7 +1023,7 @@ class PiecewiseConstant (Interpolator):
 
     # tool-function for __join:
     def evaluate(f, box,
-                 s=single, more=morebad, all=slices):
+                 s=single, more=morebad, each=slices):
         """Evaluate a function at corners of a cuboid.
 
         First argument, f, is a call; second, box, is a sequence of twoples
@@ -1048,7 +1048,7 @@ class PiecewiseConstant (Interpolator):
         information from the exceptions at all corners that failed.\n"""
 
         row, bad = [], ()
-        for seq in all(len(box)):
+        for seq in each(len(box)):
             for ks in seq:
                 xs = tuple(p[i] for p, i in zip(box, ks))
                 ys = tuple(p[1-i] for p, i in zip(box, ks))
@@ -1201,10 +1201,10 @@ class PiecewiseConstant (Interpolator):
 
         if len(row) < 2:
             raise ZeroDivisionError('calling', f, 'on', (a, b), (x, y))
-        all = set(row)
-        if len(all) == 1: cls, row = form[0], tuple(all)
+        full = set(row)
+        if len(full) == 1: cls, row = form[0], tuple(full)
         else:
-            assert len(all) > 1, 'row is non-empty => so is all'
+            assert len(full) > 1, 'row is non-empty => so is full'
             row.sort()
             if len(row) > len(form):
                 # Ditch middle entries (except maybe one):

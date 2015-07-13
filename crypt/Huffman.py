@@ -246,12 +246,12 @@ class Huffman (Lazy):
         """Expected output length per input token."""
         P = self._block_map
         code = self.mapping
-        all = tot = 0
+        full = tot = 0
         for k, v in P.items():
             if v:
-                all, tot = all + v * len(code[k]), tot + v
+                full, tot = full + v * len(code[k]), tot + v
 
-        return all * 1. / tot / self.__block_size
+        return full * 1. / tot / self.__block_size
 
     from math import log
     def _lazy_get_entropy_(self, ig, ln=log):
@@ -266,11 +266,11 @@ class Huffman (Lazy):
         until the end; this is sum(: log(k/p).p/k :) = sum(: log(1/p).p :)/k +
         log(k).sum(p)/k, with k = sum(p). """
 
-        all = tot = 0 # sum, k
+        full = tot = 0 # sum, k
         for v in self.__distribution.values():
-            all, tot = all - v * ln(v), tot + v
+            full, tot = full - v * ln(v), tot + v
 
-        return (all / tot + ln(tot)) / ln(len(self.__symbols))
+        return (full / tot + ln(tot)) / ln(len(self.__symbols))
 
     del log
 

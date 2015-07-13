@@ -196,9 +196,9 @@ class SurfacePart (Object):
 
     pro_rata = ( 'rainfall', ) # anything else roughly proportional to area ...
     def proportion(self, prop):
-        all = getattr(self.__parent, prop) # can't guess from parent unless it has it, too
+        full = getattr(self.__parent, prop) # can't guess from parent unless it has it, too
         # could subtract off contributions from parent's parts with known prop ...
-        return self.area * all / self.__parent.area
+        return self.area * full / self.__parent.area
 
     for nom in pro_rata:
         exec '_lazy_get_%s_ = proportion' % nom

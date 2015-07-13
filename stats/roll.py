@@ -227,18 +227,18 @@ class Spread (Dict, Cached):
 
         assert n > 0
         if mid is None: mid = self.__mid
-        ans, m, ks, all = (), 1, self.keys(), self.sum()
+        ans, m, ks, full = (), 1, self.keys(), self.sum()
         ks.sort(par)
 
         i = len(ks) - 1
         tot = self[ks[i]]
         while m < n:
-            while tot * n < all * m and i > 0:
+            while tot * n < full * m and i > 0:
                 i -= 1
                 tot += self[ks[i]]
-            if tot * n > all * m or i == 0: ans = (ks[i],) + ans
+            if tot * n > full * m or i == 0: ans = (ks[i],) + ans
             else:
-                assert tot * n == all * m
+                assert tot * n == full * m
                 ans = (mid(ks[i-1], ks[i]),) + ans
             m += 1
 
