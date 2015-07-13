@@ -24,11 +24,10 @@ class Sample (Tuple):
         with d[i] = seq[i+step]-seq[i] for each i at which this is valid (so
         len(d) = len(seq) step for step > 0).
 
-        Note that a negative value for step will be read as len(self)-step;
-        this might not be as useful as you'd suppose.  If you want reverse
-        steps, use a positive value for step and negate each entry in the
-        result.  A step of zero will is silly but allowed; you'll get the same
-        as [x - x for x in seq].\n"""
+        Note that a negative value for step will be read as len(self)-step; this
+        might not be as useful as you'd suppose.  If you want reverse steps, use
+        a positive value for step and negate each entry in the result.  A step
+        of zero is silly but allowed; you'll get [x - x for x in seq].\n"""
         return [y - x for x, y in zip(seq[:-step], seq[step:])]
 
     def partition(self, cuts):

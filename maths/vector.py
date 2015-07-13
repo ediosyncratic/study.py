@@ -807,11 +807,11 @@ class Vector (Tuple):
         in it should be the integers 0 through n-1, each appearing exactly
         once, for some natural n.
 
-        Each subsequent argument, if any, must be a pair (i, j) of naturals
-        less than self.rank, with self.dimension[i] == self.dimension[j].  If
-        either is less than len(shuffle) the entry in shuffle at this index
-        must be None.  No two pairs may have an entry in common.  Each None
-        entry in shuffle must appear in exactly one pair.
+        Each subsequent argument, if any, must be a pair (i, j) of distinct
+        naturals less than self.rank, indexing equal entries in
+        self.dimension.  If either is less than len(shuffle) the entry in
+        shuffle at this index must be None.  No two pairs may have an entry in
+        common.  Each None entry in shuffle must appear in exactly one pair.
 
         If any pair includes an index greater than or equal to shuffle's
         length, shuffle is implicitly padded with None entries for each such

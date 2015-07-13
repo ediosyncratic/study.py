@@ -334,22 +334,22 @@ class Spread (Dict, Cached):
     def join(cls, func=None, *what):
         """Build a new Spread object out of some existing ones.
 
-        Generally, other methods of this class package this one more usably
-        (see map(func) and vector(n); also arithmetic operations); but this is
-        the sledgehammer that should be able to crack every nut ...
+        Generally, other methods of this class package this one more usably (see
+        .map(func) and .vector(n); also arithmetic operations); but this is the
+        sledgehammer that should be able to crack every nut ...
 
-        First argument, func, is None (the default) or a function whose
-        outputs shall be used as keys of the new object; if func is None,
-        lambda *a: Vector(a) is used (study.maths.vector.Vector extends tuple
-        with entry-wise arithmetic).  All subsequent arguments (there must be
-        some) should be Spread objects (but may be dict objects whose values
-        are all numeric).
+        First argument, func, is None (the default) or a function whose outputs
+        shall be used as keys of the new object; if func is None, lambda *a:
+        Vector(a) is used (study.maths.vector.Vector extends tuple with
+        entry-wise arithmetic).  All subsequent arguments (there must be some)
+        should be Spread objects (but may be dict objects whose values are all
+        numeric).
 
         Each call to func receives, as parameters, one key from each of these
         objects, in the same order as the objects are passed to join().  The
-        return from func is used as a key of the new object, whose value is
-        the product of the values each of join()'s argument objects associates
-        to the one of its keys that was used as parameter.
+        return from func is used as a key of the new object, whose value is the
+        product of the values each of join()'s argument objects associates to
+        the one of its keys that was used as parameter.
 
         A given Spread object may be used repeatedly as an argument to join();
         it shall be handled as if each use of it was a separate copy of the

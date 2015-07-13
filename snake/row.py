@@ -21,10 +21,10 @@ def transpose(rows):
     The first inner sequence of the input provides the first members of the
     tuples in the result list; the first tuple of the result list consists of
     the first members of the inner sequences in the input.  For `first', read
-    nth(n) for any n, provided you do so throughout.
+    n-th for any n, provided you do so throughout.
 
     Transposing a tuple of lists will yield a list of tuples preserving the
-    `position in tuple' and `position in list' of each entry. """
+    `position in tuple' and `position in list' of each entry.\n"""
 
     # (Even in python some useful one-liners require more than a moment's thought.-)
     return map(lambda *args: args, *rows)
@@ -43,7 +43,7 @@ def unique(seq):
             bok.add(it)
             row.append(it)
     return seq.__class__(row)
-
+
 def deltas(seq, step=1):
     """Return list of differences within a sequence.
 
@@ -65,3 +65,4 @@ def median(seq):
     i, j = row[n], row[n-1]
     if i == j: return i
     return 0.5 * (i+j)
+
