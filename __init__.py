@@ -116,7 +116,9 @@ TODO = """There are many things that could be improved.
  * Convert to python 3 - worth doing on a separate branch !
    - there is a "2to3" utility to help with this
    - convert .next() to .__next__() on iterators
+   - convert relative imports to use dot-syntax (from .foo import names)
    - s/for $var in $iterable: yield $var/yield from $iterable/g
+   - purge any long literals ending in L and u-string literals
    - can have (tunnels or) keyword-only arguments after *args; PEP 3102
    - can modify variables in outer scopes using nonlocal; PEP 3104
    - when catching one exception to raise a different, can inherit the

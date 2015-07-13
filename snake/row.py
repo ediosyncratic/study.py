@@ -30,6 +30,7 @@ def transpose(rows):
     return map(lambda *args: args, *rows)
 # I can understand why a language designer might be shy of built-in functional tools.
 
+# TODO: convert to iterator
 def unique(seq):
     """Returns seq with repetitions eliminated.
 

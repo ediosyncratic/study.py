@@ -73,6 +73,7 @@ class Polynomial (Lazy):
 
     See individual methods' docs for details.\n"""
 
+    # TODO: accept an iterator for coeffs
     def __init__(self, coeffs, denominator=None, variate=None):
         """Constructor.
 
