@@ -344,7 +344,7 @@ class Sample (Tuple):
             gaps = self.__diff(cuts)
             dense = [x / y for x, y in zip(self.__diff(idx), gaps)]
             # dense[i] = (idx[i+1] - idx[i]) / (cuts[i+1] - cuts[i])
-            ratio = [max(x * 1. / y, y * 1. / x)
+            ratio = [(x * 1. / y if x > y else y * 1. / x)
                      for x, y in zip(dense[1:], dense[:-1])]
             worst = max(ratio)
             if worst < r: break
