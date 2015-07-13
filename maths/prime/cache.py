@@ -127,10 +127,12 @@ class WriteNode (Node, whole.WriteNode):
 
     def repgen(rep):
         # Lexical scoping lets myrepr call itself :-)
-        def myrepr(value, repr=rep):
+        reps = [ rep ]
+        def myrepr(value, reps=reps):
             # Represent sequences as normal but: use ',\n' instead of ', ' to
             # join entry representations; and apply our custom representation
             # recursively to sequence entries.
+            repr, myrepr = reps
 
             if isinstance(value, tuple):
                 return '(\n' + ',\n'.join(myrepr(v) for v in value) + '\n)'
@@ -148,6 +150,7 @@ class WriteNode (Node, whole.WriteNode):
                 return head + txt + tail
 
             return repr(v)
+        reps.append(myrepr)
         return myrepr
 
     def _save_(self, formatter=None, genrep=repgen,
