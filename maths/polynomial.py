@@ -993,8 +993,8 @@ class Polynomial (Lazy):
         ans = []
         while i > 0:
             i -= 1
-            if ans: row = row[:-1] + row[-1:]
-            else: row = [self.coefficient(i) for i in range(self.rank, -1, -1)] + [ 0 ] * i
+            if ans: row = row[-1:] + row[:-1]
+            else: row = [self.coefficient(j) for j in range(self.rank, -1, -1)] + [ 0 ] * i
             ans.append(tuple(row))
 
         return tuple(ans)
