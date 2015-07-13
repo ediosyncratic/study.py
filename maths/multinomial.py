@@ -10,9 +10,9 @@ class Multinomial (Lazy):
     def __init__(self, bok):
         for k, v in bok.items():
             if v:
-                v *.4 + v * .6 # raise error if no arithmetic
-                for it in k: # raise error if k not a sequence
-                    if it != long(it): raise unNaturalPower
+                v * .4 + v * .6 # raise error if no arithmetic
+                for it in k: # raise error if k not a sequence of naturals
+                    if it != long(it) or it < 0: raise unNaturalPower
 
                 if k and k[-1] == 0:
                     q = k[:-1]
@@ -170,7 +170,7 @@ class Multinomial (Lazy):
     def __neg__(self): return 0 - self
 
     def __repr__(self): return self._repr
-    variablenames = 'zyxwvutsrqpnmlkhgfdcba' # skip o,i,j,e [0, sqrt(-1), exp]
+    variablenames = 'zyxwvutsrqpnmlkhgfdcba' # skip o,i,j,e [0, sqrt(-1), exp(1)]
 
     def _lazy_get_rank_(self, ig):
         if any(self.__coefs.values()):
