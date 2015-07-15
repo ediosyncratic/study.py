@@ -216,6 +216,17 @@ class Iterable (object):
             yield i, it
             i += 1
 
+    @iterinstance
+    def __reversed__(self):
+        seq = tuple(self)
+        i = len(seq)
+        while i > 0:
+            i -= 1
+            yield seq[i]
+
+    def reversed(self):
+        return self.__reversed__()
+
     @staticmethod
     def __descartes(o, r=((),)): # helper for __renee()
         """Iterate over product of o with r.
@@ -304,6 +315,7 @@ class ReadSeq (Iterable):
 
         return isinstance(item, cache[0])
 
+    @staticmethod
     def _asslice_(item, cache=seq):
         if not cache:
             from study.snake.regular import Slice
@@ -419,7 +431,7 @@ class ReadSeq (Iterable):
                 elif it == val: pass
                 else: return False
         except StopIteration: return False # it ran out first
-        return True # equality, but other may be longer
+        return True # equality, or other is longer so greater
 
     def __lt__(self, other):
         try: src = iter(other)
@@ -458,9 +470,14 @@ class ReadSeq (Iterable):
 
     @iterinstance
     def __mul__(self, other):
-        while other > 0:
-            other -= 1
-            for it in self: yield it
+        try: other - 1
+        except TypeError:
+            for it in self.cartesian(None, other):
+                yield it
+        else: # numeric other
+            while other > 0:
+                other -= 1
+                for it in self: yield it
 
     __rmul__ = __mul__
     @iterinstance
@@ -480,14 +497,6 @@ class ReadSeq (Iterable):
             i += 1
 
         raise ValueError('not in sequence', val)
-
-    @iterinstance
-    def __reversed__(self):
-        seq = tuple(self)
-        i = len(seq)
-        while i > 0:
-            i -= 1
-            yield seq[i]
 
     # Throw in something suitable in place of sort:
     def order(self, cmp=cmp, key=None, reverse=False):
@@ -512,10 +521,10 @@ class ReadSeq (Iterable):
         from study.maths.permute import order
         # over-write this boot-strap implementation
         ReadSeq.__order = order
-        return order(self, par, key, rev)
+        return order(tuple(self), par, key, rev)
 
     def sorted(self, cmp=cmp, key=None, reverse=False):
-        return self.order(cmp, key, reverse)(self)
+        return self.order(cmp, key, reverse)(tuple(self))
 
     @iterinstance
     def best(self, n, par=cmp):
