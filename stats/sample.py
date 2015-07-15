@@ -30,6 +30,41 @@ class Sample (Tuple):
         of zero is silly but allowed; you'll get [x - x for x in seq].\n"""
         return [y - x for x, y in zip(seq[:-step], seq[step:])]
 
+    @lazyprop
+    def Pareto(self):
+        """Pareto parameter and cut at which it happens.
+
+        Returns a pair (par, cut) for which, aside from some imprecision due to
+        self being discrete: a fraction 1 - par of self's entries are below cut,
+        a fraction par are above; the former contribute a fraction par of self's
+        total, the latter a fraction 1 - par.  Given that half self's entries
+        are below median and contribute less than half self's sum, you can be
+        sure that par < 0.5 and cut >= self's median.\n"""
+        self = self.sorted
+        n, w = len(self), float(sum(self))
+        # We know the Pareto cut is the median or later, so start just below it:
+        i, n = n // 2, float(n)
+        m = sum(self[:i])
+        # Number of entries in self summed to make w, last of these, sum of fractions:
+        last = i, self[i - 1], i / n + m / w
+        assert last[-1] <= 1
+
+        while True:
+            # No need to catch IndexError, as the last entry in self takes m to
+            # w, i to n and hence here[-1] to 2 > 1.
+            cut = self[i]
+            m += cut
+            i += 1 # number of entries in self summed to make m
+            here = i, cut, i / n + m / w
+            if here[-1] >= 1: break
+            last = here
+
+        # last[-1] <= 1 <= here[-1]
+        # Use weighted average within that interval to fine-tune cut, 1 - i / n:
+        a, b, c = here[-1] - 1., here[-1] - last[-1], 1. - last[-1] # b = a + c
+        return (1 - (last[0] * a + here[0] * c) / b / n,
+                (last[1] * a + here[1] * c) / b)
+
     def partition(self, cuts):
         assert all(x < y for x, y in zip(cuts[:-1], cuts[1:])), "Mis-ordered cuts"
         full, j = self.sorted, 0
@@ -39,6 +74,19 @@ class Sample (Tuple):
                 while full[j] <= cut: j += 1
             except IndexError: assert j == len(self)
             yield j
+
+    def chop(self, cuts):
+        """The data you need to draw self's partition between given cuts.
+
+        Returns a tuple in which each entry is (x, w, y, h) with y being an
+        entry in cuts (not the last), h being the difference between this and
+        the next; x is the number of entries in self less than y and w is the
+        number of entries in self <= y + h.\n"""
+        cuts = tuple(cuts) # consume iterator
+        idx = tuple(self.partition(cuts))
+
+        return tuple(zip(idx[:-1], self.__diff(idx),
+                         cuts[:-1], self.__diff(cuts)))
 
     def blocks(self, cuts, blur=0):
         """The data you need to draw self's density between given cuts.
