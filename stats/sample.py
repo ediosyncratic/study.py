@@ -32,18 +32,16 @@ class Sample (Tuple):
 
     def partition(self, cuts):
         assert all(x < y for x, y in zip(cuts[:-1], cuts[1:])), "Mis-ordered cuts"
-        full, idx, j = self.sorted, [], 0
+        full, j = self.sorted, 0
         # full[idx[i]-1] <= cuts[i] < full[idx[i]], strict where possible
         for cut in cuts:
             try:
                 while full[j] <= cut: j += 1
             except IndexError: assert j == len(self)
-            idx.append(j)
-
-        return idx
+            yield j
 
     def blocks(self, cuts, blur=0):
-        """The data you need to draw self partitioned using cuts.
+        """The data you need to draw self's density between given cuts.
 
         Required arguments, cuts, is an iterable (or iterator) over the
         boundary values of the intervals between which to average self's
@@ -54,14 +52,14 @@ class Sample (Tuple):
         for intervals within blur extras of an end, the number of intervals to
         the relevant end is used in place of blur (symmetrically).
 
-        Returns a sequence of tuples, one per interval between entries in
-        cuts, of form (start, width, weight), where start is an entry in cuts
-        (and is not the last), width is the next entry minus start and weight
-        is the number of entries in self between these two entries, divided by
-        width.\n"""
+        Returns a sequence of tuples, one per interval between entries in cuts,
+        of form (start, width, weight), where start is an entry in cuts (and is
+        not the last), width is the next entry minus start and weight is the
+        averaged density in this interval.  When blur is 0, weight is simply the
+        number of self's entries in the interval, divided by width.\n"""
 
         cuts = tuple(cuts) # to consume an iterator once
-        idx, wide = self.partition(cuts), 1 + 2 * blur
+        idx, wide = tuple(self.partition(cuts)), 1 + 2 * blur
         weigh, gaps = self.__diff(idx, wide), self.__diff(cuts, wide)
         # Missing blur lower-blur intervals at each end:
         while wide > 1:
@@ -73,7 +71,7 @@ class Sample (Tuple):
 
         return tuple(zip(cuts[:-1], self.__diff(cuts),
                          # density in each interval:
-                         [x / y for x, y in zip(weigh, gaps)]))
+                         [x * 1. / y for x, y in zip(weigh, gaps)]))
 
     def density(self, n):
         """Compute density using a moving interval.
