@@ -404,7 +404,9 @@ http://antwrp.gsfc.nasa.gov/apod/ap010901.html
 The strength of Earth's magnetic field appears to be decreasing at about 5% per
 century at present, though its average over the last 2500 years is more like
 1.6% per century: http://www.spectrum.ieee.org/nov06/4708
-""")),
+"""),
+                      # https://en.wikipedia.org/wiki/Magnetopause#cite_note-13
+                      moment = Quantity(7.90627, Tesla / metre**3)),
     mass = 5.976e24 * kg,
     density = 5.518 * kg / litre,
     age = 1e17 * second, # Nuffield, approx
