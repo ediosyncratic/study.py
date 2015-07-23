@@ -51,11 +51,10 @@ def fibonacci(what, was=0, result=1):
     first two entries to be 1: this helpfully matches what we get here, since
     f(2) = f(1) + f(0) = 1 + 0 = 1.
 
-    Performs its calculations assuming its data to be integers, so handles
-    overflow by coercing values to indefinite-precision integers (Python's long
-    integer type).  If actual initial values are floats, this handling of
-    overflow is probably wrong; you may be better off using
-    study.value.bigfloat.BigFloat()s.\n"""
+    Performs its calculations naively: if the initial values are int or long,
+    python shall naturally switch to long rather than overflow.  If you supply
+    floats for the initial values, a large enough index may overflow - you may
+    be better off using study.value.bigfloat.BigFloat()s.\n"""
 
     if -1 < what < 1: return was
     while what > 1:
