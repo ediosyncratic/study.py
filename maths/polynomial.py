@@ -309,14 +309,17 @@ class Polynomial (Lazy):
         if isinstance(val, oktypes):
             try:
                 if val.imag: return val
-                val = val.real
-            except AttributeError: pass # not complex:
-            if val == int(val): return int(val)
-            return val
+
+                val = val.real # complex, but real none the less
+            except AttributeError: pass # not complex
+            v = int(val)
+            return v if v == val else val
+
         elif hasattr(val, '__add__') and hasattr(val, '__mul__'):
             # This means we can use polynomials as coefficients ...
             # likewise, linear maps, &c.
             return val
+
         else: raise invalidCoefficient
 
     def __store(self, power, coeff, g=get_coeff):
@@ -332,6 +335,7 @@ class Polynomial (Lazy):
     @staticmethod
     def __iswhole(k, i=(int, long)): return isinstance(k, i)
 
+    def __len__(self): return len(self.__coefs)
     def _lazy_get_rank_(self, ignored):
         """The highest power present in self.
 
@@ -920,13 +924,10 @@ class Polynomial (Lazy):
 
         for key in keys:
             assert top > key
-            while top > key:
-                result, top = result * arg, top - 1
-
+            result *= pow(arg, top - key)
+            top = key
             result += self.__numerator(key)
-
-        while top > 0:
-            result, top = result * arg, top - 1
+        if top: result *= pow(arg, top)
 
         if om is not None:
             r = result / om
@@ -1137,9 +1138,8 @@ class Polynomial (Lazy):
                                    for k in bok)))
 
     def __istiny(self, scale=1, maxrank=0):
-        if self.rank > maxrank: return None
-        if self.rank < 0 or self._bigcoef < scale * 1e-6: return 1
-        return None
+        if self.rank > maxrank: return False
+        return self.rank < 0 or self._bigcoef < scale * 1e-6
 
     def _lazy_get_factors_(self, ignored):
         """self == product(self.factors)"""
