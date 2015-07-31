@@ -473,23 +473,23 @@ class Polynomial (Lazy):
         return tuple(keys)
 
     def __add__(self, other):
-        try: sum, den = other.__coefs.copy(), other.__denom
-        except AttributeError: sum, den = {0: other}, None
+        try: tot, den = other.__coefs.copy(), other.__denom
+        except AttributeError: tot, den = {0: other}, None
         om = self.__denom
         if om is None: denom = den
         else:
             if den is None: denom = om
             else: denom = den * om
-            for k in sum.keys(): sum[k] *= om
+            for k in tot.keys(): tot[k] *= om
         if den is None: den = 1
 
         for k, v in self.__coefs.items():
             prod = v * den
-            try: was = sum[k]
-            except KeyError: sum[k] = prod
-            else: sum[k] = was + prod
+            try: was = tot[k]
+            except KeyError: tot[k] = prod
+            else: tot[k] = was + prod
 
-        return self.fromMap(sum, denom)
+        return self.fromMap(tot, denom)
 
     __radd__ = __add__
     def __pos__(self): return self
