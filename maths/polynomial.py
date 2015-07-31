@@ -304,7 +304,9 @@ class Polynomial (Lazy):
             raise unNaturalPower(power)
 
         if coeff: self.__coefs[power] = g(coeff)
-        else: self._zero = g(coeff)
+        else:
+            try: self._zero = g(coeff)
+            except invalidCoefficient: pass
     del get_coeff
 
     @staticmethod
@@ -481,9 +483,11 @@ class Polynomial (Lazy):
             for k in sum.keys(): sum[k] *= om
         if den is None: den = 1
 
-        zero = self._zero
         for k, v in self.__coefs.items():
-            sum[k] = sum.get(k, zero) + v * den
+            prod = v * den
+            try: was = sum[k]
+            except KeyError: sum[k] = prod
+            else: sum[k] = was + prod
 
         return self.fromMap(sum, denom)
 
@@ -542,7 +546,7 @@ class Polynomial (Lazy):
             if den is None: den = 1
 
         o = other.__numerator(top)
-        q = self.fromSeq((self._zero,))
+        q = self.power(0, self._zero)
         if top == 0:
             return self._polynomial_(((k, den * v) for k, v in self.__coefs.items()),
                                      o * (self.__denom or 1)), q
@@ -804,10 +808,14 @@ class Polynomial (Lazy):
         if f is the result without them, when they're specified the result is f
         - f(start) + base.  See delta for the inverse operation.\n"""
 
-        ans = sum((v * self.PowerSum(k) for k, v in self.__coefs.items()),
-                  self.fromSeq((self._zero,)))
+        ps = (v * self.PowerSum(k) for k, v in self.__coefs.iteritems())
+        try: ans = ps.next()
+        except StopIteration: ans = self.power(0, self._zero)
+        else: ans = sum(ps, ans)
+
         om = self.__denom
         if om is not None: ans /= om
+
         if start: ans -= ans(start)
         if base: ans += base
         return ans
