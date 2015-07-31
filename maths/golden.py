@@ -46,6 +46,11 @@ golden = Quantity((1 + 5.**.5) / 2,
 This is the positive solution to the quadratic equation x*x = x+1; divide -1 by
 it to get the negative solution.  One can re-write the equation as (2*x-1)**2 =
 4*x*x -4*x +1 = 4*(x*x-x) + 1 = 5, whence the solutions are (1 +/- 5**.5)/2.
+
+A rectangle whose long side is this times its short side has the property that,
+if your cut from it a square on a short side, the remainder rectangle, though
+smaller, has the same shape, i.e. ratio of long side (which was the original's
+short side) to short side (the difference between the original's sides).
 """)
 
 assert golden**2 == golden+1
