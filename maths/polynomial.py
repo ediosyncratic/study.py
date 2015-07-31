@@ -160,6 +160,20 @@ class Polynomial (Lazy):
         all are simply divided by the given denominator and the behaviour is as
         if no denominator were specified.
 
+        This last is defective for the case where coefficients represent linear
+        maps with whole-number co-ordinates, polynomials with whole-number
+        coefficients or rationals; these and kindred numeric types in
+        whole-number forms, optionally with whole-number denominators, should
+        also be treated as whole-numbered in some way, but this would involve
+        designing some non-trivial APIs (with the right level of generality,
+        without going overboard) by which they can hook into such
+        support.  Aside from this, reasonable care is taken to handle anything,
+        as coefficients, that supports the usual arithmetic operations; so
+        representations of endomorphisms, polynomials and more exotic things
+        should work, as far as is sensible for their types; however, this has
+        not been extensively tested, so you may need to fix implementations if
+        your coefficients are more interesting than plain numeric types !
+
         If variate is specified, and has a true value, it is used as the name of
         the variable in the polynomial's representations as a string: is should
         be a non-empty string and is used as the new instance's .variablename;
