@@ -22,6 +22,10 @@ class Polynomial (Lazy):
     a function), repeated integration (as <<) and differentiation (as >>), use
     as boolean (only the zero polynomial is false) and (lazy) hashing.
 
+    Display (with str and repr) is in the form of a lambda expression; the
+    variable name to use in this display is controlled by .variablename, which
+    is inherited (as 'z') from the class unless over-ridden on the instance.
+
     Lazy attributes:
     ===============
 
@@ -178,9 +182,10 @@ class Polynomial (Lazy):
         the variable in the polynomial's representations as a string: is should
         be a non-empty string and is used as the new instance's .variablename;
         the same effect can be achieved by setting .variablename after
-        instantiation.  By default, str() and repr() use 'z' as the variable,
-        but specifying an alternate name, e.g. 'x', by either of these means
-        shall substitute that name for the default.
+        instantiation (which permanently over-rides any variate passed to the
+        constructor).  By default, str() and repr() use 'z' as the variable, but
+        specifying an alternate name, e.g. 'x', by either of these means shall
+        substitute that name for the default.
 
         See also: the alternate constructors listed in the class doc.\n"""
 
@@ -429,9 +434,9 @@ class Polynomial (Lazy):
                 else: frag += '%s**%d' % (name, key)
 
             if not result: result = frag
-            elif frag[:1] == '-': result += ' ' + frag
+            elif frag[:1] in ('-', '+'): result += ' ' + frag
             else: result += ' +' + frag
-        assert result[:2] != ' +' and result[:1] != ' '
+        assert not result.startswith(' +') and not result[:1].isspace()
 
         om = self.__denom
         if om is not None and om != 1:
