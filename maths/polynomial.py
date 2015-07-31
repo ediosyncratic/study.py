@@ -363,7 +363,7 @@ class Polynomial (Lazy):
         return self.hcf(others).rank == 0
 
     def _lazy_get_normalised_(self, ignored):
-        if self.rank < 0: raise ValueError, "Can't normalise zero"
+        if self.rank < 0: raise ValueError("Can't normalise zero")
         scale, om = self.__coefs[self.rank], self.__denom
         if om is None: om = 1
         if scale == om: return self
@@ -394,7 +394,7 @@ class Polynomial (Lazy):
 
     def __represent(self, names, depth, fmt=format,
                     ones=('1', '1.0', '(1+0j)'), mons=('-1', '-1.0', '(-1+0j)')):
-        if depth > 52: raise ValueError, "We're going to run out of names !"
+        if depth > 52: raise ValueError("We're going to run out of names !")
         while depth >= len(names):
             if names[-1][0] == 'a': names.append('Z')
             elif names[-1][0] == 'A': names.append('z')
@@ -540,9 +540,9 @@ class Polynomial (Lazy):
         try: top, den = other.rank, other.__denom
         except AttributeError:
             if other: other, top, den = self.power(0, other), 0, 1
-            else: raise ZeroDivisionError, other
+            else: raise ZeroDivisionError(other)
         else:
-            if top < 0: raise ZeroDivisionError, other
+            if top < 0: raise ZeroDivisionError(other)
             if den is None: den = 1
 
         o = other.__numerator(top)
