@@ -30,7 +30,7 @@ class Polynomial (Lazy):
     ===============
 
       rank -- highest power of the free variable with non-zero coefficient
-      normalised -- same polynomial scaled so rank's coefficient is 1
+      normalised -- same polynomial scaled so rank-power's coefficient is 1
       derivative -- result of differentiating the polynomial
       assquares -- decompose as sum of scaled squares and a remainder
       sign -- like cmp(self, 0) but None when ill-defined or variable
@@ -39,11 +39,12 @@ class Polynomial (Lazy):
       roots -- inputs at which the polynomial is zero (or very nearly so)
 
     The value of p.assquares is of form (bok, rem) with rem either zero or of
-    odd degree and p-rem equal to sum(x*x*v for (x, v) in bok.items()).
+    odd rank and p-rem equal to sum(x*x*v for (x, v) in bok.items()); each v is
+    a scalar.
 
     The value of sign may presently sometimes be None when it needn't be; I've
     yet to find an example, but the computation in use only deals with `easy
-    enough' cases.  Note that cmp() yields zero when the difference's sign is
+    enough' cases.  Note that cmp() returns zero when the difference's sign is
     None or zero; but == is true only when sign is zero (actual equality).
 
     Alternate constructors:
@@ -179,7 +180,7 @@ class Polynomial (Lazy):
         your coefficients are more interesting than plain numeric types !
 
         If variate is specified, and has a true value, it is used as the name of
-        the variable in the polynomial's representations as a string: is should
+        the variable in the polynomial's representation as a string: it should
         be a non-empty string and is used as the new instance's .variablename;
         the same effect can be achieved by setting .variablename after
         instantiation (which permanently over-rides any variate passed to the
@@ -718,12 +719,12 @@ class Polynomial (Lazy):
 
         Returns a pair n, d for which n/d is (at least a respactably good
         approximation to) exponent.  Favours factors of rank as factors of d,
-        since these are easier to cope with in .__root().  Thigs gives us as
-        good a chance as we can hope for at getting suitable fractional powers
-        of polynomials.\n"""
+        since these are easier to cope with in .__root().  This gives us as good
+        a chance as we can hope for at getting suitable fractional powers of
+        polynomials.\n"""
         if cls.__iswhole(exponent): return exponent, 1 # easy :-)
         n, d = rat(exponent * rank) # ValueError if not possible
-        i = hcf(n, rank) # preparing to the factor of rank back out again
+        i = hcf(n, rank) # preparing to take the factor of rank back out again
         if d * i < 0: i = -i
         return n // i, d * rank // i
 
@@ -966,7 +967,7 @@ class Polynomial (Lazy):
     from natural import sqrt
     def intassquare(n, s=sqrt):
         d, m, i = n, n, s(n)
-        # invariant: d**2 = m * n and i**2 < m
+        # invariant: d**2 = m * n and i**2 <= m
         while i > 1 < m:
             q, r = divmod(m, i**2)
             if r == 0:
