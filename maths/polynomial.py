@@ -681,15 +681,34 @@ class Polynomial (Lazy):
         return val ** exp
 
     def __root(self, num, mod=None, root=scalarroot, rat=ratcom):
-        """Solves self = ans ** num for a num-th root of self."""
-        # TODO: support equality modulo mod (difficult):
-        # ans**num == self + p * mod for some p
-        # (no need to consider adding a multiple of mod to ans, that would just
-        # frob p).
-        if mod is not None: raise NotImplementedError # sorry :-(
+        """Solves self = ans ** num for a num-th root of self.
+
+        Bug: presently ignores its second parameter, mod; should implement
+        solving its problem modulo this, if non-None; but that's
+        non-trivial.  Needs ans**num == self + p * mod for some p (no need to
+        consider adding a multiple of mod to ans, that would just frob p).
+        """
+        if num < 0:
+            if self.rank < 0:
+                raise ValueError("Zero polynomial isn't an inverse power", num, self)
+
+            if self.rank > 0:
+                raise ValueError("Non-constant polynomial isn't an inverse power", num, self)
+
+            # OK, self is just a number, we can inverse-power it:
+            n, d, p = self.__coefs[0], self.__denom, -1. / num
+            d = 1 if d is None else d ** p
+            # Express result as a poly, even though it's really just a number:
+            return self.power(0, d, n ** p)
+
+        if not num: # The only self == ans ** 0 is self == 1:
+            d = self.__denom
+            if not self.rank and self.__coefs[0] == (1 if d is None else d):
+                return self.power(0) # any non-zero poly will do
+            raise ValueError('Only 1 is the 0-th power of anything', num, self)
 
         top, res = divmod(self.rank, num)
-        if num <= 0 or res: raise ValueError(num, mod, self)
+        if res: raise ValueError(num, mod, self)
 
         res = root(self.coefficient(self.rank), 1. / num, num % 2)
         try:
