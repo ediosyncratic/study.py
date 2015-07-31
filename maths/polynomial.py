@@ -571,7 +571,7 @@ class Polynomial (Lazy):
             assert r.rank < got
             got = r.rank
 
-        # assert r == self - q * other # tends to fail on small errors
+        assert self.__close_enough(r + q * other)
         return q, r
 
     from continued import rationalize
@@ -1087,6 +1087,16 @@ class Polynomial (Lazy):
         if self.__denom is None: scale = 1
         else: scale = 1. / abs(self.__denom)
         return max(abs(i) for i in self.__coefs.values()) * scale
+
+    def __close_enough(self, other, tol=1e-6):
+        """Tests whether self and other are equal to within plausible rounding."""
+        try: tot, den = other.__coefs, other.__denom
+        except AttributeError: tot, den = {0: other}, None
+        bok, siz = self.__coefs, self.__denom
+        return (set(tot) == set(bok) and
+                all(abs(me - yo) < tol * (abs(me) + abs(yo))
+                    for me, yo in ((bok[k] * den, tot[k] * siz)
+                                   for k in bok)))
 
     def __istiny(self, scale=1, maxrank=0):
         if self.rank > maxrank: return None
