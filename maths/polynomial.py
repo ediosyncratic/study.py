@@ -92,6 +92,35 @@ class Polynomial (Lazy):
 
     See individual methods' docs for details.\n"""
 
+    __private_member_doc = """Private members: __coefs and __denom
+
+
+    The polynomial represented is
+
+        lambda x: sum(c * x**n for n, c in .__coefs.items()) / .__denom
+
+    except that a value of None for .__denom is used to encode a value of 1,
+    skipping the need for the division.  I presently entertain the delusion that
+    the code avoids some unnecessary work when .__denom is None, but it is
+    possible that using 1 would be just as efficient while saving a bunch of
+    mess implied in checking for None and treating it specially.
+
+    Separating out the denominator makes it possible to retain the full
+    precision of integer arithmetic, without any floating point rounding
+    artefacts.  This matters for the many polynomials that, although they have
+    non-whole rational coefficients, none the less map whole number inputs to
+    whole number outputs.  The returns from .Chose() and .PowerSum() illustrate
+    this.  Deferring division by the denominator until all other computation is
+    finished ensures that we get whole number answers when we should.  It
+    incidentally also ensures that we retain as much precision as possible even
+    when the answer has a fractional part.
+
+    While it is usual for .__denom to be a whole number, it is perfectly
+    reasonable for it to be a real or complex value: this lets us retain whole
+    number coefficients (and operate precisely with them) while deferring the
+    floating point computation to the last possible moment.
+"""
+
     def __init__(self, coeffs, denominator=None, variate=None):
         """Constructor.
 
@@ -141,10 +170,6 @@ class Polynomial (Lazy):
 
         See also: the alternate constructors listed in the class doc.\n"""
 
-        if denominator is not None:
-            1. / denominator # raise suitable error if unsuitable as denominator !
-        self.__denom = denominator
-
         self.__coefs = {}       # dictionary with natural keys
         try:
             if coeffs is iter(coeffs): ps = coeffs
@@ -158,7 +183,11 @@ class Polynomial (Lazy):
             else: ps = coeffs.iteritems()
 
         for k, v in ps: self.__store(k, v)
-        self.__descale() # normalise .__denom
+
+        if denominator is None or denominator == 1: self.__denom = None
+        else:
+            1. / denominator # raise suitable error if unsuitable as denominator !
+            self.__descale(denominator) # normalise and set .__denom
 
         # self.__coefs and self.__denom should now be construed as immutable.
 
@@ -181,24 +210,40 @@ class Polynomial (Lazy):
 
         return self.fromMap(self.__coefs, denom, variate)
 
+    def ifint(v): # tool for __wholes
+        try: i = int(v)
+        except (TypeError, ValueError, ArithmeticError): pass
+        else:
+            if i and i == v: yield i
+
+    @staticmethod
+    def __wholes(cs, maybe=ifint):
+        for c in cs:
+            try: im, re = c.imag, c.real
+            except AttributeError:
+                for i in maybe(c): yield i
+            else:
+                for i in maybe(im): yield i
+                for i in maybe(re): yield i
+    del ifint
+
     from natural import gcd
-    def __descale(self, hcf=gcd):
+    def __descale(self, denom, hcf=gcd):
         """Eliminate common factor from denominator and whole coefficients.
 
-        Called after setting all coefficients from inputs.  After this call, the
-        instance should be deemed immutable: nothing should modify .__coeffs or
-        .__denom.
+        Called after setting all coefficients from inputs, if there is a
+        denominator by which to divide them; single argument is that
+        denominator.  After this call, the instance should be deemed immutable:
+        nothing should modify .__coeffs or .__denom.
 
-        When .__denom is not None, this method considers it in combination with
-        each whole number that appears as a real coefficient or as the real or
-        imaginary part of a complex one.  If none of these are whole, tracking a
-        denominator shall do us no good, so .__denom is set to None and all
-        coefficients are scaled by its prior value.  Otherwise, we compute the
-        highest common factor of .__denom and of the whole values found;
-        .__denom and all coefficients are scaled down by this factor; this
-        should not lead to any rounding errors.  If this results in .__denom
-        being reduced to 1, it is cleared to None (which is equivalent, but lets
-        many methods skip assorted complications).
+        This method considers denom in combination with each whole number that
+        appears as a real coefficient or as the real or imaginary part of a
+        complex one.  If none of these are whole, tracking a denominator shall
+        do us no good, so .__denom is set to None and all coefficients are
+        divided by denom.  Otherwise, we compute the highest common factor of
+        denom (in so far as it's whole) and of the whole values found; .__denom
+        is set to denom divided by this factor and all coefficients are divided
+        by it; this should not lead to any rounding errors.
 
         Note that no attempt is made to detect coefficients which might be
         rationals being poorly represented by reals; doing so would cause bugs
@@ -206,27 +251,38 @@ class Polynomial (Lazy):
         slightly different from actual rationals.  If reals are to be replaced
         by rationals, that's a job for the caller of the constructor.\n"""
 
-        d, w = self.__denom, False
-        if d is None: return
-        for c in self.__coefs.values():
-            try: im, re = c.imag, c.real
-            except AttributeError:
-                if c == int(c): d, w = hcf(c, d), True
-            else:
-                if im == int(im): d, w = hcf(im, d), True
-                if re == int(re): d, w = hcf(re, d), True
+        d = 0 # its hcf with any whole number is that number
+        for c in self.__wholes((denom,)):
+            d = hcf(c, d)
+
+        # If denom isn't whole (or a complex with some non-zero part whole) it's
+        # still desirable to track it *if* some coefficients have whole parts.
+
+        w = False # Do any coefficients have whole parts ?
+        for c in self.__wholes(self.__coefs.itervalues()):
+            d, w = hcf(c, d), True
             if w and d in (1, -1): break # pointless to continue
 
-        if w:
-            if d * self.__denom < 0: d = -d
-            if d != 1: self.__denom /= d
-            if self.__denom == 1: self.__denom = None
-        else: # nothing is whole
-            assert d is self.__denom
-            self.__denom = None
+        # TODO: we might have a complex with whole real and imaginary parts that
+        # we can divide all coefficients by without losing any wholeness; we've
+        # reduced d to the hcf of that factor's real and imaginary parts, where
+        # it would have been better to track that factor, at least if dividing
+        # denom by it wouldn't lose any wholeness.  Note that some whole
+        # multiples of such a complex whole value may be real whole values.
 
-        if d != 1:
+        self.__denom = None # We'll either divide out denom or revise this.
+        if w:
+            assert d
+            try: # to end up with +ve .__denom if we can:
+                if d * denom < 0: d = -d
+            except TypeError: pass # complex
+            if d != denom:  self.__denom = denom / d
+        else: d = denom # no wholeness among coefficients; just divide denom out
+
+        if d != 1: # we've already taken it into account in .__denom
             self.__coefs = dict((k, v / d) for k, v in self.__coefs.iteritems())
+
+        # Ideally we would now "freeze" .__coefs
 
     # Coefficients only require the ability to add, multiply and divmod.
     def get_coeff(val, oktypes=(int, long, float, complex)): # transient tool
