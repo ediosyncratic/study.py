@@ -364,10 +364,9 @@ class Polynomial (Lazy):
 
     def _lazy_get_normalised_(self, ignored):
         if self.rank < 0: raise ValueError("Can't normalise zero")
-        scale, om = self.__coefs[self.rank], self.__denom
-        if om is None: om = 1
-        if scale == om: return self
-        return om * self / scale
+        scale = self.__coefs[self.rank]
+        if scale == (self.__denom or 1): return self
+        return self.copy(scale)
 
     variablename = 'z' # over-ride to taste, on each instance
     def __repr__(self):
@@ -1084,9 +1083,9 @@ class Polynomial (Lazy):
         return tuple(r)
 
     def _lazy_get__bigcoef_(self, ignored):
-        if self.__denom is None: scale = 1
-        else: scale = 1. / abs(self.__denom)
-        return max(abs(i) for i in self.__coefs.values()) * scale
+        scale, big = self.__denom, max(abs(i) for i in self.__coefs.values())
+        if scale is not None: big *= 1. / scale
+        return big
 
     def __close_enough(self, other, tol=1e-6):
         """Tests whether self and other are equal to within plausible rounding."""
