@@ -59,6 +59,12 @@ class Polynomial (Lazy):
     study.chemy.atomic, study.maths.Legendre and study.maths.multiangle for
     examples.
 
+    Note that setting z = Polynomial.power(1) provides a `free variable' that
+    can then be used to generate polynomials the way they are commonly written;
+    Polynomial({0:1, 1:2, 3:4, 7:8}.iteritems()) can then simply be written
+    8*z**7 +4*z**3 +2*z +1.  Though less computationally efficient, this may be
+    easier to read.
+
     A few pseudo-constructor static and class methods are provided:
 
       _polynomial_(cs [, d, v]) -- instantiator, for derived classes to over-ride
@@ -132,10 +138,6 @@ class Polynomial (Lazy):
         instantiation.  By default, str() and repr() use 'z' as the variable,
         but specifying an alternate name, e.g. 'x', by either of these means
         shall substitute that name for the default.
-
-        Note that setting z = Polynomial.power(1) provides a `free variable' that
-        can then be used to generate polynomials the way many folk prefer; with
-        this, Polynomial.fromSeq((1,2,3)) can simply be written 3*z*z +2*z +1.
 
         See also: the alternate constructors listed in the class doc.\n"""
 
