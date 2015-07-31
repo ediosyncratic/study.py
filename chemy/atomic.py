@@ -37,9 +37,9 @@ class Hermite (Polynomial):
             for k in bok.iterkeys(): bok[k] *= b
             bok[n] = v // a
 
-        return bok
+        return bok.iteritems()
 
-    def _lazy_get_scale_(self, ig, square=Polynomial((0,0,1))):
+    def _lazy_get_scale_(self, ig, square=Polynomial.power(2)):
         grand = (self * self).unafter(square)
         n, ans = grand.rank, 0
         while n > -1:
@@ -73,10 +73,10 @@ class Laguerre (Polynomial):
 
         assert last == 0
         e = gcd(*f)
-        return [x // e for x in f]
+        return enumerate(x // e for x in f)
     del factorial
 
-    def _lazy_get_scale_(self, ig, linear=Polynomial((0,1))):
+    def _lazy_get_scale_(self, ig, linear=Polynomial.power(1)):
         return ((self * linear)**2).Gamma ** .5
 
 del Polynomial, hcf

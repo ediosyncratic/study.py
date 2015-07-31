@@ -30,12 +30,12 @@ class Legendre (Polynomial):
         k.append(last)
 
         e = hcf(*k)
-        self.__upinit([x // e for x in k])
+        self.__upinit(enumerate(x // e for x in k))
 
     del hcf, factorial
 
     # The factor of sqrt(2.pi) actually belongs to the longitude.
-    def _lazy_get_scale_(self, ig, cosp=Polynomial((1,0,-1))):
+    def _lazy_get_scale_(self, ig, cosp=Polynomial.fromSeq((1,0,-1))):
         return (self**2 * cosp**self.__q).integral(-1, 0)(1) ** .5
 
 del Polynomial

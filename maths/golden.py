@@ -23,7 +23,7 @@ class Golden (object):
     first estimate for the next.\n"""
     def __iter__(self): return self
     from study.maths.polynomial import Polynomial
-    __x = Polynomial((0, 1))
+    __x = Polynomial.power(1)
     del Polynomial
     def __init__(self): self.__k = self.__p = 1
     def next(self):
