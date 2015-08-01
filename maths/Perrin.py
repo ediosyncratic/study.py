@@ -25,7 +25,7 @@ class Perrin (tuple):
         return cls(a, b, c)
 
     def __add__(self, other):
-        return self._perrin_(*[x +y for x, y in zip(self, other)])
+        return self._perrin_(*[x + y for x, y in zip(self, other)])
 
     def __mul__(self, other):
         a, b, c = self
@@ -42,7 +42,20 @@ class Perrin (tuple):
         return self.successor(n - 1, m, self)
 
     def successor(self, n=1, mod=None, step=(0, 0, 1)):
-        if n < 0: raise ValueError(n)
+        if n < 0:
+            # Implement negative power as positive power of inverse:
+            try: back = self.__invert[step]
+            except KeyError:
+                for k, v in self.__invert.iteritems():
+                    if v == step:
+                        back = k
+                        break
+                else:
+                    raise ValueError(n)
+            # TODO: of course, any power or product of keys or values in
+            # .__invert is also invertible.
+
+            n, step = -n, back
 
         step = self._perrin_(*step)
         if mod: step %= mod
@@ -62,10 +75,13 @@ class Perrin (tuple):
 
         return self
 
+    # identity (1, 0, 0) = (-1, 0, 1) * (0, 0, 1) * (1, 0, 1)
+    __invert = {(0, 0, 1): (-1, 1, 0), (1, 0, 1): (0, 1, -1), (0, 1, 1): (-1, 0, 1)}
+
     @classmethod
     def entry(cls, n, mod=None, start=(3, 0, 2), step=(0, 0, 1)):
         if n > 2: return cls._perrin_(*start).successor(n - 2, mod, step)[2]
-        elif n < 0: raise ValueError(n)
+        elif n < 0: return cls._perrin_(*start).successor(n, mod, step)[0]
         return start[n]
 
     # Support for .primal():
