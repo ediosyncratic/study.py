@@ -74,14 +74,14 @@ class Perrin (tuple):
         """Lazy cache dictionary for cycles modulo chosen primes.
 
         For any natural key, Perrin(3,0,2).successor(n, key) is a triple of
-        naturals less than key; there are at most key**3 distinct such triples
-        for natural n; this dictionary type auto-fills its instance[key] with
-        the sequence of Perrin(3, 0, 2).entry(n, key) values up to the first
-        point after the start where the next three entries are (mod key) 3, 0
-        and 2 (in that order).  Every natural n then has Perrin.entry(n, key) ==
-        instance[key][n % len(instance[key])].  If this is non-zero for any key
-        that divides n, then Perrin.entry(n, n) is non-zero (and n is
-        non-prime).
+        naturals less than key, for each natural n; there are at most key**3
+        distinct such triples for natural n; this dictionary type auto-fills its
+        instance[key] with the sequence of Perrin(3, 0, 2).entry(n, key) values
+        up to the first point after the start where the next three entries are
+        (mod key) 3, 0 and 2 (in that order).  Every natural n then has
+        Perrin.entry(n, key) == instance[key][n % len(instance[key])].  If this
+        is non-zero for any key that divides n, then Perrin.entry(n, n) is
+        non-zero (and n is non-prime).
 
         For the rationale behind this, see:
         http://www.solipsys.co.uk/new/FindingPerrinPseudoPrimes_Part2.html
@@ -140,12 +140,13 @@ class Perrin (tuple):
                 raise ValueError('Too many (more than 8) primes', ps)
             print "Initializing Perrin's factor table: may take a moment or twelve ..."
 
+            # First set up our mapping of bytes to tuples of primes:
             self.__subsets = tuple(tuple(p for i, p in enumerate(ps)
                                          if (1 << i) & byte)
                                    for byte in xrange(1 << len(ps)))
             assert self.__subsets[-1] == ps
 
-            # Initialise a bytearray from an iterator over 0 <= int < 256:
+            # Initialise bytearray from an iterator over 0 <= int < 256:
             return self.__upinit(self.__sieve(self.__subsets))
 
         __upget = bytearray.__getitem__
@@ -191,7 +192,7 @@ class Perrin (tuple):
         for the first few primes (those listed in the call to factor that
         initialises prods, which is a look-up table whose [n % len(prods)] entry
         lists the primes, of those listed, that divide n), using a cache to keep
-        track of the cycles that those primes give.\n"""
+        track of the cycles k falls into modulo each prime.\n"""
         ps = prods[n]
         assert all(n % p == 0 for p in ps)
         for p in ps:
