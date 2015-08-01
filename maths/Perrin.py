@@ -117,21 +117,72 @@ class Perrin (tuple):
             assert (Perrin(*ans[-3:]) * step) % key == start, (key, start, step, ans)
             return ans
 
-    def factors(*ps): # tool
-        """Divisors among ps of each natural < product(ps).
+    class Factors (bytearray):
+        """Encodes divisibility by up to eight primes.
 
-        Inputs should be distinct primes, typically an initial sub-sequence in
-        increasing order, factors(2, 3, 5, ...); result is a tuple F of tuples;
-        len(F) is the product of the given primes; for each i, F[i] lists the
-        inputs that divide i - and hence also i + k*len(F) for all k.  The
-        number of () entries in F (the F[i] for which i + k*len(F) might be
-        prime for some k) is the product(p - 1 for p in ps).\n"""
-        return tuple(tuple(p for p in ps if n % p == 0)
-                     for n in range(reduce(lambda x, y: x * y, ps, 1)))
+        Multiply together the primes in question to get how many bytes we'll be
+        taking up for this; for just the first eight primes, this is 4,594,590
+        (4.4 MiB) and it'll be vastly bigger (about 1 TiB) for the next eight,
+        should you ever chose to go there.  (But this can cope with less than
+        eight; if you just go to the next five, you'll only need 13.9 MiB.)
+
+        Initialising for primes in ps, in each byte we set bit 1 << i precisely
+        if ps[i] is a divisor of the byte's index into the array.  We can then
+        overload indexing to reduce index mod our product of primes, fetch our
+        byte at the resulting index and return a tuple of those primes for which
+        the corresponding bit in the byte are set.  We can precompute a look-up
+        table of all the tuples that can arise from distinct bytes and use the
+        byte we found at our reduced index to select the right such tuple.\n"""
+
+        __upinit = bytearray.__init__
+        def __init__(self, *ps):
+            if len(ps) > 8: # number of bits in a byte
+                raise ValueError('Too many (more than 8) primes', ps)
+            print "Initializing Perrin's factor table: may take a moment or twelve ..."
+
+            self.__subsets = tuple(tuple(p for i, p in enumerate(ps)
+                                         if (1 << i) & byte)
+                                   for byte in xrange(1 << len(ps)))
+            assert self.__subsets[-1] == ps
+
+            # Initialise a bytearray from an iterator over 0 <= int < 256:
+            return self.__upinit(self.__sieve(self.__subsets))
+
+        __upget = bytearray.__getitem__
+        def __getitem__(self, ind):
+            return self.__subsets[self.__upget(ind % len(self))]
+
+        @staticmethod
+        def __sieve(subs): # partial Eratosthenes
+            """Iterate over divisibility bit-masks.
+
+            Takes one argument, the tuple of sub-tuples of ps, whose [n] entry
+            includes ps[i] precisely if bit 1 << i is set in n; the last entry
+            in this is ps.  After n yields from this, the next has bit 1 << i
+            set precisely if ps[i] divides n.\n"""
+
+            ps = subs[-1]
+            # Lookup for byte to represent tuple of primes whose ticker has hit 0:
+            bits = dict((t, b) for b, t in enumerate(subs))
+            yield bits[ps] # for 0
+
+            # After n yields, (n + tick[i]) % ps[i] is 0, for each i.
+            # So the period of each ticker is the matching entry in ps.
+            tick = [p - 1 for p in ps]
+            while any(tick): # until all are zero, after product(ps) yields
+                i, ws = len(tick), []
+                while i > 0:
+                    i -= 1
+                    if tick[i]: tick[i] -= 1
+                    else:
+                        ws.insert(0, ps[i])
+                        tick[i] = ps[i] - 1
+
+                yield bits[tuple(ws)]
 
     @staticmethod
     def __primal(n,
-                 prods=factors(2, 3, 5),
+                 prods=Factors(2, 3, 5, 7, 9, 11, 13, 17),
                  cache=CycleCache()):
         """Pre-test easy factors of n for evidence that n is not primal.
 
@@ -141,7 +192,7 @@ class Perrin (tuple):
         initialises prods, which is a look-up table whose [n % len(prods)] entry
         lists the primes, of those listed, that divide n), using a cache to keep
         track of the cycles that those primes give.\n"""
-        ps = prods[n % len(prods)]
+        ps = prods[n]
         assert all(n % p == 0 for p in ps)
         for p in ps:
             pat = cache[p]
@@ -149,7 +200,7 @@ class Perrin (tuple):
 
         return True # we haven't ruled n out, but this really means "maybe"
 
-    del factors, CycleCache
+    del Factors, CycleCache
 
     @classmethod
     def primal(cls, n):
