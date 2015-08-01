@@ -75,13 +75,18 @@ class Perrin (tuple):
 
         For any natural key, Perrin(3,0,2).successor(n, key) is a triple of
         naturals less than key, for each natural n; there are at most key**3
-        distinct such triples for natural n; this dictionary type auto-fills its
-        instance[key] with the sequence of Perrin(3, 0, 2).entry(n, key) values
-        up to the first point after the start where the next three entries are
-        (mod key) 3, 0 and 2 (in that order).  Every natural n then has
-        Perrin.entry(n, key) == instance[key][n % len(instance[key])].  If this
-        is non-zero for any key that divides n, then Perrin.entry(n, n) is
-        non-zero (and n is non-prime).
+        distinct such triples; so some 0 < n <= key**3 must repeat a triple
+        we've seen before.  Since the iterator can be wound backwards from where
+        we saw it before to the start, doing the same to our repeat must in fact
+        get us a 0 < n <= key**3 that repeats the initial (3,0,2) triple.  As
+        our sequence of triples thus cycles, so does k[n] % key.
+
+        This dictionary type auto-fills its instance[key] with the sequence of
+        k[n] % key = Perrin(3, 0, 2).entry(n, key) values up to the first point
+        after the start where the next three entries are (mod key) 3, 0 and 2
+        (in that order).  Every natural n then has k[n] % key == instance[key][n
+        % len(instance[key])].  If this is non-zero for any key that divides n,
+        then Perrin.entry(n, n) is non-zero (and n is non-prime).
 
         For the rationale behind this, see:
         http://www.solipsys.co.uk/new/FindingPerrinPseudoPrimes_Part2.html
