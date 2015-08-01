@@ -19,7 +19,7 @@ class Perrin (tuple):
     m).\n"""
     __upnew = tuple.__new__
     def __new__(cls, a, b, c): return cls.__upnew(cls, (a, b, c))
-    def __init__(self, a, b, c): return
+
     @classmethod
     def _perrin_(cls, a, b, c):
         return cls(a, b, c)
