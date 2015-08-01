@@ -107,12 +107,14 @@ class Perrin (tuple):
                 seq.extend(trip)
                 # Check for cycling:
                 for ind in (-5, -4, -3):
+                    ind += len(seq)
                     if tuple(seq[ind:ind+3]) == start:
                         seq, run = seq[:ind], False
                         break
 
             # Perrin.entry(n, key) == seq[n % len(seq)] for every natural n
             self[key] = ans = tuple(seq)
+            assert (Perrin(*ans[-3:]) * step) % key == start, (key, start, step, ans)
             return ans
 
     def factors(*ps): # tool
