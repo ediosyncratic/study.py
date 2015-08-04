@@ -5,13 +5,16 @@ definition (e.g. it's a primitive quantity such as a unit, physical constant or
 property of a particular entity) or by formula in terms of others, supports
 being told what values have experimentally been found for it, but doesn't need
 any of these concrete values in the creation of the object.  Change data-supply
-to parse files (one per source, potentially using custom parsers) in which each
-quantity for which the source gives a value is told the values given by that
-source.  In particular, each particle, planet, element etc. comes into being
+to consult data-sources (e.g. DBpedia and other Open Data, along perhaps with
+some local files) and load data into the quantities for which they supply
+values.  In particular, each particle, planet, element etc. comes into being
 with such quantities as the values for its mass, charge, etc., with no value
 given; but (for example) an element's atomic number, or an isotope's number of
-neutrons, shall be an actual value ab initio.  Prototype by converting
-chemy.element first; see its TODO.
+neutrons, shall be an actual value ab initio.  This may involve different ways
+of extracting data from each source: custom parsers for specific files,
+appropriate protocol and semantics-groking code for Open Data sources.  Probably
+prudent to support local caching of any data fetched from remote
+sources.  Prototype by converting chemy.element first; see its TODO.
 
 TODO: FIXME: support complex numbers.  Presently, things like .iExp (on an
 angle) think they do, but produce Sample objects with complex keys; and the

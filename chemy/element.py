@@ -10,8 +10,9 @@ variants.  I chose to take the former description seriously and fake the latter.
 
 For data, see (inter alia): http://www.webelements.com/
 
-TODO: convert to use a minimalist constructor with source-specific data-supply
-methods; this module can be converted with minimal entanglement with others.
+TODO: convert to use a minimalist constructor with hooks by which to be supplied
+with data from diverse sources (e.g. Open Data sets, ad hoc files); this module
+can be converted with minimal entanglement with others.
 
 See study.LICENSE for copyright and license information.
 """
