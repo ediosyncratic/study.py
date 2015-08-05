@@ -28,12 +28,18 @@ class Perrin (tuple):
         return self._perrin_(*[x + y for x, y in zip(self, other)])
 
     def __mul__(self, other):
+        """Multiplication modulo x**3 = x +1 of [0] +[2]*x +[1]*x*x
+
+        This leads to (a +c*x +b*x*x)*(u +w*x +v*x*x) = a*u +(a*w +c*u)*x + (a*v
+        +c*w +b*u)*x*x +(c*v +b*w)*(x +1) +b*v*x*(x +1) = a*u +b*w +c*v +(a*v
+        +b*u +b*v +c*w)*x*x +(a*w +b*v +b*w +c*u +c*v)*x.\n"""
         a, b, c = self
         u, v, w = other
-        # 9 multiplies, 9 adds, all integer arithmetic
+        # 9 multiplies, 8 adds, all integer arithmetic
+        uv = u + v
         return self._perrin_(a * u + b * w + c * v,
-                             a * v + b * (u + v) + c * w,
-                             a * w + b * (w + v) + c * (u + v))
+                             a * v + b * uv + c * w,
+                             a * w + b * (v + w) + c * uv)
 
     def __mod__(self, m):
         return self._perrin_(*[x % m for x in self])
