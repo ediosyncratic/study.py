@@ -456,6 +456,70 @@ class Body (Object):
 
         return Q(best, sample=row)
 
+    def _lazy_get_Stefan_(self, ignored):
+        """Data from which to compute self's temperature.
+
+        When self's heat derives from some other body, S, let r*radian be the
+        angle subtended, at self, by S's radius; then .Stefan is the twople of S
+        and the square root of r/2.  The fraction of self's celestial sphere
+        covered by S is just the square of r/2, so the number in the twople
+        ratio is the fourth root of this.  (That square of r/2 is the solid
+        angle of S's circle on the celestial sphere, pi.r.r, divided by the
+        total solid angle of the celestial sphere, 4.pi.)
+
+        If R is the distance from self to S, then r.R is the radius of S; if S
+        has temperature T, it radiates away power at sigma * T**4 * 4*pi *
+        (r*R)**2, where sigma is study.chemy.physics.Thermal.Stefan; at distance
+        R, this is spread evenly over an area 4*pi * R**2, so we get sigma *
+        T**4 * r**2 as the arriving power per unit area.  Let self's radius be
+        h; it covers an area pi * h**2 of that shall at distance R, so collects
+        sigma * T**4 * pi * (h*r)**2.  If self's temperature is t, then it
+        radiates away energy at sigma * t**4 * 4*pi * h**2; unless self is
+        generating energy from some other source, or saving it away in some kind
+        of a reservoir, these two power rates must be equal.  Cancelling the
+        common factor of sigma * pi * h**2, we're left with T**4 * r**2 = t**4 *
+        4 so that T/t is the fourth root of r*r/4, so the square root of r/2.
+
+        Ideally, we'd return S's temperature times the scale factor given here,
+        but there is no assurance that S has a temperature attribute (and it
+        might have it as .surface.temperature or simply as .temperature), so I
+        leave this for the client to sort out.\n"""
+
+        if isinstance(self, Star):
+            raise AttributeError("Generates its own heat", self)
+
+        try: S, R = self.centred(Star)
+        except ValueError as what:
+            raise AttributeError(*what.args)
+
+        r = S.surface.radius / R / 2
+        return S, r ** .5
+
+    def centred(self, cls=None, zero=0 * metre, about=Quantity.encircle):
+        """Finds what self orbits of a given kind, possibly via intermediaries.
+
+        Optional argument, cls, defaults to None which serves as surrogate for
+        Star (not defined when we declare this, but available for use by the
+        time it's run).  Chases .orbit.centre until it finds an instance of the
+        given type, raising ValueError if it never does.  (If self is of the
+        given type, it's found immediately and we stop on it.)  Returns the
+        given central body paired with self's distance from it, the last
+        .orbit.radius plus an error bar made of all earlier .orbit.radius
+        values.\n"""
+        if cls is None: cls = Star
+
+        S, R = self, zero
+        try:
+            while not isinstance(S, cls):
+                O = S.orbit
+                R = O.radius + about(R)
+                S = O.centre
+        except AttributeError:
+            raise ValueError("Doesn't orbit [a satellite of ...] one of those",
+                             self, S, cls)
+
+        return S, R
+
     def orbital(self, radius, ecce=0, tp=2*pi, S=Spin):
         """The spin of the relevant orbit.
 
@@ -608,7 +672,7 @@ class Galaxy (Body, Round):
     instance = {}
 
     def AtlasOfUniverseLG(self, name, (l, b), distance, diameter, type, alias, year):
-        pass
+        pass # TODO !
 
 # need a plural class to collect members together in a .parts thing.
 class Group (Object): instance = {} # of galaxies
