@@ -1341,3 +1341,21 @@ This (piecewise constantly) approximates a gaussian with mean zero and standard
 deviation 1.  It is intended for use with data which have been given as mean and
 standard deviation; multiply by the latter and add the former.
 """)
+
+Sample.encircle = Sample({ -.75: 2, -.25: 1, .25: 1, .75: 2 }, best=0,
+                         __doc__="""An error bar made of a circle.
+
+When a satellite orbits a planet that orbits a star, the radius of the
+satellite's orbit around the planet contributes some variability to the
+satellite's distance from the star, over and above the variability in the radius
+of the planet's orbit about the star.  This constant (times the radius of the
+satellite's orbit) encodes that extra variability.  Its extremes are +1 and -1,
+but we weight the interval between extremes by the proportion of the time the
+satellite spends in different positions around its orbit (approximated as
+circular).  Approximating that the planet's orbit is vastly bigger than its
+satellite's, this weights the diameter of the circle by the proportion of the
+circle that projects down to each part of the diameter, when projected normal to
+the diameter.  This gives infinite density at each extreme, but finite weight in
+each interval.  So we split into intervals delimited by cos(a) for various
+angles from -pi to 0 and give each a weight proportional to the change in a
+across it.\n""")

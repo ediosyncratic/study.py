@@ -1230,6 +1230,24 @@ class Quantity (Object):
         return cls(Sample.gaussish * sigma + mid, units, *args, **what)
 
     @classmethod
+    def encircle(cls, scale=1, units=Prodict(), *args, **what):
+        """Returns a zero-centred interval with weight derived from a circle.
+
+        For the simple unit-scaled version of this, the range of values is from
+        -1 to +1, with the weight in each interval between cos(a) and cos(b)
+        being b-a.  This is useful when scale is the radius of a circle on whose
+        circumference a value is uniformly distributed and we know our distance
+        from the circle's centre (assumed large compared to the radius); this is
+        the error bar that represents our distance from the point on the circle.
+
+        Useful in orbital mechanics for getting the variability of a satellite's
+        distance from the star orbitted by the planet the satellite orbits.\n"""
+        try: mid, un = scale._scale_units_()
+        except AttributeError: mid = scale
+        else: units = un * units
+        return cls(Sample.encircle * mid, units, *args, **what)
+
+    @classmethod
     def unit(cls, scale, units, nom, fullname, doc, **what):
         result = cls(scale, units, doc, **what)
         if nom: result.__short_name = nom # nowhere used (for now)
