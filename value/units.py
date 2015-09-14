@@ -281,6 +281,7 @@ second.arc = arc.second = arc.minute / 60
 
 # Miscelaneous SI-compatible units (c.f. SI.py), notably cm,g,s ones:
 gram, tonne = milli * kilogramme, kilo * kilogramme
+# TODO: FIXME: tonne displays as 1.00000000 (instead of 1) kilo kg :-(
 km, cm = kilo * metre, centi * metre
 cc = cm ** 3
 tex = gram / km # fineness of textiles
