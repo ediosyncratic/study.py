@@ -283,36 +283,40 @@ class Interpolator (Cached):
           base -- the number base to use; defaults to ten; must be an integer
                   and at least two.
           spike -- scale factor for use when best hits a big spike; defaults
-                   to 3e8 (see below).
+                   to 3e7 (see below).
 
-        Finds two integers, n and e, for which n*base**e is a suitable
-        rounding of best.  For these purposes: n*base**e is representative of
-        all values x for which n-.5 < x/base**e < n+.5 and, when n is even,
-        also of the values at the boundary of this range.  For any given
-        integer e, there is exactly one integer n for which n*base**e is
-        representative of best.  The suitable rounding of best chosen is
-        usually that for the greatest e for which less than half of self's
-        weight falls in the interval of values for which n*base**e is
-        representative.  However, if self's distribution has a spike at best,
-        carrying at least half self's weight, there is no such e.
+        Finds that exponent e for which the integer nearest best / base**e
+        has, as its digits, the siginficant digits of best, in the given
+        base.  Returns the twople (best, e), using the value actually used for
+        best (so None shall have been replaced by self's median) expressed as
+        a non-integral type (i.e. dividing it by a whole number, such as
+        base**e, won't round).
 
-        In that case (and *only* in that case): if best == 0, we use e = None;
-        otherwise, let c be the least integer for which base**c >
-        abs(best)/spike; if there is any e >= c-len(self) for which
-        best/base**e is an exact integer, the highest such e is chosen;
-        otherwise, e = c is used (to avoid giving huge numbers of digits,
-        particularly in the case where self is a simple spike).
+        For each natural i, let n(i) be the real interval of width 1 centred
+        on the integer closest to best / base**i; then b(i) = {r * base**i: r
+        in n(i)} is the interval about best represented by using n(i)'s
+        digits, with a suitable fractional part and exponent, to represent
+        best.  The chosen e is the greatest integer for which less than half
+        of self's weight falls in b(e), when there is some such e.
+
+        The only case where there is no such e is when at least half of self's
+        weight is in a spike *at* best.  Handling of this case is 'somewhat'
+        heuristic, tuned by spike.  If best is zero, we use e = None so that
+        the caller handles it as a special case.  Otherwise, we try the least
+        integer, e, for which best / base**e is smaller than spike *
+        base**len(self).  If the nearest integer to this is a multiple of
+        base, we increase e until that's no longer true (i.e. we discard
+        trailing zeros from our 'significant' digits; they may actually be
+        legitimate significant digits, but they're boring).
 
             The choice of 3e7 as default for spike arises because the metre is
             (now) so defined that the speed of light (in vacuum) is an exact
             integer in m/s; this integer is slightly less than 3e8 and the
-            len() of a simple spike at it is 1, so the above rule selects
-            c-len(self) = 0 in base 10 and allows for precise representation
-            of the speed of light.  I may change this default if we ever
-            redefine the kg to make either Newton's or Planck's constant take
-            some exact value.
-
-        Returns a tuple (best, e) where e is the chosen exponent.\n"""
+            len() of a simple spike at it is 1, so the above rule selects e =
+            0 in base ten and allows for precise representation of the speed
+            of light.  I may increase this default if we ever redefine the kg
+            to make either Newton's or Planck's constant take some exact
+            value.\n"""
 
         if base < 2 or long(base) != base:
             raise ValueError("Unworkable number base", base)
