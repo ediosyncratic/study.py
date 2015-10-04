@@ -697,10 +697,9 @@ class PiecewiseConstant (Interpolator):
             while t + 1 < len(seq) and seq[t + 1] <= seq[s]: t += 1
             if t == s + 1: w = weight
             else: w = weight * 1. / (t - s)
-            s += 1
-            while s <= t:
-                result[s] += w
+            while s < t:
                 s += 1
+                result[s] += w
         return s
 
     def weigh(self, seq, total=None):
