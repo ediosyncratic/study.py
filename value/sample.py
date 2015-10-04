@@ -389,7 +389,8 @@ class repWeighted (curveWeighted):
             assert digits.isdigit()
 
         ent += len(digits)
-        # so now 1 > estim / 10**ent >= .1;
+        assert estim * 10 >= 10**ent > estim, (estim, ent, digits)
+        # i.e. 1 > estim / 10**ent >= .1, but without the rounding problems ...
         # thus sign + '.' + digits + 'e%d' % ent would be a valid answer
 
         q, r = divmod(ent, group) # ent = group*q +r
@@ -399,6 +400,9 @@ class repWeighted (curveWeighted):
             q, r = q + 1, group - r
             digits = '0' * r + digits
             r = 0
+        elif r > len(digits): # exact single digit times power of ten
+            # We need at least r digits, to put '.' after them.
+            digits += '0' * (r - len(digits))
 
         if q:
             if self.interpolator.weigh((estim, estim), 2)[1] < 1: e = 'e'
