@@ -86,7 +86,7 @@ class Interpolator (Cached):
         result.  This base implementation splits self into count equal
         intervals; derived classes might chose to do something more
         sophisticated.\n"""
-        cuts = self.split([0] + [1] * count + [0])
+        cuts = self.split([0] + [1] * count + [0]) # TODO: don't blur spikes
         mass = self.weigh(cuts)
         assert not mass[0] and not mass[-1], (mass, cuts, self)
         return self._interpolator_(cuts, mass[1:-1])
@@ -325,6 +325,7 @@ class Interpolator (Cached):
         if best is None: best = self.split((1, 1))[0] # median
         best *= 1. # make sure it's not of an integral type
         if self.weigh((best, best), 2)[1] >= 1:
+            # Spke at best carries at least half the weight.
             ent = log(best / spike, base)
             if ent is None: return best, None
             ent -= len(self.mass)
@@ -339,8 +340,8 @@ class Interpolator (Cached):
         if hi < best: hi = best
 
         ent = log(hi - lo, base) # expon-ent
-        assert ent is not None, "lo, hi and best don't all coincide"
-        scale = base ** ent
+        assert ent is not None, "if lo, hi and best all coincide, all weight is there !"
+        scale = base ** ent # initially > hi - lo; we'll be narrowing this
         while True:
             near = self.__whole(best / scale)
             if self.weigh((scale * (near-.5), (near+.5) * scale), 2)[1] < 1:
@@ -678,9 +679,9 @@ class PiecewiseConstant (Interpolator):
           seq -- split-points between intervals weighed by result
           s -- position of spike in seq; seq[s] is at the spike
 
-        Returns the index, t, of the entry in result to which the weight of
-        intervals after spike should be added.  This is also the least t > s
-        for which seq[t] > seq[s], or len(seq) if there is no such t.
+        Returns the index, t, of the first entry in result to which any weight
+        from intervals after spike should be added.  This is also the least t
+        > s for which seq[t] > seq[s], or len(seq) if there is no such t.
 
         See Interpolator.weigh() for the requirements.  If s is the only index
         in seq that's at the spike, half of weight goes into each of result[s]
@@ -704,7 +705,7 @@ class PiecewiseConstant (Interpolator):
 
     def weigh(self, seq, total=None):
         result, load, cut = [ 0. ] * (1 + len(seq)), self.mass, self.cuts
-        if not self.total: return tuple(result)
+        if not self.total: return tuple(result) # trivial short-cut
         if len(load) < 2:
             # special case: only one weight, delta function.
             s = len([x for x in seq if x < cut[0]])
@@ -715,7 +716,7 @@ class PiecewiseConstant (Interpolator):
             else: result[s] = load[0]
         else:
             # sensible case where we have at least two weights.
-            i = s = 0 # we're processing size[i] for result[s]
+            i = s = 0 # we're processing load[i] for result[s]
             last = None # last seq point if in present cut-gap, else None
 
             try: # step over any entries in seq that precede all cuts
@@ -735,17 +736,18 @@ class PiecewiseConstant (Interpolator):
                             'Apparently, I incremented i in error'
                         s += 1 # and leave last alone ...
 
-                    elif stop < cut[1+i]:
+                    elif stop < cut[1+i]: # result[s] ends part-way through load[i]
                         if last is None: last = cut[i]
                         if stop > last:
                             result[s] += load[i] * (stop - last) / (cut[1+i] - cut[i])
                         last, s = stop, 1 + s
 
-                    elif cut[i] == stop == cut[i+1]:
+                    elif cut[i] == stop == cut[i+1]: # results[s] ends *at* load[i] spike
                         assert last is None
                         if s < 1 and seq[1] == stop: s += 1
                         else:
                             weight, i = load[i], i + 1
+                            # Any more spikes also at stop:
                             while i < len(load) and cut[i+1] == stop:
                                 weight += load[i]
                                 i += 1
@@ -753,7 +755,7 @@ class PiecewiseConstant (Interpolator):
                             s = self.__share(weight, result, seq, s)
                             assert s >= len(seq) or seq[s] > stop
 
-                    else:
+                    else: # result[s] gets the rest of load[i]:
                         if last is not None:
                             assert cut[i] <= last < cut[1+i]
                             result[s] += load[i] * (cut[1+i] - last) / (cut[1+i] - cut[i])
