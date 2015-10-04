@@ -227,32 +227,45 @@ class Interpolator (Cached):
         return self._interpolator_(cuts, mass)
 
     # Tools for round():
+    def wop(val, base, test):
+        """Greatest natural n: test(val, base**n)
+
+        Works only if test is s.t. dividing val by base reduces n by 1.\n"""
+        ps = [ base ]
+        while test(val, ps[-1]): ps.append(ps[-1]**2)
+        bit, ans = 1 << len(ps), 0
+        while ps:
+            bit >>= 1
+            p = ps.pop() # base ** bit
+            if test(val, p):
+                ans |= bit
+                val /= p
+                assert not test(val, p)
+
+        assert not test(val, base)
+        return ans, val
+
     @staticmethod
-    def __log(val, base):
+    def __debase(val, base, ask=wop):
+        """greatest natural n: base**n divides val"""
+        return ask(val, base, lambda v, b: not v % b)[0]
+
+    @staticmethod
+    def __log(val, base, ask=wop, low=lambda v, b: b < v):
+        """least int n: base**n > abs(val)"""
         # We only care about abs(val); and want it as a non-integral type:
         if   val < 0: val *= -1.
         elif val > 0: val *= 1.
         else: return None # surrogate for minus infinity
 
-        # If < 1, return -log(1/val) to simplify computation:
-        if val < 1: val, sign = 1 / val, -1
-        elif val > 1: sign = 1
-        else: return 0
+        # If < 1, compute -log(1/val) to simplify computation, then adjust:
+        if val < 1:
+            inv, val = ask(1 / val, base, low)
+            if val == 1: return 1 - inv
+            return - inv
 
-        ps = [ base ] # ps[i] = base**(2**i)
-        while ps[-1] < val: ps.append(ps[-1]**2)
-        bit, ans = 1 << len(ps), 0
-        while ps:
-            bit >>= 1
-            b = ps.pop() # base**bit
-            if val >= b:
-                ans |= bit
-                val /= b
-            assert val < b
-
-        assert base > val >= 1
-        if sign > 0: return 1 + ans * sign # round up
-        return ans * sign # effectively rounded up already
+        return 1 + ask(val, base, low)[0] # round up
+    del wop
 
     @staticmethod
     def __whole(val): # round to nearest, preferring even on a tie
@@ -313,11 +326,8 @@ class Interpolator (Cached):
             ent -= len(self.mass)
             scale = base**ent
             near = int(best / scale)
-            if scale * near == best:
-                while near:
-                    near, r = divmod(near, base)
-                    if r: break
-                    ent += 1
+            if scale * near == best: # trim trailing zeros from near's repr:
+                ent += self.__debase(near, base)
             return best, ent
 
         lo, hi = self.cuts[0], self.cuts[-1]
