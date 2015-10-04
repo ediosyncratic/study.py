@@ -457,7 +457,7 @@ class Interpolator (Cached):
         or class method.  When count is given, and not None, implementations
         should ensure that len() of the result is at least reasonably close to
         count.  See also: the normal property.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(cls.__name__)
 
     @property
     def normal(self):
@@ -467,7 +467,7 @@ class Interpolator (Cached):
         are the data one would supply to gaussian() to obtain a distribution
         similar to self; .gaussian(m,v).normal should return at least a
         reasonable approximation to (m,v).\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     @property
     def entropoid(self):
@@ -480,7 +480,7 @@ class Interpolator (Cached):
         unit of measurement, for the quantity whose distribution self
         describes, used in obtaining the entries in cuts.  See .dispersal for
         a scale-invariant alternative.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     def split(self, weights):
         """Cuts the distribution into pieces in the proportions requested.
@@ -492,7 +492,7 @@ class Interpolator (Cached):
         Returns a list, result, one entry shorter than weights, for which
         self.weigh(result, sum(weights)) == weights (give or take rounding
         errors).\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     def weigh(self, seq, total=None):
         """Integrates self's distribution between positions in a sequence.
@@ -517,7 +517,7 @@ class Interpolator (Cached):
         shared evenly between the intervals on either side, unless the spike
         value is repeated in seq, in which case all of the weight of the spike
         goes into the implied zero-width result interval.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     def __add__(self, other):
         """Merges two distributions.
@@ -534,7 +534,7 @@ class Interpolator (Cached):
 
         Where either has a spike, the sum shall also.  No normalisation should
         normally be performed.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     def __mul__(self, other):
         """Pointwise product with another distribution.
@@ -576,7 +576,7 @@ class Interpolator (Cached):
         scale factor to make .total be O(1).  Such a scaling also fixes some
         issues with the implicit dimensions of the weights; just be careful to
         adapt sensibly when any of the spans in question is zero.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
     def combine(self, func, *others):
         """Combine two interpolators.
@@ -594,7 +594,7 @@ class Interpolator (Cached):
         The result's length is the product of the lengths of self and all
         others; this is apt to be quite large.  Callers may benefit from
         calling .simplify(n) on the result, for some suitable n.\n"""
-        raise NotImplementedError
+        raise NotImplementedError(self.__class__.__name__)
 
 del Cached, postcompose
 
@@ -1109,12 +1109,12 @@ class PiecewiseConstant (Interpolator):
             contribute half its weight each to the first and middle entries of
             the triple; any spike at hi should contribute half its weight each
             to middle and third entries.\n"""
-            raise NotImplementedError
+            raise NotImplementedError(self.__class__.__name__)
 
         def meets(self, lo, hi):
             """Returns true if self has any weight between lo and hi.
             """
-            raise NotImplementedError
+            raise NotImplementedError(self.__class__.__name__)
 
     class Spike (Tile):
         @classmethod
