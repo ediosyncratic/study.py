@@ -603,8 +603,8 @@ class PiecewiseConstant (Interpolator):
         load, need = self.__bands(), weights[0]
         left, right, avail, wide, done = load.next()
         i = j = 1 # indexing into .mass and weights, respectively
-        while j < len(weights):
-            # We've eaten i-1 bands of self part of band i, which stretches
+        while True:
+            # We've eaten i-1 bands of self and part of band i, which stretches
             # from left to right, leaving avail spread across wide as the rest
             # of this band.  That eating enabled us to yield j-1 cut-points;
             # need remains of weights[j-1], before we can yield the next;
@@ -612,21 +612,21 @@ class PiecewiseConstant (Interpolator):
             # sum(.mass); but avoid pre-scaling either .mass or weights, as
             # rounding errors muck up the scaled values; compute a revised
             # scaling each time round the loop.
+            advance = False
             if done: # We've run out of .mass; hopefully also of need !
-                assert 1e-6 * sum(weights) > need
+                assert sum(weights) > need * 1e6
                 assert right is self.cuts[-1]
                 yield right
-                need = weights[j]
-                j += 1
+                advance = True
             else:
                 want = sum(weights[j:], need)
                 have = sum(self.mass[i:], avail)
                 # Modulo rounding: have may be zero, but only when want is.
                 if want and have:
-                    scale = want / have
+                    scale = want * 1. / have
                     bite = need / scale
                 else:
-                    assert have < 1e-6 * self.total and want < 1e-6 * sum(weights)
+                    assert have * 1e6 < self.total and want * 1e6 < sum(weights)
                     bite = scale = 0
 
                 if bite >= avail:
@@ -640,8 +640,12 @@ class PiecewiseConstant (Interpolator):
                     # Rest of avail is spread across remaining wide:
                     wide -= step
                     yield right - wide
-                    need = weights[j]
-                    j += 1
+                    advance = True
+
+            if advance:
+                try: need = weights[j]
+                except IndexError: break
+                j += 1
 
         assert abs(sum(self.mass[i:], avail) / self.total - need / sum(weights)) < 1e-6, (
             done, need, weights, left, wide, right, avail, i, self)
