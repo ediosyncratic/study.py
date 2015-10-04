@@ -67,7 +67,6 @@ class Interpolator (Cached):
     @lazyprop
     def span(self): return self.cuts[-1] - self.cuts[0]
     @lazyprop
-    @postcompose(tuple)
     def spikes(self):
         """Returns a tuple of self's degenerate values.
 
@@ -78,8 +77,7 @@ class Interpolator (Cached):
 
         Note that combining spikes with non-zero density intervals presents
         problems for analysis of correct behaviour.\n"""
-        for l, h, w in self.filter(lambda l, h, w: l == h):
-            yield h
+        return tuple(h for l, h, w in self if l == h)
 
     def simplify(self, count):
         """Returns a simplified version of self.
