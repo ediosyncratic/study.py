@@ -747,7 +747,7 @@ class PiecewiseConstant (Interpolator):
                         if s < 1 and seq[1] == stop: s += 1
                         else:
                             weight, i = load[i], i + 1
-                            while cut[i+1] == stop:
+                            while i < len(load) and cut[i+1] == stop:
                                 weight += load[i]
                                 i += 1
 
