@@ -188,6 +188,7 @@ dickers = 10 # *must* be a `corruption' of dix, arranging to *not* sound like `d
 score, shock, gross = 20, 60, 144 # c.f. Danish.{snes, skok, gros}
 timer = flock = 40
 greatgross = gross * dozen
+myriad = 1e4
 paper = Object(
     quire = Quantity(25, {}, short = 24), # baker's two-dozen ?
     ream = Quantity(500, {}, short = 480, perfect = 516)) # 43 * dozen
@@ -251,7 +252,11 @@ champagne.also(
 inch = 2.54e-2 * metre # from Latin, uncia, via OE ynce
 caliber = inch / 100
 barleycorn = inch / 3
-pica = barleycorn / 2 # CSS 2.1 spec
+pica = barleycorn / 2 # CSS 2.1 spec, the DTP point according to Wikipedia
+# printer's pica variants:
+# http://fontforge.github.io/en-US/documentation/reference/glossary/
+pica.US = 7 * cm / 16.6
+pica.didot = milli * metre / 2.66
 line = pica / 2 # inch / 12, c.f. French.line, Norse.linje, Swedish.linje
 hand = 4 * inch
 palmlength = 8 * inch
@@ -373,11 +378,16 @@ the race.
 """)
 
 point = Quantity(.25 / 3, pica, "The printer's point (a length).",
+                  # http://fontforge.github.io/en-US/faq/
+                  # claims "pica point" = inch / 72.27 (used in Anglophone fonts)
+                  # and "didot point" = inch / 67.54 (used in European fonts)
+                  # also "metric didot point" = .4 mm
                   silversmith=Quantity(.25e-3, inch,
                                         """The silversmith's point (a length).
 
 Contrast: point.jeweller - a mass.
 """),
+                  US = pica.US / 12,
                   arc = arc.point)
 shoe = Object(
     __doc__= "Units of thickness of leather in shoes.",
@@ -1005,6 +1015,7 @@ US = Object(gallon = gallon.US, quart = quart.US, pint = pint.US,
             floz = floz.US, pony = floz.US, jigger = 3 * floz.US / 2,
             firkin = firkin.US, hogshead = hogshead.US, barrel = barrel.US,
             bushel = bushel.US, peck = peck.US, pace = pace.US, cable = cable.US,
+            pica = pica.US, point = point.US,
             cwt = cwt.US, hundredweight = cwt.US, ton = ton.US, therm = therm.US)
 
 # Now, imagine being expected, in school, to memorise the UK share of that ...
