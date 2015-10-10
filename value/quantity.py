@@ -438,16 +438,17 @@ class Quantity (Object):
         help make it possible to del qSample and Prodict from this module's
         name-space, some day; and it also makes __init__ easier to read.)\n"""
 
-        # Using try allows Object()s that borrow() from Quantity()s work.
+        # Using try allows Object()s that borrow() from Quantity()s to work.
         try: s, u = units._scale_units_()
         except AttributeError: pass
         else:
             if isinstance(s, scalartypes) and s == 1: units = u
             else: scale, units = scale * s, u
 
+        if not isinstance(units, Bok): units = Bok(units)
+
         try: s, u = scale._scale_units_()
-        except AttributeError:
-            if not isinstance(units, Bok): units = Bok(units)
+        except AttributeError: pass
         else: units, scale = u * units, s
 
         # Massaging scale as a sample (so we can trust its str() to work).
