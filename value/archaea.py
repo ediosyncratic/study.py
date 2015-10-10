@@ -505,13 +505,40 @@ foot.Roman = Roman.foot
 foot.French = 4500 * metre / 13853	# pied de roi, French foot
 inch.French = foot.French / 12
 point.French = inch.French / 144        # hmm ... not inch / 72 ?
+# https://en.wikipedia.org/wiki/Pied_du_Roi
 French = Object(pied = foot.French,
                 # what're the right French names for inch, line, point ?
-                inch = inch.French,
-                line = inch.French / 12,
+                pouce = inch.French,
+                ligne = inch.French / 12,
                 point = point.French,
                 toise = 6 * foot.French,
-                arpent = (180 * foot.French)**2)
+                perche = 22 * foot.French, # Paris
+                arpent = 220 * foot.French, # or 180 in Quebec
+                amphora = foot.French ** 3,
+                acre = Quantity(1, (180 * foot.French)**2,
+                                """The arpent carr&eacute;
+
+The 180 foot side to a square of this area was called arpent in Quebec, at odds
+with 220 foot used as arpent in France.  This area also shows up in the US as a
+unit called 'arpent', just to confuse matters.
+"""))
+French.also(lieue = Object(
+        ancienne = myriad * foot.French,
+        Paris = 2000 * French.toise,
+        postes = 2200 * French.toise,
+        tarifaire = 2400 * French.toise),
+            pinte = French.amphora / 36)
+French.also(quade = 2 * French.pinte,
+            chopine = French.pinte / 2)
+French.also(velte = 4 * French.quade,
+            demiard = French.chopine / 2)
+French.also(quartot = 9 * French.velte,
+            posson = French.demiard / 2)
+French.also(feuillette = 2 * French.quartot,
+            roquille = French.posson / 4)
+French.muid = 2 * French.feuillette
+league.French = French.lieue
+fathom.French = French.toise
 
 # Archaic units of mass:
 grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
@@ -792,6 +819,7 @@ therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
 
 # Anglophone units of area (KDWB):
 acre = chain * furlong # consensus; mile**2/640.  From German/Norse: field
+acre.French = French.acre
 rood = acre / 4
 rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
 # US names for certain areas:
@@ -814,12 +842,14 @@ ton.also(displacement = 35 * foot.timber,
 
 # `fluid measure'
 gallon = Quantity(4.54609, litre, # 10 * pound / water.density
+                  French = French.velte,
                   wine = 3 * 11 * 7 * inch**3, # (aka US gallon) ancient encyclopaedia, K&L
                   beer = 2 * 3 * 47 * inch**3)
 quart = Quantity(1, gallon / 4,
                  wine = gallon.wine / 4,
                  beer = gallon.beer / 4)
 pint = Quantity(1, quart / 2,
+                French = French.pinte,
                 wine = quart.wine / 2, # 16.65 UK floz; 16 US ones.
                 beer = quart.beer / 2)
 gallon.US, quart.US, pint.US = gallon.wine, quart.wine, pint.wine
