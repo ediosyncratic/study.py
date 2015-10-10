@@ -617,7 +617,7 @@ class Quantity (Object):
 
     @staticmethod
     def __get_scale(value, units):
-        """Checks value the given units and returns its scalar.
+        """Checks value has the given units and returns its scalar.
 
         Arguments:
           value -- the value to be checked and extracted
@@ -633,7 +633,7 @@ class Quantity (Object):
         try:
             scale, un = value._scale_units_()
             if un != units:
-                raise TypeError(value._unit_str)
+                raise TypeError(value._unit_str, units)
             return scale
         except AttributeError:
             if units: raise TypeError()
