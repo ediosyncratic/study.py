@@ -697,7 +697,8 @@ def KLfamily(nm, lnom, lsym, lm, lme, lrate,
                   uQuark(pnom, mass=Quantity.within(pm, pme, kilo*mev)))
 
 # physicsworld article cited in class Neutrino says neutrino mass <= 1 eV;
-# that's less than the K&L's data, given here:
+# cosmological reasons suggest the sum of the three neutrino masses <= 0.3 eV;
+# both are less than the K&L's data, given here:
 table = ( KLfamily(4.6e-5, 'electron', 'e', .5110034, .0000014,
                    Quantity.below(1./6e28),
                    'down', 0.35, .005, 'up', 0.35, .005),
