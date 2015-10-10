@@ -130,8 +130,11 @@ Maximum solar total radiant power outside atmosphere at a distance of 1
 Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
 metre**2, or about 2%.  This radiant power corresponds to an astronomical
 apparent magnitude of -26.73 (it should be possible to work out the zero-point
-of the astronomical magnitude scale from this ...).  For the photon pressure
-due to this radiant power, see Sun.bright.pressure.
+of the astronomical magnitude scale from this ...).  For the photon pressure due
+to this radiant power, see Sun.bright.pressure.  For the corresponding neutrino
+flux, see Sun.bright.neutrino.  Both .bright and .bright.neutrino deserve to be
+multiplied by 4*pi*AU**2/steradian to get the more natural solar output per
+solid angle - regarless of distance - of each kind.
 
 The Earth's cross-section, the area relevant to this power supply, is a quarter
 of its surface area; multiplying that by the solar constant, Earth is receiving
@@ -140,22 +143,26 @@ dividing by the square of the speed of light, that's the energy-equivalent of 2
 kilogrammes per second.  Naively interpreting the energy-generation process as
 consisting of the direct conversion of Hydrogen(1) to Iron(56), with a mass
 defecit of half a gram per mole of Iron produced, this implies the production of
-4000 moles of Iron (from 224000 of Hydrogen) per second: thus Earth is the
-beneficiary of about a quarter tonne per second of the Sun's fuel being used up.
+4 kilo moles of Iron (from 224 k mol of Hydrogen) per second: thus Earth is the
+beneficiary of about a quarter tonne per second of the Sun's fuel being used
+up.  (The real figure shall be higher: the sun isn't presently burning all the
+way to iron, so take more raw materials only part way.)
 
 The total surface area of the sphere of radius one AU is 28e22 square metres
 (22e8 times Earth's cross-section, above), implying that the Sun's total power
-output is 390 yotta-Watts, the mass-equivalent of 4.4 million tonnes per second.
-This implies, assuming total conversion to Iron again, that the Sun consumes
-49e10 kg/s of its fuel - in the space of five millennia, this adds up to a
-little over the Moon's mass - and that, in the four giga-years it's been shining
-thus far, the Sun has consumed about 3 percent of its fuel, reducing its mass by
-about one part in three thousand.  The amount of iron produced (in this, I
-stress again, naive model) is nearly twelve thousand times the mass of the
-Earth; or over 25 times the mass of all the planets put together.
+output is 390 yotta-Watts, the mass-equivalent of 4.4 million tonnes per
+second. This implies, assuming total conversion to Iron again, that the Sun
+consumes 49e10 kg/s of its fuel - in the space of five millennia, this adds up
+to a little over the Moon's mass - and that, in the four giga-years it's been
+shining thus far, the Sun has consumed about 3 percent of its fuel, reducing its
+mass by about one part in three thousand.  The amount of iron produced (in this,
+I stress again, naive model) is nearly twelve thousand times the mass of the
+Earth; or over 25 times the mass of all the planets put together.  (A more
+realistic model turns Hydrogen into Helium, Carbon, Nitrogen and Oxygen, in
+larger quantities.)
 
 The gravitational potential energy stored in a uniform spherical body (due to
-gravitation attraction among its parts) is 3/5 of the obvious -G.M.M/R, with R
+gravitational attraction among its parts) is 3/5 of the obvious -G.M.M/R, with R
 its surface radius and M its mass; so that of the Sun is of order 2e41 Joules,
 equal to about 18 million years' worth of solar constant power output.  I
 compute 2.53 zetta tonnes mass-equivalent for this naive model, equivalent to
@@ -164,7 +171,15 @@ mass computed above from fusion.  In the course of pulling the Sun together, we
 should take account of the work done increasing its temperature and compressing
 it; but my crude sums indicate these are much smaller (of order exa tonnes).
 """,
-                           fullname = "Solar Constant"),
+                             fullname = "Solar Constant",
+                             neutrino=Quantity.fromDecimal(
+            65, units=10 * tera / metre**2, doc="""Solar neutrino flux at Earth.
+
+This just counts how many neutrinos cross unit area, facing the sun, at 1 AU,
+per unit time.  No account is taken of the energy or momentum distributions
+among these neutrinos.  They are roughly one third each of the three types of
+antineutrino.  See Sun.bright for related observations.
+""")),
 
     wind=Object(speed=Quantity.flat(.3, .8, .4, mega * metre / second),
                 # I suppose that's speed at the Sun or Earth and it slows on its
