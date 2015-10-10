@@ -455,7 +455,7 @@ class Quantity (Object):
         if not isinstance(scale, Spread):
             scale = Nice(best=scale)
         elif not isinstance(scale, Nice):
-            scale = Nice(scale)
+            scale = Nice.repack(scale)
 
         assert isinstance(scale, Nice) and isinstance(units, Bok)
         return scale, units
@@ -491,8 +491,7 @@ class Quantity (Object):
 
         what, unitstr = self.__scale, self._unit_str
         assert isinstance(what, qSample)
-        what = str(Sample(what.mirror, **what.dir))
-        return what, unitstr
+        return str(Sample.repack(what)), unitstr
 
     def document(self, doc):
         doc = self.__cleandoc(doc)
@@ -823,11 +822,11 @@ class Quantity (Object):
     def __str__(self): return self._full_str
     # short-form, e.g. 9.81 micro m.kg/s**2
     def _lazy_get__unit_str_(self, ignored): return self.unit_string()
-    def _lazy_get__number_str_(self, ignored): return str(self.__scale) or '?'
+    def _lazy_get__number_str_(self, ignored): return self.__scale._str or '?'
 
     def __repr__(self): return self._full_repr
     # valid python expression, full names: e.g. 9.81 * micro * metre*kilogramme / second**2
-    def _lazy_get__number_repr_(self, ignored): return `self.__scale`
+    def _lazy_get__number_repr_(self, ignored): return self.__scale._repr
 
     # __scale isn't mentioned after this
     def _lazy_get__quantity_stinu_bok_(self, ignored):
@@ -899,7 +898,7 @@ class Quantity (Object):
                    built by this routine: in particular, if given, it will be
                    joined to this unit representation by a suitable times or
                    divide operator.  If a non-string is given for scale, its
-                   repr() is used.
+                   str() is used.
           times, divide -- strings, default '.' and '/', to be used to denote
                            multiplication and division in compact texts,
                            e.g. kg.m/s.
