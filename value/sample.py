@@ -894,6 +894,17 @@ class Sample (Object):
         if smooth is None: return cls(weights, scale)
         return cls(weights, scale, smooth=smooth)
 
+    @classmethod
+    def repack(cls, inst):
+        """For use by a derived class to promote an instance of a base.
+
+        When inst isn't an instance of cls, but is an instance of Sample, this
+        method will give you an instance of cls that duplicates inst, assuming
+        cls has the same constructor signature as Sample, minus any borrowing
+        inst does from other objects.  Can equally be used on a base (based on
+        Sample) to demote an instance, in fact.\n"""
+        return cls(inst.mirror, **inst.dir)
+
     __upinit = Object.__init__
     def __init__(self, weights=None, *args, **what):
         # augment lazy aliases:
