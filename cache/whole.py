@@ -844,9 +844,9 @@ class CacheDir (Node, LockDir):
         for k in self.__listing:
             if k in skip:
                 # Should appear in skip and .__listing exactly once each:
-                assert len([s in skip if s == k]) == 1
-                assert len([h in self.__listing if h == k]) == 1
-                skip = [s in skip if s != k]
+                assert len([s for s in skip if s == k]) == 1
+                assert len([h for h in self.__listing if h == k]) == 1
+                skip = [s for s in skip if s != k]
                 continue
 
             ts.update(k.types)
@@ -987,7 +987,7 @@ class CacheDir (Node, LockDir):
             self.__upinit(get)
             self.__who, self.__att, self.__test = cdir, getseq, test
 
-        def __len__(self): return len([x in self.__att(self.__who) if self.__test(x)])
+        def __len__(self): return len([x for x in self.__att(self.__who) if self.__test(x)])
 
     @staticmethod
     def weaklisting(picker, W=WeakSubSeq, L=lazyprop):
