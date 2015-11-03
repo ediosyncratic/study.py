@@ -1727,7 +1727,7 @@ class WriteDir (WriteNode, CacheDir):
                     if (step < 0) == tidy:
                         i = len(node.listing) - 1
                     else: i = 0
-                del down
+                # del down # "syntax error" due to its use in any()'s expressions
 
             elif node.parent is None: tidy = False # root can't delegate
             else:
