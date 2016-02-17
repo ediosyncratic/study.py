@@ -77,7 +77,7 @@ class weakprop (propstore, recurseprop):
     __upget = recurseprop.__get__
     @decorate.overriding(__upget)
     def __get__(self, obj, cls=None, ref=weakref.ref):
-        if objs is None: return self
+        if obj is None: return self
         bok = self.cache(obj)
         try: f = bok[self]
         except KeyError: ans = None
