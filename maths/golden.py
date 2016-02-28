@@ -10,17 +10,16 @@ class Golden (object):
     The (n-1)-th golden ratio is the unique x with 1 <= x < 2 satisfying
         x**n = sum(x**i for i in range(n))
     The zeroth golden ratio has n-1 = 0 so n = 1, giving x = 1 trivially; the
-    first has n = 2 and is what's usually known as The Golden Ratio,
-    satisfying x*x = x + 1; subsequent yields of this iterator solve for a
-    power of x being the sum of all earlier powers.  It is fairly easy to
-    see that the solutions (for x > 0) lie between 1 and 2 and each is greater
-    than the previous.
+    first has n = 2 and is what's usually known as The Golden Ratio, satisfying
+    x*x = x + 1; subsequent yields of this iterator solve for a power of x being
+    the sum of all earlier powers.  It is fairly easy to see that the solutions
+    (for x > 0) lie between 1 and 2 and each is greater than the previous.
 
-    Although the first three ratios can be obtained analytically, the rest
-    solve polynomial equations of degree > 3, so I haven't even tried to solve
-    them that way; I use Newton-Raphson.  Given that they're an increasing
-    sequence between 1 and 2, the result from each provides a half-way decent
-    first estimate for the next.\n"""
+    Although the first three ratios can be obtained analytically, the rest solve
+    polynomial equations of degree > 3, so I haven't even tried to solve them
+    that way; I use Newton-Raphson.  Given that they're an increasing sequence
+    between 1 and 2, the result from each provides a half-way decent first
+    estimate for the next.\n"""
     def __iter__(self): return self
     from study.maths.polynomial import Polynomial
     __x = Polynomial.power(1)
