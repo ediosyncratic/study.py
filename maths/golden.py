@@ -13,7 +13,10 @@ class Golden (object):
     first has n = 2 and is what's usually known as The Golden Ratio, satisfying
     x*x = x + 1; subsequent yields of this iterator solve for a power of x being
     the sum of all earlier powers.  It is fairly easy to see that the solutions
-    (for x > 0) lie between 1 and 2 and each is greater than the previous.
+    (for x > 0) lie between 1 and 2 and each is greater than the previous.  Note
+    that the polynomial equation's right-hand side is just (x**n - 1) / (x - 1),
+    so the equation is almost equivalent to (x - 1) * x**n = x**n - 1 (but this
+    has 1 as an extra root that the original equation usually lacks).
 
     Although the first three ratios can be obtained analytically, the rest solve
     polynomial equations of degree > 3, so I haven't even tried to solve them
@@ -28,7 +31,7 @@ class Golden (object):
     def next(self):
         self.__p *= self.__x # a power of x
         k = 2 # sentinel: if self.__k gets to 2, we've converged !
-        # Newton-Raphson:
+        # Newton-Raphson to find a zero of f:
         f = self.__p - (self.__p - 1) / (self.__x - 1)
         g = f.derivative
         while k != self.__k:
