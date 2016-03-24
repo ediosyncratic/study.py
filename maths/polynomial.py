@@ -204,7 +204,7 @@ class Polynomial (Lazy):
         except (AttributeError, TypeError, KeyError): # non-sequence arg
             try: coeffs.items, coeffs.get(0, None) # is it a mapping ?
             except AttributeError:
-                raise TypeError('First argument must be mapping or sequence', coeffs)
+                raise TypeError('First argument should be iterable', coeffs)
             else: ps = coeffs.iteritems()
 
         v = 1. # fall-back if ps empty, for use when testing denominator
