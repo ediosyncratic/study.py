@@ -202,11 +202,12 @@ class Polynomial (Lazy):
                 raise TypeError('First argument must be mapping or sequence', coeffs)
             else: ps = coeffs.iteritems()
 
+        v = 1. # fall-back if ps empty, for use when testing denominator
         for k, v in ps: self.__store(k, v)
 
         if denominator is None or denominator == 1: self.__denom = None
         else:
-            1. / denominator # raise suitable error if unsuitable as denominator !
+            v / denominator # raise suitable error if unsuitable as denominator !
             self.__descale(denominator) # normalise and set .__denom
 
         # self.__coefs and self.__denom should now be construed as immutable.
