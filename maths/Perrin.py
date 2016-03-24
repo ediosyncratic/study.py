@@ -210,7 +210,7 @@ class Perrin (tuple):
 
     @staticmethod
     def __primal(n,
-                 prods=Factors(2, 3, 5, 7, 9, 11, 13, 17),
+                 prods=[Factors],
                  cache=CycleCache()):
         """Pre-test easy factors of n for evidence that n is not primal.
 
@@ -220,7 +220,12 @@ class Perrin (tuple):
         initialises prods, which is a look-up table whose [n % len(prods)] entry
         lists the primes, of those listed, that divide n), using a cache to keep
         track of the cycles k falls into modulo each prime.\n"""
-        ps = prods[n]
+        try: ps = prods[1]
+        except IndexError:
+            ps = prods[0](2, 3, 5, 7, 9, 11, 13, 17)
+            prods.append(ps)
+
+        ps = ps[n]
         assert all(n % p == 0 for p in ps)
         for p in ps:
             pat = cache[p]
