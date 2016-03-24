@@ -123,7 +123,12 @@ class Polynomial (Lazy):
     While it is usual for .__denom to be a whole number, it is perfectly
     reasonable for it to be a real or complex value: this lets us retain whole
     number coefficients (and operate precisely with them) while deferring the
-    floating point computation to the last possible moment.
+    floating point computation to the last possible moment.  However, if two
+    polynomials with non-whole denominators are added or subtracted (so this
+    also applies to divmod), the case where their denonimators are rationally
+    commensurate produces (for the same reason that non-whole real coefficients
+    aren't coerced to rational form - see constructor) a result with non-whole
+    coefficients and denominator None.
 """
 
     def __init__(self, coeffs, denominator=None, variate=None):
