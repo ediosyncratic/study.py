@@ -50,18 +50,7 @@ class Perrin (tuple):
     def successor(self, n=1, mod=None, step=(0, 0, 1)):
         if n < 0:
             # Implement negative power as positive power of inverse:
-            try: back = self.__invert[step]
-            except KeyError:
-                for k, v in self.__invert.iteritems():
-                    if v == step:
-                        back = k
-                        break
-                else:
-                    raise ValueError(n)
-            # TODO: of course, any power or product of keys or values in
-            # .__invert is also invertible.
-
-            n, step = -n, back
+            n, step = -n, self._perrin_(step).__invert()
 
         step = self._perrin_(*step)
         if mod: step %= mod
@@ -81,8 +70,70 @@ class Perrin (tuple):
 
         return self
 
-    # identity (1, 0, 0) = (-1, 0, 1) * (0, 0, 1) * (1, 0, 1)
-    __invert = {(0, 0, 1): (-1, 1, 0), (1, 0, 1): (0, 1, -1), (0, 1, 1): (-1, 0, 1)}
+    from study.maths.natural import hcf
+    from study.maths.ratio import Rational
+    def __invert(self,
+                 ratio=Rational, gcd=hcf,
+                 # We can iteratively scale by basis to reduce score:
+                 score=lambda t, R=Rational: R(abs(t[1]) + abs(t[2]), abs(t[0]) or 1),
+                 # Each value is the product of the other two keys:
+                 basis={(0, 0, 1): (-1, 1, 0),
+                        (1, 0, 1): (0, 1, -1),
+                        (-1, 0, 1): (0, 1, 1)}):
+        """Search for an inverse of self.
+
+        Only possible if self's entries' highest common factor is 1: see
+        http://www.chaos.org.uk/~eddy/math/Perrin.html#Invert\n"""
+
+        was = gcd(*self)
+        if was != 1:
+            raise ValueError('Invertible only if highest common factor is 1', self, was)
+
+        if not isinstance(basis.keys()[0], Perrin): # Upgrade basis on first call:
+            raw, P = basis.items(), self._perrin_
+            basis.clear()
+            basis.update((P(*k), P(*v)) for k, v in raw)
+
+        try: return basis[self]
+        except KeyError: pass # well, it was worth a try.
+
+        keys, counts = basis.keys(), [0, 0, 0]
+        was = score(self)
+        while was > 0:
+            ps = [self * x for x in keys]
+            sums = [score(p) for p in ps]
+            lo = min(sums)
+            if lo < was:
+                i = 0 if sums[0] == lo else 1 if sums[1] == lo else 2
+                self, was = ps[i], lo
+                counts[i] += 1
+            else: # try taking a second step:
+                ps = sum(([p * k for p in ps] for k in keys), [])
+                sums = [score(p) for p in ps]
+                lo = min(sums)
+                if lo < was:
+                    i = (j for j, s in enumerate(sums) if s == lo).next()
+                    self, was = ps[i], lo
+                    i, j = divmod(i, 3)
+                    counts[i] += 1
+                    counts[j] += 1
+                else:
+                    raise ValueError('Unable to refine towards inverse',
+                                     self, ps, keys, counts)
+            if all(counts):
+                lo = min(counts)
+                for i in range(3): counts[i] -= lo
+
+        assert not all(counts)
+        ps = (k ** c for k, c in zip(keys, counts) if c)
+        try: inv = ps.next()
+        except StopIteration: return self
+
+        for p in ps: inv *= p
+        if self[0] != 1: return self._perrin_(ratio(i, self[0]) for i in inv)
+        return inv
+
+    del Rational hcf
 
     @classmethod
     def entry(cls, n, mod=None, start=(3, 0, 2), step=(0, 0, 1)):
