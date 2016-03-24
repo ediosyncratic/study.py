@@ -437,6 +437,7 @@ class Polynomial (Lazy):
                 if frag in ones: frag = ''
                 elif frag in mons: frag = '-'
                 else:
+                    # TODO: avoid (...) if already present, but not e.g. (...)+(...)
                     if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
                         frag = '(' + frag + ')*'
                     else: frag += '*'
@@ -451,12 +452,14 @@ class Polynomial (Lazy):
 
         om = self.__denom
         if om is not None and om != 1:
+            # TODO: avoid (...) when redundant, as above
             if ' ' in result: result = '(' + result + ')/'
             else: result += '/'
             try:
                 if om.imag == 0: om = om.real
             except AttributeError: pass
             frag = str(om)
+            # TODO: avoid (...) when redundant, as above
             if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
                 result += '(' + frag + ')'
             else: result += frag
