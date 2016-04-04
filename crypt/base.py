@@ -179,6 +179,11 @@ when speaking of this base, as 050, with the result that it is commonly called
 """)
 # Content-encoding: base64 ?
 
+rfc1924 = Base('0123456789' +
+               'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
+               'abcdefghijklmnopqrstuvwxyz' +
+               '!#$%&()*+-;<=>?@^_`{|}~')
+
 import string
 def intbase(n,
             seq=list(string.digits) + [
