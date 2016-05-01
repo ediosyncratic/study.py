@@ -87,10 +87,16 @@ http://home.clara.net/brianp/
 http://www.gnu.org/software/units/units.html
 http://www.unc.edu/~rowlett/units/
 http://www.bipm.org/en/si/si_brochure/chapter4/4-1.html
-http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
-http://en.wikipedia.org/wiki/Category:Units_of_measure
 http://www.easyunitconverter.com/
 http://www.chaos.org.uk/~eddy/physics/units.html
+
+Wikipedia:
+http://en.wikipedia.org/wiki/Category:Obsolete_units_of_measure
+http://en.wikipedia.org/wiki/Category:Units_of_measure
+https://en.wikipedia.org/wiki/Ancient_Hebrew_units_of_measurement
+https://en.wikipedia.org/wiki/Ancient_Greek_units_of_measurement
+https://en.wikipedia.org/wiki/Ancient_Roman_units_of_measurement
+https://en.wikipedia.org/wiki/Template:Hand_measurements
 
 Nautical mile and its kin
 http://www.gwydir.demon.co.uk/jo/units/sea.htm
@@ -258,20 +264,122 @@ pica = barleycorn / 2 # CSS 2.1 spec, the DTP point according to Wikipedia
 pica.US = 7 * cm / 16.6
 pica.didot = milli * metre / 2.66
 line = pica / 2 # inch / 12, c.f. French.line, Norse.linje, Swedish.linje
-hand = 4 * inch
-palmlength = 8 * inch
-span = 9 * inch
-fingerlength = span / 2
-fingerbreadth = 7 * inch / 8
+palm = Quantity(7, inch / 2,
+                """Palm: width of a hand's palm without thumb.
+
+Known as palm or handsbreadth and generally reckoned at four fingers, making it
+three inches or three and a half inches, depending on whether you use
+finger.breadth (at knuckle, used here) or digit (just short of finger tip).  In
+ancient Egypt, palm = 4 digits.
+""",
+                               length = Quantity(8, inch))
+hand = Quantity(4, inch,
+                """Hand: the width of a hand, including thumb lying alongside it.
+
+In ancient Egypt, hand = 5 digits.
+""",
+                breadth = palm)
+shaftment = Quantity(6, inch,
+                     """Shaftment: width of hand plus extended thumb.
+
+Used for measuring poles: grip the pole with one hand,thumb at pole's end; pass
+to the other hand, thumb just touching the edge of the hand before; repeat,
+counting, until end of pole; you've counted how many shaftments long the pole
+is.  The length was generally reckoned to be about twice the width of a palm;
+later usage presumed it be half a foot, as given here.
+""")
+digit = Quantity(3, inch / 4,
+                 """Digit: width of a finger, just short of its tip.
+
+In ancient Egypt, a digit was a quarter palm, hence the value given here.  See
+also fingerbreadth, which is sometimes used as a synonym, although I've had some
+source give me a slightly larger value for that.  Contrast the astronomical
+unit, digit.astronomy (an angle); and finger.breadth, for the width at a
+knuckle.  I find that my index finger's width, just short of its tip, is fairly
+accurately a sixth of the same finger's length; which is close to half my span;
+reckoning back from the last as nominally 9 inches, that makes the index finger
+definitive for the digit as a twelfth of a span.
+""",
+                 astronomy=Quantity(8, arc.minute / 3,
+                                    """On twelfth the diameter of Sun or Moon.
+
+Astronomers (until at least the eighteenth century) used a twelfth of the
+diameter of The Sun (roughly the same as, but more constant than, that of The
+Moon) as a unit of angle, known as a digit.  I find that The Sun's diameter
+subtends 32 arc minutes, as seen from Earth, giving 8' / 3 as a twelfth of that.
+"""))
+span = Quantity(9, inch,
+                """Separation between outstretched tips of thumb and little finger.
+
+This is as far apart as one hand can touch two things.
+""")
+finger = Object(doc="""Various units of length, implying a unit of drink.
+
+The lengths and widths of fingers are variable - from person to person, from
+finger to finger within a hand and, for width, along the length of each finger,
+particularly between at knuckles and between them.  See digit for breadth just
+short of the tip, finger.breadth for the knuckle (and more discussion); and
+length for the length.
+
+The common unit of (usually) distilled liquor in drinking games is a finger's
+breadth as a depth within a glass; the volume this implies, naturally, depends
+on the cross-sectional area of the glass at the relevant depth, so is wildly
+variable - entirely in keeping with the spirit of such games ;^>
+""",
+                       length = Quantity(6, digit,
+                                         """The length of a finger or width of a fist.
+
+As finger length, this used to be used as a unit of measurement of cloth.
+
+Fingers have diverse lengths, even on a single hand: when I bend one hand with
+straight fingers perpendicular to palm and measure the lengths of the backs of
+that hand's finger with the widths of the other's matching finger (see digit;
+contrast finger.breadth), just short of its tip, I do indeed find most are
+pretty close to six times their own length (my ring finger is a little more than
+six times its width; my thumb closer to three and a half times its width).  See
+note on digit for a reason to treat the index finger's length as definitive; for
+me, at least, it's a half span.
+
+Ancient Egypt had a fist as unit of length, equal to six digits, one and a half
+palms.  I find my clenched fist's width, from unenclosed thumb-knuckle across
+the back of my hand, does roughly match the lengths of the opposite hand's
+fingers.
+"""),
+                breadth = Quantity(7, inch / 8,
+                                   """The breadth of a finger at a knuckle.
+
+When fingers are held together curved, the knuckles line up, making for
+collective widths measured in terms of finger.breadth, the knuckle width; I find
+that four together match the opposite hand's palm; hence my choice to take a
+palm as four of this rather than four digits.  When fingers are held together,
+straight, the knuckles of each interleave with the gaps between those of the
+next, making the collective width less than the relevant multiple of
+finger.breadth but more than that of digit.
+
+Contrast digit and the Swedish fingerbredd = fot / 15 = tv&auml;rhand / 5 (from
+Norwegian, I read tverrhand as hand-width, like hand or palm here).  The
+Akkadian finger (bredth) was a thirtieth of a cubit (so a twentieth of a foot,
+three fifths of an inch).
+"""))
+fist = finger.length
 ell = Quantity(5, span, flemish = Quantity(27, inch, "The Flemish ell"))
-cubit = span * 2 # but also used as synonym for ell
+cubit = Quantity(2, span,
+                 """Cubit: length of bent arm from elbow to finger-tip.
+
+The ancient egyptian cubit was seven palms (21 inches or more), rather than the
+two spans (18 inches) given here.  The name cubit is also used as a synonym for
+ell.
+
+Ancient Akkadia's cubit was a foot and a half; ancient Egypt's was seven palms.
+""")
 ft = foot = Quantity(3, hand,
                      """The English foot.
 
-See namespace for other nation's variants on this unit.  All are fairly close
-to the distance (given here as foot.SI) that light travels in a nano second:
-those closest to it are the old Swedish foot, just under 1% below, and the
-English foot, just over 1/60 above.
+See namespace for other nation's variants on this unit.  All are fairly close to
+the distance (given here as foot.SI) that light travels in a nano second: those
+closest to it are the old Swedish foot, just under 1% below, and the English
+foot, just over 1/60 above.  Ancient Akkadia's foot was two thirds of a cubit,
+thus twenty fingers.
 """,
                      SI=Quantity(nano, second.light,
                                  """The SI foot, or light nanosecond.
@@ -541,7 +649,15 @@ league.French = French.lieue
 fathom.French = French.toise
 
 # Archaic units of mass:
-grain = 64.79891e-6 * kilogramme        # K&L; one barleycorn's mass
+grain = Quantity(64.79891e-6, kilogramme, # K&L
+                 """The mass of one barleycorn.
+
+The value given here is modern - as used in anglic jurisdictions, that still
+entertain various archaic units, to relate these to saner ones.
+
+The name grain also shows up as a unit for other quantities: the ancient
+Akkadians used it for a length, cubit / 80, for example.
+""")
 mite = grain / 20
 droit = mite / 24 # a cube of water half a mm on each side
 periot = droit / 20 # an eighth of the Planck mass
@@ -939,7 +1055,7 @@ Swedish.also(linje = Quantity(1, Swedish.tum / 10, # line (pica)
                               old = Swedish.tum.old / 12),
              rode = Quantity(8, Swedish.aln),
              staang = Quantity(5, Swedish.aln, doc="Svensk stäng"))
-# also: fingerbredd = fot / 15, tv?rhand = fot / 3 (hand-width)
+# also: fingerbredd = fot / 15, tv?rhand = fot / 3 (hand-width); see finger.breadth
 Swedish.ref = Quantity(10, Swedish.staang) # 100 fot, c.f. chain.engineer
 Swedish.old = Object(doc = "Swedish units in use prior to 1863",
                      fot = Swedish.fot.old, aln = Swedish.aln.old,
