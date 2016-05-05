@@ -62,7 +62,45 @@ class Object (Lazy):
     object's namespace dictionary, omitting names which start with '_'. """
 
     def copy(self, *args): return self.__class__(*args, **self.dir)
-    def help(self): print self.__doc__
+    def help(self):
+        doc = self.__doc__
+        if doc is self.__class__.__doc__: doc = None
+        if doc: print doc
+        else:
+            print 'Undocumented', self.__class__.__name__, \
+                'with attributes:', self.dir.keys()
+
+    @staticmethod
+    def __cleandoc(text):
+        if text:
+            text = text.strip()
+
+            if text.find('\n ') >= 0 or text.find('\n\t') >= 0:
+                # Remove any ubiquitous common indent (and any dangling hspace
+                # or final blank lines - expanding tabs as spaces, as we go):
+                lines = [ x.rstrip().expandtabs() for x in text.rstrip().split('\n') ]
+                # First line tends to lack indent; and we stripped anyway.
+                text = lines.pop(0)
+                if lines:
+                    ind = min(len(x) - len(x.lstrip()) for x in lines if x)
+                    assert not ind or all(x[:ind].isspace() for x in lines if x)
+                    text += '\n' + '\n'.join(x[ind:] for x in lines)
+
+            if text: return text + '\n'
+        # else: implicitly return None.
+
+    def document(self, doc):
+        doc = self.__cleandoc(doc)
+        if not doc: return # Nothing to do
+
+        try: old = self.__doc__
+        except AttributeError: old = None
+        else:
+            if old is self.__class__.__doc__:
+                old = None
+
+        if old: self.__doc__ = old.strip() + '\n\n' + doc
+        else:   self.__doc__ = doc
 
     def __ephem(self):
         # Ensure _lazy_preserve_ is held locally and return it.

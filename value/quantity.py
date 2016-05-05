@@ -460,28 +460,6 @@ class Quantity (Object):
         assert isinstance(scale, Nice) and isinstance(units, Bok)
         return scale, units
 
-    @staticmethod
-    def __cleandoc(text):
-        if text:
-            text = text.strip()
-
-            if text.find('\n ') >= 0 or text.find('\n\t') >= 0:
-                # Remove any ubiquitous common indent (and any dangling hspace
-                # or final blank lines - expanding tabs as spaces, as we go):
-                lines = [ x.rstrip().expandtabs() for x in text.rstrip().split('\n') ]
-                # First line typically lacks the common indent.
-                text, lines = lines[0], lines[1:]
-                if lines:
-                    ind = min(len(x) - len(x.lstrip()) for x in lines if x)
-                    assert not ind or all(not x or x[:ind].isspace() for x in lines)
-                    # Strip indent from first line, if it has it, though:
-                    if text[:ind].isspace(): text = text[ind:]
-                    else: text = text.lstrip()
-                    text += '\n' + '\n'.join(x[ind:] for x in lines)
-
-            if text: return text + '\n'
-        # else: implicitly return None.
-
     def _str_frags(self):
         """Returns a quantity's raw strings for scale and units.
 
@@ -492,15 +470,6 @@ class Quantity (Object):
         what, unitstr = self.__scale, self._unit_str
         assert isinstance(what, qSample)
         return str(Sample.repack(what)), unitstr
-
-    def document(self, doc):
-        doc = self.__cleandoc(doc)
-        if not doc: return
-
-        try: old = self.__dict__['__doc__']
-        except AttributeError: old = None
-        if old: self.__doc__ = old + '\n' + doc
-        else:   self.__doc__ = doc
 
     # TODO: need (?) a .merge(self, other) yielding result of merging two Quantities.
     def observe(self, what, doc=None):
