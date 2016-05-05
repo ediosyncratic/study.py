@@ -388,8 +388,9 @@ class repWeighted (curveWeighted):
             sign, digits = digits[0], digits[1:]
             assert digits.isdigit()
 
-        ent += len(digits)
-        assert estim * 10 >= 10**ent > estim, (estim, ent, digits)
+        if digits != '0':
+            ent += len(digits)
+            assert estim * 10 >= 10**ent > estim, (estim, ent, digits)
         # i.e. 1 > estim / 10**ent >= .1, but without the rounding problems ...
         # thus sign + '.' + digits + 'e%d' % ent would be a valid answer
 
