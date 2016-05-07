@@ -451,9 +451,9 @@ class Quantity (Object):
         except AttributeError: pass
         else: units, scale = u * units, s
 
-        # Massaging scale as a sample (so we can trust its str() to work).
+        # Massaging scale as a qSample (so we can trust its str() to work).
         if not isinstance(scale, Spread):
-            scale = Nice(best=scale)
+            scale = Nice((scale,))
         elif not isinstance(scale, Nice):
             scale = Nice.repack(scale)
 
