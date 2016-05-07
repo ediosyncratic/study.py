@@ -608,6 +608,7 @@ class joinWeighted (curveWeighted):
             count = max(count, min(12, len(mix)))
 
         if len(mix) > count: mix = mix.simplify(count)
+        # TODO: if weights are all equal, we can make do with fewer keys
 
         try: mix = mix.scale() # normalise
         except ValueError: pass
@@ -1313,13 +1314,11 @@ class Sample (Object):
     def flat(lo, hi, best=None, *args, **what):
 
         if isinstance(hi, Sample):
-            args = (hi,) + args
             weights = hi.__weigh.normalise()
             hi = what['high'] = hi.high
         else: weights = None
 
         if isinstance(lo, Sample):
-            args = (lo,) + args
             if weights: weights.add(lo.__weigh.normalise())
             else: weights = lo.__weigh.normalise()
             lo = what['low'] = lo.low
@@ -1332,7 +1331,7 @@ class Sample (Object):
         elif best is not None: what['best'] = best
 
         if not weights:
-            weights = {(2*lo + hi)/3.: 1, (lo + 2 * hi)/3.: 1}
+            weights = {(2 * lo + hi) / 3.: 1, (lo + 2 * hi) / 3.: 1}
 
         return Sample(weights, *args, **what)
 
