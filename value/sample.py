@@ -916,14 +916,18 @@ class Sample (Object):
             new.update(self.__alias)
             new.update(bok) # so derived classes over-ride Sample
 
+        best = None
         if isinstance(weights, Sample):
+            try: best = weights.__dict__['best'] # don't lazy it, only use if given
+            except KeyError: pass
             args = (weights,) + args # i.e. borrow attributes off it
             weights = weights.__weigh
 
         # massage best estimate:
         try:
             try: best = what['best']
-            except KeyError: best = Object(*args).best
+            except KeyError:
+                if best is None: best = Object(*args, **what).best
             else: del what['best']
 
             if not weights:
