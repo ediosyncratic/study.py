@@ -397,11 +397,8 @@ class Quantity (Object):
         which case each contributes its scale and units to the new Quantity,
         effectively multiplicatively.\n"""
 
-        # Initialise self as an Object:
-        self.__obinit(*args, **what)
-
         # Massage the arguments: first mix scale and units.
-        scale, units = self.__clean_scale_units(scale, units)
+        scale, units = self.__clean_scale_units(scale, units, what)
         # then (check and) massage sample (if any):
         if sample:
             try: new, row = scale.copy(), () # TODO: check this is always OK
@@ -418,14 +415,44 @@ class Quantity (Object):
             if row: scale = qSample(row)
             else: scale = new
 
-        if doc is not None: doc = self.__cleandoc(doc)
+        # Apply documentation:
+        if doc is not None: self.document(doc)
+        try: self.document(what['__doc__'])
+        except KeyError: pass
+        else: del what['__doc__']
+
+        # Initialise self as an Object:
+        self.__obinit(*args, **what)
 
         # Initialise self as a Quantity with the thus-massaged arguments:
-        self.__scale, self.__units, self.__doc__ = scale, units, doc
+        self.__scale, self.__units = scale, units
         # Should __addcheck() what['best'], what['low'] ... if given.
 
-    @staticmethod
-    def __clean_scale_units(scale, units,
+    @classmethod
+    def __scale_attrs(cls, bok, un, units,
+                    forward=('best', 'low', 'high',
+                             'mean', 'median', 'mode',
+                             'sigma', 'spread', 'span')):
+        """Digests some attributes of same kind as scale.
+
+        Various attributes that may be passed to the constructor should have the
+        same units (if any) as scale and need these combined with the units
+        passed in; also, their value without units are worth forwarding to
+        Sample().\n"""
+        attrs = {}
+        for key in forward:
+            try: val = bok[key]
+            except KeyError: continue
+            val = cls.__get_scale(val, un) # TypeError on bad units
+            try: attrs[key], bok[key] = val, cls(val, units)
+            except TypeError as what:
+                what.args += (key, bok)
+                # investigate !
+                raise
+        return attrs
+
+    @classmethod
+    def __clean_scale_units(cls, scale, units, attrs,
                             scalartypes=(int, long, float, complex),
                             Bok=Prodict, Spread=Sample, Nice=qSample):
         """Tidy up scale and units passed to constructor.
@@ -448,12 +475,13 @@ class Quantity (Object):
         if not isinstance(units, Bok): units = Bok(units)
 
         try: s, u = scale._scale_units_()
-        except AttributeError: pass
+        except AttributeError: u = Bok()
         else: units, scale = u * units, s
+        bok = cls.__scale_attrs(attrs, u, units)
 
         # Massaging scale as a qSample (so we can trust its str() to work).
         if not isinstance(scale, Spread):
-            scale = Nice((scale,))
+            scale = Nice((scale,), **bok)
         elif not isinstance(scale, Nice):
             scale = Nice.repack(scale)
 
