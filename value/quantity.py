@@ -966,6 +966,13 @@ class Quantity (Object):
     # Method to override, if needed, in derived classes ...
     def _quantity_(self, what, units): return self.__class__(what, units)
 
+    @staticmethod
+    def __extra_attrs(attrs, **what):
+        """Extend attrs from what, without over-writing."""
+        for k, v in what.items():
+            try: attrs[k]
+            except KeyError: attrs[k] = v
+
     # Be sure to keep argument defaults in sync with __init__():
     @classmethod
     def flat(cls, lo, hi, best=None,
@@ -998,8 +1005,10 @@ class Quantity (Object):
         else: units = un * units
 
         hi = cls.__get_scale(hi, un)
+        cls.__extra_attrs(what, low=lo, high=hi)
         if best is not None:
             best = cls.__get_scale(best, un)
+            cls.__extra_attrs(what, best=best)
 
         scale = Sample.flat(lo, hi, best)
         if rescale:
@@ -1039,12 +1048,15 @@ class Quantity (Object):
         forwarded to .flat(), hence possibly to Quantity().\n"""
 
         try: top, un = top._scale_units_()
-        except AttributeError: pass
+        except AttributeError: un = {}
         else: units = un * units
+        cls.__extra_attrs(what, high=top)
 
         try: best = what['best'] # unnatural, but don't error on it !
         except KeyError: best = None
-        else: del what['best']
+        else:
+            del what['best']
+            best = cls.__get_scale(best, un)
 
         # TODO: pick a better distribution
         return cls.flat(top * femto, top, best, units, *args, **what)
@@ -1184,12 +1196,14 @@ class Quantity (Object):
 
         All other arguments (positional, starting with doc, or keyword) are
         forwarded to .flat(), hence possibly to Quantity().\n"""
+        if base <= 1:
+            raise ValueError('Silly number base', base)
 
         try: scale, un = best._scale_units_()
         except AttributeError: scale = best
         else: units, best = un * units, scale
 
-        assert base > 1, 'Silly number base'
+        cls.__extra_attrs(what, best=best)
         tol = cls.__magnitude(scale, base) * base ** sigfig
 
         return cls.within(best, 0.5 * tol, units, *args, **what)
@@ -1223,6 +1237,7 @@ class Quantity (Object):
         except AttributeError: un, mid = {}, best
         else: units = un * units
         sigma = cls.__get_scale(sigma, un)
+        cls.__extra_attrs(what, best=mid, sigma=sigma)
 
         return cls(Sample.gaussish * sigma + mid, units, *args, **what)
 
@@ -1242,6 +1257,7 @@ class Quantity (Object):
         try: mid, un = scale._scale_units_()
         except AttributeError: mid = scale
         else: units = un * units
+        cls.__extra_attrs(what, best=0)
         return cls(Sample.encircle * mid, units, *args, **what)
 
     @classmethod
