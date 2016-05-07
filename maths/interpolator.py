@@ -792,10 +792,10 @@ class PiecewiseConstant (Interpolator):
             # integral(: last < x < c; x**n *w/(c-last) &larr;x :)
             # is just w*(c**(1+n) -last**(1+n))/(1+n)/(c-last)
             # which is w*average(lambda i: last**i * c**(n-i), range(1+n))
-            last = c
             zero += w
             one += w * (c + last) / 2
             two += w * (c * c + last * c + last * last) / 3
+            last = c
             # TODO: can we adapt Welford's algorithm ?
 
         if not zero: raise ValueError(
