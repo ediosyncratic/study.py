@@ -306,7 +306,13 @@ definitive for the digit as a twelfth of a span.
 Astronomers (until at least the eighteenth century) used a twelfth of the
 diameter of The Sun (roughly the same as, but more constant than, that of The
 Moon) as a unit of angle, known as a digit.  I find that The Sun's diameter
-subtends 32 arc minutes, as seen from Earth, giving 8' / 3 as a twelfth of that.
+subtends 32 arc minutes, as seen from Earth, giving 8' / 3 as a twelfth of
+that.  (By my calculations, The Moon's diameter subtends a slightly smaller
+angle even at the point on Earth closest to The Moon; the difference is two
+fifths of an arc minute (24 arc seconds) there but larger elsewhere on
+Earth.  However, this is when the moon is at its mean distance from Earth; its
+orbit is eccentric enough to bring it close enough to fully cover The Sun during
+eclipses.)
 """))
 span = Quantity(9, inch,
                 """Separation between outstretched tips of thumb and little finger.
