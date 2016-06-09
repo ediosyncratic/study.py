@@ -22,7 +22,7 @@ class Huffman (Lazy):
 
     Methods:
       encode(message) -- encodes a message as a string
-      encode(text) -- decodes a string to recover the message
+      decode(text) -- decodes a string to recover the message
 
     Lazily computed attributes:
       .mapping -- { message blocks : encoded string fragment, ... }
@@ -180,7 +180,7 @@ class Huffman (Lazy):
                     else:
                         cut = max(len(k) for k in code.keys())
                         while i < cut and not code.has_key(txt):
-                            txt, i = txt + tail, i + 1
+                            txt, i = txt + pad, i + 1
 
                 txt, message = txt[i:], message + code[txt[:i]] # KeyError if bad txt
         except KeyError:
@@ -204,7 +204,7 @@ class Huffman (Lazy):
         except AttributeError:
             its = sorted(self.mapping.items(), lambda (k,v), (h,u): cmp(u, v) or cmp(h, k))
             if not self.__str:
-                if self.__block_size == 1: # each its entry is ((k,), v); flatten
+                if self.__block_size == 1: # each entry in it is ((k,), v); flatten
                     its = ((p[0][0], p[1]) for p in its)
                 its = [ (str(k), v) for k, v in its ]
             fmt = ' | '.join('%%%ds' % max(len(k), len(v)) for k, v in its)
@@ -260,7 +260,7 @@ class Huffman (Lazy):
         In case the weights of our distribution don't add up to exactly 1, we
         adjust: we're computing sum(: log(k/p).p/k :) for some k we don't know
         until the end; this is sum(: log(k/p).p/k :) = sum(: log(1/p).p :)/k +
-        log(k).sum(p)/k, with k = sum(p). """
+        log(k).sum(p)/k, with k = sum(p).\n"""
 
         full = tot = 0 # sum, k
         for v in self.__distribution.values():
