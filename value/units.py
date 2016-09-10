@@ -19,18 +19,18 @@ commonly used.  Since the base-ten log of two is minutely over 0.3, a factor
 of two is approximately three decibel.  Two Bel equal five astronomical
 magnitudes.\n""")
 
-magnitude = Quantity(log(.01) / 5, {},
+magnitude = Quantity(log(.1) * .4, {},
                      """Astromonical apparent magnitude.
 
 The observed brightness of astronomical objects is described on a logarithmic
-scale, effectively taking logarithms to base .01**.2 ~= 0.398; if one object's
+scale, effectively taking logarithms to base .1**.4 ~= 0.398; if one object's
 brightness is one hundred times that of another, then the former's magnitude
 is five lower than that of the latter.  This is a tidied-up form of the
 ancient Hellenistic astronomers' scheme (popularized by Ptolemy, probably
 originated by Hipparchus) for classifying visible stars into six magnitudes;
-the brightest stars were first magnitude and the limit of human vision were
-sixth magnitude. In the tidied-up scheme, Sirius has magnitude -1.46; the Sun
-and Moon are even more negative.
+the brightest stars were first magnitude and those at the limit of human
+vision were sixth magnitude. In the tidied-up scheme, Sirius has magnitude
+-1.46; the Sun and Moon are even more negative.
 
 Note that astronomical objects are also assigned 'absolute' magnitudes, which
 relates to its luminosity (of which the lumen is unit).  For solar system
