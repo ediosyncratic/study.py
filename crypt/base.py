@@ -1,5 +1,7 @@
 """Playing with different number bases.
 
+Contrast study.crypt.base64 for MIME's base-64 encoding, which builds on this.
+
 See study.LICENSE for copyright and license information.
 """
 
@@ -177,7 +179,6 @@ base fourty, as a result; but 'fourty' has traditionally been written in octal
 when speaking of this base, as 050, with the result that it is commonly called
 'base fifty'.
 """)
-# Content-encoding: base64 ?
 
 rfc1924 = Base('0123456789' +
                'ABCDEFGHIJKLMNOPQRSTUVWXYZ' +
