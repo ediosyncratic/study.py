@@ -170,12 +170,12 @@ radix050 = Base((' ', 'aA', 'bB', 'cC', 'dD', 'eE', 'fF', 'gG', 'hH', 'iI',
                  'jJ', 'kK', 'lL', 'mM', 'nN', 'oO', 'pP', 'qQ', 'rR', 'sS',
                  'tT', 'uU', 'vV', 'wW', 'xX', 'yY', 'zZ', '$', '.', '?',
                  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'),
-                doc="""Radix 050 (fourty)
+                doc="""Radix 050 (forty)
 
 This encoding has some peculiar history I've forgotten; it uses space as zero,
 letters of the alphabet as digits for 1 through 26, '$.?' as the remaining
 digits up to 29 and the usual decimal digits for 30 through 39.  It is actually
-base fourty, as a result; but 'fourty' has traditionally been written in octal
+base forty, as a result; but 'forty' has traditionally been written in octal
 when speaking of this base, as 050, with the result that it is commonly called
 'base fifty'.
 """)
