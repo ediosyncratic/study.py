@@ -8,6 +8,7 @@ Provides:
 
    cycle(seq, [by=1]) -- shunts sequence cyclicly rightwards.
    order(seq, [cmp=cmp]) -- returns permutation s for which s(seq) is sorted.
+   permutor(this, that) -- None or p: this[p[i]] == that[i] for all i
    sorted(seq), sort(seq) -- deploy some of the above.
 
    unfixed(n) -- number of fixed-point-free permutations of n things; tends to n!/e.
@@ -539,6 +540,29 @@ def sorted(row, cmp=cmp):
 
 def sort(row, cmp=cmp):
     row[:] = sorted(row, cmp)
+
+def permutor(this, that):
+    """Test whether one sequence is a permutation of another.
+
+    Returns None if they're not; otherwise, returns a permutation p
+    for which this[p[i]] = that[i] for each i.  Note that p is empty
+    if this and that are; so you should test the return with 'is None'
+    rather than using it as a boolean.\n"""
+    n = len(that)
+    if len(this) != n: return None
+    perm = range(n)
+    while n > 0:
+        # Invariant: for i in range(n, len(perm)), this[perm[i]] == that[i]
+        n -= 1
+        j, v = n, that[n]
+        while this[perm[j]] != v:
+            if j == 0: return None # v not found
+            j -= 1
+        if j != n:
+            perm[j], perm[n] = perm[n], perm[j]
+
+    assert permute(this, perm) == that
+    return perm
 
 # This is number theory, but it's about permutations.
 def unfixed(num, cache=[1]): # Need an initial value to seed the iteration.
