@@ -105,9 +105,9 @@ def hcf(*args):
     `non-negative'.
 
     With this (undeniably less catchy) re-definition, we also get: a
-    concatenation of lists of values has, as its hcf, the hcf of the values
-    obtained by taking the hcfs of the lists seperately; i.e. hcf is a
-    transitive binary operator.\n"""
+    concatenation of lists of values has, as its hcf, the hcf of the
+    values obtained by taking the hcfs of the lists seperately;
+    i.e. hcf is an associative binary operator.\n"""
 
     this = 0
     for n in args:
