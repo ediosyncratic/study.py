@@ -696,10 +696,10 @@ class Polynomial (Lazy):
     def __root(self, num, mod=None, root=scalarroot, rat=ratcom):
         """Solves self = ans ** num for a num-th root of self.
 
-        Bug: presently ignores its second parameter, mod; should implement
-        solving its problem modulo this, if non-None; but that's
-        non-trivial.  Needs ans**num == self + p * mod for some p (no need to
-        consider adding a multiple of mod to ans, that would just frob p).
+        Bug: presently ignores its second parameter, mod; should
+        implement solving its problem modulo this, if non-None; but
+        that's non-trivial.  Needs ans**num == self + p * mod for some
+        p (reducing ans %= mod, which just frobs p).
         """
         if num < 0:
             if self.rank < 0:
