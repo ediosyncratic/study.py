@@ -161,23 +161,58 @@ naturalIsotopes = lambda : [x for x in Isotopes() if getattr(x, 'abundance', Non
 del full
 
 # Local function, del'd below:
-def Noble(n, cache=[2]):
-    """Element number for noble gas number n (counting with He as 0).
+def Noble(n):
+    """Element number for noble gas number n (counting with He at 0).
 
-    If we take each noble gas as the last element in its cycle, the successive
-    cycles of the periodic table have lengths (breaking after each group VIII
-    element) 2, 8, 8, 18, 18, 32, 32, 50, 50, 72, 72, ...; let L be the list
-    whose entries these are; then L[2*i] == L[2*i-1] == 2*(i+1)**2.  Summing
-    according to Noble(i) = Noble(i-1) + L[i] then suffices to determine the
-    element numbers of the noble gasses.\n"""
+    If we take each noble gas as the last element in its cycle, the
+    successive cycles of the periodic table have lengths (breaking
+    after each group VIII element) 2, 8, 8, 18, 18, 32, 32, 50, 50,
+    72, 72, ...; let L be the list whose entries these are; then
+    L[2*i-1] == 2 * (i+1)**2 == L[2*i].  Summing according to Noble(i)
+    = Noble(i-1) + L[i] then suffices to determine the element numbers
+    of the noble gasses.
 
-    if n < 0: raise IndexError # this function thinks it's a list ;->
+    At least for natural n,
+     * Noble(n) = 2*sum(((j+3)/2)**2 for j in range(n+1));
+     * Noble(2*i) = 2 +4*sum(j**2 for j in range(2, i+2))
+     * Noble(2*i+1) = Noble(2*i) +2*(i+2)**2
 
-    while n >= len(cache):
-        i = (len(cache) + 1) / 2
-        cache.append(cache[-1] + 2 * (i+1)**2)
+    Polynomial.PowerSum(2) tells me sum(i**2 for i in range(z)) is
+    z*(z -1)*(2*z -1)/6, which is 2*1*3/6 = 1 at z = 2, so sum(j**2
+    for j in range(2, i+2)) = (i+2)*(i+1)*(2*i+3)/6 -1, whence
 
-    return cache[n]
+     * Noble(2*i) = 2*(i+2)*(i+1)*(2*i+3)/3 -2
+       = 4*i*i*i/3 +6*i*i +26*i/3 +2,
+       = ((2*i+3)**3 -(2*i +3) -12)/6
+     * Noble(2*i+1) = 4*i*i*i/3 +6*i*i +26*i/3 +2 +2*(i+2)**2
+       = 4*i*i*i/3 +6*i*i +26*i/3 +2 +2*i*i +8*i +8
+       = 4*i*i*i/3 +8*i*i +50*i/3 +10
+       = (i+1)*((2*i+5)**2 +5)/3
+       = ((2*i +4)**3 +2*(2*i +4) -12)/6
+
+    In each case, with s = +2 if n+3 is even else -1, we have
+     * Noble(n) = ((n +3)**3 +s*(n +3))/6 -2
+
+    and the division by 6 is always exact, for whole n, since:
+     * for odd m = n+3, m**3 -m is odd-odd = even
+     * for even m = n+3, m**3 +2*m is even+even = even; and
+     * mod 3, m**3 == m and either m-m or m+2*m is a multiple of 3.
+
+    We can restate L's rule as L[n] = 2*((n+3)/2)**2, not to be
+    confused with (n+3)**2 / 2, due to rounding rules.  Applied to
+    negative n, this gives L[-1] == 2, L[-2] == 0 == L[-3], L[-4] ==
+    L[-1] == 2 == L[0] == L[-5], L[-6] == L[1] == 8 == L[2] == L[-7];
+    in general L[-5-n] == L[n] for whole n.  (Note that, due to
+    rounding oddities, (1-i)/2 = -(i/2) for natural i.  So, for n >=
+    -3, -((n+3)/2) = (-2-n)/2 = ((-5-n)+3)/2.  As lambda n: 5-n is
+    self-inverse, the same holds for -5-n >= -3, i.e. n <= -2; hence
+    for all whole n.)  With L[0] == 2 == Noble(0), using Noble(i-1) =
+    Noble(i) -L[i], we can interpolate [Noble(-i) for i in naturals] =
+    [2, 0, -2, -2, -2, -4, -6, -14, -22, ...], in agreement with the
+    polynomials.\n"""
+
+    m = n + 3
+    return (m*m + (-1 if m % 2 else 2)) * m / 6 - 2
 
 class Element (Substance):
     """Mixture of isotopes. """
