@@ -1,4 +1,8 @@
-"""Some graph-theoretic stuff.
+"""Some graph-theoretic toys.
+
+Contents:
+  Partition, Find, Unite, FindUnite -- a graph-partitioning algorithm
+  Graph -- a simple (undirected) graph representation
 
 See also graphviz (http://www.graphviz.org/ and man pages for: twopi, dotty,
 lefty, acyclic, lneato, nop, tred, gc, sccmap, unflatten, gvgpr, dot, neato,
@@ -49,7 +53,7 @@ class Partition:
     checking this.\n"""
 
     def peers(self, node):
-        """Returns a list of the nodes in the same connected component as the given node."""
+        """Iterates the nodes in the same connected component as the given node."""
         raise NotImplementedError
 
     def join(self, node, vertex):
@@ -82,11 +86,11 @@ class Unite (Partition):
     # assert: equal to len(self.__backward)
 
     def peers(self, node):
-        """Returns the component containing a given node.
+        """Iterates the component containing a given node.
 
-        Result is a list of nodes in the given node's component.
-        If it ever involves duplicates, something's gone wrong.
-        Probably so wrong you won't see the answer ...\n"""
+        Yields each node in the given node's component.  If it ever
+        involves duplicates, something's gone wrong.  Probably so
+        wrong you won't see the answer ...\n"""
 
         f, n = self.__forward, node
         while True:
@@ -108,7 +112,7 @@ class Unite (Partition):
         Arguments are nodes, one from each component.
 
         The nodes must not be peers: this is *not* checked.
-        They will be peers after join is called.\n"""
+        They will be peers after join() returns.\n"""
 
         f, b = self.__forward, self.__backward
         pod, wer = f[nod], f[ver]
@@ -145,7 +149,7 @@ class Find (Partition):
         """Returns the representative member of node's connected component.
 
         Single argument is a node (index): returns the node reached from this by
-        chasing i->self.__up[i] to a fixed point.  Side-effect: changes the
+        chasing i -> self.__up[i] to a fixed point.  Side-effect: changes the
         __up[] of all nodes it visits on the way to point at the answer
         returned, so as to speed this chase next time around.\n"""
 
@@ -206,7 +210,7 @@ class Find (Partition):
         return True
 
     def disjoint(self):
-        """Returns a list containing one sample member from each connected component.\n"""
+        """Iterates one sample member from each connected component.\n"""
         # the sample members being the fixed-points of __up
 
         for i, x in enumerate(self.__up):
@@ -249,10 +253,10 @@ class FindUnite (Find, Unite):
             Unite.join(self, node, vertex)
 
     def partition(self):
-        """Returns a list of disjoint lists describing the partition.
+        """Iterates the connected components of the graph.
 
-        Each entry in the list returned is a list of nodes representing a
-        connected component of the graph described by the FindUnite object.\n"""
+        Each yield is a tuple of nodes representing a connected
+        component of the graph described by the FindUnite object.\n"""
 
         for i in self.disjoint():
             yield tuple(self.peers(i))
@@ -283,16 +287,16 @@ class Graph:
       edges -- a tuple containing all known edges, each of which is represented
                by a 2-tuple of nodes.
 
-      partition -- a list of connected components of self.  Each connected
-                   component is represented as a list (whose order is arbitrary)
-                   of nodes; each such list is equal, subject to shuffling
-                   order, to the .peers(n) of each node, n, in the list.  Each
+      partition -- a tuple of connected components of self.  Each connected
+                   component is represented as a tuple (whose order is arbitrary)
+                   of nodes; each such tuple is equal, subject to shuffling
+                   order, to the .peers(n) of each node, n, in the tuple.  Each
                    node of the graph appears in exactly one of the connected
                    components.
 
     Queries:
 
-      peers(node) -- returns a list of all nodes in the same connected component
+      peers(node) -- returns a tuple of all nodes in the same connected component
                      as the given node (order is arbitrary).
 
       peercount(node) -- returns the value len(peers(node)) would produce: the
@@ -369,7 +373,7 @@ class Graph:
         return self.__connect.peercount(nod)
 
     def __peers(self, nod):
-        return [self.__nodes[i] for i in self.__connect.peers(nod)]
+        return tuple(self.__nodes[i] for i in self.__connect.peers(nod))
 
     def peers(self, node):
         # NB: does not add node to graph if it wasn't in it previously
