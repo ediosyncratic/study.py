@@ -367,7 +367,7 @@ class Spread (Dict, Cached):
     @classmethod
     def __tor(cls, *vs): return cls.__vec(vs)
 
-    from ratio import Rational as __rat
+    from study.maths.ratio import Rational as __rat
     @classmethod
     def __mid(cls, lo, hi):
         """Mid-point between two keys of a Spread"""
