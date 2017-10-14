@@ -63,6 +63,7 @@ class Vector (Tuple):
     are acceptable to the constructor.  Its indexing accepts a tuple, applying
     each entry successively.\n"""
 
+    # Configuring arithmetic:
     @classmethod
     def _vector_(cls, seq):
         """Pseudo-constructor by which derived classes can mimic base.
@@ -77,6 +78,42 @@ class Vector (Tuple):
         instance of such a class.\n"""
         return cls(seq)
 
+    @classmethod
+    def _neg_type_(cls):
+        """Return constructor for negation of a value.
+
+        A class that doesn't support negation can implement this, raising a
+        suitable error, to suppress negation.  Otherwise, it should return a
+        callable that takes the tuple of negated components and packages them
+        with the right type.  The default uses _vector_().\n"""
+        return cls._vector_
+
+    @classmethod
+    def _sub_type_(cls, other):
+        """Returns constructor for a result of subtraction.
+
+        Single argument is the type of the value subtracted; over-rides of this
+        method can raise an exception to impose type constraints; or return a
+        callable that takes the tuple of components of the difference and
+        packages them suitably.  The defaut uses _vector_().\n"""
+        return cls._vector_
+
+    @classmethod
+    def _rsub_type_(cls, other):
+        """Returns constructor for a result of being subtracted.
+
+        As for _sub_type_() but for __rsub__() instead of __sub__().\n"""
+        return cls._vector_
+
+    @classmethod
+    def _add_type_(cls, other):
+        """Returns constructor for a result of addition.
+
+        As for _sub_type_() but for __add__() instead of __sub__().
+        Is also used for __radd__().\n"""
+        return cls._vector_
+
+    # Implementation:
     @classmethod
     def xerox(cls, dims, leaf=0.):
         """A tensor duplicating a given leaf through specified dimensions.
@@ -362,19 +399,19 @@ class Vector (Tuple):
 
     def __add__(self, other):
         assert len(other) == len(self)
-        return self._vector_(x + y for x, y in zip(self, other))
+        return self._add_type_()(x + y for x, y in zip(self, other))
 
     __radd__ = __add__
     def __neg__(self):
-        return self._vector_(-x for x in self)
+        return self._neg_type_()(-x for x in self)
 
     def __sub__(self, other):
         assert len(other) == len(self)
-        return self._vector_(x - y for x, y in zip(self, other))
+        return self._sub_type_()(x - y for x, y in zip(self, other))
 
     def __rsub__(self, other):
         assert len(other) == len(self)
-        return self._vector_(y - x for x, y in zip(self, other))
+        return self._rsub_type_()(y - x for x, y in zip(self, other))
 
     def __mul__(self, other):
         if not (self.__isnumeric(other) or
