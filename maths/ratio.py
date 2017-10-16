@@ -130,10 +130,40 @@ class Rational (Cached):
         if num > 0: return int(num / den)
         return -int(-num / den)
 
+    def continual(num, den):
+        # iterates continued-fraction form of num / den
+        while num:
+            a, b = divmod(num, den) # num = a * den + b
+            yield a
+            num, den = den, b
+
+    def discontinue(seq):
+        # real representation from continued fraction
+        val, i = 0., len(seq)
+        while i > 0:
+            i -= 1
+            if val: val = 1. / val
+            val = seq[i] + val
+        return val
+
     @lazyprop
-    def real(self):
+    def real(self, ingest=continual, digest=discontinue, tol=1e-6, count=4):
         num, den = self.__ratio
-        return float(num) / den
+        try: return float(num) / den
+        except OverflowError: pass
+
+        # Fall back to calculation via continued fraction:
+        seq, last = [], 0.0
+        for it in ingest(num, den):
+            seq.append(it)
+            val = digest(seq)
+            if len(seq) > count and last - tol < val < last + tol:
+                return val
+            last = val
+        return digest(seq)
+
+
+    del continual, discontinue
 
     @classmethod
     def _rational_(cls, num, den):
