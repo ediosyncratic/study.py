@@ -15,19 +15,19 @@ from study.snake.sequence import Tuple
 class Vector (Tuple):
     """Tuple type supporting entry-by-entry arithmetic.
 
-    Built-in tuple and list types support addition by concatenation,
-    producing a longer sequence, and multiplication (only by whole numbers) as
-    repeated addition.  In contrast, Vector supports
+    Built-in tuple and list types support addition by concatenation, producing a
+    longer sequence, and multiplication (only by whole numbers) as repeated
+    addition.  In contrast, Vector supports
      * addition and subtraction as operations on corresponding entries
        (i.e. (x+y)[i] = x[i]+y[i], etc.), and
      * multiplication as acting on each entry, i.e. (x*k)[i] = x[i]*k, with
        (only) scalar multiplication defined commutative (so, for scalar k, k*x
-       is just x*k); this leads to a (non-commutative) tensorial
-       multiplication when k, as well as x, is a Vector.
+       is just x*k); this leads to a (non-commutative) tensorial multiplication
+       when k, as well as x, is a Vector.
 
     In general, division is not well-defined (even where it can be defined, it
-    is not always unambiguous).  I may, some day, add support for at least
-    some of the cases where it is well-defined; but that hasn't happened yet.
+    is not always unambiguous).  I may, some day, add support for at least some
+    of the cases where it is well-defined; but that hasn't happened yet.
 
     The product of two Vector objects is technically a Vector whose entries are
     Vector-valued; such a vector is termed a tensor.  The depth of nesting of
@@ -74,8 +74,8 @@ class Vector (Tuple):
         used as entries in the new object, exactly as for Tuple.  If a derived
         class has a new/constructor with a different signature, it should
         over-ride this method to do something sensible; it is always called as
-        vec._vector_(seq) with vec either a class based on Vector or an
-        instance of such a class.\n"""
+        vec._vector_(seq) with vec either a class based on Vector or an instance
+        of such a class.\n"""
         return cls(seq)
 
     @classmethod
@@ -118,9 +118,9 @@ class Vector (Tuple):
     def xerox(cls, dims, leaf=0.):
         """A tensor duplicating a given leaf through specified dimensions.
 
-        Required argument, dims, is a sequence of (or iterator over)
-        dimensions.  Optional second argument, leaf, is either a number
-        (default is zero) or a Tensor.
+        Required argument, dims, is a sequence of (or iterator over) dimensions.
+        Optional second argument, leaf, is either a number (default is zero) or
+        a Tensor.
 
         A pure number tacitly has an empty tuple as its .dimension; the
         .dimension of the return value shall be dims (as a tuple) plus that of
@@ -128,17 +128,15 @@ class Vector (Tuple):
         .dimension, the result's value for that tuple shall be leaf.
 
         Note that each Tensor created by this method uses the same object for
-        all of its entries - a Vector of dims[-1] references to leaf is
-        created; that Vector is then referenced dim[-2] times by the Tensor of
-        next higher rank; and so on.  For any valid index tuples, s and t, of
-        equal length no greater than that of dims, into r = cls.xerox(dims,
-        leaf), we can assert r[s] is r[t].  Thus only len(dims) Tensor objects
-        are created (albeit sum(dims) references are created); this is
-        significantly more compact than what cls.xerox(dims, 1) * leaf will
-        give you.
+        all of its entries - a Vector of dims[-1] references to leaf is created;
+        that Vector is then referenced dim[-2] times by the Tensor of next
+        higher rank; and so on.  For any valid index tuples, s and t, of equal
+        length no greater than that of dims, into r = cls.xerox(dims, leaf), we
+        can assert r[s] is r[t].  Thus only len(dims) Tensor objects are created
+        (albeit sum(dims) references are created); this is significantly more
+        compact than what cls.xerox(dims, 1) * leaf will give you.
 
-        Example: cls.xerox(dims) is the zero tensor whose .dimension is
-        dims.\n"""
+        Example: cls.xerox(dims) is the zero tensor whose .dimension is dims.\n"""
 
         dims = iter(dims) # no-op if dims is already an iterator
         try: n = dims.next()
@@ -155,11 +153,11 @@ class Vector (Tuple):
         matching entry in dim) and all other entries zero.  In particular,
         cls.delta(dim) is the zero tensor with the given dimensions.
 
-        If an index argument is a sequence shorter than dim, it matches
-        all indices of full rank that begin with the given indexing; so indexing
-        the result with such a short index shall get a tensor whose entries are
-        all 1.  Thus cls.delta(dim, ()) is the tensor, with the given
-        dimensions, whose co-ordinate values are all 1.
+        If an index argument is a sequence shorter than dim, it matches all
+        indices of full rank that begin with the given indexing; so indexing the
+        result with such a short index shall get a tensor whose entries are all
+        1.  Thus cls.delta(dim, ()) is the tensor, with the given dimensions,
+        whose co-ordinate values are all 1.
 
         Index arguments longer than dim are effectively trimmed at dim's length.
 
@@ -189,10 +187,10 @@ class Vector (Tuple):
         are accommodated.  For the usual 'identity' matrix of dimension n,
         Vector.diagonal([1]*n) will do fine.
 
-        Optional second argument, rank,
-        defaults to 2; when given, a tensor of this rank is returned, whose
-        entries are zero except those with indeces (i,) * rank, where seq[i] is
-        used.  (The case rank = 1 is thus equivalent to .fromSeq).\n"""
+        Optional second argument, rank, defaults to 2; when given, a tensor of
+        this rank is returned, whose entries are zero except those with indeces
+        (i,) * rank, where seq[i] is used.  (The case rank = 1 is thus
+        equivalent to .fromSeq).\n"""
 
         row, n = [], len(seq)
         f = (lambda n: n) if rank == 2 else (lambda n, r=rank-1: (n,) * r)
@@ -205,11 +203,11 @@ class Vector (Tuple):
     def fromSeq(cls, seq, form=None):
         """Construct a Vector from a loosely suitable sequence.
 
-        Required first argument, seq, is a sequence whose entries either are
-        all numbers or are all suitable as first arguments to this method.  In
-        the latter case, each is indeed passed, recursively, to this method;
-        the sequence of returns is used in place of seq - save that, if any
-        two of them have different .dimension, a ValueError is raised.
+        Required first argument, seq, is a sequence whose entries either are all
+        numbers or are all suitable as first arguments to this method.  In the
+        latter case, each is indeed passed, recursively, to this method; the
+        sequence of returns is used in place of seq - save that, if any two of
+        them have different .dimension, a ValueError is raised.
 
         Optional second argument, form, may be None (its default), in which case
         it is ignored.  Otherwise, it should be a Vector instance with the
@@ -225,11 +223,11 @@ class Vector (Tuple):
 
         Returns a Vector object that's entry-by-entry equal to seq, where such
         equality is defined by: two sequences r, s are entry-by-entry equal
-        precisely if, for every i for which either r[i] or s[i] doesn't raise
-        an IndexError:
+        precisely if, for every i for which either r[i] or s[i] doesn't raise an
+        IndexError:
          * neither r[i] nor s[i] raises any exception when evaluated
-         * if either r[i] or s[i] is a sequence, so is the other and the two
-           are entry-by-entry equal;
+         * if either r[i] or s[i] is a sequence, so is the other and the two are
+           entry-by-entry equal;
          * otherwise, both r[i] and s[i] are numbers and r[i] == s[i].
 
         This method exists so that repr() can avoid repeating this class's name
@@ -330,13 +328,13 @@ class Vector (Tuple):
         turns.
 
         Optional second argument, unit, defaults to 2*pi; it is the unit of
-        angle, measured in radians; pass unit=1 for angles in radians.  To
-        pass an angle in degrees, simply divide it by 360 and pass it as
-        angle, using the default unit; this is easier than computing pi/180 as
-        unit !
+        angle, measured in radians; pass unit=1 for angles in radians.  To pass
+        an angle in degrees, simply divide it by 360 and pass it as angle, using
+        the default unit; this is easier than computing pi/180 as unit !
 
-        Returns a tensor of .dimension (2, 2) representing the specified
-        rotation.  Use .embed() for higher dimensions.\n"""
+        Returns a tensor of .dimension (2, 2), a.k.a. a 2-by-2 matrix,
+        representing the specified rotation.  Use .embed() for higher
+        dimensions.\n"""
         angle *= unit
         s, c = s(angle), c(angle)
         # Avoid stupid 6e-17ish value for one when it should be zero:
@@ -348,17 +346,17 @@ class Vector (Tuple):
     def hyperbolate(cls, speed, mode=atanh, s=sinh, c=cosh):
         """Hyperbolic 'rotation'
 
-        Required argument, speed, controls how far the 'rotation' deviates
-        from the identity; by default, its meaning corresponds to the fraction
-        of the speed of light at which an observer is moving, whose frame of
-        reference is 'rotated' to the degree in question.
+        Required argument, speed, controls how far the 'rotation' deviates from
+        the identity; by default, its meaning corresponds to the fraction of the
+        speed of light at which an observer is moving, whose frame of reference
+        is 'rotated' to the degree in question.
 
-        Optional second argument is a callable; it defaults to math.atanh and
-        is used to convert speed to an appropriate input to cosh and
-        sinh.  Passing math.log in its place will read speed as the Doppler
-        shift of the observer's frame, instead of its velocity.  If None is
-        passed instead, the identity is implicitly used; this is suitable for
-        use with the .Lorentz attribute of a Quantity whose value is a speed.
+        Optional second argument is a callable; it defaults to math.atanh and is
+        used to convert speed to an appropriate input to cosh and sinh.  Passing
+        math.log in its place will read speed as the Doppler shift of the
+        observer's frame, instead of its velocity.  If None is passed instead,
+        the identity is implicitly used; this is suitable for use with the
+        .Lorentz attribute of a Quantity whose value is a speed.
 
         Returns a tensor of .dimension (2, 2) representing the Lorentz
         transformation corresponding to the specified relative motion.  Use
@@ -403,6 +401,7 @@ class Vector (Tuple):
         # Delegate to private method, mainly to isolate its huge theory doc-string !
         return cls.__antisymmetric(dim, scale, cls._vector_)
 
+    # Standard operators and related behaviour:
     def __repr__(self):
         nom = self.__class__.__name__
         if self.rank > 1:
@@ -465,6 +464,7 @@ class Vector (Tuple):
 
         return result
 
+    # Extracting components:
     __upget = tuple.__getitem__
     def __getitem__(self, key):
         """Extend indexing to accept list of indices at successive ranks.
@@ -493,6 +493,7 @@ class Vector (Tuple):
         for k in key: self = self[k]
         return self
 
+    # Properties:
     @lazyprop
     def rank(self):
         """The rank of self, as a tensor.
@@ -559,13 +560,15 @@ class Vector (Tuple):
 
         return big
 
+    # General methods:
     def iteritems(self, depth=None, *others):
         """Enumerates self, optionally in parallel with others.
 
-        All arguments are optional.  The first, depth, should be a natural up to
-        self.rank or None, in which case self.rank is used.  Each yield of this
-        function shall be a tuple whose first entry is an index-tuple, of length
-        depth, into self; when this first entry is ind, the second is self[ind].
+        All arguments are optional.  The first, depth, should be a natural, up
+        to self.rank; or None, in which case self.rank is used.  Each yield of
+        this function shall be a tuple whose first entry is an index-tuple, of
+        length depth, into self; when this first entry is ind, the second is
+        self[ind].
 
         Thus, if no arguments are passed, using .iteritems() as if self were a
         mapping, we iterate over the maximal-length indexing-tuples it accepts,
@@ -575,8 +578,8 @@ class Vector (Tuple):
         iterators) with the same structure as self; each tuple yielded by this
         functio shall be, in effect, (ind, self[ind]) + tuple(o[ind] for o in
         others), except that the values of o[ind] are obtained by iterating the
-        entries in others, and recursively iterating the values they yield,
-        instead of performing lookups using __getitem__().\n"""
+        entries in others - recursively iterating the values they yield, as
+        needed - instead of performing lookups using __getitem__().\n"""
 
         if depth is None: depth = self.rank
         if depth:
@@ -734,9 +737,7 @@ class Vector (Tuple):
 
         return row
 
-    # TODO: can this be more efficient ?
-    # __mul__ is quite heavy-weight; can we short-cut it ?
-    # Is it worth it ?
+    # Contraction:
     def dot(self, other, n=1, out=True):
         """Contracts self with other.
 
@@ -760,6 +761,10 @@ class Vector (Tuple):
 
         Returns what's left of the product after all this tracing has been
         applied.\n"""
+        # TODO: can this be more efficient ?
+        # __mul__ is quite heavy-weight; can we short-cut it ?
+        # Probably yes to both: but is it worth it ?
+        # For now, at least it provides an easy way to test permutrace() ;-)
         return (self * other).permutrace((), *self.__derange(out, n, self.rank))
 
     @staticmethod
@@ -794,37 +799,37 @@ class Vector (Tuple):
     def tau(self, pattern):
         """Generalised trace-permutation operator.
 
-        Single operand, pattern, is a sequence of length at most self.rank
-        whose entries may be of two kinds: for some natural n, the whole
-        numbers 0 through n-1 appear once each in pattern; any other entries
-        in pattern must be strings, each of which must appear exactly twice in
-        pattern, at indices whose matching entries in self.dimension are
-        equal.  (The tensor modelled by self must in fact have mutually dual
-        spaces at its relevant tensor rank factors; but this implementation
-        only knows about their dimensions.)
+        Single operand, pattern, is a sequence of length at most self.rank whose
+        entries may be of two kinds: for some natural n, the whole numbers 0
+        through n-1 appear once each in pattern; any other entries in pattern
+        must be strings, each of which must appear exactly twice in pattern, at
+        indices whose matching entries in self.dimension are equal.  (The tensor
+        modelled by self must in fact have mutually dual spaces at its relevant
+        tensor rank factors; but this implementation only knows about their
+        dimensions and coordinates.
 
         For each pair of indices in pattern that share the same string, we
         contract out (trace) the ranks of self having those indices.  The
-        remaining ranks of self we permute according to the integer indices;
-        if pattern[a] is an integer i, then the result's i-th rank shall
-        correspond to self's a-th rank.
+        remaining ranks of self we permute according to the integer indices; if
+        pattern[a] is an integer i, then the result's i-th rank shall correspond
+        to self's a-th rank.
 
-        The result is the tensor that would be obtained by taking the
-        following steps, with dim = self.dimension:
+        The result is the tensor that would be obtained by taking the following
+        steps, with dim = self.dimension:
 
           * whenever pattern[a] == pattern[b], b > a, we require dim[a] ==
             dim[b] and replace self with a tensor having two fewer ranks; this
             has dimension = dim[:a] +dim[a+1:b] +dim[b+1:]; for each valid
-            index-tuple s into it, with len(s) == b-1, its [s] entry is the
-            sum over i in range(dim[b]) of self[s[:a] + (i,) + s[a:] + (i,)].
+            index-tuple s into it, with len(s) == b-1, its [s] entry is the sum
+            over i in range(dim[b]) of self[s[:a] + (i,) + s[a:] + (i,)].
 
             After replacing self with the thus-contracted tensor, we use
             pattern[:a] +pattern[a+1:b] +pattern[b+1:] in place of pattern.
 
-          * once all strings are thus eliminated, we are left with a
-            permutation as pattern; we re-organise self to produce a result:
-            whose dimension[pattern[a]] is dim[a], for each a; and, for each
-            valid index-tuple s into it, its [s] entry is self[t] where t[a] =
+          * once all strings are thus eliminated, we are left with a permutation
+            as pattern; we re-organise self to produce a result: whose
+            dimension[pattern[a]] is dim[a], for each a; and, for each valid
+            index-tuple s into it, its [s] entry is self[t] where t[a] =
             s[pattern[a]] for each index a into pattern.
 
         The final result is not, however, computed as inefficiently as this
@@ -942,11 +947,16 @@ class Vector (Tuple):
                     yield (i,) + s
 
     def __summands(self, tmpl, pairs):
+        """Fill in None entries of tmpl from self's ranks given by pairs.
+
+        Iterates the indexes s into self that match tmpl's non-None entries and
+        have s[i] == s[j] for each (i, j) in pairs (given that tmple[i] and
+        tmpl[j] are both None for each (i, j) in pairs).\n"""
         try: i, j = pairs.next()
         except StopIteration: yield tuple(tmpl)
         else:
-            assert self.dimension[i] == self.dimension[j]
             assert tmpl[i] is None is tmpl[j]
+            assert self.dimension[i] == self.dimension[j]
             if i > j: i, j = j, i
             for s in self.__summands(tmpl, pairs):
                 m = self.dimension[i]
@@ -972,13 +982,17 @@ class Vector (Tuple):
         Takes two arguments, a permutation optionally padded with None
         entries and a sequence of pairs of indices to trace.\n"""
 
+        assert not any(x == y for x, y in pairs)
         ns, i = [ x for x in shuffle if x is not None ], len(shuffle)
+        # Assert: ns is a permutation of range(len(ns))
         if ns: j = max(ns) + 1
         else: j = 0
+        assert all(n in range(j) for n in ns) and all(n in ns for n in range(j))
 
         if pairs:
-            # Pad shuffle so that every pair's indices have None in it:
-            ns = reduce(lambda x, y: x+y, pairs)
+            # Pad shuffle with None entries at every pair's indices, with
+            # entries between them extending permutation as identity:
+            ns = reduce(lambda x, y: x + y, pairs, ()) # each entry in each pair
             n, shuffle = max(ns), list(shuffle)
             while i <= n:
                 if i in ns: shuffle.append(None)
@@ -989,7 +1003,7 @@ class Vector (Tuple):
         shuffle = tuple(shuffle) # we're done modifying it
 
         # Construct reverse-lookup for shuffle:
-        rev = [ None ] * j
+        rev = [ None ] * j # map each output rank to input rank that it came from
         while i > 0:
             i -= 1
             if shuffle[i] is not None:
@@ -1000,15 +1014,15 @@ class Vector (Tuple):
         # Perform contraction:
         slab, total = (None,) * len(shuffle), self.__total
         if rev:
-            dim = tuple( self.dimension[r] for r in rev )
+            dim = tuple(self.dimension[r] for r in rev) # output .dimension
             grid = self.xerox(dim, None).__listify()
 
-            for s in self.__ranger(iter(dim)):
-                tmpl = list(slab)
+            for s in self.__ranger(iter(dim)): # each index into output grid
+                tmpl = list(slab) # input indices corresponding to s in output
                 for i, a in enumerate(rev): tmpl[a] = s[i]
                 store(grid, iter(s), total(tmpl, pairs))
 
-            # Don't pass dim; may lack a few late entries:
+            # Don't pass dim; may lack a tail of self.dimension:
             return self.fromSeq(grid)
 
         return total(slab, pairs)
@@ -1159,18 +1173,18 @@ class Vector (Tuple):
         index be m and the portions of key before and after it A, Z, so that
         A+(m,)+Z is the old key, of length n, and A+Z is the new key.  Our
         duplication-avoidance ensures m = len(A), so len(Z) = n - m - 1.  With R
-        as the final result, we want to compute S = R[A+Z] and its
-        negative.  For any k in A+Z, S[k] is zero, since it has a repeated
-        index.  For any other k in range(dim), including k = m, S[k] is
-        non-zero; and it's R[A+Z+(k,)], which our old mapping can tell us,
-        exploiting the fact that A+Z is in increasing order, so cycling k and
-        the entries in A+Z greater than it one step shall give a key in
-        increasing order.  This cycle is even or odd precisely as the number of
-        entries in A+Z greater than k is even or odd; if even, S[k] is the
-        thus-cycled key's primary value; otherwise, its negated value.  This
-        lets us select the values from the old mapping, that are needed in order
-        to make the values for the new (and likewise their negations, by taking
-        the opposite choice in each case).
+        as the final result, we want to compute S = R[A+Z] and its negative.
+        For any k in A+Z, S[k] is zero, since it has a repeated index.  For any
+        other k in range(dim), including k = m, S[k] is non-zero; and it's
+        R[A+Z+(k,)], which our old mapping can tell us, exploiting the fact that
+        A+Z is in increasing order, so cycling k and the entries in A+Z greater
+        than it one step shall give a key in increasing order.  This cycle is
+        even or odd precisely as the number of entries in A+Z greater than k is
+        even or odd; if even, S[k] is the thus-cycled key's primary value;
+        otherwise, its negated value.  This lets us select the values from the
+        old mapping, that are needed in order to make the values for the new
+        (and likewise their negations, by taking the opposite choice in each
+        case).
 
         We can thus obtain the needed mappings for progressively shorter keys;
         and can trivially compute the zero that each rank needs to fill in its
@@ -1249,10 +1263,10 @@ class Namely (Vector):
     to the constructor.  Components can be passed simply as positional arguments
     to the constructor, too; and they *can't* all be passed together as entries
     in a list passed as first argument, unlike Vector.  On construction, any
-    component not supplied either positionally or as a keyword defaults to
-    zero.  The repr() of the vector uses whichever form of construction is
-    tersest (so, unless many components are zero, usually the positional form);
-    str() is as for Vector.
+    component not supplied either positionally or as a keyword defaults to zero.
+    The repr() of the vector uses whichever form of construction is tersest (so,
+    unless many components are zero, usually the positional form); str() is as
+    for Vector.
 
     Based on Vector, so supports everything it does, although the results may
     prove a bit odd in some cases (e.g. sparse tensors, mixing positional and
