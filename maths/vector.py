@@ -75,8 +75,11 @@ class Vector (Tuple):
         class has a new/constructor with a different signature, it should
         over-ride this method to do something sensible; it is always called as
         vec._vector_(seq) with vec either a class based on Vector or an instance
-        of such a class.\n"""
-        return cls(seq)
+        of such a class.  Re-implementations are encouraged to pass seq through
+        _unique_() before forwarding to a constructor, as this eliminates
+        duplication of equal values (it also ensures you get a plain tuple
+        rather than another sequence type or an iterator).\n"""
+        return cls(cls._unique_(seq))
 
     @classmethod
     def _neg_type_(cls):
@@ -113,6 +116,41 @@ class Vector (Tuple):
         Is also used for __radd__().\n"""
         return cls._vector_
 
+    # Helper for _vector_() and its re-implementors:
+    @staticmethod
+    def _unique_(seq):
+        """Uniquify values in a sequence or iterator.
+
+        If two values in seq are equal, this will ensure the same object is used
+        for them in the returned tuple; this can avoid (some) duplication of
+        values.  (Note, however, that it won't eliminate duplication between
+        entries *of* entries in seq: so callers should still try to use a common
+        object for a common value (e.g. zero, of a given rank) when it's apt to
+        be duplicated between entries in the next rank out,)\n"""
+        seq = list(seq)
+        try:
+            bok, i = {}, len(seq)
+            while i > 0:
+                i -= 1
+                try: seq[i] = seq[bok[seq[i]]]
+                except KeyError: bok[seq[i]] = i
+
+        except TypeError:
+            # Apparently, entries in seq are not hashable :-(
+            # Use an associative array, instead:
+            bok, i = [], len(seq)
+            while i > 0:
+                here = seq[i]
+                for j, val in bok:
+                    if val is here: break # already de-duplicated :-)
+                    if val == here:
+                        seq[i] = val
+                        break
+                else:
+                    bok.append((i, here))
+
+        return tuple(seq)
+
     # Implementation:
     @classmethod
     def xerox(cls, dims, leaf=0.):
@@ -133,8 +171,7 @@ class Vector (Tuple):
         higher rank; and so on.  For any valid index tuples, s and t, of equal
         length no greater than that of dims, into r = cls.xerox(dims, leaf), we
         can assert r[s] is r[t].  Thus only len(dims) Tensor objects are created
-        (albeit sum(dims) references are created); this is significantly more
-        compact than what cls.xerox(dims, 1) * leaf will give you.
+        (albeit sum(dims) references are created).
 
         Example: cls.xerox(dims) is the zero tensor whose .dimension is dims.\n"""
 
@@ -1320,7 +1357,7 @@ class Namely (Vector):
         return Vector.__new__(cls, args)
 
     @classmethod
-    def _vector_(cls, seq): return cls(*tuple(seq))
+    def _vector_(cls, seq): return cls(*cls._unique_(seq))
 
     def __repr__(self):
         seq, byname, index = [], [], []
