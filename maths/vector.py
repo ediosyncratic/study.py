@@ -274,7 +274,7 @@ class Vector (Tuple):
         if isinstance(val, Vector): return False
         try: iter(val) # you can't iterate a number
         except (TypeError, AttributeError):
-            try: 0 * val + val # but you can add zero times it to it
+            try: val * 0 + val # but you can add zero times it to it
             # We can't simply try: 0 + val, as val might have units;
             # e.g. if it's an instance of study.value.Quantity.
             except TypeError: pass # well, actually, fail
@@ -344,6 +344,7 @@ class Vector (Tuple):
         return cls.fromSeq(((c, s), (s, c)))
     del pi, sin, cos, sinh, cosh, atanh
 
+    # Arbitrary rank (all of same kind) constructor:
     @classmethod
     def antisymmetric(cls, dim, scale=None):
         """Totally antisymmetric tensor on a space of dimension dim.
@@ -376,10 +377,7 @@ class Vector (Tuple):
         if dim < 2: return cls._vector_((scale,) * dim) # boring
 
         # Delegate to private method, mainly to isolate its huge theory doc-string !
-        return cls.__antisymmetric(dim,
-                                   0 * scale,
-                                   { tuple(range(dim)): (scale, -scale) },
-                                   cls._vector_)
+        return cls.__antisymmetric(dim, scale, cls._vector_)
 
     def __repr__(self):
         nom = self.__class__.__name__
@@ -1044,13 +1042,12 @@ class Vector (Tuple):
         return old[pre + (index,) + post][n % 2]
 
     @staticmethod
-    def __antisymmetric(dim, zero, bok, vec, munge=tail_twist):
+    def __antisymmetric(dim, scale, vec, munge=tail_twist):
         """Gory implementation of antisymmetric().
 
         Required arguments:
           dim -- dimension of space; also rank of final tensor
-          zero -- the zero of the kind matching scale
-          bok -- initial mapping from full-length key to (scale, -scale).
+          scale -- the unit value for leaves in the tensor
           vec -- constructor for vectors
 
         == Theory ==
@@ -1065,17 +1062,18 @@ class Vector (Tuple):
 
         For each n in range(1+dim), there are chose(dim, n) distinct sets of n
         entries in range(dim); each ordering of each such set is a key with
-        which we can index our answer to get a non-zero entry, of rank
-        dim-n.  For n > 1, half of the available orderings give one entry, the
-        other half give its negation.  Any valid key not of this form gives zero
-        as answer, so we have 1 + 2 * chose(dim, n) distinct entries of this
-        rank.  For n = 1, chose(dim, n) = dim; for n = 0, chose(dim, n) = 1; in
-        each of these cases, there is only one ordering and we don't use the
-        zero tensor (making special handling of these two ranks beneficial, as
-        exploited below), so we only have chose(dim, n) dictinct entries.  For n
-        = dim, the results of indexing are scale, -scale and 0, which aren't
-        tensor objects (well, the can be, but I'm ignoring that
-        possibility).  So, for dim > 1, the number of tensor objects we need is:
+        which we can index our answer to get a non-zero entry, of rank dim-n.
+        For n > 1, half of the available orderings give one entry, the other
+        half give its negation.  Any valid key not of this form gives zero as
+        answer, so we have 1 + 2 * chose(dim, n) distinct entries of this rank.
+        For n = 1, chose(dim, n) = dim; for n = 0, chose(dim, n) = 1; in each of
+        these cases, there is only one ordering and we don't use the zero tensor
+        (making special handling of these two ranks beneficial, as exploited
+        below), so we only have chose(dim, n) dictinct entries.  For n = dim,
+        the results of indexing are scale, -scale and 0, which are taken to be
+        scalars (the implementation lets scale be a tensor, in fact, but the
+        canonical case has it scalar).  So, for dim > 1, the number of tensor
+        objects we need is:
 
             1 + dim + sum(1 + 2*chose(dim, n) for n in range(2, dim)]
           = 1 + dim + dim - 2 + 2 * sum(chose(dim, n) for n in range(2, dim))
@@ -1087,7 +1085,7 @@ class Vector (Tuple):
         the number of subsets, of any size, of a set of size dim), so we are
         left with 2**(dim+1) - 5 tensor objects that we need to create.  This
         grows much less rapidly than (dim**dim - 1) / (dim - 1), as dim grows;
-        and is already bigger at dim = 3.
+        the latter is already bigger at dim = 3.
 
         Aside from ranks dim and dim - 1, and a zero of each rank, our distinct
         entries come in pairs, differing only in sign; and there is exactly one
@@ -1107,8 +1105,8 @@ class Vector (Tuple):
         associated with shorter keys are built out of those with longer keys, we
         can in fact start with a mapping from longer keys and iteratively use it
         to build mappings with shorter keys, discarding each mapping once the
-        next is available (and its values are using the previous mapping's
-        values as entries).
+        next is available (and its values have the previous mapping's values as
+        entries).
 
         One side of each partition is used as index into our result tensor, to
         obtain the two tensor entries associated with this indexing; swapping
@@ -1119,18 +1117,18 @@ class Vector (Tuple):
         tensor shall map it to, with its negation as second entry.
 
         We thus start with one key, tuple(range(dim)), mapped to the pair
-        (scale, -scale); and with 0 * scale as zero (two of the parameters
-        passed to this method).  From each such mapping and associated zero, we
-        then build the equivalent for keys one index shorter, with values of
-        rank one higher; the entries associated with these are vectors of the
-        previous mapping's entries.  For each old key, deleting one entry from
-        it yields some new key: but each new key can (at least potentially)
-        arise from several old keys.  To avoid duplication, traverse each key
-        from its bottom upwards until it hits a gap from an earlier iteration's
-        deletion: any later deletion than this shall have appened to a peer of
-        the key being traversed, that didn't delete the gap we've just hit, so
-        *its* traversal shall include deletion of this gap.  (The ability to do
-        this is what makes ordered tuples better than feozensets as keys.)
+        (scale, -scale); and with scale * 0 as zero.  From each such mapping and
+        associated zero, we then build the equivalent for keys one index
+        shorter, with values of rank one higher; the entries associated with
+        these are vectors of the previous mapping's entries.  For each old key,
+        deleting one entry from it yields some new key: but each new key can (at
+        least potentially) arise from several old keys.  To avoid duplication,
+        traverse each key from its bottom upwards until it hits a gap from an
+        earlier iteration's deletion: any later deletion than this shall have
+        happened to a peer of the key being traversed, that didn't delete the
+        gap we've just hit, so *its* traversal shall include deletion of this
+        gap.  (The ability to do this is what makes ordered tuples better than
+        feozensets as keys.)
 
         So, given a key, an index to delete from it and the old mapping, we need
         to compute the values, for the reduced key, in the new mapping.  Let the
@@ -1164,16 +1162,19 @@ class Vector (Tuple):
         off the mapping whose keys have length two.\n"""
 
         assert dim > 1
-        assert len(bok.keys()) == 1 and bok.keys()[0] == tuple(range(dim))
-        assert len(bok.values()[0]) == 2
 
-        n = dim
+        n = dim # length of bok's keys
+        zero = scale * 0 # zero of the rank of bok's values
+        # Keys are ordered sub-sets of range(len(dim)); bok[key] is the pair of
+        # + and - values of result[q] for diverse permutations q of key.
+        bok = { tuple(range(dim)): (scale, -scale) }
+        # Reduce n while increasing rank of zero and bok's values:
         while n > 2:
-            kob = {} # new mapping
+            kob = {} # new mapping, will replace bok
             for key in bok.iterkeys():
                 assert len(key) == n
                 for i, m in enumerate(key):
-                    if i < m: break # avoid duplication
+                    if i < m: break # avoid duplication (see doc-string)
                     assert i == m
                     yek = key[:i] + key[i+1:] # new mapping's key, skipping m
                     assert not kob.has_key(yek) # we avoided duplication
@@ -1189,6 +1190,8 @@ class Vector (Tuple):
 
             # Replace the old with the new:
             zero, bok = vec((zero,) * dim), kob
+        # bok now maps pairs of distinct naturals < dim to pairs of tensors of
+        # rank dim-2.
 
         assert all(len(key) == 2 for key in bok.iterkeys())
         assert 2 * len(bok) == (dim - 1) * dim
