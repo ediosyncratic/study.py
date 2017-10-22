@@ -295,7 +295,31 @@ class Vector (Tuple):
         assert not any(isinstance(val, Vector) for val in form[1:])
         return all(cls.__isnumeric(val) for val in seq)
 
-    # Special casees of .dimension == (2, 2):
+    # Special constructors with .dimension == (2, 2):
+    @classmethod
+    def decomplex(cls, real, imag):
+        """Represent a complex number as a matrix.
+
+        Takes two arguments (interpreted here as if real), the real and
+        imaginary parts of a complex number; returns a matrix that scales by the
+        complex number's magnitude, hypot(real, imag), and rotates through its
+        phase, atan2(imag, real).  If you have the phase and magnitude, rather
+        than real and imaginary parts, this is .circulate(phase) * magnitude.
+
+        When we consider complex numbers as 2-D real vectors, their
+        multiplication, (x +1j * y) * (u +1j * v) = (x*u -y*v) +1j * (x*v +y*u),
+        can be represented by mapping the left operand to a matrix, here
+
+          (x, y) -> ((x, -y), (y, x))
+
+        so that, acting on (u, v), we get
+
+          ((x, -y), (y, x)).dot((u, v)) = (x*u -y*v, x*v +y*u)
+
+        This is the rotation-with-scaling described above.  For higher-dimension
+        rotations-with-scaling, use .embed() on the result.\n"""
+        return cls.fromSeq(((real, -imag), (imag, real)))
+
     from math import pi, sin, cos, sinh, cosh, atanh
     @classmethod
     def circulate(cls, angle, unit=2*pi, s=sin, c=cos):
@@ -318,7 +342,7 @@ class Vector (Tuple):
         # Avoid stupid 6e-17ish value for one when it should be zero:
         if s in (-1, 1): c = 0
         if c in (-1, 1): s = 0
-        return cls.fromSeq(((c, s), (-s, c)))
+        return cls.decomplex(c, s)
 
     @classmethod
     def hyperbolate(cls, speed, mode=atanh, s=sinh, c=cosh):
