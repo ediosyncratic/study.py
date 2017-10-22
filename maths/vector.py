@@ -201,19 +201,99 @@ class Vector (Tuple):
         As a convenience: passing an integer as dim, with each subsequent
         argument as an integer, is accepted as equivalent to packing each as a
         one-tuple - which involves way too much punctuation !\n"""
-        try: n, tail = dim[0], dim[1:]
-        except TypeError:
+        try:
+            # Note use of [:] on dim and each n to provoke TypeError if non-sequence
+            if dim[:] and not dim[1:]: # Will TypeError on the convenience hack
+                try: ok = all(len(n[:]) == 1 for n in ns)
+                except TypeError:
+                    raise ValueError("indices should be sequences when dim is", dim, ns)
+                if ok:
+                    # Route into the short-cut even when it's written verbosely:
+                    ns = tuple(n[0] for n in ns)
+                    dim = dim[0]
+                    raise TypeError
+        except TypeError: # The convenience case mentioned in the doc-string:
             assert isinstance(dim, (int, long))
             assert all(isinstance(n, (int, long)) for n in ns)
-            return cls._vector_([1 if i in ns else 0 for i in range(dim)])
-        except IndexError: return 1 if () in ns else 0
+            return cls._vector_(int(i in ns) for i in range(dim))
+        except IndexError: pass
 
+        return cls.__delta(dim, 1, 0, indices)[0]
+
+    @classmethod
+    def __delta(cls, dim, val, zero, indices, shared=None):
+        """Implementation details of delta(), qv.
+
+        This takes care of avoiding duplication of zeros between entries (but
+        doesn't attempt the same for non-zeros, beyond what xerox can help
+        with).  Returns a pair whose first entry is the value delta() returns;
+        the second is either None (when shared is None and the result has no
+        zero entry) or a zero with the same dimensions; the latter is suitable
+        for use as shared in later calls with the same cls, dim and zero; and
+        shared, when it isn't None, is assumed to have been obtained from some
+        earlier call.\n"""
+        # Prepare to use shared; and sanity-check it:
+        if shared is None:
+            zeroEntry = None
+        else:
+            zeroEntry = shared[0]
+            assert all(x is zeroEntry for x in shared)
+            if len(shared.dimension) > len(dim):
+                assert shared.dimension[:len(dim)] == dim
+                assert shared.dimension[len(dim):] == zero.dimension == val.dimension
+            else:
+                assert shared.dimension == dim
+
+        # Assorted special cases:
+        if not dim:
+            return (val if indices else zero), shared
+
+        if not indices or val == zero:
+            # Use zero as every co-ordinate:
+            if shared is None:
+                ans = cls.xerox(dim, zero)
+            else:
+                ans = shared
+            return ans, ans
+
+        if () in indices:
+            # Use val as every co-ordinate:
+            return cls.xerox(dim, val), shared
+
+        # The cases with no short-cut:
+        here, tail = dim[0], dim[1:]
         if tail:
-            return cls._vector_([cls.delta(tail, *[ts[1:] for ts in ns
-                                                     if not ts or ts[0] == i])
-                                   for i in range(n)])
-        return cls._vector_([1 if i in [ n[0] if n else i for n in ns ] else 0
-                               for i in range(n)])
+            seq = [] # iterate with side-effects, to share zeroEntry
+            for i in range(here):
+                rest = tuple(ts[1:] for ts in indices if ts[0] == i)
+                if rest:
+                    ans, z = cls.__delta(tail, val, zero, rest, zeroEntry)
+                    if z is not None and zeroEntry is None:
+                        assert all(x is z[0] for x in z)
+                        zeroEntry = z
+                elif zeroEntry is None:
+                    ans = zeroEntry = cls.xerox(tail, zero)
+                else:
+                    ans = zeroEntry
+
+                seq.append(ans)
+            if shared is None and zeroEntry is not None:
+                shared = cls._vector_((zeroEntry,) * here)
+        else:
+            seq = (val if any(j[0] == i for j in indices) else zero
+                   for i in range(here))
+            shared = cls._vector_((zero,) * here)
+        return cls._vector_(seq), shared
+
+    @classmethod
+    def __diag(cls, seq, f):
+        zero = None # So as to re-use any zero values that show up
+        zeroLeaf = None
+        for i, v in enumerate(seq):
+            if zeroLeaf is None: zeroLeaf = v * 0
+            else: assert zeroLeaf == v * 0
+            entry, zero = cls.__delta(f(len(seq)), v, zeroLeaf, (f(i),), zero)
+            yield entry
 
     @classmethod
     def diagonal(cls, seq, rank=2):
@@ -221,20 +301,14 @@ class Vector (Tuple):
 
         All other entries are zero.  Required argument, seq, gives the values on
         the diagonal.  These should normally be numeric, but vectors or tensors
-        are accommodated.  For the usual 'identity' matrix of dimension n,
-        Vector.diagonal([1]*n) will do fine.
+        (all of the same rank) are accommodated.  For the usual 'identity'
+        matrix of dimension n, Vector.diagonal([1]*n) will do fine.
 
         Optional second argument, rank, defaults to 2; when given, a tensor of
-        this rank is returned, whose entries are zero except those with indeces
+        this rank is returned, whose entries are zero except those with indices
         (i,) * rank, where seq[i] is used.  (The case rank = 1 is thus
         equivalent to .fromSeq).\n"""
-
-        row, n = [], len(seq)
-        f = (lambda n: n) if rank == 2 else (lambda n, r=rank-1: (n,) * r)
-        for i, v in enumerate(seq):
-            row.append(cls.delta(f(n), f(i)) * v)
-
-        return cls._vector_(row)
+        return cls._vector_(cls.__diag(seq, lambda i, r=rank-1: (i,) * r))
 
     @classmethod
     def fromSeq(cls, seq, form=None):
