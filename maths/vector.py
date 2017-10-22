@@ -116,6 +116,18 @@ class Vector (Tuple):
         Is also used for __radd__().\n"""
         return cls._vector_
 
+    def _check_contract_(self, other):
+        """Are self anod other compatible for contraction ?
+
+        Called with self and other as two partial indexings implicated in a
+        contraction, where the primary ranks (the .__class__, responsible for
+        dimension[0], of each) should be dual to one another.  If they're not,
+        the derived class can raise whatever error it deems appropriate.  By
+        default, this just asserts equal length (i.e. dimension[0]), but derived
+        classes that know what linear spaces they really represent may be able
+        to check one rank is actually dual to the other.\n"""
+        assert len(self) == len(other)
+
     # Helper for _vector_() and its re-implementors:
     @staticmethod
     def _unique_(seq):
@@ -1075,10 +1087,17 @@ class Vector (Tuple):
                     m -= 1
                     yield s[:i] + (m,) + s[i+1:j] + (m,) + s[j+1:]
 
+    def __lookup_check(self, entry, pairs):
+        # Major over-kill: checks each entry in each rank, where entries at a
+        # given rank shall typically all be of the same kind, so if one works
+        # all shall.
+        all(self[entry[:i]]._check_contract_(self[entry[:j]]) for i, j in pairs)
+        return self[entry]
+
     def __total(self, tmpl, pairs):
-        es = self.__summands(tmpl, iter(pairs))
-        tot = self[es.next()]
-        for e in es: tot += self[e]
+        es, get = self.__summands(tmpl, iter(pairs)), self.__lookup_check
+        tot = get(es.next(), pairs)
+        for e in es: tot += get(e, pairs)
         return tot
 
     def setcell(grid, key, val): # tool function for __trace_permute
