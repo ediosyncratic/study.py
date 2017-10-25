@@ -127,6 +127,7 @@ class Rational (Cached):
     @lazyprop
     def truncate(self): # round towards zero
         num, den = self.__ratio
+        assert den > 0
         if num > 0: return int(num / den)
         return -int(-num / den)
 
@@ -161,8 +162,6 @@ class Rational (Cached):
                 return val
             last = val
         return digest(seq)
-
-
     del continual, discontinue
 
     @classmethod
@@ -182,6 +181,14 @@ class Rational (Cached):
     def __int__(self):     return self.truncate
     def __complex__(self): return self.real + 0j
     def __float__(self):   return self.real
+    def __format__(self, fmt=None):
+        if not fmt:
+            return str(self)
+        if fmt[-1] in "eEfFgG%":
+            return format(self.real, fmt)
+        if fmt[-1] in "bcdoxX":
+            return format(self.truncate, fmt)
+        return format(str(self), fmt)
 
     def __add__(self, other):
         num, den = self.__ratio
