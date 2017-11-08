@@ -1124,7 +1124,12 @@ Russia = Object(verst = 1167 * yard, pood = 36.11 * pound)
 # Imperial units of volume (part 2):
 
 # `dry measure'
-peck = gallon * 2
+peck = Quantity(2, gallon, """The peck: a unit of (dry) volume
+
+Proverbially, in English, you'll eat a peck of dirt before you die;
+this is rather more than the mental image of a bird pecking at its
+food might suggest !
+""")
 bushel = peck * 4       # but Nick thought a peck was half a bushel ...
 # average weights of bushels:
 # barley = 47 lb, oats = 38 lb, wheat = 60 lb; c.f. USbushel
