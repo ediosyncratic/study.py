@@ -452,6 +452,8 @@ class Element (Substance):
     del Group
 del Noble
 
+Float, About = Quantity.fromDecimal, Quantity.within
+
 def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=None, **what):
     """Create an Element based on my Nuffield Advanced Data book's data.
 
@@ -506,18 +508,18 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
     try: A.width
     except AttributeError: # give it an error bar
         try: isos[:] # radioactive/artificial elements
-        except TypeError: A = Quantity.fromDecimal(A, 4) # real ones
-        else: A = Quantity.within(A, .5 * max(1, max(isos) - min(isos)))
+        except TypeError: A = Float(A, 4) # real ones
+        else: A = About(A, .5 * max(1, max(isos) - min(isos)))
 
     temp = {}
     if melt is not None:
         try: melt.width
-        except AttributeError: melt = Quantity.fromDecimal(melt, 1)
+        except AttributeError: melt = Float(melt, 1)
         temp['melt'] = melt * Kelvin
 
     if boil is not None:
         try: boil.width
-        except AttributeError: boil = Quantity.fromDecimal(boil, 1)
+        except AttributeError: boil = Float(boil, 1)
         temp['boil'] = boil * Kelvin
 
     try: temp['sublime'] = what['sublime']
@@ -556,7 +558,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
                         while unit > v: unit = unit * .1
                         unit = unit * .1
                     if fix and v > 1: v = v * fix # bodge
-                    v = Quantity.within(v, unit * .01)
+                    v = About(v, unit * .01)
                     iso.abundance = v * scale
     else:
         # sequence: known isotopes
@@ -565,10 +567,8 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
 
     return ans
 
-Float, About = Quantity.fromDecimal, Quantity.within
-
 atom(1, 0, 'Hydrogen', 'H', 'The simplest atom; the most abundant form of matter',
-     mass=Quantity.within(1673.43, .08, harpo * gram),
+     mass=About(1673.43, .08, harpo * gram),
      nucleus=proton)
 atom(1, 1, 'Deuterium', 'D', '(Ordinary) Heavy Hydrogen',
      nucleus=nucleus(1, 1, 'deuteron', doc="Deuterium's nucleus",
@@ -614,7 +614,7 @@ Manganese = NASelement('Manganese', 'Mn', 25, 54.938, {55: 1}, .44, 1517, 2314)
 Iron = NASelement('Iron', 'Fe', 26, Float(55.847, 3), {54: 5.84, 56: 91.68, 57: 2.17, 58: .31}, 22, 1812, 3160, arcanum='Ferrum')
 Cobalt = NASelement('Cobalt', 'Co', 27, 58.9332, {59: 1}, .01, 1768, 3150)
 Nickel = NASelement('Nickel', 'Ni', 28, 58.71, {58: 67.76, 60: 26.16, 61: 1.25, 62: 3.66, 64: 1.16}, 3.5e-2, 1728, 3110)
-Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, arcanum='Cuprum', resistivity=Quantity.fromDecimal(16.8, 1) * nano * Ohm * metre)
+Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, arcanum='Cuprum', resistivity=Float(16.8, 1) * nano * Ohm * metre)
 # resistivity: http://www.irregularwebcomic.net/3295.html
 Zinc = NASelement('Zinc', 'Zn', 30, 65.37, {64: 48.89, 66: 27.81, 67: 4.11, 68: 18.56, 70: .62}, 5.8e-2, 693, 1181)
 Gallium = NASelement('Gallium', 'Ga', 31, 69.72, {69: 60.2, 71: 39.8}, 6.6e-3, 303, Float(2510, -1))
