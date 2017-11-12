@@ -1203,16 +1203,14 @@ class Quantity (Object):
         except AttributeError: scale = best
         else: units, best = un * units, scale
 
-        cls.__extra_attrs(what, best=best)
-        tol = cls.__magnitude(scale, base) * base ** sigfig
-
+        tol = cls.__magnitude(scale, base) * base ** -sigfig
         return cls.within(best, 0.5 * tol, units, *args, **what)
 
     @staticmethod
     def __magnitude(scale, base, tonum=tonumber):
-        tol, scale = 1, abs(tonum(scale))
-        while tol < scale: tol *= base
+        tol, scale = 1., abs(tonum(scale))
         while tol > scale: tol /= base
+        while tol < scale: tol *= base
         return tol
 
     @classmethod
