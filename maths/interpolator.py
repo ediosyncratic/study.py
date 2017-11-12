@@ -685,15 +685,14 @@ class PiecewiseConstant (Interpolator):
 
         See Interpolator.weigh() for the requirements.  If s is the only index
         in seq that's at the spike, half of weight goes into each of result[s]
-        and result[s+1].  Otherwise, seq[s:t] has more than one entry, with
-        all entries <= seq[s]; these delimit t-s degenerate intervals (usually
-        just one) among which weight is shared evenly.\n"""
+        and result[s+1].  Otherwise, seq[s:t] has more than one entry, each of
+        which is <= seq[s]; these delimit t-s degenerate intervals (usually just
+        one) among which weight is shared evenly.\n"""
         t = s + 1
         if t >= len(seq) or seq[t] > seq[s]:
             w = weight * .5
             result[s] += w
-            s += 1
-            result[s] += w
+            result[t] += w
         else:
             while t + 1 < len(seq) and seq[t + 1] <= seq[s]: t += 1
             if t == s + 1: w = weight
@@ -701,7 +700,7 @@ class PiecewiseConstant (Interpolator):
             while s < t:
                 s += 1
                 result[s] += w
-        return s
+        return t
 
     def weigh(self, seq, total=None):
         result, load, cut = [ 0. ] * (1 + len(seq)), self.mass, self.cuts
@@ -753,7 +752,6 @@ class PiecewiseConstant (Interpolator):
                                 i += 1
 
                             s = self.__share(weight, result, seq, s)
-                            assert s >= len(seq) or seq[s] > stop
 
                     else: # result[s] gets the rest of load[i]:
                         if last is not None:
