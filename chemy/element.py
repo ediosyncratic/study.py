@@ -454,7 +454,7 @@ del Noble
 
 Float, About = Quantity.fromDecimal, Quantity.within
 
-def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=None, **what):
+def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=None, density=None, **what):
     """Create an Element based on my Nuffield Advanced Data book's data.
 
     Required arguments:
@@ -470,6 +470,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
                    default is None, indicating an artificial element.
       melt -- melting temperature / K
       boil -- boiling temperature / K
+      density -- in g/cc at 298K; or a tuple (d, T), d in g/cc at T as liquid
 
     plus any further keyword arguments, to taste.  See Element's constructor for
     further details; it receives a suitably scaled abundance.
@@ -510,6 +511,14 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
         try: isos[:] # radioactive/artificial elements
         except TypeError: A = Float(A, 4) # real ones
         else: A = About(A, .5 * max(1, max(isos) - min(isos)))
+
+    if density is not None:
+        if not isinstance(density, Quantity):
+            try: density, temp = density
+            except TypeError: temp = 298 * Kelvin
+            else: temp *= Kelvin
+            density = Float(density, 2, units=gram / cc, measured=temp)
+        what['density'] = density
 
     temp = {}
     if melt is not None:
@@ -580,72 +589,72 @@ atom(1, 2, 'Tritium', 'T', 'Radioactive Heavy Hydrogen')
 atom(2, 2, 'Helium', 'He', 'Second most abundant form of matter',
      nucleus=nucleus(2, 2, 'alpha', doc="Helium's nucleus"))
 
-Hydrogen = NASelement('Hydrogen', 'H', 1, Float(1.0079, 5), {1: 99.985, 2: .015, 3: None}, .57, 14, 20)
-Helium = NASelement('Helium', 'He', 2, 4.0026, {3: 1.3e-4, 4: 100}, 1.3e-6, boil=4)
-Lithium = NASelement('Lithium', 'Li', 3, 6.939, {6: 7.42, 7: 92.58}, 2.9e-2, 454, 1604)
-Beryllium = NASelement('Beryllium', 'Be', 4, 9.0122, {9: 1}, 2.6e-3, 1556, Float(2750, -1))
-Boron = NASelement('Boron', 'B', 5, About(10.811, 1.5e-3), {10: 19.7, 11: 80.3}, 1.3e-3, 2300, 4200)
+Hydrogen = NASelement('Hydrogen', 'H', 1, Float(1.0079, 5), {1: 99.985, 2: .015, 3: None}, .57, 14, 20, (.07, 20))
+Helium = NASelement('Helium', 'He', 2, 4.0026, {3: 1.3e-4, 4: 100}, 1.3e-6, boil=4, density=(.12, 4))
+Lithium = NASelement('Lithium', 'Li', 3, 6.939, {6: 7.42, 7: 92.58}, 2.9e-2, 454, 1604, .53)
+Beryllium = NASelement('Beryllium', 'Be', 4, 9.0122, {9: 1}, 2.6e-3, 1556, Float(2750, -1), 1.85)
+Boron = NASelement('Boron', 'B', 5, About(10.811, 1.5e-3), {10: 19.7, 11: 80.3}, 1.3e-3, 2300, 4200, 2.55)
 Carbon = NASelement('Carbon', 'C', 6, About(12.0111, 2.5e-5), {12: 98.89, 13: 1.11, 14: None},
-                    .14,3823, Float(5100, -1), sublime=Centigrade(About(3700, 25)))
-Nitrogen = NASelement('Nitrogen', 'N', 7, 14.0067, {14: 99.63, 15: .37}, 9e-2, 63, 77)
+                    .14, 3823, Float(5100, -1), 3.53, sublime=Centigrade(About(3700, 25)))
+Nitrogen = NASelement('Nitrogen', 'N', 7, 14.0067, {14: 99.63, 15: .37}, 9e-2, 63, 77, (.81, 77))
 Oxygen = NASelement('Oxygen', 'O', 8, Float(15.994, 4),
                     # Third most abundant atom in the universe
-                    {16: 99.759, 17: .037, 18: .204}, 2.1e-2, 54, 90)
-Fluorine = NASelement('Fluorine', 'F', 9, 18.9984, {19: 1}, .4, 53, 85)
-Neon = NASelement('Neon', 'Ne', 10, About(20.183, 1.5e-3), {20: 90.92, 21: .26, 22: 8.82}, 3.1e-8, 25, 27)
-Sodium = NASelement('Sodium', 'Na', 11, 22.9898, {23: 1}, 12.5, 371, 1163, arcanum='Natrium')
-Magnesium = NASelement('Magnesium', 'Mg', 12, 24.312, {24: 78.60, 25: 10.11, 26: 11.29}, 9.2, 923, 1390)
-Aluminium = NASelement('Aluminium', 'Al', 13, 26.9185, {27: 1}, 35.8, 932, 2720, alias=('Aluminum',))
+                    {16: 99.759, 17: .037, 18: .204}, 2.1e-2, 54, 90, (1.14, 90))
+Fluorine = NASelement('Fluorine', 'F', 9, 18.9984, {19: 1}, .4, 53, 85, (1.11, 73))
+Neon = NASelement('Neon', 'Ne', 10, About(20.183, 1.5e-3), {20: 90.92, 21: .26, 22: 8.82}, 3.1e-8, 25, 27, (1.21, 27))
+Sodium = NASelement('Sodium', 'Na', 11, 22.9898, {23: 1}, 12.5, 371, 1163, .97, arcanum='Natrium')
+Magnesium = NASelement('Magnesium', 'Mg', 12, 24.312, {24: 78.60, 25: 10.11, 26: 11.29}, 9.2, 923, 1390, 1.74)
+Aluminium = NASelement('Aluminium', 'Al', 13, 26.9185, {27: 1}, 35.8, 932, 2720, 2.7, alias=('Aluminum',))
 Aluminium[26].halflife = Float(.7, 2, 6, year,
                                 cite="http://space.newscientist.com/article/dn11366-saturn-moons-mysterious-heat-traced-to-early-fever.html")
-Silicon = NASelement('Silicon', 'Si', 14, Float(28.086, 3), {28: 92.18, 29: 4.71, 30: 3.12}, 100, 1683, Float(2950, -1))
-Phosphorus = NASelement('Phosphorus', 'P', 15, 30.9738, {31: 1}, 5.2, 317, 554, sublime=704*Kelvin)
-Sulphur = NASelement('Sulphur', 'S', 16, About(32.064, 1.5e-3), {32: 95, 33: .76, 34: 4.22, 36: .01}, .23, Float(392, -1), 718, alias=('Sulfur',))
-Chlorine = NASelement('Chlorine', 'Cl', 17, Float(35.453, 3), {35: 75.53, 37: 24.47}, .14, 172, 239)
-Argon = NASelement('Argon', 'Ar', 18, 39.9480, {36: .34, 38: .063, 40: 99.6}, 1.8e-5, 84, 87, alias=('A',))
+Silicon = NASelement('Silicon', 'Si', 14, Float(28.086, 3), {28: 92.18, 29: 4.71, 30: 3.12}, 100, 1683, Float(2950, -1), 2.33)
+Phosphorus = NASelement('Phosphorus', 'P', 15, 30.9738, {31: 1}, 5.2, 317, 554, 1.82, sublime=704*Kelvin)
+Sulphur = NASelement('Sulphur', 'S', 16, About(32.064, 1.5e-3), {32: 95, 33: .76, 34: 4.22, 36: .01}, .23, Float(392, -1), 718, 1.96, alias=('Sulfur',))
+Chlorine = NASelement('Chlorine', 'Cl', 17, Float(35.453, 3), {35: 75.53, 37: 24.47}, .14, 172, 239, (1.56, 239))
+Argon = NASelement('Argon', 'Ar', 18, 39.9480, {36: .34, 38: .063, 40: 99.6}, 1.8e-5, 84, 87, (1.4, 85), alias=('A',))
 Potassium = NASelement('Potassium', 'K', 19, 39.102, {39: 93.22, 40: .12, 41: 6.77}, # components sum to 100.11, not 100
-                       11.4, 336, 1039, arcanum='Kalium')
-Calcium = NASelement('Calcium', 'Ca', 20, 40.08, {40: 96.97, 42: .64, 43: .15, 44: 2.06, 46: .003, 48: .19}, 16, 1123, 1765)
-Scandium = NASelement('Scandium', 'Sc', 21, 44.956, {45: 1}, 2.2e-3, About(1673, 10), About(2750, 10))
-Titanium = NASelement('Titanium', 'Ti', 22, 47.9, {46: 7.99, 47: 7.32, 48: 73.99, 49: 5.46, 50: 5.25}, 1.4, 1950, 3550)
-Vanadium = NASelement('Vanadium', 'V', 23, 50.942, {50: .25, 51: 99.75}, 6.6e-2, 2190, 3650)
-Chromium = NASelement('Chromium', 'Cr', 24, Float(51.996, 3), {50: 4.31, 52: 83.76, 53: 9.55, 54: 2.38}, 4.4e-2, 2176, 2915)
-Manganese = NASelement('Manganese', 'Mn', 25, 54.938, {55: 1}, .44, 1517, 2314)
-Iron = NASelement('Iron', 'Fe', 26, Float(55.847, 3), {54: 5.84, 56: 91.68, 57: 2.17, 58: .31}, 22, 1812, 3160, arcanum='Ferrum')
-Cobalt = NASelement('Cobalt', 'Co', 27, 58.9332, {59: 1}, .01, 1768, 3150)
-Nickel = NASelement('Nickel', 'Ni', 28, 58.71, {58: 67.76, 60: 26.16, 61: 1.25, 62: 3.66, 64: 1.16}, 3.5e-2, 1728, 3110)
-Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, arcanum='Cuprum', resistivity=Float(16.8, 1) * nano * Ohm * metre)
+                       11.4, 336, 1039, .86, arcanum='Kalium')
+Calcium = NASelement('Calcium', 'Ca', 20, 40.08, {40: 96.97, 42: .64, 43: .15, 44: 2.06, 46: .003, 48: .19}, 16, 1123, 1765, 1.55)
+Scandium = NASelement('Scandium', 'Sc', 21, 44.956, {45: 1}, 2.2e-3, About(1673, 10), About(2750, 10), 2.99)
+Titanium = NASelement('Titanium', 'Ti', 22, 47.9, {46: 7.99, 47: 7.32, 48: 73.99, 49: 5.46, 50: 5.25}, 1.4, 1950, 3550, 4.54)
+Vanadium = NASelement('Vanadium', 'V', 23, 50.942, {50: .25, 51: 99.75}, 6.6e-2, 2190, 3650, 6.11)
+Chromium = NASelement('Chromium', 'Cr', 24, Float(51.996, 3), {50: 4.31, 52: 83.76, 53: 9.55, 54: 2.38}, 4.4e-2, 2176, 2915, 7.19)
+Manganese = NASelement('Manganese', 'Mn', 25, 54.938, {55: 1}, .44, 1517, 2314, 7.42)
+Iron = NASelement('Iron', 'Fe', 26, Float(55.847, 3), {54: 5.84, 56: 91.68, 57: 2.17, 58: .31}, 22, 1812, 3160, 7.86, arcanum='Ferrum')
+Cobalt = NASelement('Cobalt', 'Co', 27, 58.9332, {59: 1}, .01, 1768, 3150, 8.9)
+Nickel = NASelement('Nickel', 'Ni', 28, 58.71, {58: 67.76, 60: 26.16, 61: 1.25, 62: 3.66, 64: 1.16}, 3.5e-2, 1728, 3110, 8.9)
+Copper = NASelement('Copper', 'Cu', 29, Float(63.54, 3), {63: 69.1, 65: 30.9}, 3.1e-2, 1356, 2855, 8.94, arcanum='Cuprum', resistivity=Float(16.8, 1) * nano * Ohm * metre)
 # resistivity: http://www.irregularwebcomic.net/3295.html
-Zinc = NASelement('Zinc', 'Zn', 30, 65.37, {64: 48.89, 66: 27.81, 67: 4.11, 68: 18.56, 70: .62}, 5.8e-2, 693, 1181)
-Gallium = NASelement('Gallium', 'Ga', 31, 69.72, {69: 60.2, 71: 39.8}, 6.6e-3, 303, Float(2510, -1))
-Germanium = NASelement('Germanium', 'Ge', 32, 72.59, {70: 20.55, 72: 27.37, 73: 7.67, 74: 36.74, 76: 7.67}, 3.1e-3, 1210, Float(3100, -2))
-Arsenic = NASelement('Arsenic', 'As', 33, 74.9216, {75: 1}, 2.2e-3, sublime=Float(886, 1, None, Kelvin))
-Selenium = NASelement('Selenium', 'Se', 34, 78.96, {74: .89, 76: 9.02, 77: 7.58, 78: 23.52, 80: 49.82, 82: 9.19}, 4e-5, 490, 958)
-Bromine = NASelement('Bromine', 'Br', 35, About(79.909, .001), {79: 50.52, 81: 49.48}, 7.1e-4, 266, 331)
-Krypton = NASelement('Krypton', 'Kr', 36, 83.8, {78: .35, 80: 2.27, 82: 11.56, 83: 11.55, 84: 56.9, 86: 17.37}, 4.3e-8, 116, 120)
-Rubidium = NASelement('Rubidium', 'Rb', 37, 85.47, {85: 72.15, 87: 27.85}, .14, 312, 974)
-Strontium = NASelement('Strontium', 'Sr', 38, 87.62, {84: .56, 86: 9.86, 87: 7.02, 88: 82.56}, .13, 1043, 1640)
-Yttrium = NASelement('Yttrium', 'Y', 39, 88.905, {89: 1}, 1.2e-2, About(1773, 10), Float(3500, -2))
-Zirconium = NASelement('Zirconium', 'Zr', 40, 91.22, {90: 51.46, 91: 11.23, 92: 17.11, 94: 17.4, 96: 2.8}, 9.7e-2, 2125, 4650)
-Niobium = NASelement('Niobium', 'Nb', 41, 92.9060, {93: 1}, 1.1e-2, 2770, 5200, alias=('Columbium', 'Cb'))
-Molybdenum = NASelement('Molybdenum', 'Mo', 42, 95.94, {92: 15.86, 94: 9.12, 95: 15.7, 96: 16.5, 97: 9.45, 98: 23.75, 100: 9.62}, 6.6e-3, Float(2890, -1), Float(5100, -1))
-Technetium = NASelement('Technetium', 'Tc', 43, 99, [99], None, Float(2400, -2), Float(4900, -2))
-Ruthenium = NASelement('Ruthenium', 'Ru', 44, 101.07, {96: 5.46, 98: 1.87, 99: 12.63, 100: 12.53, 101: 17.02, 102: 31.6, 104: 18.87}, 1.8e-6, Float(2700, -2), Float(4000, -2))
-Rhodium = NASelement('Rhodium', 'Rh', 45, 102.905, {103: 1}, 4.4e-7, 2239, Float(4000, -2))
-Palladium = NASelement('Palladium', 'Pd', 46, 106.4, {102: 1, 104: 11, 105: 22.2, 106: 27.3, 108: 26.7, 110: 11.8}, 4.4e-6, 1823, Float(3400, -1))
-Silver = NASelement('Silver', 'Ag', 47, About(107.87, 1.5e-3), {107: 51.35, 109: 48.65}, 4.4e-5, 1234, Float(2450, -1), arcanum='Argentum')
-Cadmium = NASelement('Cadmium', 'Cd', 48, 112.4, {106: 1.22, 108: .88, 110: 12.39, 111: 12.75, 112: 24.07, 113: 12.26, 114: 28.86, 116: 7.58}, 6.6e-5, 594, 1038)
-Indium = NASelement('Indium', 'In', 49, 114.82, {113: 4.23, 115: 95.77}, 4.4e-5, 429, About(2320, 10))
-Tin = NASelement('Tin', 'Sn', 50, 118.69, {112: .95, 114: .65, 115: .34, 116: 14.24, 117: 7.57, 118: 24.01, 119: 8.58, 120: 32.97, 122: 4.71, 124: 5.98}, 1.8e-2, 505, Float(2960, -1), arcanum='Stannum')
-Antimony = NASelement('Antimony', 'Sb', 51, 121.7550, {121: 57.25, 123: 42.75}, 4.4e-4, 903, 1910, arcanum='Stibium')
-Tellurium = NASelement('Tellurium', 'Te', 52, 127.6, {120: .09, 122: 2.46, 123: .87, 124: 4.61, 125: 6.99, 126: 18.71, 128: 31.79, 130: 34.49}, 8.8e-7, 723, 1260)
-Iodine = NASelement('Iodine', 'I', 53, 126.9044, {127: 1}, 1.3e-4, 387, 456)
+Zinc = NASelement('Zinc', 'Zn', 30, 65.37, {64: 48.89, 66: 27.81, 67: 4.11, 68: 18.56, 70: .62}, 5.8e-2, 693, 1181, 7.13)
+Gallium = NASelement('Gallium', 'Ga', 31, 69.72, {69: 60.2, 71: 39.8}, 6.6e-3, 303, Float(2510, -1), 5.91)
+Germanium = NASelement('Germanium', 'Ge', 32, 72.59, {70: 20.55, 72: 27.37, 73: 7.67, 74: 36.74, 76: 7.67}, 3.1e-3, 1210, Float(3100, -2), 5.32)
+Arsenic = NASelement('Arsenic', 'As', 33, 74.9216, {75: 1}, 2.2e-3, sublime=Float(886, 1, None, Kelvin), density=5.73)
+Selenium = NASelement('Selenium', 'Se', 34, 78.96, {74: .89, 76: 9.02, 77: 7.58, 78: 23.52, 80: 49.82, 82: 9.19}, 4e-5, 490, 958, 4.79)
+Bromine = NASelement('Bromine', 'Br', 35, About(79.909, .001), {79: 50.52, 81: 49.48}, 7.1e-4, 266, 331, (3.12, 266))
+Krypton = NASelement('Krypton', 'Kr', 36, 83.8, {78: .35, 80: 2.27, 82: 11.56, 83: 11.55, 84: 56.9, 86: 17.37}, 4.3e-8, 116, 120, (2.16, 120))
+Rubidium = NASelement('Rubidium', 'Rb', 37, 85.47, {85: 72.15, 87: 27.85}, .14, 312, 974, 1.53)
+Strontium = NASelement('Strontium', 'Sr', 38, 87.62, {84: .56, 86: 9.86, 87: 7.02, 88: 82.56}, .13, 1043, 1640, 2.58)
+Yttrium = NASelement('Yttrium', 'Y', 39, 88.905, {89: 1}, 1.2e-2, About(1773, 10), Float(3500, -2), 4.4)
+Zirconium = NASelement('Zirconium', 'Zr', 40, 91.22, {90: 51.46, 91: 11.23, 92: 17.11, 94: 17.4, 96: 2.8}, 9.7e-2, 2125, 4650, 6.53)
+Niobium = NASelement('Niobium', 'Nb', 41, 92.9060, {93: 1}, 1.1e-2, 2770, 5200, 8.55, alias=('Columbium', 'Cb'))
+Molybdenum = NASelement('Molybdenum', 'Mo', 42, 95.94, {92: 15.86, 94: 9.12, 95: 15.7, 96: 16.5, 97: 9.45, 98: 23.75, 100: 9.62}, 6.6e-3, Float(2890, -1), Float(5100, -1), 10.22)
+Technetium = NASelement('Technetium', 'Tc', 43, 99, [99], None, Float(2400, -2), Float(4900, -2), 11.5)
+Ruthenium = NASelement('Ruthenium', 'Ru', 44, 101.07, {96: 5.46, 98: 1.87, 99: 12.63, 100: 12.53, 101: 17.02, 102: 31.6, 104: 18.87}, 1.8e-6, Float(2700, -2), Float(4000, -2), 12.41)
+Rhodium = NASelement('Rhodium', 'Rh', 45, 102.905, {103: 1}, 4.4e-7, 2239, Float(4000, -2), 12.41)
+Palladium = NASelement('Palladium', 'Pd', 46, 106.4, {102: 1, 104: 11, 105: 22.2, 106: 27.3, 108: 26.7, 110: 11.8}, 4.4e-6, 1823, Float(3400, -1), 12.02)
+Silver = NASelement('Silver', 'Ag', 47, About(107.87, 1.5e-3), {107: 51.35, 109: 48.65}, 4.4e-5, 1234, Float(2450, -1), 10.5, arcanum='Argentum')
+Cadmium = NASelement('Cadmium', 'Cd', 48, 112.4, {106: 1.22, 108: .88, 110: 12.39, 111: 12.75, 112: 24.07, 113: 12.26, 114: 28.86, 116: 7.58}, 6.6e-5, 594, 1038, 8.65)
+Indium = NASelement('Indium', 'In', 49, 114.82, {113: 4.23, 115: 95.77}, 4.4e-5, 429, About(2320, 10), 7.31)
+Tin = NASelement('Tin', 'Sn', 50, 118.69, {112: .95, 114: .65, 115: .34, 116: 14.24, 117: 7.57, 118: 24.01, 119: 8.58, 120: 32.97, 122: 4.71, 124: 5.98}, 1.8e-2, 505, Float(2960, -1), 7.31, arcanum='Stannum')
+Antimony = NASelement('Antimony', 'Sb', 51, 121.7550, {121: 57.25, 123: 42.75}, 4.4e-4, 903, 1910, 6.68, arcanum='Stibium')
+Tellurium = NASelement('Tellurium', 'Te', 52, 127.6, {120: .09, 122: 2.46, 123: .87, 124: 4.61, 125: 6.99, 126: 18.71, 128: 31.79, 130: 34.49}, 8.8e-7, 723, 1260, 6.25)
+Iodine = NASelement('Iodine', 'I', 53, 126.9044, {127: 1}, 1.3e-4, 387, 456, 4.94)
 Xenon = NASelement('Xenon', 'Xe', 54, 131.3,
                    {124: .013, 126: .09, 128: 1.92, 129: 26.44, 130: 4.08, 131: 21.18, 132: 26.89, 134: 10.4, 136: 8.87}, # components sum to 99.883, not 100
-                   5.3e-10, 161, 165)
-Caesium = NASelement('Caesium', 'Cs', 55, 132.905, {133: 1}, 3.1e-3, 302, 958, alias=('Cesium',))
-Barium = NASelement('Barium', 'Ba', 56, 137.34, {130: .101, 132: .097, 134: 2.42, 135: 6.59, 136: 7.81, 137: 11.32, 138:71.66}, .57, 983, 1910)
-Lanthanum = NASelement('Lanthanum', 'La', 57, 138.91, {138: .09, 139: 99.91}, 8.1e-3, 1193, 3640)
+                   5.3e-10, 161, 165, (3.52, 164))
+Caesium = NASelement('Caesium', 'Cs', 55, 132.905, {133: 1}, 3.1e-3, 302, 958, 1.87, alias=('Cesium',))
+Barium = NASelement('Barium', 'Ba', 56, 137.34, {130: .101, 132: .097, 134: 2.42, 135: 6.59, 136: 7.81, 137: 11.32, 138:71.66}, .57, 983, 1910, 3.5)
+Lanthanum = NASelement('Lanthanum', 'La', 57, 138.91, {138: .09, 139: 99.91}, 8.1e-3, 1193, 3640, 6.19)
 Cerium = NASelement('Cerium', 'Ce', 58, 140.12, {136: .193, 138: .23, 140: 88.48, 142: 11.07}, .02)
 Praseodymium = NASelement('Praseodymium', 'Pr', 59, 140.907, {141: 1}, 2.4e-3)
 Neodymium = NASelement('Neodymium', 'Nd', 60, 144.24, {142: 27.13, 143: 12.2, 144: 23.87, 145: 8.29, 146: 17.18, 148: 5.72, 150: 5.6}, 1.1e-2)
@@ -660,19 +669,19 @@ Erbium = NASelement('Erbium', 'Er', 68, 167.26, {162: .14, 164: 1.56, 166: 33.41
 Thulium = NASelement('Thulium', 'Tm', 69, 168.934, {169: 1}, 8.8e-5)
 Ytterbium = NASelement('Ytterbium', 'Yb', 70, 173.04, {168: .14, 170: 3.03, 171: 14.31, 172: 21.82, 173: 16.13, 174: 31.84, 176: 12.73}, 1.2e-3)
 Lutetium = NASelement('Lutetium', 'Lu', 71, 174.97, {175: 97.4, 176: 2.6}, 3.3e-4)
-Hafnium = NASelement('Hafnium', 'Hf', 72, 178.49, {174: .16, 176: 5.21, 177: 18.56, 178: 27.1, 179: 13.75, 180: 35.22}, 2e-3, Float(2495, -1), Float(5500, -1))
-Tantalum = NASelement('Tantalum', 'Ta', 73, 180.948, {180: .01, 181: 99.99}, 9.2e-4, 3270, Float(5700, -2))
-Tungsten = NASelement('Tungsten', 'W', 74, 183.85, {180: .14, 182: 26.4, 183: 14.4, 184: 30.6, 186: 28.4}, 3e-2, 3650, Float(5800, -2), arcanum='Wolfram')
-Rhenium = NASelement('Rhenium', 'Re', 75, 186.2, {185: 37.07, 187: 62.93}, 4.4e-8, 3453, Float(5900, -2))
+Hafnium = NASelement('Hafnium', 'Hf', 72, 178.49, {174: .16, 176: 5.21, 177: 18.56, 178: 27.1, 179: 13.75, 180: 35.22}, 2e-3, Float(2495, -1), Float(5500, -1), 13.3)
+Tantalum = NASelement('Tantalum', 'Ta', 73, 180.948, {180: .01, 181: 99.99}, 9.2e-4, 3270, Float(5700, -2), 16.6)
+Tungsten = NASelement('Tungsten', 'W', 74, 183.85, {180: .14, 182: 26.4, 183: 14.4, 184: 30.6, 186: 28.4}, 3e-2, 3650, Float(5800, -2), 19.35, arcanum='Wolfram')
+Rhenium = NASelement('Rhenium', 'Re', 75, 186.2, {185: 37.07, 187: 62.93}, 4.4e-8, 3453, Float(5900, -2),21.02)
 Osmium = NASelement('Osmium', 'Os', 76, 190.2,
                     {188: 13.3, 189: 16.1, 190: 26.4, 192: 41}, # components sum to 96.8, not 100
-                    2.2e-6, Float(3000, -2), Float(4500, -2), density = 22.5 * gram / cc)
+                    2.2e-6, Float(3000, -2), Float(4500, -2), 22.57)
 Iridium = NASelement('Iridium', 'Ir', 77, 192.2, {191: 38.5, 193: 61.5}, 4.4e-7, 2727, Float(4400, -2),
-                     density = 22.42 * gram / cc)
+                     22.42)
 Platinum = NASelement('Platinum', 'Pt', 78, 195.09,
                       {190: .01, 192: .78, 194: 32.9, 195: 33.8, 196: 25.2, 198: 7.2}, # components sum to 99.89, not 100
-                      2.2e-6, 2043, Float(4100, -2), density = 21.37 * gram / cc)
-Gold = NASelement('Gold', 'Au', 79, 196.967, {197: 1}, 2.2e-6, 1336, About(2980, 10), arcanum='Aurum')
+                      2.2e-6, 2043, Float(4100, -2), 21.45)
+Gold = NASelement('Gold', 'Au', 79, 196.967, {197: 1}, 2.2e-6, 1336, About(2980, 10), 19.32, arcanum='Aurum')
 Mercury = NASelement(
     'Mercury', 'Hg', 80, 200.592,
     {196: .15, 198: 10.02, 199: 16.84, 200: 23.13, 201: 13.22, 202: 29.80, 204: 6.85},
@@ -690,7 +699,10 @@ column of mercury balances one atmosphere's pressure.  (Note that Eart.surface.g
 is equivalently m/m.weight for any mass m.)
 
 I have also seen its value given (using the British gallon) as 136.26 lb /
-gallon, which conflicts with the value given here (135.9 pound / gallon)."""),
+gallon, which conflicts with the value given here (135.9 pound / gallon).  The
+NAS table used for most other densities gives 13.53 g/cc at 298K, also
+conflicting with the 13.595 g/cc here.
+"""),
     __doc__ = """Mercury
 
 http://www.du.edu/~jcalvert/phys/mercury.htm
@@ -706,22 +718,22 @@ says:
 and provides lots of further (but, in places, inconsistent) physical data.
 """)
 Mercury.density.observe(torr * tonne / kg.weight / metre)
-Thallium = NASelement('Thallium', 'Tl', 81, 204.37, {203: 29.5, 205: 70.5}, 1.3e-3, 577, 1740)
+Thallium = NASelement('Thallium', 'Tl', 81, 204.37, {203: 29.5, 205: 70.5}, 1.3e-3, 577, 1740, 11.85)
 Lead = NASelement('Lead', 'Pb', 82, 207.19,
                   {202: .5, 204: 1.4, 206: 25.1, 207: 21.7, 208: 52.3}, # components sum to 101, not 100
-                  7e-3, 601, 2024, arcanum='Plumbum')
-Bismuth = NASelement('Bismuth', 'Bi', 83, 208.98, {209: 1}, 8.8e-5, 545, 1832)
-Polonium = NASelement('Polonium', 'Po', 84, 210, {210: 1}, .13, 527, 1235)
+                  7e-3, 601, 2024, 11.35, arcanum='Plumbum')
+Bismuth = NASelement('Bismuth', 'Bi', 83, 208.98, {209: 1}, 8.8e-5, 545, 1832, 9.75)
+Polonium = NASelement('Polonium', 'Po', 84, 210, {210: 1}, .13, 527, 1235, 9.32)
 Astatine = NASelement('Astatine', 'At', 85, 210, [206, 215], None, About(575, 10), Float(650, -1))
-Radon = NASelement('Radon', 'Rn', 86, 222, [222, 220], None, About(202, 10), About(211, 10), alias=('Emanation', 'Em'))
+Radon = NASelement('Radon', 'Rn', 86, 222, [222, 220], None, About(202, 10), About(211, 10), (4.4, 211), alias=('Emanation', 'Em'))
 Francium = NASelement('Francium', 'Fr', 87, 223, [223], None, Float(300, -2), About(950, 10))
-Radium = NASelement('Radium', 'Ra', 88, 226.05, [226, 228, 224, 223], 5.7e-9, 973, Float(1800, -2))
-Actinium = NASelement('Actinium', 'Ac', 89, 227, [227, 228], 1.3e-15, About(1470, 10), Float(3600, -2))
-Thorium = NASelement('Thorium', 'Th', 90, 232.038, {230: 0, 232: 1}, 5.1e-3, 1968, Float(4500, -2))
-Protactinium = NASelement('Protactinium', 'Pa', 91, 231, {231: 1}, 3.5e-10, 1500, 4300)
-Uranium = NASelement('Uranium', 'U', 92, 238.03, {234: .0057, 235: .7196, 238: 99.276}, 1.8e-3, 1406, 4200)
+Radium = NASelement('Radium', 'Ra', 88, 226.05, [226, 228, 224, 223], 5.7e-9, 973, Float(1800, -2), 5)
+Actinium = NASelement('Actinium', 'Ac', 89, 227, [227, 228], 1.3e-15, About(1470, 10), Float(3600, -2), 10.07)
+Thorium = NASelement('Thorium', 'Th', 90, 232.038, {230: 0, 232: 1}, 5.1e-3, 1968, Float(4500, -2), 11.66)
+Protactinium = NASelement('Protactinium', 'Pa', 91, 231, {231: 1}, 3.5e-10, 1500, 4300, 15.37)
+Uranium = NASelement('Uranium', 'U', 92, 238.03, {234: .0057, 235: .7196, 238: 99.276}, 1.8e-3, 1406, 4200, 18.95)
 Neptunium = NASelement('Neptunium', 'Np', 93, 237, [237, 239], None, 913, 3500)
-Plutonium = NASelement('Plutonium', 'Pu', 94, 242, [238, 239, 242])
+Plutonium = NASelement('Plutonium', 'Pu', 94, 242, [238, 239, 242], 19.84)
 Americium = NASelement('Americium', 'Am', 95, 243, [243])
 Curium = NASelement('Curium', 'Cm', 96, 247, [247])
 Berkelium = NASelement('Berkelium', 'Bk', 97, 249, [249])
