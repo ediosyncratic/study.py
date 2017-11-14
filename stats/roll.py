@@ -227,7 +227,7 @@ class Spread (Dict, Cached):
 
         assert n > 0
         if mid is None: mid = self.__mid
-        ans, m, ks, full = (), 1, self.keys(), self.sum()
+        ans, m, ks, full = (), 1, list(self.keys()), self.sum()
         ks.sort(par)
 
         i = len(ks) - 1
