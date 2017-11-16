@@ -1,7 +1,8 @@
 """Analysing a statistical sample.
 
-TODO: this has a bunch of overlap with Interpolator; factoring it into a
-suitable base-class would not be unreasonable.
+TODO: this has a bunch of overlap with Interpolator; factoring it into
+a suitable base-class would not be unreasonable - cf. variate.py's
+Variate.  Integration with roll.py's Spread would also be nice.
 
 See study.LICENSE for copyright and license information.
 """
