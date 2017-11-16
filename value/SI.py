@@ -28,7 +28,9 @@ second = sec = s = Quantity.base_unit(
     's', 'second', """The SI base unit of time.
 
 9192631770 periods of the radiation corresponding to the transition between
-the two hyperfine levels of the ground state of the caesium-133 atom.
+the two hyperfine levels of the ground state of the caesium-133 atom.  The
+unit's name comes from it being the 'second minute subdivision' of the hour;
+see study.value.units.minute for further details.
 """)
 
 m = metre = Quantity.base_unit(

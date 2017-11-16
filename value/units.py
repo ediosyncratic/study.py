@@ -42,7 +42,23 @@ to be the apparent magnitude it would have at a distance of 10 parsecs.\n""")
 del log
 
 # Time
-minute = Quantity(60, second)
+minute = Quantity(60, second, """The minute subdivision of an hour.
+
+When astronomers first started making tolerably accurate measurements
+of the movements of heavenly bodies, they found they needed finer
+units of time than the day and hour; this happened around the time
+that folk developed tolerably accurate clocks capable of making such
+measurements.  Being still more influenced by Babylonian science than
+the cultural changes that later made the metric system natural, they
+subdivided the hour 'minutely' - i.e. into sixty parts.  This gave
+them a minute subdivision of the hour; later, when they found the need
+to be even more precise, they subdivided this minutely again, giving
+them the second minute subdivision of the hour, now commonly called a
+'second'.  The pronunciation of the 'minute' as unit of time (as
+'minit' with equal stress on its two vowels) has since diverged from
+the expression of tinyness (as 'mine-yewt', with more stress on the
+second sylable than the first).
+""")
 # bell = 30 * minute # nautical - need to check correctness !
 # Not to be confused with the Bel, a tenth of which is the dB.
 hour = 60 * minute # should this also be the degree of time ?
