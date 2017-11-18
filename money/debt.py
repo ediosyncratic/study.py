@@ -7,7 +7,7 @@ from study.snake.lazy import Lazy
 
 class Debt (Lazy):
     def __init__(self, amount, currency, start=date.today(),
-                 monthly=None, yearly=.045 * .72,
+                 monthly=None, yearly=.0261 * .72,
                  daily=False):
         """Construct a Debt object.
 
@@ -18,7 +18,7 @@ class Debt (Lazy):
         Optional arguments:
             start -- date from which it pays interest (of class date; default today)
             monthly -- monthly interest rate (default: None)
-            yearly -- annual interest rate (default: 4.5% * .72; 28% tax rebate)
+            yearly -- annual interest rate (default: 2.61% * .72; 28% tax rebate)
             daily -- true if interest is calculated daily; false (default) for
                      monthly calculation.
 
@@ -87,7 +87,7 @@ class Debt (Lazy):
         else:
             gap = (when.year -then.year) * 12 + when.month - then.month
             if when.day < then.day: gap -= 1 # latest month not complete
-            if gap > 0: 
+            if gap > 0:
                 return self.amount * self.factor ** gap
         # else interest not yet due
         return self.amount
@@ -133,11 +133,11 @@ class Mortgage (Lazy):
     """Description of a mortgage.
 
     See http://www.chaos.org.uk/~eddy/math/mortgage.html for theory.  Real
-    interest rate: 4.25%; and .28 of that gets refunded by government from
-    taxes, so .72 * .0425 is the effective interest rate.
+    interest rate: 2.61%; and .28 of that gets refunded by government from
+    taxes, so .72 * .0261 is the effective interest rate.
     """
 
-    def __init__(self, debt, admin, monthly=None, growth=.05, duration=5):
+    def __init__(self, debt, admin, monthly=None, growth=.03, duration=5):
         """Initialize a Mortgage object.
 
         Required arguments:
@@ -146,7 +146,7 @@ class Mortgage (Lazy):
 
         Optional arguments:
           monthly -- monthly payment (default: None).
-          growth -- annual rate of growth of monthly payment (default: 5%).
+          growth -- annual rate of growth of monthly payment (default: 3%).
           duration -- number of years over which the mortgage is to be repayed
                       (default: 5), ignored if monthly is supplied.
 
@@ -154,7 +154,7 @@ class Mortgage (Lazy):
         argument appears as an eponymous attribute; the unsupplied or ignored
         one is lazily computed from the supplied one.  Any monthly
         'administrative fee' should not be included in monthly.\n"""
-        
+
         self.debt, self.rate, self.admin = debt, (1+growth)**(.5/6), admin
         if monthly is None: self.duration = duration
         else: self.monthly = monthly
@@ -207,11 +207,29 @@ class Mortgage (Lazy):
 
 del Lazy
 
-def affordable(monthly, duration, interest=.0425 * .72, inflate=.05):
+def affordable(monthly, duration, interest=.0261 * .72, inflate=.03):
     """How big a debt can one pay off in a given time with given available cash ?
 
-    See Mortgage for theory:
-    """
+    See Mortgage for theory.  Required arguments:
+
+        monthly -- amount you can afford to pay per month
+        duration -- number of years you'll be paying that much for
+
+    Optional arguments:
+
+        interest -- anticipated effective rate of interest
+        inflate -- anticipate rate of wage inflation
+
+    The latter is the annual proportional increase you expect in the
+    amount of money you can afford to pay each month.  The interest
+    rate should be adjusted by any tax deduction that effectively
+    reduces it - e.g. if you get a tax rebate of 28% of what you pay
+    in interest, the effective rate of interest is 0.72 times what
+    your bank charges.  Ideally, of course, you need values for both
+    of these optional arguments that reflect typical rates over the
+    course of the next duration years; which, of course, is tricky to
+    get right (which is why your bank probably won't offer you as much
+    as this calculation naively predicts you could afford).\n"""
 
     f = (1 + interest) ** (.5/6)
     h = (1 + inflate) ** (.5/6)
