@@ -272,7 +272,7 @@ three inches or three and a half inches, depending on whether you use
 finger.breadth (at knuckle, used here) or digit (just short of finger tip).  In
 ancient Egypt, palm = 4 digits.
 """,
-                               length = Quantity(8, inch))
+                length = Quantity(8, inch))
 hand = Quantity(4, inch,
                 """Hand: the width of a hand, including thumb lying alongside it.
 
@@ -332,8 +332,8 @@ breadth as a depth within a glass; the volume this implies, naturally, depends
 on the cross-sectional area of the glass at the relevant depth, so is wildly
 variable - entirely in keeping with the spirit of such games ;^>
 """,
-                       length = Quantity(6, digit,
-                                         """The length of a finger or width of a fist.
+                length = Quantity(6, digit,
+                                  """The length of a finger or width of a fist.
 
 As finger length, this used to be used as a unit of measurement of cloth.
 
