@@ -663,10 +663,13 @@ entertain various archaic units, to relate these to saner ones.
 
 The name grain also shows up as a unit for other quantities: the ancient
 Akkadians used it for a length, cubit / 80, for example.
-""")
+""",
+                 French=Quantity.fromDecimal(53.11, 2, unit=gram * milli))
+French.also(denier=24 * grain.French,
+            prime=grain.French / 24)
 mite = grain / 20
 droit = mite / 24 # a cube of water half a mm on each side
-periot = droit / 20 # an eighth of the Planck mass
+periot = droit / 20 # an eighth of the Planck mass; a.k.a. perrot
 blanc = periot / 24 # did I mention that some of these units are silly ?
 scruple = 20 * grain
 lb = pound = 350 * scruple # from latin: libra and pondus
