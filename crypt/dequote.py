@@ -1,9 +1,10 @@
-#!/usr/bin/python
 """Demangler for =-codes in e-mails.
 
 Contents:
   decode(infile, outfile) -- does decoding
-  main(programname, args, logstream) -- command-line interface
+  main(programname, args, instream, outstream, grumble) -- command-line interface
+
+Can be run as 'python dequote.py src dst' to decode src into dst.
 
 See study.LICENSE for copyright and license information.
 """
@@ -42,7 +43,7 @@ def decode(inf, out):
 
         out.write(line)
 
-def main(myname, args, log):
+def main(myname, args, instream, outstream, grumble):
     """Command-line interface.
 
     Usage: myname infile outfile
@@ -86,21 +87,25 @@ def main(myname, args, log):
 
             if src and dst:
 
-                if src == '-': src = sys.stdin
+                if src == '-': src = instream
                 else: src = open(src, 'r')
 
-                if dst == '-': dst = sys.stdout
+                if dst == '-': dst = outstream
                 else: dst = open(dst, 'w')
 
                 decode(src, dst)
-                if src != sys.stdin: src.close()
-                if dst != sys.stdout: dst.close()
+                if src is not instream: src.close()
+                if dst is not outstream: dst.close()
                 src = dst = None
 
     except SyntaxError, what:
-        log.write('What ? ' + what + '\n')
+        grumble.write('What ? ' + what + '\n')
         return 1
 
     except IOError, (n, reason):
-        log.write('IO %d: ' % n + reason + '\n')
+        grumble.write('IO %d: ' % n + reason + '\n')
         return 2
+
+if __name__ == '__main__':
+    import sys
+    sys.exit(main(sys.argv[0], sys.argv[1:], sys.stdin, sys.stdout, sys.stderr))
