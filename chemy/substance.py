@@ -14,7 +14,7 @@ from element import * # q.v.
 from particle import Nucleon
 from study.value.quantity import Quantity, Object, micro
 from study.value.units import second, metre, gram, kilogramme, litre, \
-     Joule, Kelvin, Centigrade, Pascal, Atmosphere, mach
+     Newton, Joule, Pascal, Atmosphere, Kelvin, Centigrade, mach
 from study.value.archaea import gallon, pound, calorie
 
 # Properties of some substances:
@@ -83,6 +83,13 @@ kerosene = Substance(density = .81715 * kilogramme / litre) # at Fahrenheith(60)
 alcohol = ethanol = Substance(density = .789 * kilogramme / litre)
 petrol = Substance(density = .73722 * kilogramme / litre)
 # liquid hydrogen, at 20K: 70.99 gram / litre
+
+granite = Substance(density = Quantity.flat(2.6, 2.7, units=kilogramme / litre),
+                    strength = Object(compressive = 175e6 * Newton / metre**2))
+gneiss = Substance(density = Quantity.flat(2.6, 2.9, units=kilogramme / litre),
+                    strength = Object(compressive = 125e6 * Newton / metre**2))
+quartz = Substance(density = 2.65 * kilogramme / litre,
+                   melt = 1883 * Kelvin, boil = 2503 * Kelvin)
 
 mixture_doc = """Modeling chemical mixtures.
 
