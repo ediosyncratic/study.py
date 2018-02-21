@@ -1,7 +1,8 @@
 """Exact Analysis of discrete random processes.
 
-Exported class:
+Exported classes:
   Spread -- description of discrete distributions
+  Gather -- count many repeats of a Spread it takes to sum past a threshold.
 This uses study.maths.vector.Vector as a key-type, in places.
 
 See study.LICENSE for copyright and license information.
@@ -91,8 +92,15 @@ class Spread (Dict, Cached):
 
         return cls.join(None, *[cls.die(n) for n in ns]).freeze()
 
-    def sum(self): return self.itervalues().sum()
-    def p(self, key): return self.__rat(self[key], self.sum())
+    def sum(self): return self.itervalues().sum(0)
+    def p(self, key):
+        k, s = self[key], self.sum()
+        if s:
+            return self.__rat(k, s)
+        if k:
+            raise ValueError("Sum is zero, but single entry isn't", k, s)
+        return k
+
     def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
 
@@ -102,7 +110,7 @@ class Spread (Dict, Cached):
         possible).  Second argument is a function that adds either two outputs
         of func or one output of func and an output of an earlier call to
         itself; its default is simple addition.\n"""
-        return self.iteritems().map(func).reduce(add) * self.__rat(1, self.sum())
+        return self.iteritems().map(func).reduce(add, 0) * self.__rat(1, self.sum())
 
     @staticmethod
     def indicator(start=None, stop=None):
@@ -292,7 +300,7 @@ class Spread (Dict, Cached):
         Optional arguments, start (default: 0) and stop (default: None) take
         values None (for no limit) or a bound on the keys of self.  If start
         is not None, all keys < start are mapped to start; if stop is not
-        None, all keys > stop are mapped to stop.  Returns a new clip object
+        None, all keys > stop are mapped to stop.  Returns a new Spread object
         with the duly-modified keys of self, or self if no clipping happens.\n"""
 
         if start is None or start <= min(self.keys()):
@@ -377,5 +385,91 @@ class Spread (Dict, Cached):
         try: return lo.map(cls.__mid, hi)
         except AttributeError:
             return tuple(cls.__mid(x, y) for x, y in zip(lo, hi))
+
+del Dict, Cached, postcompose
 
-del Dict, lazyprop, Cached, postcompose
+from study.snake.sequence import iterable
+class Gather (Spread):
+    """Accumulating samples from a random variate up to a total.
+
+    One type of random process is an accumulator; at each iteration,
+    some process is performed, whose effect is a random variate; these
+    effects accumulate; the process completes when the total exceeds
+    some threshold.  The simplest case is just the 'toss a coin until
+    heads' process; more complex cases arise in Dungeons and Dragons
+    when hacking away at something, depleting its hit points until
+    they hit zero.  We are interested, in each case, in the number of
+    iterations it takes to attain the threshold.\n"""
+    def __init__(self, spread, threshold):
+        self.__spread, self.__cut = spread, threshold
+        reach = threshold * 1. / self.__spread.E()
+        self.__reach = int(reach) if reach == int(reach) else int(1 + reach)
+
+    def __getitem__(self, key):
+        # Probability of taking exactly key steps
+        tot = self.__within(key)
+        return tot - self.__within(key - 1) if key > 0 else tot
+
+    def __within(self, count):
+        # Probability of reaching threshold within count steps:
+        return (self.__spread * count).E(
+            lambda (x, w), i=self.indicator(self.__cut): i(x) * w)
+
+    def sum(self):
+        tot = 0
+        for k in self.iterkeys():
+            val = self[k]
+            now = tot + val
+            if k > self.__reach and now == tot:
+                return now
+            tot = now
+
+    def E(self, func=lambda p: p[0] * p[1], add=lambda x, y: x + y, tol=1e-12):
+        e, s, last = 0, 0, None
+        for k, v in self.iteritems():
+            f = func((k, v))
+            ee, ss = add(e, f), s + v
+            if k > self.__reach and ss:
+                here = ee / ss
+                if last is not None:
+                    if (abs(e - ee) <= tol * abs(ee) and
+                        abs(s - ss) <= tol * abs(ss) and
+                        abs(here - last) <= tol * abs(last)):
+                        return here
+                last = here
+            e, s = ee, ss
+
+        if s:
+            return e / s
+        if e:
+            raise ValueError("Non-zero aggregate from zero sum", e, s)
+        return e
+
+    @lazyprop
+    def modes (self):
+        top, ans = max(self.values()), []
+        for k, v in self.iteritems():
+            if v == top: ans.append(k)
+            elif k > 2 * self.__reach and v < top / 10:
+                break
+
+        return tuple(ans)
+
+    @iterable
+    def iterkeys(self):
+        i = 0
+        while True:
+            yield i
+            i += 1
+
+    @iterable
+    def iteritems(self):
+        for k in self.iterkeys():
+            yield k, self[k]
+
+    @iterable
+    def itervalues(self):
+        for k in self.iterkeys():
+            yield self[k]
+
+del iterable, lazyprop
