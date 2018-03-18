@@ -49,12 +49,12 @@ class Planckoid (Object):
     def _lazy_get_tom_(self, ig):       return self.geoid / self.speed**3
     def _lazy_get_charge_(self, ig):    return (self.action / self.impedance)**.5
     def _lazy_get_momentum_(self, ig):  return (self.action / self.tom)**.5
-    def _lazy_get_length_(self, ig):    return (self.action * self.tom)**.5
+    def _lazy_get_area_(self, ig):      return self.action * self.tom
     def _lazy_get_mass_(self, ig):      return self.momentum / self.speed
     def _lazy_get_energy_(self, ig):    return self.momentum * self.speed
     _lazy_get_torque_ = _lazy_get_energy_
-    def _lazy_get_time_(self, ig):      return self.length / self.speed
-    def _lazy_get_area_(self, ig):      return self.length**2
+    def _lazy_get_time_(self, ig):      return self.tom * self.mass
+    def _lazy_get_length_(self, ig):    return self.area**.5
     def _lazy_get_arearate_(self, ig):  return self.length * self.speed
     def _lazy_get_volume_(self, ig):    return self.length**3
     def _lazy_get_voltime_(self, ig):   return self.length**3 * self.time
@@ -175,7 +175,7 @@ A*c**3/G/hbar.
 Likewise, the hbar in that is really just another arbitrary constant of
 proportionality between the rate, dS/dx, of entropy change as an object
 approaches the holographic boundary, and the mass, m, of the object: dS/dx =
-2*pi*k*c*m/hbar (in which I suspect c*m shold be the object's momentum, with
+2*pi*k*c*m/hbar (in which I suspect c*m should be the object's momentum, with
 dS/dx then becoming a vector derivative).  Thus A*c**3/G/N = hbar =
 2*pi*k*c*m/(dS/dx) and dS/dx = 2*pi*k*m*G*N/A/c/c.
 
