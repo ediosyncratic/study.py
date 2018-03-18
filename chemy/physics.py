@@ -174,6 +174,15 @@ Quantity and Sample display the first uncertain digit in a number's
 representation, as well as the confidently known digits; otherwise, there was
 nothing to display here !)  The new figure is 71 km / sec / Mpc, accurate to
 5%.
+
+Notice that, as things move away from us due to this, the rate at
+which they move away from us increases; dr/dt = H.r implies ddr/dt/dt
+= H.dr/dt = H.H.r, so the distant universe is also accellerating away
+from us at a rate proportional to distance from us, the constant of
+proportionality being the (vanishingly small) square of Hubble's
+(tiny) constant.
+
+See also: Cosmos.Hubble's attributes length and time.
 """),
 
                 temperature = Quantity.within(
@@ -206,11 +215,70 @@ close to equal would itself be surprising, if they hadn't come from a common
 past when they were close together.
 
 See http://www.astro.ubc.ca/people/scott/faq_email.html for further details.
+
+Note (see Thermal.Unruh) that an accellerating observer sees black body
+radiation due to the acceleration; and we *are* accellerating away from all of
+the universe (in all directions ! - see Cosmos.Hubble); however, the
+acceleration that would be needed to produce even the low temperature we
+observe as the cosmic microwave background is 68.52e18 times Earth's surface
+gravity; and the distance at which the universe is accellerating away from us
+(and we accellerate away from it) at this rate is 13.8e39 light years,
+significantly further than the size of the observable universe and so far away
+(see Cosmos.Hubble.length, which is about 14 giga light-year) as to be
+causally decoupled from us; so this is cannot account for the observed
+background (quite apart from Unruh's effect depending on actual accelleration,
+rather than distances merely growing, regardless of the local motions of
+things).
+
+Black holes also produce black-body radiation (see study.space.hole's
+BlackHole); a black hole with the temperature of the cosmic microwave
+background would have a radius of 66.8 microns and a mass that's 0.613 times
+that of the Moon.
 """))
 
-Cosmos.Hubble.also(length = Vacuum.c / Cosmos.Hubble,
+Cosmos.Hubble.also(length = Quantity(1, Vacuum.c / Cosmos.Hubble,
+                                     """The Hubble length
+
+This is the distance, about 14 giga light years, at which light
+travelling towards us doesn't get closer to us; the space between us
+and it is expanding as fast as it's moving.  Things this far away, or
+further off, cannot influence us and we cannot influence them; so this
+is the radius of the portion of the universe causally connected to us;
+in an important sense, this is the radius of the universe.  Things
+beyond are irrelevant to us.  Since things nearly this far away are,
+of course, moving away from us (at almost the speed of light), these
+things soon become irrelevant likewise; there is a steady flow of
+universe out of our causally-connected domain.  The amount and engergy
+of matter causally linked to us is thus always diminishing.
+
+Furthermore, as the expansion of the universe is accellerating, this
+distance ia always decreasing, which further speeds the rate at which
+the amount of stuff causally linked to us diminishes.
+
+The distance r between a source and the light it once emitted, taking
+into account the expansion of the space it has travelled through,
+grows with time t since emission as dr/dt = H.r +c, implying d(r
++c/H)/dt = H.(r +c/H) and r +c/H = exp(H.t).c/H, where c/H is the
+Hubble length; for small t, r is well-approximated by c.t, but it
+grows faster for larger t.  Naturally, this derivation shifts if the
+rate of expansion varies, as is believed to be the case; instead, you
+get log(r.H/c +1) as the integral of H over the period of time the
+light has been travelling.
+"""),
                    # volume = length **3, optionally times 4*pi/3
-                   time = 1 / Cosmos.Hubble)
+                   time = Quantity(1, 1 / Cosmos.Hubble,
+                                   """The Hubble time.
+
+This is just the Hubble length expressed as a time; it's the time it
+would take light to travel that distance, if space weren't expanding.
+As space *is* expanding, light actually takes less time than this to
+get far enough away from where it started to become causally decoupled
+from the part of the universe that emitted it.  Light's actual
+distance from a source that emitted it a time t ago grows as (exp(H.t)
+-1).c/H; so light reaches distance c/H in time ln(2)/H; this is only
+9.7 G yr, rather than the 14ish G yr light would take to cover that
+distance without the expansion of the space it's passed through.
+"""))
 
 Cosmos.also(kappa = Quantity(8 * pi, Cosmos.G / Vacuum.c**3,
                              """Einstein's constant of gravitation.
@@ -282,7 +350,6 @@ is worth the mass of over a million million million nucleons; the mass of a
 mole of nucleons (or, indeed, of Hydrogen) is worth only a bit over half a
 million electrons' charge.
 """),
-            
             Schwarzschild = Quantity(2, Cosmos.G / Vacuum.c**2,
                                      """Schwarzschild's factor.
 
