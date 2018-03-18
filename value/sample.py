@@ -390,7 +390,7 @@ class repWeighted (curveWeighted):
 
         if digits != '0':
             ent += len(digits)
-            assert estim * 10 >= 10**ent > estim, (estim, ent, digits)
+            assert abs(estim) * 10 >= 10**ent > abs(estim), (estim, ent, digits)
         # i.e. 1 > estim / 10**ent >= .1, but without the rounding problems ...
         # thus sign + '.' + digits + 'e%d' % ent would be a valid answer
 
