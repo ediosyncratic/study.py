@@ -63,6 +63,9 @@ class BlackHole (Object): # should be based on chemy.thermal.Radiator
     def _lazy_get_volume_(self, ignored, ftp=pi/.75):
         return ftp *  self.radius ** 3
 
+    def _lazy_get_entropy_(self, ignored, q=.25 * Thermal.k * Vacuum.c**3 / Quantum.hbar / Cosmos.G):
+        return self.area * q
+
     def _lazy_get_luminosity_(self, ig, q=Quantum.h / 30, k=Cosmos.kappa):
         """Rate of energy loss due to Hawking radiation.
 
@@ -119,7 +122,7 @@ complicating this law.
 Observe that dm/dt = -L/c/c (see BlackHole._lazy_get_luminosity_.__doc__)
 gives
 
-        d(m**3)/dt = 3 m**2 dm/dt = -h * N / 320 / c**2 / kappa**2
+        d(m**3)/dt = 3 m**2 dm/dt = -h * N / 160 / c**2 / kappa**2
 
 constant, except for N's variation, confirming that time to evaporate is
 proportional to cube of mass: cube of mass decreases at a constant rate,
