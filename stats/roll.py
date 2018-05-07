@@ -92,14 +92,28 @@ class Spread (Dict, Cached):
 
         return cls.join(None, *[cls.die(n) for n in ns]).freeze()
 
+    from study.maths.ratio import Rational
+    @staticmethod
+    def __rat(num, den, rat=Rational):
+        if den:
+            return rat(num, den)
+        if num:
+            raise ValueError("Can't divide zero total by non-zero part", num, den)
+        return num
+    del Rational
+
     def sum(self): return self.itervalues().sum(0)
     def p(self, key):
-        k, s = self[key], self.sum()
-        if s:
-            return self.__rat(k, s)
-        if k:
-            raise ValueError("Sum is zero, but single entry isn't", k, s)
-        return k
+        return self.__rat(self[key], self.sum())
+
+    def between(self, low=None, high=None):
+        """Probability of an oucome in [low, high)"""
+        tot = got = 0
+        for k, v in self.iteritems():
+            tot += v
+            if (low is None or k >= low) and (high is None or k < high):
+                got += v
+        return self.__rat(got, tot)
 
     def E(self, func=lambda (x, w): x * w, add=lambda x, y: x + y):
         """Computes expected values.
@@ -375,7 +389,6 @@ class Spread (Dict, Cached):
     @classmethod
     def __tor(cls, *vs): return cls.__vec(vs)
 
-    from study.maths.ratio import Rational as __rat
     @classmethod
     def __mid(cls, lo, hi):
         """Mid-point between two keys of a Spread"""
