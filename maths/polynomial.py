@@ -400,47 +400,51 @@ class Polynomial (Lazy):
 
     variablename = 'z' # over-ride to taste, on each instance or derived class
     def __repr__(self):
-        try: return self.__repr
-        except AttributeError: pass
-
-        names = [ self.variablename ]
-        text = self.__represent(names, 0) # may grow names !
-
-        lamb = 'lambda %s: ' % ', '.join(names)
-        if not text: ans = lamb + '0'
-        else: ans = lamb + text
-
-        self.__repr = ans
+        try: ans = self.__repr
+        except AttributeError:
+            names = [ self.variablename ]
+            text = self.__represent(names, 0) # may grow names !
+            self.__repr = ans = 'lambda %s: ' % ', '.join(names) + (text or '0')
         return ans
 
-    def format(num, names, depth): # tool function for __represent
+    def present(coef, names, depth): # tool function for __represent
         try:
-            if num.imag == 0: num = num.real
+            if coef.imag == 0: coef = coef.real
         except AttributeError: pass
 
-        try: return num.__represent(names, 1+depth)
-        except AttributeError: return str(num)
+        try: return coef.__represent(names, 1+depth)
+        except AttributeError: return str(coef)
 
-    def __represent(self, names, depth, fmt=format,
-                    ones=('1', '1.0', '(1+0j)'), mons=('-1', '-1.0', '(-1+0j)')):
-        if depth > 52: raise ValueError("We're going to run out of names !")
+    def isolate(text): # tool
+        # TODO: avoid (...) if already present, but not e.g. (...)+(...)
+        if ' ' in text or '+' in text[1:] or '-' in text[1:]:
+            return '(' + text + ')'
+        return text
+
+    from study.parse.lexical import lexicon
+    def lexical(names, depth, grind=lexicon, 
+                syms="zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA"): # tool
+        if depth < len(names): return
+        if len(names[0]) == 1:
+            try: ind = syms.index(names[0])
+            except ValueError: pass
+            else: sysm = syms[ind:] + syms[:ind]
+        seq = grind(syms, names[-1])
         while depth >= len(names):
-            if names[-1][0] == 'a': names.append('Z')
-            elif names[-1][0] == 'A': names.append('z')
-            else: names.append(chr(ord(names[-1][0]) - 1))
+            names.append(seq.next())
+    del lexicon
+
+    def __represent(self, names, depth, fmt=present, wrap=isolate, grow=lexical,
+                    ones=('1', '1.0', '(1+0j)'), mons=('-1', '-1.0', '(-1+0j)')):
+        grow(names, depth)
 
         result, name = '', names[depth]
         for key in self._powers:
-            val = self.__numerator(key)
-            frag = fmt(val, names, depth)
+            frag = fmt(self.__numerator(key), names, depth)
             if key:
                 if frag in ones: frag = ''
                 elif frag in mons: frag = '-'
-                else:
-                    # TODO: avoid (...) if already present, but not e.g. (...)+(...)
-                    if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
-                        frag = '(' + frag + ')*'
-                    else: frag += '*'
+                else: frag = wrap(frag) + '*'
 
                 if key == 1: frag += name
                 else: frag += '%s**%d' % (name, key)
@@ -448,25 +452,19 @@ class Polynomial (Lazy):
             if not result: result = frag
             elif frag[:1] in ('-', '+'): result += ' ' + frag
             else: result += ' +' + frag
-        assert not result.startswith(' +') and not result[:1].isspace()
+        assert not result.startswith('+') and not result[:1].isspace()
 
         om = self.__denom
         if om is not None and om != 1:
-            # TODO: avoid (...) when redundant, as above
-            if ' ' in result: result = '(' + result + ')/'
-            else: result += '/'
+            result = wrap(result) + '/'
             try:
                 if om.imag == 0: om = om.real
             except AttributeError: pass
-            frag = str(om)
-            # TODO: avoid (...) when redundant, as above
-            if ' ' in frag or '+' in frag[1:] or '-' in frag[1:]:
-                result += '(' + frag + ')'
-            else: result += frag
+            result += wrap(str(om))
 
         return result
 
-    del format
+    del present, isolate, lexical
 
     def __eachattr(self, each):
         bok = {}
