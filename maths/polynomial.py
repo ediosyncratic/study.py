@@ -24,7 +24,8 @@ class Polynomial (Lazy):
 
     Display (with str and repr) is in the form of a lambda expression; the
     variable name to use in this display is controlled by .variablename, which
-    is inherited (as 'z') from the class unless over-ridden on the instance.
+    is inherited (as 'z') from the class unless over-ridden on the instance or
+    in a derived class.
 
     Lazy attributes:
     ===============
@@ -99,10 +100,9 @@ class Polynomial (Lazy):
 
     __private_member_doc = """Private members: __coefs and __denom
 
-
     The polynomial represented is
 
-        lambda x: sum(c * x**n for n, c in .__coefs.items()) / .__denom
+        lambda z: sum(c * z**n for n, c in .__coefs.items()) / .__denom
 
     except that a value of None for .__denom is used to encode a value of 1,
     skipping the need for the division.  I presently entertain the delusion that
@@ -137,12 +137,12 @@ class Polynomial (Lazy):
         Required argument, coeffs, specifies the coefficient of each power.  The
         preferred form for this is an iterator (it shall be iterated once; fully
         unless construction takes exception to some key or value) yielding key,
-        value pairs; the constructed Polynomial shall then represent lambda z:
-        sum(c * z**n for n, c in coeffs).  Each key must be a natural
-        (non-negative int or long); otherwise, you'll get an unNaturalPower
-        exception (which isa TypeError).  Each value should be of some suitably
-        number-like type to be used as a coefficient (supporting .__add__() and
-        .__mul__() suffices); if it's not number-like enough, you'll get an
+        value pairs; the constructed Polynomial shall then maps z to sum(c*z**n
+        for n, c in coeffs).  Each key must be a natural (non-negative int or
+        long); otherwise, you'll get an unNaturalPower exception (which isa
+        TypeError).  Each value should be of some suitably number-like type to
+        be used as a coefficient (supporting .__add__() and .__mul__()
+        suffices); if it's not number-like enough, you'll get an
         invalidCoefficient exception (which isa TypeError).
 
         For the sake of backwards compatibility, coeffs may also be a mapping or
@@ -190,8 +190,8 @@ class Polynomial (Lazy):
         the same effect can be achieved by setting .variablename after
         instantiation (which permanently over-rides any variate passed to the
         constructor).  By default, str() and repr() use 'z' as the variable, but
-        specifying an alternate name, e.g. 'x', by either of these means shall
-        substitute that name for the default.
+        specifying an alternate name, e.g. 'x', by either of these means (or on
+        a derived class) shall substitute that name for the default.
 
         See also: the alternate constructors listed in the class doc.\n"""
 
@@ -287,7 +287,7 @@ class Polynomial (Lazy):
         w = False # Do any coefficients have whole parts ?
         for c in self.__wholes(self.__coefs.itervalues()):
             d, w = hcf(c, d), True
-            if w and d in (1, -1): break # pointless to continue
+            if d in (1, -1): break # pointless to continue
 
         # TODO: we might have a complex with whole real and imaginary parts that
         # we can divide all coefficients by without losing any wholeness; we've
@@ -361,8 +361,8 @@ class Polynomial (Lazy):
     def coefficient(self, key):
         """Coefficient of a given power.
 
-        The polynomial self represents is lambda x: sum(self.coefficient(k) *
-        x**k for k in range(self.rank+1)).\n"""
+        The polynomial self represents maps z to sum(self.coefficient(k) * z**k
+        for k in range(self.rank+1)).\n"""
         return self.__numerator(key, self.__denom)
 
     def __numerator(self, key, om=None):
@@ -398,7 +398,7 @@ class Polynomial (Lazy):
         if scale == (self.__denom or 1): return self
         return self.copy(scale)
 
-    variablename = 'z' # over-ride to taste, on each instance
+    variablename = 'z' # over-ride to taste, on each instance or derived class
     def __repr__(self):
         try: return self.__repr
         except AttributeError: pass
@@ -852,7 +852,7 @@ class Polynomial (Lazy):
     # assert: self.derivative.integral(x, self(x)) == self, for any x
 
     def sum(self, start=0, base=0):
-        """Returns lambda n: sum(self(i) for i in range(n))
+        """Polynomial mapping n to sum(self(i) for i in range(n))
 
         This is the discrete equivalent of integral.  Also accepts optional
         arguments, start and base, as for integral(): each defaults to zero and,
@@ -872,7 +872,7 @@ class Polynomial (Lazy):
         return ans
 
     def _lazy_get_delta_(self, ignored, cache=[]):
-        """Returns lambda n: self(1+n) - self(n)
+        """Polynomial mapping n to self(1+n) - self(n)
 
         This is the discrete equivalent of differentiation, the taking of
         'finite differences'.  Note that, for any s and b:
@@ -1271,7 +1271,7 @@ class Polynomial (Lazy):
 
     @classmethod
     def Chose(cls, gap):
-        """Returns lambda x: x!/(x-gap)!/gap!
+        """Polynomial mapping x to x!/(x-gap)!/gap!
 
         The return is a polynomial, using gap! as denominator so as to keep all
         coefficients whole, so that evaluation on any natural x shall return a
@@ -1280,14 +1280,14 @@ class Polynomial (Lazy):
         every natural to a natural, for any natural gap.
 
         Single argument, gap, should be a natural number, although other numeric
-        values are handled gracefully: if negative, the constant polynomial
-        lambda x: 1 is returned, as for Chose(0); otherwise, the resulting
-        polynomial has gap.(gap-1)... as factors of its denominator, ending with
-        the fractional part of gap (i.e. gap-floor(gap)) and, as numerator
-        factors, x+1 minus each of these.
+        values are handled gracefully: if negative, the constant polynomial 1 is
+        returned, as for Chose(0); otherwise, the resulting polynomial has
+        gap.(gap-1)... as factors of its denominator, ending with the fractional
+        part of gap (i.e. gap-floor(gap)) and, as numerator factors, x+1 minus
+        each of these.
 
-        For the closely-related lambda x: (x+gap)!/x!/gap!, you can use
-        Polynomial.Chose(gap)(Polynomial.fromSeq((gap, 1))
+        For the closely-related polynomial that maps x to (x+gap)!/x!/gap!, you
+        can use Polynomial.Chose(gap)(Polynomial.fromSeq((gap, 1))
 
         Note that, when gap is natural, sum(Chose(gap)(i) for i in range(n)) ==
         Chose(1+gap)(n); see http://www.chaos.org.uk/~eddy/math/sumplex.html -
