@@ -53,9 +53,9 @@ class Polynomial (Lazy):
     A few class methods are provided to return particular polynomials (rather
     than complicate the constructor with hairy special cases):
 
-      power(n [, s=1, d=None]) -- x**n &larr;x, optionally scaled by s / d.
-      Chose(gap) -- x!/(x-gap)!/gap! &larr;x
-      PowerSum(k) -- sum(: i**k &larr;i |n) &larr;n
+      power(n [, s=1, d=None]) -- maps x to x**n, optionally scaled by s / d.
+      Chose(gap) -- maps x to x!/(x-gap)!/gap!
+      PowerSum(k) -- maps n to sum(i**k for i in range(n))
       interpolate(data) -- fit a given mapping of inputs to outputs
 
     See the doc-string of each for details (especially the last, for limitations
@@ -86,7 +86,7 @@ class Polynomial (Lazy):
     ========
 
       copy([d, v]) -- a copy of self; can over-ride denominator and variablename
-      coefficient(n) -- coefficient of (: x**n &larr;x :) in polynomial
+      coefficient(n) -- coefficient of x**n in self(x)
       hcf([poly, ...]) -- yields highest common factor of arbitrarily many
       integral([start=0, base=0]) -- integration
       unafter(poly) -- input to poly yielding self as output
@@ -952,9 +952,9 @@ class Polynomial (Lazy):
         """Returns a polynomial which, if fed other, will yield self.
 
         The nature of polynomial arithmetic is such that, if f and g are
-        polynomials, their composite (: g(f(x)) &larr;x :) is simply g(f).  This
-        method seeks to express self as g(other) for some g.  Requires rank of
-        self to be a multiple of rank of other, among other things; raises
+        polynomials, their composite, mapping x to g(f(x)), is simply g(f).
+        This method seeks to express self as g(other) for some g.  Requires rank
+        of self to be a multiple of rank of other, among other things; raises
         ValueError if the goal can't be met.\n"""
 
         residue, result = self, {}
@@ -973,7 +973,7 @@ class Polynomial (Lazy):
     # unbefore would seem equivalent to arbitrary root-finding !
 
     def _lazy_get_Gamma_(self, ignored):
-        """Integrates self * (: exp(-t) &larr;t :{positives}).
+        """Integrates self(t) * exp(-t) over positive real t.
 
         When self is power(n) the result is Gamma(n+1) = n!, so the result is
         just the sum of self's coefficients, each multiplied by the factorial of
@@ -1085,10 +1085,10 @@ class Polynomial (Lazy):
         modulus root estimate, is less than tol.  Returns a list of length
         self.rank, each entry in which is a root.
 
-        See [[Wikipedia:Durand-Kerner method]].  We know, aside from an over-all
-        scaling, self(x) = product(: x-r[i] &larr;i :) for some list r of self's
-        roots, albethey unknown; we can re-arrange this, for any j in len(r),
-        to: r[j] = x -self(x)/product(: x-r[i] &larr;i, i != j :) for all x.
+        See [[Wikipedia:Durand-Kerner method]].  We know self(x) is some
+        constant times product(x-k for k in r) for some list r of self's roots,
+        albethey unknown; we can re-arrange this, for any j in len(r), to: r[j]
+        = x -self(x)/product(x-k for i, k in enumerate(r) if i != j) for all x.
         Furthermore, if we take this expression as a function in x computed
         using only approximations to the r[i], i != j, we still find the
         function evaluates, near r[j], to r[j].  We can thus make up some stray
@@ -1244,14 +1244,14 @@ class Polynomial (Lazy):
     def interpolate(cls, data):
         """Construct a Polynomial through desired points.
 
-        Single argument, data, is a mapping from inputs to the polynomial to
+        Single argument, data, is a mapping from inputs for the polynomial to
         their desired outputs.  Current implementation only supports integer
         (including long) keys; I should ultimately make it more liberal, at
         least as to outputs.  Returned polynomial's order is equal to the number
         of entries in the supplied dictionary.
 
         We're solving for a list c of coefficients given:
-            value = sum(: c[i] * power(i, key) &larr;i :)
+            value = sum(x * key**i for i, x in enumerate(c))
         for each key, value in our dictionary.  This is a simple matrix
         problem :-)\n"""
 
