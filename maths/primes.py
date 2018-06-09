@@ -189,14 +189,7 @@ class _Prime(lazyTuple):
     see if it's prime.  Any higher primes we've discovered (usually thanks to
     factorise(), see below) are kept in _sparse (in their correct order,
     albeit probably with gaps).  All currently known primes may be listed as
-    .known().
-
-    self._ask will be an ordinary integer as long as it can, then switch over
-    to being a long one.  Entries in .known() will be ordinary integers most
-    of the time, unless they are so big they must be long().  However, some
-    entries which could be ordinary may still be long().
-
-    """
+    .known().\n"""
 
     # always initialise this with at least the first entry, 2, in the list.
     def __init__(self, row=None, sparse=None):
@@ -230,11 +223,11 @@ class _Prime(lazyTuple):
 
             for p in self._item_carrier[seen:]:
                 if num % p == 0: return None
-                # and p < _ask <= num
-                seen = len(self._item_carrier)
+            # and p < _ask <= num
+            seen = len(self._item_carrier)
 
             p = self._item_carrier[-1]
-            if long(p) * p > num: return self._know(num)
+            if p * p > num: return self._know(num)
 
             for p in self._sparse:
                 if num % p == 0: return None
@@ -245,7 +238,7 @@ class _Prime(lazyTuple):
         while True:
             p = self.grow()
             if num % p == 0: return None
-            if long(p) * p > num: return self._know(num)
+            if p * p > num: return self._know(num)
 
     def grow(self):
         if self._ask < self[-1]:
@@ -264,7 +257,7 @@ class _Prime(lazyTuple):
 
                     if p < self._sqrt: continue # skip the square root check
 
-                    if long(p) * p > self._ask:
+                    if p * p > self._ask:
                         # no prime less than sqrt(_ask) divides _ask
                         self._know()
                         # because: if no prime less than sqrt(_ask) divides it,
@@ -313,8 +306,7 @@ class _Prime(lazyTuple):
     def factorise(self, num, gather=None):
         """Factorises an integer.
 
-        Argument, num, is an integer to be factorised.
-        It may be long, but not real.
+        Argument, num, is an integer (or long) to be factorised.
 
         Optional argument:
 
@@ -352,14 +344,12 @@ class _Prime(lazyTuple):
         """
 
         # Only accept integers !
-        if num / (1L + abs(num)):
+        if num // (1L + abs(num)):
             raise TypeError, ('Trying to factorise a non-integer', num)
 
-        # Can't use {} as gather's default, as we modify it !
-        if gather is None: result = {}
-        else:
-            result = gather
-            if result.get(0, 0): num = 0
+        if gather is None: result = Prodict()
+        elif gather.get(0, 0): return gather
+        else: result = gather
 
         if num < 0:
             if result.get(-1, 0) % 2: del result[-1]
@@ -396,12 +386,12 @@ class _Prime(lazyTuple):
             while num > 1:
                 p = self.grow()
                 count, num = self.__reduce(num, p)
-                if count: result[p] = count
+                if count: result[p] = count + result.get(p, 0)
                 if num == 1: pass
-                elif long(p) * p > num:
+                elif p * p > num:
                     # num's a prime !
                     self._know(num)
-                    result[num] = 1
+                    result[num] = 1 + result.get(num, 0)
                     # job done ;^)
                     num = 1
                 else:
@@ -436,7 +426,7 @@ def _tabulate_block(file, block):
 
       file -- a file handle, to which to .write() the tabulated numbers
 
-      block -- a sequence of integers (or long integers)
+      block -- a sequence of integers
 
     Begins each line with a space, separates numbers with comma and space,
     limits lines to 80 characters in width (thus only allowing one number per
@@ -485,7 +475,7 @@ class cachePrimes(_Prime, Lazy):
         self.__high_water = 0
         return
 
-    def nosuchdir(nom, os):
+    def nosuchdir(nom, os): # tool, not method
         try: st = os.stat(nom)
         except os.error: return True
         import stat
@@ -511,20 +501,19 @@ class cachePrimes(_Prime, Lazy):
 
         import string
         def _read_int(text, s=string):
-            import string
             if text[-1] == 'L': return s.atol(text, 0)
             else: return s.atoi(text, 0)
 
         result = {}
         lang = len(stem)
         for name in row:
-            if name[:lang] == stem and name[-3:] == '.py' and '-' in name[lang:-3]:
+            if name.startswith(stem) and name.endswith('.py') and '-' in name[lang:-3]:
                 result[os.path.join(loc, name)
                        ] = [_read_int(x) for x in name[lang:-3].split('-')]
 
         return result
 
-    class Dummy: pass
+    class Dummy (object): pass
 
     def _do_import(self, handle, object=Dummy):
         """Imports data from a file, preparatory to _load()ing."""
@@ -536,7 +525,10 @@ class cachePrimes(_Prime, Lazy):
     del Dummy # Instances of the actual built-in object don't have a __dict__ !
 
     def get_cache(self):
-        """Returns true if it got anything out of the caches."""
+        """Returns true if it got anything out of the caches.
+
+        Will read at least one cache, if any remain unread; but might
+        not read them all, so a later call may find more.\n"""
         # print 'Getting cache'
         size = len(self._item_carrier)
         for name, pair in self._caches.items():
@@ -549,12 +541,12 @@ class cachePrimes(_Prime, Lazy):
     def _load(self, found):
         """Loads data that's been imported from a file.
 
-        Argument, found, is the module object as which the file was imported:
-        it should have integer attributes, found.at and found.to and list
-        attributes found.sparse and found.block, with each member of sparse
-        greater than any member of block, and at+len(block)==to.  The given
-        block is used as self[at:to], while entries in sparse are added to
-        _sparse in their right order.
+        Argument, found, is the object as which the file was imported: it should
+        have integer attributes, found.at and found.to and list attributes
+        found.sparse and found.block, with each member of sparse greater than
+        any member of block, and at+len(block)==to.  The given block is used as
+        self[at:to], while entries in sparse are added to _sparse in their right
+        order.
 
         The bits of the file we'll examine are variables in the global scope
         with names 'at', 'to', 'sparse' and 'block'.  Most of this function
@@ -579,7 +571,7 @@ class cachePrimes(_Prime, Lazy):
             # we'll clear it out shortly.
             for item in found.sparse:
                 if item in self._item_carrier + self._sparse: continue
-                if checking:
+                if checking: # (it's a global)
                     # only check it against what we knew before this _load() ...
                     for p in self._item_carrier + self._sparse:
                         assert item % p, 'alleged prime, %d, has a factor, %d' % (item, p)
@@ -599,7 +591,7 @@ class cachePrimes(_Prime, Lazy):
 
         # Tidy away anything in _sparse that now doesn't belong there:
         while self._sparse and self._sparse[0] in self._item_carrier:
-            self._sparse = self._sparse[1:]
+            self._sparse.pop(0)
 
         assert not( self._sparse and self._sparse[0] < self._item_carrier[-1] ), \
                'sparse prime, %d, missed in "full" list' % self._sparse[0]
@@ -680,6 +672,10 @@ class cachePrimes(_Prime, Lazy):
 
             self.__high_water = new
             new = self._next_high()
+
+    def __del__(self):
+        # On the off chance this does get called, might as well save what we know:
+        self.persist()
 
 from study.maths.prime.cache import oldCache
 from study.maths import __path__
@@ -774,11 +770,8 @@ def Factorise(args=(), gather=None, cache=True):
         """
 
         try:
-            if len(args) > 1: seq = args
-            else:
-                seq = args[0]
-                # Now raise the right exception if (empty or) not a sequence:
-                seq[0], seq[:0]
+            # Raise the right exception if (empty or) not a sequence:
+            args[0], args[:0]
 
         except (TypeError, KeyError, IndexError, AttributeError):
             # Numeric argument:
@@ -796,7 +789,7 @@ def Factorise(args=(), gather=None, cache=True):
             # We did get a sequence argument: traverse it.
             if gather is None: result = {}
             else: result = gather
-            for num in seq:
+            for num in args:
                 try: result[num]
                 except KeyError:
                     result[num] = Factorise(num, cache=False)
@@ -833,8 +826,7 @@ def factors(num):
         for i in range(val):
             top = val / (1+i)   # q is pow(key, 1+i)
             for k, v in items:
-                result[k * q] = min(result[k], top)
-            try: q = q * key
-            except OverflowError: q = long(q) * key
+                result[k * q] = min(v, top)
+            q *= key
 
     return result
