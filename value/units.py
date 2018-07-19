@@ -378,7 +378,17 @@ Angstrom = .1 * nano * metre    # Ångstrøm or Ångström, aka Å
 micron, fermi = micro * metre, femto * metre
 litre = milli * stere
 hectare = hecto * are
-barn = (10 * femto * metre) ** 2
+barn = Quantity(100, (femto * metre) ** 2,
+                """The barn: a unit of area.
+
+The barn is approximately the cross-sectional area of a Uranium atom.
+This is considered a large target in nuclear physics, where it is used
+for scattering-processes as a measure of cross-section, which
+corresponds roughly with probability of collision.
+
+The micro-barn is sometimes called an outhouse; the yoctobarn is
+likewise called a shed.
+""")
 bar = .1 * mega * Pascal
 def Centigrade(number): return Kelvin * (number + 273.16)
 
