@@ -1103,7 +1103,7 @@ class Vector (Tuple):
     def setcell(grid, key, val): # tool function for __trace_permute
         old = key.next()
         for it in key: grid, old = grid[old], it
-        assert grid[old] is None
+        # assert grid[old] is None # Named's zero-munging cause xerox to replace None with 0
         grid[old] = val
 
     def __trace_permute(self, shuffle, pairs, store=setcell):
