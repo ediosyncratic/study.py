@@ -543,7 +543,7 @@ class Vector (Tuple):
 
     def __add__(self, other):
         assert len(other) == len(self)
-        return self._add_type_()(x + y for x, y in zip(self, other))
+        return self._add_type_(other)(x + y for x, y in zip(self, other))
 
     __radd__ = __add__
     def __neg__(self):
@@ -551,11 +551,11 @@ class Vector (Tuple):
 
     def __sub__(self, other):
         assert len(other) == len(self)
-        return self._sub_type_()(x - y for x, y in zip(self, other))
+        return self._sub_type_(other)(x - y for x, y in zip(self, other))
 
     def __rsub__(self, other):
         assert len(other) == len(self)
-        return self._rsub_type_()(y - x for x, y in zip(self, other))
+        return self._rsub_type_(other)(y - x for x, y in zip(self, other))
 
     def __mul__(self, other):
         if not (self.__isnumeric(other) or
