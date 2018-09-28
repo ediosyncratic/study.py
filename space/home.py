@@ -5,7 +5,7 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, \
-     micro, milli, kilo, mega, giga, tera, peta, arc, radian, pi, \
+     micro, milli, kilo, mega, giga, tera, peta, arc, turn, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin, au
 from study.value.archaea import mile
@@ -252,6 +252,25 @@ def IAocean(name, area=None, depth=None, *parts, **what):
     if depth is not None: what['depth'] = depth * mile
     what['name'] = name
     return Ocean(*parts, **what)
+
+# Equation of Time, for use as Earth.EoT:
+def equationoftime(date, isleap=year.Gregorian.leap,
+                   offset=1.9675 * turn / 9, unit=minute):
+    """Apparent time minus mean solar time.
+
+    This varies with date during the year.  First argument can be
+    either a datetime object or a simple day number within the year
+    (although the latter won't know whether the year is leap or not).
+    Returns the time by which the sun is ahead of your clock (once its
+    time-zone adjustments have been undone).\n"""
+    try: n = (date - date.__class__(date.year, 1, 1)).days
+    except AttributeError: # assume date is a day number within the year
+        n = date
+        cycle = 365 +.97 / 4
+    else:
+        cycle = 365 if isleap(date.year) else 366
+    day = (n - 81) * turn / cycle
+    return (9.873 * (2 * day).Sin -7.67 * (day + offset).Sin) * unit
 
 # My home planet:
 Earth = body.Planet(
@@ -340,6 +359,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
     sampled = 'London, 1960',
     horizontal = 1.87e-5 * Tesla,
     vertical = 4.36e-5 * Tesla),
+            EoT = equationoftime,
 
             altitude = Quantity(qSample({-4000: 3, 2000: 1},
                                         low = -10915, high = 8882),
@@ -433,7 +453,7 @@ Earth.orbit.radius.observe(Quantity.flat(147.1e9, # perihelion
                                          152.1e9, # aphelion
                                          1000001017.8 * 149.597871) * metre)
 
-del IAcontinent, IAisland, IAocean
+del IAcontinent, IAisland, IAocean, equationoftime
 
 def KLsurface(radius, gravity, spin, S=Surface, G=Earth.surface, **what):
     """As Surface, but with radius and gravity scaled to Earth = 1."""
