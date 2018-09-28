@@ -389,6 +389,7 @@ corresponds roughly with probability of collision.
 The micro-barn is sometimes called an outhouse; the yoctobarn is
 likewise called a shed.
 """)
+shake = 10 * nano * second # so the light-shake is c. 10'
 bar = .1 * mega * Pascal
 def Centigrade(number): return Kelvin * (number + 273.16)
 
