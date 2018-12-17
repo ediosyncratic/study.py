@@ -90,6 +90,19 @@ gneiss = Substance(density = Quantity.flat(2.6, 2.9, units=kilogramme / litre),
                     strength = Object(compressive = 125e6 * Newton / metre**2))
 quartz = Substance(density = 2.65 * kilogramme / litre,
                    melt = 1883 * Kelvin, boil = 2503 * Kelvin)
+glass = Substance(density = Quantity.flat(2.18, 2.49, units=kilogramme / litre),
+                  thermanExpansivity = Quantity.flat(0.54, 8.5, units=micro/Kelvin,
+                                                     doc="""Linear thermal expansivity of glass
+
+As this is linear, treble it to get the fractional rate of change of
+specific volume, and negate that to get the rate of decrease in
+density, with temperature.
+"""),
+                  refractiveIndex = Quantity.flat(1.458, 1.52,
+                                                  doc="""Refractive index of glass
+
+Measured at 589 nm, varies with frequency, varies with type of glass.
+"""))
 
 mixture_doc = """Modeling chemical mixtures.
 
