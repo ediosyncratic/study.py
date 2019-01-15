@@ -427,6 +427,37 @@ def Collatz(n):
         n = 3 * n + 1 if r else q
         yield n
 
+def inCollatzCatchment1(n=None, cache=[1, set()]):
+    """Detect whether a Collatz trajectory eventually reaches 1.
+
+    Let 'the catchment of 1' be the set of naturals for which this is
+    true.
+
+    Optional first parameter is the natural to start at.  Do not pass
+    a second; there is a cache 'parameter' which records a natural N
+    and a set S for which: every natural n with 1 <= n <= N is in the
+    catchment of 1; each member of S is also in the catchment of 1.
+    If the first parameter is omitted, N+1 is used.
+
+    Interestingly, len(S) increases slightly faster than N, if this is
+    repeatedly called without argument.\n"""
+    if n is None:
+        n = cache[0] + 1
+    seen = set()
+    for i in Collatz(n):
+        if 0 < i <= cache[0] or i in cache[1]:
+            cache[1] = cache[1].union(seen)
+            h = cache[0] + 1
+            while h in cache[1]:
+                cache[1].remove(h)
+                h += 1
+            assert h >= cache[0]
+            cache[0] = h - 1
+            return True
+        if i in seen:
+            return False
+        seen.add(i)
+
 class Naturals (list):
     class Suc (dict):
         def __init__(self, bok=None):
