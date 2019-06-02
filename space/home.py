@@ -294,7 +294,7 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                           fullname="Sidereal Day"),
                  # Tilt varies between 22.1 and 24.5 degrees in 41 k yr cycle,
                  # due to reach a minimum in c. 1000 AD; (eh ? ten thousand ?)
-                 23.44, # currently decreasing
+                 23.44, # currently decreasing at 47 * arc.second / century
                  # its direction varies on a 26 k yr cycle (precession).
                  axis = 'Polaris'),
             # need to also describe precession; see doc of year.sidereal
