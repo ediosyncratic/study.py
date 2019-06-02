@@ -151,7 +151,7 @@ fortnight = 2 * week
 
 year = Quantity.flat(365.242, 365.25636, 365.24225,
                      day,
-                     """The period of relative motion of Earth and Sun.
+                     """The period of Earth's orbit of the Sun.
 
 The year originated in each human culture as the period over which the cycle
 of the Earthly seasons repeats itself.  The seasons have fuzzy boundaries,
@@ -312,6 +312,8 @@ This is the interval between successive perihelions of Earth's orbit.  Since
 the major axis of the orbit isn't exactly fixed, this isn't quite the same as
 the sidereal year ...
 """))
+century = hecto * year
+millennium = kilo * year
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 6**3 seconds abound ...
 
