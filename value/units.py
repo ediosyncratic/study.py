@@ -62,7 +62,90 @@ second sylable than the first).
 # bell = 30 * minute # nautical - need to check correctness !
 # Not to be confused with the Bel, a tenth of which is the dB.
 hour = 60 * minute # should this also be the degree of time ?
-day = 24 * hour
+day = Quantity(24, hour,
+               """The period of the Earthly cycle of day and night.
+
+The Sun illuminates (roughly) half of the Earth at any given moment;
+as the Earth spins, various parts of it pass through the region of
+illumination.  Most of Earth's surface area passes into this region
+(at sunrise) and out of it (at sunset) on each rotation, thus
+experiencing a cycle of light (called day) and dark (called night).
+Along with the illumination comes heat from the Sun, so that the day
+is typically warmer and the night cooler (although atmospheric effects
+can complicate this).  These variations in light and temperature have
+a significant impact on life; consequently, this cycle plays a central
+role in how most human civilizations organise themselves.
+
+At any position on the Earth's surface tolerably distant from either
+pole, an observer can identify a plane spanned by local vertical at
+their location and the spin axis of the Earth.  This plane cuts the
+observed sky in half along a line connection points on the horizon due
+north and south of the observer, passing directly over-head in
+between; this line appears as half of a great circle on the observed
+'celestial sphere'.  For each position on Earth's surface, there is a
+portion of this line, subtending just over an eighth of a turn (but
+less than a radian), that the Sun (if not hidden by cloud) appears to
+cross each day, passing from East to West.  (At some lattitudes, near
+the poles, for part of each year, the Sun may also cross another
+portion of the line from West to East; such crossings are however, to
+be ignored in the present discussion.)  The period of time that
+elapses between such crossings is the local solar day.
+
+Note that I'm using 'solar day' as the day+night duration, as distinct
+from the length of the period of light, the (vernacular) day; in
+Norwegian these are helpfully distinguished as 'dogn' (my solar day)
+and 'dag' (the vernacular day).
+
+In the course of a solar day, the Earth moves along its orbit around
+the Sun, causing the direction from Earth to Sun to change be close to
+a degree.  Thus the Earth spins (relative to the fixed stars) by
+slightly more than a whole turn in a solar day.  As the Earth's orbit
+around the sun is an ellips (not a circle), the daily change in the
+Earth-Sun direction is greater at some times of year (namely, when the
+Earth is closer to the Sun in its elliptical orbit) than at others, so
+the angle through which the Earth spins in a solar day varies over the
+course of the year.  (Note that this is quite separate from the
+seasonal variation in how that solar day is divided between light and
+dark.)  This, in turn, means that the solar day varies in duration
+through the course of the year; the longest and shortest solar days
+differ by most of a minute.  This variation can be averaged out to
+obtain a mean solar day.  (This variation also implies that measuring
+the local solar day at different locations will give slightly
+different results; however, averaging over the year, as measured at
+each location, eliminates the variation between locations; so the mean
+solar day is the same everywhere.)
+
+The Earth's spin angular momentum decreases slowly as a result of
+tidal drag (this also causes the Moon to move further from the Earth).
+Meanwhile, the Earth's moment of inertia about its spin axis changes
+in various ways: gradually on account of tectonic movement and the
+rising and sinking of landmasses (e.g. Canada and Scandinavia rising
+as Earth's crust adjusts to the (geologically) recent removal of
+massive ice-sheets that used to cover them; while Great Britain's east
+coast sinks because the water of The North Sea is heavier than the ice
+that used to be there); and sporadically suddenly as a result of
+earthquakes and volcanic eruptions.  The earth's rate of spin is its
+angular momentum divided by this moment of inertia, so it likewise
+varies, hence so does the time it takes to complete a full revolution
+(and, indeed, the time it takes to complete the small extra piece of
+rotation the solar day includes due to orbital movement).  The tidal
+effects make the mean solar day longer by about 2.3 ms per century,
+the gradual geological effects reduce that by 0.6 ms per century (to
+1.7 ms/century) and the sporadic skips are tiny fractions of a second
+(e.g. a major 2004 earthquake in the Indian Ocean caused a 2.68
+microsecond skip, counteracting eight weeks of the steady variation).
+
+The yearly cycle of variation can be averaged out to get the mean
+solar day.  By the time thas was measured to a tolerable degree of
+precision, those who did so were used to dividing the solar day into
+24 equal parts, called hours, each of which was divided into 60
+minutes, each of which was in turn divided into 60 seconds; our modern
+standard for the second is designed to match the value established for
+this; however, it is based on the mean solar day as observed between
+about 1750 and 1892; solar days are now longer than this (by about 1.3
+ms at the end of the 20th century), due to tidal and geological
+effects.
+""")
 week = 7 * day
 fortnight = 2 * week
 
@@ -231,6 +314,14 @@ the sidereal year ...
 """))
 month = year / 12 # on average, at least; c.f. planets.Month, the lunar month
 # factors of 6**3 seconds abound ...
+
+day.also(rate = Quantity(1.7e-5, second / year,
+                         """Rate of variation of mean solar day
+
+Earth's spin is being slowed by tidal effects and (currently) speeded
+by geological effects; the difference currently averages out at around
+1.7 ms / century.  See day's doc for details.
+"""))
 
 # Angles:
 from math import pi
