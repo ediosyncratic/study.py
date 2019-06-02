@@ -716,6 +716,42 @@ mach = Quantity(331.46, metre / second,
 (at standard temperature and pressure; see mol.STP).
 """)
 
+sverdrup = Quantity(1e6, metre**3 / second,
+                    """Sverdrup: an oceonographic volume flow-rate
+
+The Sverdrup (symbol: Sv, coinciding with Sievert and Svedberg) is a
+non-SI unit of rate of gross flow, principally used in oceanography to
+describe the flows of water around the world.  Example values:
+
+  * Rivers deliver fresh water to the oceans at about 1.2 Sv
+  * The Gulf Stream peaks at 150 Sv south of Newfoundland (presumably
+    this is where it's narrowest)
+  * Tha Antarctic Circumpolar Current is 125 Sv
+
+Source: Wikipedia, [0].
+[0] https://en.wikipedia.org/wiki/Sverdrup
+""")
+
+svedberg = Quantity(1e-13, second,
+                    """Svedberg: a unit of sedimentation coefficient.
+
+Symbol, S or Sv (the latter conflicts with Sievert and sverdrup).
+Particles (of a given density) settle out in sediments at different
+rates depending on their size.  Thus rates of sedimentation are
+indicators of particle size.  The sedimentation coefficient is the
+ratio of a particle's terminal velocity, in a given fluid, to the
+gravitational field strength driving its motion.  (Many details of
+this are unclear from my source, Wikipedia's articles [0], [1]).  In
+theory, this should be equal to the particle's mass divided by thrice
+its circumference and by the dynamic viscosity of the fluid.  However,
+this may be perturbed by the particles' shape (and its derivation uses
+Stokes's model of viscosity, which assumes the sphere is large but
+dwarfed by the volume of the fluid).
+
+[0] https://en.wikipedia.org/wiki/Svedberg
+[1] https://en.wikipedia.org/wiki/Sedimentation_coefficient
+""")
+
 Rankine = Kelvin / 1.8
 def Fahrenheit(number): return Centigrade((number - 32) / 1.8)
 def Reaumur(number): return Centigrade(number * .8)
