@@ -51,19 +51,43 @@ def decode(message):
     ans = ''.join(decoding.get(x, ' ') for x in message.split(' '))
     return ' '.join(ans.split()) # tidy up spacing
 
-def decipher(message):
-    # like decode, but when there are no spaces.
-    row = [ ( '', message ) ]
-    while any(x[1] for x in row):
-        old = row
-        row = []
-        for it in old:
-            txt, code = it
-            if code:
-                for (t, c) in encoding.items():
-                    if code[:len(c)] == c:
-                        row.append((txt + t, code[len(c):]))
-                # NB we discard it if no initial segment of code matches an encoding.
-            else: row.append(it)
+def decipher(message, prefix='',
+             code=tuple(sorted(encoding.items(),
+                               lambda a, b: cmp(len(b[1]), len(a[1])) or cmp(a[0], b[0])))):
+    """Find candidate decodings of a text.
 
-    return [it[0] for it in row]
+    If there aren't spaces between the morse tokens, the encoding is
+    ambiguous.  This gives you an interable over the candidates.
+
+    Should normally be passed just one argument, the morse-encoded
+    text (after demangling, if appropriate).  Can be passed an
+    optional second parameter (present to allow a recursive
+    implementation), which is simply added as a prefix to every
+    candidate reading of the code; this defaults to empty.  Do not
+    pass more than two arguments.
+    """
+    if message and message[0].isspace():
+        prefix, message = prefix + ' ', message.lstrip()
+    if message:
+        for t, m in code:
+            if message.startswith(m):
+                for it in decipher(message[len(m):], prefix + t):
+                    yield it
+    else:
+        yield prefix
+
+def demangle(message, mangles={u'\u2013': '--', u'\u2014': '---', u'\u2026': '...'}):
+    """Undo possible mangling from 'smart text' and similar cleverness.
+
+    The author may have typed a sequence of dashes or dots, only to
+    have their too-clever-by-half 'authoring tool' decide that they
+    meant a long dash or ellipsis.  This decodes such mangled strings
+    back to a reasonable guess at what the author intended.
+    """
+    # Example: https://www.johnanderikaspeak.com/an/2011/11/30/1107/
+    # May be unicode encoded in UTF
+    try: message = message.decode('utf-8')
+    except UnicodeDecodeError: pass
+    for k, v in mangles.items():
+        message = message.replace(k, v)
+    return message.encode()
