@@ -1058,8 +1058,12 @@ class Quantity (Object):
             del what['best']
             best = cls.__get_scale(best, un)
 
-        # TODO: pick a better distribution
+        # TODO: pick a better distribution, e.g. Benford
         return cls.flat(top * femto, top, best, units, *args, **what)
+
+    # def Benford(...) to give a 1/x distribution between two bounds
+    # where we suspect the distribution of the logarithm is more
+    # nearly uniform than that of the actual variate.
 
     @classmethod
     def fromSpread(cls, best, down, up, *args, **what):
