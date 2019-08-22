@@ -990,7 +990,7 @@ class Quantity (Object):
           units -- as for Quantity.
           doc -- as for Quantity.
           rescale -- scaling to apply to all of lo, hi and (if given) best; or
-                     None to leave them alone.
+                     None to leave them alone.  May include units.
 
         Values of lo, hi and (when given) best must all be of the same kind
         (i.e. have the same units), although mixing dimensionless Quantity()s
@@ -999,6 +999,15 @@ class Quantity (Object):
         hi could be times and units could be the speed of light, to produce a
         range of distances (that light travels between the given periods of
         time).\n"""
+
+        if rescale is not None:
+            try: rescale, un = rescale._scale_units_()
+            except AttributeError: pass
+            else: units *= un
+            lo = lo * rescale
+            hi = hi * rescale
+            if best is not None:
+                best = best * rescale
 
         try: lo, un = lo._scale_units_()
         except AttributeError: un = {}
@@ -1011,10 +1020,6 @@ class Quantity (Object):
             cls.__extra_attrs(what, best=best)
 
         scale = Sample.flat(lo, hi, best)
-        if rescale:
-            if isinstance(rescale, Quantity): scale = rescale * scale
-            else: scale *= rescale
-
         return cls(scale, units, doc, *args, **what)
 
     @classmethod
