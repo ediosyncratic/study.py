@@ -970,8 +970,8 @@ class Quantity (Object):
     def __extra_attrs(attrs, **what):
         """Extend attrs from what, without over-writing."""
         for k, v in what.items():
-            try: attrs[k]
-            except KeyError: attrs[k] = v
+            if k not in attrs:
+                attrs[k] = v
 
     # Be sure to keep argument defaults in sync with __init__():
     @classmethod
