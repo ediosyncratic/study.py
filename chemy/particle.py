@@ -485,14 +485,30 @@ we're seeing, counting inwards from the most easily dislodged ones.
                  #' It'd be nice to have a way to use blurry-boundaries ... a chart of the spectrum ?
                  red=photon(624, 700, 'red',
                             # There's a Hydrogen line in here, too
-                            NII=Photon(name='NII', wavelength=6580 * Angstrom,
-                                       source='Nitrogen')),
+                            NII=Photon(name='NII', wavelength=658 * nano * metre,
+                                       source='Nitrogen'),
+                            ruby=Photon(name='Ruby laser output', source='Ruby',
+                                        wavelength=Quantity.within(694.3, 0.53/2, nano * metre),
+                                        doc="""Ruby laser light.
+
+Ruby (specifically, Chromium-doped alpha Al_{2}O_{3}) absorbs
+blue-violet around 400 nm and green at 550 to 600 nm; it also absorbs
+(slightly) at the frequency it emits, 694 nm.  Although the absorption
+is not at a multiple of the emission energy, it 'pumps' the crystal
+into a high energy state from which it can emit at 694 nm; and it is
+(relatively) slow to do so, with a luminescence lifetime of 3ms.  This
+gives plenty of time for any existing 694 nm light to trigger
+stimulated bosonic emission with identical momentum; judicious
+silvering of the (sufficiently accurately parallel and flat) ends of
+the ruby can ensure a strong bias to their normal as the direction of
+such emission, resulting in a laser.  If one end of the ruby is only
+partially silvered, laser light then shines out through it.
+""")),
                  orange=photon(606, 624, 'orange'), # but see Na orange
                  yellow=photon(590, 606, 'yellow',
                                # Flagrantly contradicting naming of bands ! (and should be two lines):
                                Na = Photon(name='sodium orange', wavelength=590*nano*metre,
                                            source="Sodium")),
-                 # ruby ? absorb green -> emit red channel ...
                  green=photon(520, 590, 'green'), #' the human eye's peak response is at 550nm
                  cyan=photon(490, 520, 'cyan', # blue-green
                              OIII=Photon(name='OIII', wavelength=5007 * Angstrom,
