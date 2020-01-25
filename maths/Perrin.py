@@ -48,11 +48,11 @@ class Perrin (tuple):
         return self.successor(n - 1, m, self)
 
     def successor(self, n=1, mod=None, step=(0, 0, 1)):
+        step = self._perrin_(*step)
         if n < 0:
             # Implement negative power as positive power of inverse:
-            n, step = -n, self._perrin_(step).__invert()
+            n, step = -n, step.__invert()
 
-        step = self._perrin_(*step)
         if mod: step %= mod
 
         n, b = divmod(n, 2)
@@ -133,7 +133,7 @@ class Perrin (tuple):
         if self[0] != 1: return self._perrin_(ratio(i, self[0]) for i in inv)
         return inv
 
-    del Rational hcf
+    del Rational, hcf
 
     @classmethod
     def entry(cls, n, mod=None, start=(3, 0, 2), step=(0, 0, 1)):
