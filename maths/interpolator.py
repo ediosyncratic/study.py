@@ -344,7 +344,18 @@ class Interpolator (Cached):
         scale = base ** ent # initially > hi - lo; we'll be narrowing this
         while True:
             near = self.__whole(best / scale)
-            if self.weigh((scale * (near-.5), (near+.5) * scale), 2)[1] < 1:
+            # We want the value we display to have less than half
+            # weight within the range it denotes; but we also want
+            # that range to be narrow enough that the problem of being
+            # within its width of the estimated value is also less
+            # than a half.  When best is close to a rounidng boundary
+            # at the given scale, e.g. 49.96 at scale = 100, all the
+            # weight may be within scale/2 of it, even though less
+            # than half is within scale/2 of what it rounds to at this
+            # scale, leading to perverse results (49.96 displayed as 00
+            # because p(<50) < 1/2, even though p(<99.96) was > .9).
+            if (self.weigh((best -.5 * scale, best +.5 * scale), 2)[1] < 1 and
+                self.weigh((scale * (near-.5), (near+.5) * scale), 2)[1] < 1):
                 return best, ent
             ent -= 1
             if scale == 1: scale = 1. / base # force float
