@@ -178,11 +178,13 @@ class dictattr (recurseprop):
 
     def __del(self, obj):
         try: del obj.__dict__[self.__name__]
-        except KeyError: pass
+        except (KeyError, AttributeError): pass
 
     def __set(self, obj, val):
         if self.__wrap is not None: val = self.__wrap(val)
-        obj.__dict__[self.__name__] = val
+        try: obj.__dict__[self.__name__] = val
+        except AttributeError:
+            obj.__dict__ = { self.__name__: val }
 
     __upget = recurseprop.__get__
     def __get__(self, obj, cls=None):
