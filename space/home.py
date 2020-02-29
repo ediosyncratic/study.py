@@ -345,7 +345,10 @@ top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
                         height = Quantity.below(8840, metre, mean=840)),
 
             # misc other data:
-            rainfall = .125e18 * kg / year,
+            rainfall = Quantity(exa / 8, kg / year, """Earth's total rainfall.
+
+Around 71% of this probably falls on the oceans, of course.
+"""),
             # but c. half a million km**3/year according to
             # http://www.globalchange.umich.edu/globalchange2/current/lectures/freshwater_supply/freshwater.html
             flattening = 1 / 298.25,
