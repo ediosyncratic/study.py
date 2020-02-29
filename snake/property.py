@@ -35,10 +35,20 @@ class docprop (property):
         if doc is None:
             try: doc = getit.__doc__
             except AttributeError: pass
+            try:
+                doc = (doc + '\n\n' if doc else '') \
+                     + self.__tails[(not setit), (not delit)]
+            except KeyError: pass
 
         self.__name__ = getit.__name__
         self.__doc__ = doc # otherwise, doc-string of docprop takes precedence !
         self.__upinit(getit, setit, delit, doc)
+
+    __tails =  {
+        (False, False): """This attribute can be set and deleted.\n""",
+        (False, True): """This attribute can be set, but not deleted.\n""",
+        (True, False): """This attribute can be deleted, but not set.\n""",
+    }
 
     class each (property): # tool used by group
         def __init__(self, group, index):
