@@ -1348,7 +1348,7 @@ class Polynomial (Lazy):
         """Pseudo-constructor using enumerate(seq)."""
         return cls._polynomial_(enumerate(seq), denom, variate)
     @classmethod
-    def fromMap(bok, denom=None, variate=None):
+    def fromMap(cls, bok, denom=None, variate=None):
         """Pseudo-constructor using bok.iteritems()."""
         return cls._polynomial_(bok.iteritems(), denom, variate)
 
