@@ -200,4 +200,4 @@ class dictattr (recurseprop):
     def __get__(self, obj, cls=None):
         try: return obj.__dict__[self.__name__]
         except (KeyError, AttributeError): pass
-        return self.__upget(obj, cls=None)
+        return self.__upget(obj, cls)
