@@ -109,7 +109,7 @@ class lazyattr (dictattr, lazyprop):
     of another lazy attribute, then you may find weakprop.mutual() better suited
     to your needs; see study.cache.weak.  If two getters are setting one
     anotehr's attributes, you may find lazyprop.group() works better; see
-    docprop.group() in study.anake.property.\n"""
+    docprop.group() in study.snake.property.\n"""
 
     __lget = lazyprop.__get__
     __dget = dictattr.__get__
