@@ -335,6 +335,31 @@ class Permutation (Tuple, Cached):
             assert None not in ans
             yield cls(ans)
 
+    @staticmethod
+    def __last_above(seq, hi, cut):
+        """Find least j >= hi with seq[j] > cut
+
+        Used in the all iterator when stepping.  Expects seq[hi:] to
+        be in decreasing order, so that binary chop can be used if
+        len(seq[hi:]) is large, and expects seq to be monic (i.e. no
+        two entries are equal).\n"""
+        lo = len(seq) - 1
+        assert lo == hi or seq[lo] < seq[hi] > cut
+        if lo - hi < 8: # do it the easy way
+            while seq[lo] < cut:
+                lo -= 1
+            return lo
+
+        # Binary chop
+        while lo > hi + 1:
+            mid = (lo + hi + 1) // 2
+            if seq[mid] < cut:
+                lo = mid
+            else:
+                assert seq[mid] > cut
+                hi = mid
+        return hi
+
     # for a rather elegant application, see queens.py's derived iterator
     @classmethod
     @iterable
@@ -395,12 +420,12 @@ class Permutation (Tuple, Cached):
             if i < 1: # row is entirely in decreasing order
                 raise StopIteration # yielded all permutaitons already
 
-            i, j = i - 1, size - 1
+            i = i - 1
             assert row[i] < row[i + 1]
 
             # row[i+1:] is in decreasing order but row[i] < row[i+1]
-            # Find smallest row[j] > row[i] with j > i:
-            while row[j] < row[i]: j -= 1
+            # Find smallest j > i with row[j] > row[i]:
+            j = cls.__last_above(row, i + 1, row[i])
             # swap i <-> j:
             row[j], row[i] = row[i], row[j]
 
