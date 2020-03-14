@@ -97,6 +97,8 @@ https://en.wikipedia.org/wiki/Ancient_Hebrew_units_of_measurement
 https://en.wikipedia.org/wiki/Ancient_Greek_units_of_measurement
 https://en.wikipedia.org/wiki/Ancient_Roman_units_of_measurement
 https://en.wikipedia.org/wiki/Template:Hand_measurements
+https://en.wikipedia.org/wiki/List_of_unusual_units_of_measurement
+https://en.wikipedia.org/wiki/Vitruvian_Man
 
 Nautical mile and its kin
 http://www.gwydir.demon.co.uk/jo/units/sea.htm
@@ -947,6 +949,7 @@ acre = chain * furlong # consensus; mile**2/640.  From German/Norse: field
 acre.French = French.acre
 rood = acre / 4
 rod.also(building = 33 * yard * yard, bricklayer = rod * rod)
+# perch ?  Bjørn; length
 # US names for certain areas:
 section = mile**2
 township = 36 * section
@@ -978,6 +981,7 @@ pint = Quantity(1, quart / 2,
                 wine = quart.wine / 2, # 16.65 UK floz; 16 US ones.
                 beer = quart.beer / 2)
 gallon.US, quart.US, pint.US = gallon.wine, quart.wine, pint.wine
+gallon.ale = 9 * pint
 
 bucket = 4 * gallon
 ton.water = 8 * 7 * bucket
@@ -1037,7 +1041,7 @@ beer = Object(doc = """Archaic measures for beer, pre-1688 and 1803 to 1824.""",
               barrel = barrel.beer, hogshead = hogshead.beer)
 ale = Object(beer,
              doc = """Archaic measures for ale, 1688 to 1803.""",
-             barrel = barrel.ale, hogshead = hogshead.ale)
+             gallon = gallon.ale, barrel = barrel.ale, hogshead = hogshead.ale)
 # and so on *ad nauseam* !
 
 # A few other nations' contributions:
@@ -1085,6 +1089,7 @@ Danish.also(fod = Danish.alen / 2, favn = 3 * Danish.alen,
             skok = 3 * Danish.snes, ol = 4 * Danish.snes)
 Danish.also(tomme = Danish.fod / 12,
             mil = 4000 * Danish.favn, # 12000 alen, 7532 m == mile.Prussian.
+            # Bjørn Vermoe also reports a 12km Danish land-mil ...
             anker = 20 * Danish.kande) # plural is ankre; 68 pints; c.f. firkin
 # pl. = oksehoveder, clealy means Ox-head, .944 hogsheads:
 Danish.oksehoved = 6 * Danish.anker
