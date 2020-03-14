@@ -649,7 +649,7 @@ class Polynomial (Lazy):
             # for quadratics, we know how to be exact ...
             return cub(*[self.__numerator(i) for i in (3, 2, 1, 0)])
         elif self.rank == 3 and self.__pure_real():
-            # and, for cubics, pretty accurate:
+            # and, for real cubics, pretty accurate:
             rough, tol = cub(*[self.__numerator(i) for i in (3, 2, 1, 0)]), 1e-9
         else:
             rough, tol = self.Weierstrass(1e-9), 1e-7
@@ -1138,7 +1138,9 @@ class Polynomial (Lazy):
         """Tests whether self and other are equal to within plausible rounding."""
         try: tot, den = other.__coefs, other.__denom
         except AttributeError: tot, den = {0: other}, None
+        if den is None: den = 1
         bok, siz = self.__coefs, self.__denom
+        if siz is None: siz = 1
         return (set(tot) == set(bok) and
                 all(abs(me - yo) < tol * (abs(me) + abs(yo))
                     for me, yo in ((bok[k] * den, tot[k] * siz)
