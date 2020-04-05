@@ -380,6 +380,7 @@ class repWeighted (curveWeighted):
         E rather than e (thus 1.2E1 for 12); and if no digits appear after the
         '.'  in an exact representation, the '.' is omitted.\n"""
 
+        # TODO: can the builtin round(number [, ndigits]) help ?
         estim, ent = self.interpolator.round(estim) # expon-ent
         if ent is None: return `estim`
         digits = '%.0f' % (estim / 10. ** ent)
@@ -998,7 +999,6 @@ class Sample (Object):
         try: w = self.__weigh
         except AttributeError: self.__weigh = weights
         else: self.__weigh = w.cross(weights)
-            
         return True
 
     def __better(self, *args):
