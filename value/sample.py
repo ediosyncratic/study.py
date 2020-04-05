@@ -380,7 +380,6 @@ class repWeighted (curveWeighted):
         E rather than e (thus 1.2E1 for 12); and if no digits appear after the
         '.'  in an exact representation, the '.' is omitted.\n"""
 
-        # TODO: can the builtin round(number [, ndigits]) help ?
         estim, ent = self.interpolator.round(estim) # expon-ent
         if ent is None: return `estim`
         digits = '%.0f' % (estim / 10. ** ent)
@@ -391,7 +390,8 @@ class repWeighted (curveWeighted):
 
         if digits != '0':
             ent += len(digits)
-            assert abs(estim) * 10 >= 10**ent > abs(estim), (estim, ent, digits)
+            # We may have rounded a 9.5 up to 10, so be generous on the upper bound:
+            assert abs(estim) * 10 / .95 >= 10**ent > abs(estim), (estim, ent, digits)
         # i.e. 1 > estim / 10**ent >= .1, but without the rounding problems ...
         # thus sign + '.' + digits + 'e%d' % ent would be a valid answer
 
