@@ -959,7 +959,7 @@ class PiecewiseConstant (Interpolator):
 
         Single argument, n, is a positive integer.  Each 'corner of a cube' is
         a tuple of length n whose entries are either 0 or 1.  The return from
-        planes(n) is an iterator; for each m from 1 through n-1, it yields an
+        plane(n) is an iterator; for each m from 1 through n-1, it yields an
         iterator over the corners whose sum is m.  Note that the diametrically
         opposite corners that are all 0 or all 1 are skipped.\n"""
 
@@ -1020,7 +1020,7 @@ class PiecewiseConstant (Interpolator):
                 try: row.append(f(*ks.mapwith(lambda k, *vs: vs[k], xs, ys)))
                 except ZeroDivisionError, err: pass
 
-            # Use average over first size to give any results:
+            # Use average over first plane that gives any results:
             if len(row) > 1: return sum(row) * 1. / len(row)
             try: return row[0]
             except IndexError: pass
@@ -1175,7 +1175,7 @@ class PiecewiseConstant (Interpolator):
             if lo <= l and h <= hi: return self.weight
             lo, hi = max(l, lo), min(h, hi)
             return (hi - lo) * self.weight * 1. / (h - l)
-            
+
     class UpDown (Interval):
         @classmethod
         def __len__(cls): return 3
@@ -1209,16 +1209,14 @@ class PiecewiseConstant (Interpolator):
     @staticmethod
     def __join(f, box, mass,
                each=evaluate, form=(Spike, Flat, UpDown, UpAlongDown)):
-        """Combine my and yo according to f and update kink.
+        """Compute f's value in a region indicated by box.
 
-        First argument, f, is a function taking two inputs; next two
-        arguments, my and yo, are triples (l, h, w) describing weight w in
-        interval {x: l <= x <= h}; f's first argument shall be drawn from my's
-        interval, second from yo's.  Returns a Tile object which describes how
-        the product of weights of my and yo are distributed over a range of
-        values obtained by such calls to f.  Values added to kink are the ones
-        at which the density, of the distribution described by the returned
-        object, isn't smooth.
+        First argument, f, is a function taking len(box) inputs; next
+        argument, box, is a tuple of (lo, hi) twoples, giving a range of
+        values for each argument to be passed to f; final argument, mass, is
+        the product of weights associated with the inputs in those intervals.
+        Returns a Tile object which describes how this weight is distributed
+        over the range of values obtained by such calls to f.
 
         Because intervals may be bounded by values at which f is ill-behaved,
         ZeroDivisionError is handled specially; see single's doc.\n"""
