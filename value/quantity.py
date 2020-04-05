@@ -175,6 +175,8 @@ def scalar():
                 return ans.real
         return ok
 
+    # Problem: complex can't be sorted, Sample's interpolator sorts
+    # its cuts.  So the cmath versions aren't such a good plan.
     ln = pick(math.log, cmath.log)
     arccos = pick(math.acos, cmath.acos)
     arcsin = pick(math.asin, cmath.asin)
@@ -729,7 +731,7 @@ class Quantity (Object):
         ot, her = grab(other)
         return self._quantity_(ot * self.__scale, her * self.__units)
 
-    def __div__(self, other, grab=unpack): 
+    def __div__(self, other, grab=unpack):
         ot, her = grab(other)
         if not ot: raise ZeroDivisionError, other
         return self._quantity_(self.__scale / ot, self.__units / her)
@@ -921,7 +923,7 @@ class Quantity (Object):
         if not Divide: Divide = divide
 
         head, tail = str(scale), ''
-        pows = self._quantity_stinu_bok 
+        pows = self._quantity_stinu_bok
 
         for p in self._quantity_stinu_skey: # sorted keys of pows
             # punctuate
