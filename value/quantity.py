@@ -63,35 +63,12 @@ _quantifier_dictionary = {
     -27: 'harpo',
     -30: 'groucho' # also: zeppo, gummo, chico ? </q>
     }
+# See tail of file for those being added to the namespace.
+
 # Aside from kilo and hecto, each positive-power quantifier abbreviates to its
 # upper-case first letter; each negative entry abbreviates to its lower-case
 # first letter.  This rule clearly can't be extended to harpo/harpi and
 # groucho/grouchi, which might militate against their formal adoption !
-
-_exponent_to_quantifier = {} # needed for qSample._repr
-for _key, _val in _quantifier_dictionary.items():
-    exec '%s = 1e%d' % (_val, _key)
-    _exponent_to_quantifier['e%d' % _key] = _val
-
-deka = deca
-
-# IEC 60027-2
-# http://physics.nist.gov/cuu/Units/binary.html
-_pow1024_dictionary = {
-    1: 'kibi',
-    2: 'mebi',
-    3: 'gibi',
-    4: 'tebi',
-    5: 'pebi',
-    6: 'exbi',
-    7: 'zebi',
-    8: 'yobi',
-    # postulated: 9: 'habi', 10: 'grubi'
-    }
-for _key, _val in _pow1024_dictionary.items():
-    exec '%s = 1024 ** %d' % (_val, _key)
-
-Ki, Mi, Gi = kibi, mebi, gibi
 
 # Note: a gram comes out as a milli * kilogramme, which is only fair, all things
 # considered.  Maybe I'll fix it some day ... but will someone object to mega *
@@ -100,7 +77,8 @@ Ki, Mi, Gi = kibi, mebi, gibi
 # naming of masses above 1e3 kg.  How silly is that ?
 
 def massage_text(text, times,
-                 _e2q=_exponent_to_quantifier):
+                 _e2q=dict(('e%d' % k, v)
+                           for k, v in _quantifier_dictionary.items())):
     """Computes the representation of qSample.
 
     Arguments (both required, none more allowed):
@@ -143,7 +121,6 @@ def massage_text(text, times,
 
     return sign + head + tail
 
-del _exponent_to_quantifier
 from study.value.sample import Sample
 
 class qSample (Sample):
@@ -1293,5 +1270,29 @@ class Quantity (Object):
         result = cls.unit(1, { nom: 1 }, nom, fullname, doc, **what)
         cls.__terse_dict[nom] = result
         return result
+
+for _key, _val in _quantifier_dictionary.items():
+    exec '%s = Quantity(1e%d)' % (_val, _key)
+
+deka = deca
+
+# IEC 60027-2
+# http://physics.nist.gov/cuu/Units/binary.html
+_pow1024_dictionary = {
+    1: 'kibi',
+    2: 'mebi',
+    3: 'gibi',
+    4: 'tebi',
+    5: 'pebi',
+    6: 'exbi',
+    7: 'zebi',
+    8: 'yobi',
+    # postulated: 9: 'habi', 10: 'grubi'
+    }
+
+for _key, _val in _pow1024_dictionary.items():
+    exec '%s = Quantity(1024 ** %d)' % (_val, _key)
+
+Ki, Mi, Gi = kibi, mebi, gibi
 
 del kind_prop_lookup, tonumber, Prodict
