@@ -27,6 +27,9 @@ external consumption.
 
 See study.LICENSE for copyright and license information.
 """
+# TODO: reimplement or replace with something based more directly on
+# study.maths.interpolator's interval-based, rather than interior-point-based,
+# piecewise uniform distributions.
 
 class _baseWeighted:
     """Base class for weight dictionaries.
@@ -1175,13 +1178,13 @@ class Sample (Object):
         number, which will be handled as if it were a single-point sample).  Do
         not pass more than two arguments.
 
-        An composite distribution is built, using products of weights from the
+        A composite distribution is built, using products of weights from the
         two samples to provide weights to attach to values returned by the
-        function when passed a value from each; self's value is always the
-        first parameter to func, the second parameter comes from the other
-        sample.  This distribution is combined with a best estimate, obtained
-        by applying the function to self's best estimate and that of the other
-        sample, to create a new Sample.\n"""
+        function when passed a value from each; self's value is always the first
+        parameter to func, the second parameter comes from the other sample.
+        This distribution is combined with a best estimate, obtained by applying
+        the function to self's best estimate and that of the other sample, to
+        create a new Sample.\n"""
 
         bok, best = grab(what)
         return self._sampler_(self.__weigh.combine(bok, func),
@@ -1194,6 +1197,7 @@ class Sample (Object):
         # dimensionality.
 
         # Work-around: say Quantity(sample) * quantity ...
+        # Could test type(what).__name__ == 'Quantity' and kludge if it is.
 
     # Comparison:
     def __cmp__(self, what, grab=extract):
