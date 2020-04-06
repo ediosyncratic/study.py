@@ -23,6 +23,7 @@ More distributions shall follow when I get to them.
 See study.LICENSE for copyright and license information.
 """
 from study.value.quantity import Quantity
+import math
 
 def solid(b):
     """Compute the Pareto parameter for an Einstein solid.
@@ -51,9 +52,9 @@ def solid(b):
     f = Quantity(0.25)
     while True: # Apply Newton-Raphson
         # h(f) = target +log(f) / (1/f -2)
-        error = target +f.log / (1/f -2)
+        error = target +f.evaluate(lambda x: math.log(x) / (1./x -2))
         # h'(f) = (1 -2*f +log(f))/(1 -2*f)**2
-        deriv = (1 -2 * f +f.log) / (1 - 2 * f)**2
+        deriv = f.evaluate(lambda x: (1 -2 * x +math.log(x)) / (1 - 2 * x)**2)
         f -= error / deriv
         # If the range of values error describes spans zero, I guess
         # we're close enough; if f runs negative, give up:
