@@ -943,7 +943,8 @@ class Quantity (Object):
     def _unit_order(self, unit): return self.__units[unit]
 
     # Method to override, if needed, in derived classes ...
-    def _quantity_(self, what, units): return self.__class__(what, units)
+    @classmethod
+    def _quantity_(cls, what, units): return cls(what, units)
 
     @staticmethod
     def __extra_attrs(attrs, **what):
