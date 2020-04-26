@@ -35,14 +35,18 @@ class MHT (Cached):
     def __locations(self):
         """Iterate over Content-Location header values.
 
-        Returns an iterator over all non-multipart parts of the message,
-        yielding the value of any Content-Location header from each.\n"""
+        Returns an iterator over all non-multipart parts of the
+        message, yielding the path of any Content-Location header from
+        each.  If the header value appears to be an URL, the path of
+        the URL is returned.  HTML content's name gets a .html suffix
+        rather than any .asp, .php or similar that might have
+        generated it.\n"""
         for part in self.__leaves():
-            loc = part['Content-Location']
+            loc = self.__cleanName(part)
             if loc: yield loc
 
     @lazyprop
-    def stem(self, cut='/\\'):
+    def stem(self):
         """Maximal common prefix of Content-Location headers.
 
         This is the longest common path-like prefix of all
@@ -59,7 +63,9 @@ class MHT (Cached):
         head = len(ans)
         for it in seq:
             while it[:head] != ans:
-                while head > 0 and ans[head-1] not in cut: head -= 1
+                head = self.__lastSlash(ans)
+                if head <= 0:
+                    return ''
                 ans = ans[:head]
 
         return ans
@@ -76,13 +82,14 @@ class MHT (Cached):
         Content-Location headers, such as might have been obtained as
         self.stem (q.v.).
 
-        If prefix is specified and is an initial portion of the
-        Content-Location header of a part, the remainder of that header
-        is used as the part's name relative to into.  Otherwise, if the
-        part has a Content-Disposition that specifies a filename, this
-        is used, with Content-Location serving as an alternate source
-        for such a filename. but any directory-like part of this name is
-        discarded.  Otherwise, the part is discarded.
+        If prefix is specified and is an initial portion of the path
+        extracted from the Content-Location header of a part, the
+        remainder of that header is used as the part's name relative to
+        into.  Otherwise, if the part has a Content-Disposition that
+        specifies a filename, this is used, with Content-Location
+        serving as an alternate source for such a filename; but any
+        directory-like part of this name is discarded.  Failing even
+        this, the part is discarded.
 
         Note that an empty string prefix (which .stem may be) would mean
         to use whole Content-Location headers, as opposed to ignoring
@@ -104,15 +111,15 @@ class MHT (Cached):
     def __mkdirs(cls, into, nom, mkdir=os.mkdir,
                  split=os.path.split, isdir=os.path.isdir):
         head = split(nom)[0]
-        if not head: return
-        if isdir(into + head): return
+        if not head or head == nom or isdir(into + head):
+            return
         cls.__mkdirs(into, head)
         mkdir(into + head)
     del os
 
-    @staticmethod
-    def __name(part, prefix):
-        nom = part['Content-Location']
+    @classmethod
+    def __name(cls, part, prefix):
+        nom = cls.__cleanName(part)
         if nom and prefix is not None:
             if nom.startswith(prefix):
                 return nom[len(prefix):]
@@ -120,9 +127,40 @@ class MHT (Cached):
 
         nom = part.get_filename(nom)
         if not nom: return None
-        cut = max(nom.rfind('/'), nom.rfind('\\'))
+        cut = cls.__lastSlash(nom)
         if cut >= 0: nom = nom[cut:]
         return nom
+
+    @staticmethod
+    def __lastSlash(path, cuts = '/\\'):
+        return max(path.rfind(ch) for ch in cuts)
+
+    @staticmethod
+    def __cleanName(part, scheme = '://', tails = '#?'):
+        loc = part['Content-Location']
+
+        # Prune scheme and host, if present:
+        cut = loc.find(scheme)
+        if cut >= 0:
+            loc = loc[cut + len(scheme):]
+            cut = loc.find('/')
+            if cut < 0: return ''
+            loc = loc[cut:]
+
+        # Remove fragment identifier and query string:
+        for tail in tails:
+            cut = loc.find(tail)
+            if cut >= 0: loc = loc[:cut]
+
+        # Turn .php or .asp suffixes into .html
+        if loc and part.get('Content-Type') == 'text/html':
+            cut = loc.rfind('.')
+            if cut < 0:
+                loc = loc + '.html'
+            elif loc[cut + 1:] not in ('html', 'xhtml'):
+                loc = loc[:cut + 1] + 'html'
+
+        return loc
 
 if __name__ == '__main__':
     # usage: python study/money/mht.py blah.mht outdir/
