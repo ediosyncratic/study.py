@@ -5,6 +5,9 @@ Contents:
   main(programname, args, instream, outstream, grumble) -- command-line interface
 
 Can be run as 'python dequote.py src dst' to decode src into dst.
+Linux has a command-line tool 'recode' that does the same job,
+probably better; in particular, it supports many formats for both
+input and output.
 
 See study.LICENSE for copyright and license information.
 """
