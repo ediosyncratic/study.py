@@ -464,7 +464,8 @@ class Quantity (Object):
         elif not isinstance(scale, Nice):
             scale = Nice.repack(scale)
 
-        assert isinstance(scale, Nice) and isinstance(units, Bok)
+        assert isinstance(scale, Nice), ('scale', scale)
+        assert isinstance(units, Bok), ('units', units)
         return scale, units
 
     def _str_frags(self):
@@ -889,10 +890,9 @@ class Quantity (Object):
                       kilogramme ], or vice versa.
 
         I hope to be able to do something smarter when I can see when to say J
-        rather than kg.m.m/s/s, and etc.  But that will probably involve
+        rather than kg.m^2/s^2, and etc.  But that will probably involve
         creating a units base-class to replace the present __terse_dict
         dictionary, which only knows about base units.\n"""
-
 
         # Honour Times='' even with times='.'
         if Times is None: Times = times
@@ -975,10 +975,17 @@ class Quantity (Object):
         Values of lo, hi and (when given) best must all be of the same kind
         (i.e. have the same units), although mixing dimensionless Quantity()s
         with plain scalars (or Sample()s) is allowed.  If they have units, these
-        are combined with the supplied units (if any); thus, for example, lo and
-        hi could be times and units could be the speed of light, to produce a
-        range of distances (that light travels between the given periods of
-        time).\n"""
+        are combined with (rescale and) the supplied units (if any); thus, for
+        example, lo and hi could be times and units could be the speed of light,
+        to produce a range of distances (that light travels between the given
+        periods of time).\n"""
+
+        try: unscale, un = units._scale_units_()
+        except AttributeError: pass
+        else:
+            units = un
+            if rescale is None: rescale = unscale
+            else: rescale *= unscale
 
         if rescale is not None:
             try: rescale, un = rescale._scale_units_()
