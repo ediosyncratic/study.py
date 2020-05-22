@@ -155,6 +155,11 @@ name-space less cluttered !  For similar reasons, I should break up this
 module into a sub-package comprising several modules (and probably write some
 machinery classes to facilitate cross-linking unit.nation and nation.unit,
 among other complications).
+
+A standard guage for guns is based on the size of a ball of lead
+weighing a fraction of a pound: a lb/n sphere of lead fits down an
+n-bore barrel; four-bore's diameter is 1.05 inches, commonly treated
+as roughly an inch.
 """
 
 from units import *
