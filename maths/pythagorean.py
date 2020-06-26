@@ -79,6 +79,10 @@ class Triangle (object):
         return h / s, e / s, n / s
 
     @lazyprop
+    def iscoprime(self):
+        return self.__hcf(*self.edges) == 1
+
+    @lazyprop
     def inradius(self):
         """The radius of the incircle of the triangle.
 
@@ -150,50 +154,70 @@ class Triangle (object):
     __hcf = staticmethod(__hcf)
     __sqrt = staticmethod(__sqrt)
 
-from study.snake.sequence import Iterable, Ordered
-class Triangles (Iterable):
-    """Iterator over known pythagorean triangles."""
-    def __init__(self): self.__nxt = self.__iter()
-    def __iter__(self): return self
-    def next(self): return self.__nxt.next()
+def triangles(test = lambda tri: tri.iscoprime):
+    """Construct an iterator.
 
-    __cache = Ordered(unique=None) # ValueError on appending duplicates
-    @classmethod
-    def __iter(cls):
-        for hij in cls.__cache: yield hij
+    Single argument, test, is a callable accepting a Triangle
+    object, used to filter the pythagorean triples generated.
+    Each yield is a Triangle for which this filter has returned a
+    true value.  The default filter returns the Triangle's
+    .coprime attribute, so that we iterate all coprime pythagorean
+    triangles.  The standard formula used as internal iterator
+    does generate all the coprime ones but includes some that are
+    not coprime; you'll see these if you use lambda tri: True.
+
+    Alternatively, one could pass a test that compares some ratio
+    of the edges of the triangle to some value, to select
+    triangles by the sin, cos or tan of one of its non-right
+    angles - see shrinking() for a possibly useful example.
+
+    The test can have state and change its condition in light of
+    what it has seen: each triangle is only tested once.  (I chose
+    not to specify the order.)\n"""
+    # Iterate all pairs of naturals i, j with i > j:
+    i = 0
+    while True:
+        j = i = i + 1
+        while j > 0:
+            j -= 1
+            # From each, generate a triangle
+            tri = Triangle(i, j)
+            if test(tri):
+                yield tri
+
+from study.snake.sequence import Ordered, Iterable
+class Triangles (Iterable):
+    """Iterator over known coprime pythagorean triples."""
+    def __iter__(self):
+        for hen in cls.__cache: yield hen
         extra = [] # TODO - FIXME: proper safety under async access by many instances
         cls.__fresh.append(extra)
         try:
-            for i, j in cls.__src:
-                hac = Triangle(i, j).coprime
-                try: cls.__append(hac)
-                except ValueError: pass
-                else: yield hac
+            for tri in cls.__src:
+                hen = tri.coprime
+                for it in cls.__fresh: it.append(hen)
+                yield hen
 
                 # Now pick up anything anyone else append()ed recently:
                 while extra:
                     it = extra.pop()
                     # Ignore the one *we* appended, of course:
-                    if it != hac: yield it
+                    if it != hen: yield it
         finally:
             cls.__stale(extra)
 
-    def pairs(): # Local tool function
-        """Yield all pairs of naturals i, j with i > j."""
-        i = 0
-        while True:
-            j = i = i + 1
-            while j > 0:
-                j -= 1
-                yield i, j
-    __src = pairs()
-    del pairs
+    class __Cache (Ordered):
+        __upinit = Ordered.__init__
+        # ValueError on appending duplicates:
+        def __init__(self): self.__upinit(unique=None)
+        def check(self, tri):
+            try: self.append(tri.coprime)
+            except ValueError: return False
+            else: return True
 
-    @classmethod
-    def __append(cls, val):
-        cls.__cache.append(val)
-        # If that didn't ValueError:
-        for it in cls.__fresh: it.append(val)
+    __cache = __Cache()
+    del __Cache
+    __src = triangles(__cache.check)
 
     __fresh = []
     @classmethod
