@@ -574,8 +574,8 @@ class Quantity (Object):
     def _lazy_get__scalar_(self, ignored):
         try: return self.__get_scale(self, {})
         except TypeError, what:
-            assert len(what.args) == 1
-            raise TypeError('not dimensionless', what.args[0])
+            what.args = ('not dimensionless',) + what.args
+            raise
 
     def __nonzero__(self): return 0 != self.__scale
     def __neg__(self):
@@ -612,7 +612,7 @@ class Quantity (Object):
                 raise TypeError(value._unit_str, units)
             return scale
         except AttributeError:
-            if units: raise TypeError()
+            if units: raise TypeError(units)
             return value
 
     # Support for additive functionality:
@@ -630,10 +630,12 @@ class Quantity (Object):
         try: return self.__get_scale(other, self.__units)
         except TypeError, what: pass
         if what.args:
-            raise TypeError(why + ' with differing dimensions',
-                            what.args[0], self._unit_str)
-        raise TypeError(why + ' between scalar and dimensioned quantity',
-                        other, self._unit_str)
+            what.args = ((why + ' with differing dimensions',) +
+                         what.args + (self._unit_str,))
+        else:
+            what.args = (why + ' between scalar and dimensioned quantity',
+                         other, self._unit_str)
+        raise
 
     import math
 
