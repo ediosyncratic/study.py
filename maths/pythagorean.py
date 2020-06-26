@@ -209,23 +209,5 @@ class Triangles (Iterable):
                     # BUG: anything appended between pop and append got missed :-(
             except IndexError: i = 0
             else: i += 1
-
-    @classmethod
-    def coprime(cls, i, j):
-        """Returns a pythagorean triangle whose sides are coprime.
-
-        Deprecated: use Triangle(i, j).coprime instead.\n"""
-        return Triangle(i, j).coprime
 
 del Ordered, Iterable
-# Old functions deprecated in favour of Triangle(i, j).coprime:
-
-def whole(i, j):
-    """Generate a pythagorean triangle.
-
-    Takes two naturals, i and j, with i > j.
-    Deprecated: use Triangle(i, j).edges instead.\n"""
-    assert i > j
-    return Triangle(i, j).edges
-
-coprime = Triangles.coprime
