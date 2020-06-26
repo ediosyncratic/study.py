@@ -25,6 +25,27 @@ class Triangle (Polygon):
     def __init__(self, a, b, c):
         self.__upinit(a, b, c)
 
+    @classmethod
+    def fromEdges(cls, a, b, c, t = []):
+        """Construct a triangle from the lengths of its edges.
+
+        This coincides with the constructor, but derived classes may
+        have constructors taking other construction arguments; such
+        subclasses should override this method to provide a common
+        interface.  In particular, study.maths.pythagorean's extension
+        of this class does so and this base implementation defers to
+        it for those triangles that meet its requirements.\n"""
+        if not t:
+            from study.maths.pythagorean import Triangle
+            t.append(Triangle)
+        try:
+            if all(x == int(x) for x in (a, b, c)):
+                # Must put hypotenuse first:
+                return t[0].fromEdges(*sorted((int(x) for x in (a, b, c)),
+                                              reverse = True))
+        except (ValueError, TypeError): pass
+        return cls(a, b, c)
+
     @lazyprop
     def cosines(self):
         """The triple of cosines of angles.
