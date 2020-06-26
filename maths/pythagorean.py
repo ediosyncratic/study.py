@@ -9,8 +9,9 @@ Provides:
 See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
+from study.maths.polygon import Triangle
 
-class Triangle (object):
+class Triangle (Triangle):
     """Describes a pythagorean triangle.
 
     The triple (h, e, n) returned by .edges satisfies the pythagorean
@@ -35,6 +36,8 @@ class Triangle (object):
         assert i > j
         self.__ij = i, j
         self.__scale = scale
+        # Deliberately not calling base's __init__(), as we provide
+        # edges as a property.
 
     @lazyprop
     def edges(self):
@@ -87,6 +90,13 @@ class Triangle (object):
     @lazyprop
     def iscoprime(self):
         return self.__hcf(*self.edges) == 1
+
+    @lazyprop
+    def area(self):
+        h, e, n = self.edges
+        q, r = divmod(e, 2)
+        assert r == 0
+        return q * n
 
     @lazyprop
     def inradius(self):
