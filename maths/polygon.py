@@ -47,6 +47,18 @@ class Triangle (Polygon):
         return cls(a, b, c)
 
     @lazyprop
+    def area(self):
+        # Hero's formula, see
+        # http://www.chsos.org.uk/~eddy/math/geometry/tricentre.xhtml#Area
+        a, b, c = self.edges
+        s, n = a +b +c, 3
+        while n > 0:
+            n -= 1
+            s *= a -b +c
+            a, b, c = b, c, a
+        return self.__quarterroot(s)
+
+    @lazyprop
     def cosines(self):
         """The triple of cosines of angles.
 
@@ -73,6 +85,18 @@ class Triangle (Polygon):
         the ratio between matching entries in this triple and in edges
         should be constant.\n"""
         return tuple(x.Sin for x in self.angles)
+
+    from  study.maths.natural import unsquare
+    @staticmethod
+    def __quarterroot(x, sqrt = unsquare):
+        try:
+            if x == int(x):
+                q, r = divmod(sqrt(int(x)), 4)
+                if r == 0:
+                    return q
+        except (ValueError, TypeError): pass
+        return x ** .5 * .25
+    del unsquare
 
     from study.value.quantity import Quantity
     @staticmethod
