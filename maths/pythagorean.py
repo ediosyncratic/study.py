@@ -166,10 +166,10 @@ def triangles(test = lambda tri: tri.iscoprime):
     does generate all the coprime ones but includes some that are
     not coprime; you'll see these if you use lambda tri: True.
 
-    Alternatively, one could pass a test that compares some ratio
-    of the edges of the triangle to some value, to select
-    triangles by the sin, cos or tan of one of its non-right
-    angles - see shrinking() for a possibly useful example.
+    Alternatively, one could pass a test that compares some ratio of
+    the edges of the triangle to some value, to select triangles by
+    the sin, cos or tan of one of its non-right angles - see
+    tightening() for a possibly useful example.
 
     The test can have state and change its condition in light of
     what it has seen: each triangle is only tested once.  (I chose
@@ -184,6 +184,43 @@ def triangles(test = lambda tri: tri.iscoprime):
             tri = Triangle(i, j)
             if test(tri):
                 yield tri
+
+def tightening(tol, scale = 1):
+    """Test a computed value against a decreasing tolerance.
+
+    Required first argument, tol, is an initial tolerance, which
+    should behave as a positive float; optional second argument,
+    scale, is a scaling by which to reduce tolerance on each
+    improvement; this defaults to 1.
+
+    Returns a decorator which wraps a function that maps its one input
+    to a number; the wrapped result will compare the abs() of this
+    number to its current tolerance; each time this abs is less than
+    the tolerance, the tolerance is updated to the minimum of this
+    smaller abs and the tolerance multiplied by scale.
+
+    Thus
+
+      @tightening(0.1)
+      def close(tri):
+          h, e, n = tri.edges
+          return h * 1. / min(e, n) -2
+
+    makes triangles(close) an iteration over approximations to half an
+    equilateral triangle, steadily tightening the tolerance.  Note
+    that taking the min of the scaled tolerance and the value that
+    beat the tolerance ensures that each triangle that passes the test
+    is a better approximation than any seen before.\n"""
+    def wrapper(measure, tol = tol, scale = scale):
+        def wrapped(v, vals = [tol, scale, measure]):
+            t, s, f = vals
+            val = abs(f(v))
+            if val < t:
+                vals[0] = min(val, t * s)
+                return True
+            return False
+        return wrapped
+    return wrapper
 
 from study.snake.sequence import Ordered, Iterable
 class Triangles (Iterable):
