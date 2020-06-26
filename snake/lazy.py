@@ -202,7 +202,7 @@ class Lazy (object):
                       # already or not needed.  Function arises when self's
                       # constructor assigned a local function to over-ride the
                       # instance's method.  There's duplication here, but the
-                      # four types could in principle different.
+                      # four types could in principle be distinct.
                       functypes=(type(Dummy.im), type(Dummy.cm),
                                  type(Dummy.sm), type(func))):
         """One-off attribute lookup.
@@ -243,10 +243,8 @@ class Lazy (object):
         except AttributeError: pass
         else:
             assert callable(meth)
-            try:
-                if isinstance(meth, functypes): return meth(key)
-                else: return meth(self, key) # do the currying for it
-            except TypeError: pass
+            if isinstance(meth, functypes): return meth(key)
+            else: return meth(self, key) # do the currying for it
 
         return self._lazy_late_(key)
 
