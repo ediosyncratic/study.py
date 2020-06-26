@@ -1,5 +1,11 @@
 """Generate pythagorean triangles.
 
+Provides:
+  Triangle -- an object describing a pythagorean triangle
+  triangles() -- an iterator over pythagorean triangles
+  tightening() -- decorator to help filter triangles
+  Triangles -- A cacheing iterator over coprime pythagorean triangles.
+
 See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
@@ -153,6 +159,8 @@ class Triangle (object):
     from study.maths.natural import hcf as __hcf, desquare as __sqrt
     __hcf = staticmethod(__hcf)
     __sqrt = staticmethod(__sqrt)
+
+del lazyprop
 
 def triangles(test = lambda tri: tri.iscoprime):
     """Construct an iterator.
