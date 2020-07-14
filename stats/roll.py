@@ -1,5 +1,11 @@
 """Exact Analysis of discrete random processes.
 
+== WARNING: memory hog. ==
+
+For example, Spread.die(8).vector(12) locked up the whole system, with
+load > 13 (on four cores) and quarter of an hour to reover from the
+memory hoggoing; I had to exit Vivaldi.
+
 Exported classes:
   Spread -- description of discrete distributions
   Gather -- count many repeats of a Spread it takes to sum past a threshold.
