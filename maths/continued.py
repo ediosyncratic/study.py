@@ -41,7 +41,7 @@ def real_continued(val, whole=int):
 
     A small uncertainty dx in x - p = 1/(q + y), with p, q integers having x-p
     and y between -1/2 and +1/2, implies an uncertainty in y of dy; with 1 = (x
-    - p)*(y + q), we have = dx*(y+q) +dy*(x-p) so dy = dx*(y+q)/(p-x) =
+    - p)*(y + q), we have 0 = dx*(y+q) +dy*(x-p) so dy = dx*(y+q)/(p-x) =
     -dx*(y+q)**2.  Going forward, if we know an upper bound u on abs(dx), we can
     infer u.(q.q +abs(q) +1/4) as an upper bound on abs(dy); if this ever gets
     above 1/2 there is little point continuing the sequence.  Working backwards,
