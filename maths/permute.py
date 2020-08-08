@@ -328,6 +328,9 @@ class Permutation (Tuple, Cached):
         vs = [i for i in range(size) if i not in js]
         # indices at which the gaps appear:
         ns = [n for n in range(size) if fix[n] is None]
+        if len(vs) != len(ns):
+            raise ValueError('Repeated entries in permutation template',
+                             js, fix, size)
 
         for perm in cls.all(len(vs)):
             ans = list(fix)
