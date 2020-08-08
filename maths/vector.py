@@ -50,6 +50,8 @@ class Vector (Tuple):
     Lazy properties:
       rank -- depth of nesting of Vector; see above.
       dimension -- tuple of ranges of successive viable indices
+      squaresum -- sum of squares of absolute values of scala entries
+      hypot -- square root of sum of squares of entries
 
     Methods:
       symmetrise([ranks]) -- average over permutations of given ranks (or all)
@@ -656,6 +658,68 @@ class Vector (Tuple):
 
         return (len(self),)
 
+    def powersum(self, n):
+        """Returns the sum of n-th powers of absolute values of entries
+
+        See also normL(), which returns this ** (1./n) but takes care to avoid
+        arithmetic over-flow or underflow.\n"""
+        return sum(abs(x) ** n for k, x in self.iteritems())
+
+    def norm(self, n = 2, scale = 0.0):
+        """Returns the Ln norm of self.
+
+        Does its best to avoid loss of precision due to overflor or underflow,
+        as math.hypot() would for just two values.  Arguments are optional:
+
+          n -- sum abs(x) ** n for each scalar entry x in self
+          scale -- scale at which we care about precision of the answer
+
+        The default for n is 2.  In principle, this sums abs(x) ** n for each
+        scalar entry x in self, then returns the sum's ** (1./n).  In practice,
+        that might underflow or overflow (e.g. for large n, each entry in self
+        might be small enough that abs(x) ** n is zero or infinity, leading to a
+        zero or infinite result, when the mathematically correct result would be
+        finite and positive), so we actually scale each entry down by the
+        largest value seen thus far, rescaling the total suitably each time we
+        come to a larger entry, so that only entries tiny compared to larger
+        entries will underflow (and thus be ignored) and we won't overflow
+        (unless self has a *very* large number of entries).
+
+        If scale is passed, it should be a non-negative value of the same kind
+        as self's entries; it must be equal to its own abs().  The arithmetic
+        shall be done as if there were known to be an entry this large (or
+        larger) somewhere in self; if there really is such an entry, passing
+        scale will make little difference to the result.  A larger value for
+        scale may make sense when the result of this function is to be used in
+        some context where values tiny compared to this scale *should* be
+        ignored, for example if we're going to add the return from this to a
+        value of comparable scale.
+
+        It may also be of interest to pass scale if the entries in self are not
+        simple numbers, e.g. if they come with units of measurement; the zero,
+        or a small positive value, of the same type can then ensure the
+        arithmetic is done with simpler numbers.\n"""
+
+        zero = 0.0 * scale
+        if not (zero <= scale == abs(scale)):
+            raise ValueError(
+                "Invalid scaling: must be its own absolute value, not negative",
+                scale)
+
+        total = 1.0
+        for key, scalar in self.iteritems():
+            scalar = abs(scalar)
+            assert scalar >= zero
+            if scalar > scale:
+                assert scalar > zero # so we *can* divide by it
+                total *= (scale * 1. / scalar) ** n
+                total += 1.0
+            elif scalar > zero:
+                assert scale > zero # so we *can* divide by it
+                total += (scalar * 1. / scale) ** n
+
+        return scale * total ** (1./n) if scale else zero
+
     @lazyprop
     def squaresum(self):
         """The sum of squares of self's components.
@@ -664,9 +728,17 @@ class Vector (Tuple):
         metric it makes sense for you to be using, the square roof of this is
         the length of self.  For the sake of the case where self's components
         are complex, the square of the absolute value is used.\n"""
+        return self.powersum(2)
 
-        if self.rank < 2: return sum(abs(x) ** 2 for x in self)
-        return sum(x.squaresum for x in self)
+    @lazyprop
+    def hypot(self):
+        """The L2 norm of self.
+
+        This is the square root of the sum of squares of scalar entries in self,
+        albeit not necessarily computed that way (which might underflow,
+        overflow or lose precision by coming close to doing so); see norm(),
+        compare the python standard library's math.hypot().\n"""
+        return self.norm(2)
 
     @lazyprop
     def biggest(self):
