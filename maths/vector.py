@@ -34,12 +34,14 @@ class Vector (Tuple):
     Vector within Vector is known as the 'rank' of the tensor; a plain Vector,
     with numeric entries, has rank 1; multiplying two tensors of ranks n and m
     yields a tensor of rank n+m.  (A raw scalar can be thought of as a tensor of
-    rank 0; but this is not attempted here.)
+    rank 0; but this is not attempted here, if only because I'd have to chose
+    between float and complex on which to base it.)
 
     For a sequence to be a valid input to the constructor, either its entries
-    should all be numeric (and behave reasonably like reals) or its entries
-    should all be Vector instances, with equal .dimension attributes.  See
-    pseudo-constructor fromSeq() for a more liberal approach.
+    should all be numeric (and behave reasonably like real or complex numbers)
+    or its entries should all be Vector instances, with equal .dimension
+    attributes.  See pseudo-constructor fromSeq() for a more liberal approach,
+    that'll package ordinary sequences suitably.
 
     Pseudo-constructors:
       fromSeq(seq [, dim]) -- recursively traverse into seq's entries
@@ -648,7 +650,7 @@ class Vector (Tuple):
         independent of choice of s, subject to given constraints.\n"""
         if isinstance(self[0], Vector):
             assert all(isinstance(x, Vector) for x in self)
-            tail = self[0]. dimension
+            tail = self[0].dimension
             assert all(x.dimension == tail for x in self)
             return (len(self),) + tail
 
@@ -695,7 +697,8 @@ class Vector (Tuple):
 
         Thus, if no arguments are passed, using .iteritems() as if self were a
         mapping, we iterate over the maximal-length indexing-tuples it accepts,
-        as if it were a mapping from these to the co-ordinates they produce.
+        as if it were a mapping from these to the co-ordinates they produce,
+        each paired with the scalar it indexes.
 
         All others arguments, if any, should be iterables (they may be
         iterators) with the same structure as self; each tuple yielded by this
