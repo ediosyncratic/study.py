@@ -27,7 +27,8 @@ class Vector (Tuple):
 
     In general, division is not well-defined (even where it can be defined, it
     is not always unambiguous).  I may, some day, add support for at least some
-    of the cases where it is well-defined; but that hasn't happened yet.
+    of the cases where it is well-defined; that hasn't happened yet, but see
+    decompose() sketching a plan for a related action.
 
     The product of two Vector objects is technically a Vector whose entries are
     Vector-valued; such a vector is termed a tensor.  The depth of nesting of
@@ -934,6 +935,17 @@ class Vector (Tuple):
                 row[r] = self[i]
 
         return row
+
+    def decompose(self, *others):
+        """Express self as a weighted sum of various others, if possible.
+
+        All arguments must be members of the same space as self;
+        returns a tuple of coefficients by which to multiply them to
+        get self as the weighted sum.\n"""
+        assert all(x.dimension == self.dimension for x in others)
+        # We want u with len(u) = len(others) for which
+        # self = sum(u[i] * v for i, v in enumerate(others))
+        raise NotImplementedError
 
     # Contraction:
     def dot(self, other, n=1, out=True):
