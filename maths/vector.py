@@ -447,8 +447,12 @@ class Vector (Tuple):
         return cls.fromSeq(((real, -imag), (imag, real)))
 
     from math import pi, sin, cos, sinh, cosh, atanh
+    @staticmethod
+    def __rotors(cache=(cos, sin, cosh, sinh)):
+        return cache
+
     @classmethod
-    def circulate(cls, angle, unit=2*pi, s=sin, c=cos):
+    def circulate(cls, angle, unit=2 * pi):
         """Rotation through the given angle (of a circle).
 
         Required argument, angle, is the angle through which to rotate; by
@@ -464,14 +468,15 @@ class Vector (Tuple):
         representing the specified rotation.  Use .embed() for higher
         dimensions.\n"""
         angle *= unit
-        s, c = s(angle), c(angle)
+        sin, cos = cls.__rotors()[:2]
+        s, c = sin(angle), cos(angle)
         # Avoid stupid 6e-17ish value for one when it should be zero:
         if s in (-1, 1): c = 0
         if c in (-1, 1): s = 0
         return cls.decomplex(c, s)
 
     @classmethod
-    def hyperbolate(cls, speed, mode=atanh, s=sinh, c=cosh):
+    def hyperbolate(cls, speed, mode=atanh):
         """Hyperbolic 'rotation'
 
         Required argument, speed, controls how far the 'rotation' deviates from
@@ -490,7 +495,8 @@ class Vector (Tuple):
         transformation corresponding to the specified relative motion.  Use
         .embed() for higher dimensions.\n"""
         if mode is not None: a = mode(speed)
-        s, c = s(a), c(a)
+        sinh, cosh = cls.__rotors()[2:]
+        s, c = sinsh(a), cosh(a)
         return cls.fromSeq(((c, s), (s, c)))
     del pi, sin, cos, sinh, cosh, atanh
 
@@ -1246,17 +1252,27 @@ class Vector (Tuple):
     del setcell
 
     # Further implementation details
-    from study.maths.ratio import Rational
     @staticmethod
-    def __rat_over(n, R=Rational): return R(1, n)
-    del Rational
+    def __rat_over(n, cache=[]):
+        if cache:
+            R = cache[0]
+        else:
+            from study.maths.ratio import Rational as R
+            cache.append(R)
 
-    from study.maths.permute import Permutation
+        return R(1, n)
+
     @staticmethod
-    def __perm_average(cls, dims, ranks, func,
-                       gen=Permutation.fixed):
+    def __perm_average(cls, dims, ranks, func, cache=[]):
         """Average over permutations, needed by (anti-)symmetrise()
         """
+        if cache:
+            gen = cache[0]
+        else:
+            from study.maths.permute import Permutation
+            gen = Permutation.fixed
+            cache.append(gen)
+
         if ranks is None: ranks = tuple(range(len(dims)))
         else: ranks = tuple(ranks)
         if len(set(dims[i] for i in ranks)) != 1:
@@ -1273,8 +1289,6 @@ class Vector (Tuple):
         ans, n = func(es.next()), 1
         for e in es: ans, n = ans + func(e), n + 1
         return ans * cls.__rat_over(n)
-
-    del Permutation
 
     def tail_twist(index, key, old, flip): # tool-function; del'd later
         """Performs key-munging needed by __antisymmetric().
