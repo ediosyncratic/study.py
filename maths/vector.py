@@ -10,7 +10,7 @@ See the documentation of each for more.
 See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
-from study.snake.sequence import Tuple
+from study.snake.sequence import Tuple, iterable
 
 class Vector (Tuple):
     """Tuple type supporting entry-by-entry arithmetic.
@@ -845,6 +845,12 @@ class Vector (Tuple):
         return self.__perm_average(self.dimension, ranks,
                                    lambda e, t=self.tau: t(e) * e.sign)
 
+    def determinant(self):
+        if len(self.dimension < 2) or self.dimension[0] != self.dimension[1]:
+            raise ValueError('Determinant only makes sense for square matrices',
+                             self.dimension)
+        return self.__permProducts(self.dimension[0]).sum()
+
     def transpose(self, n=1):
         """Transpose a tensor; only applicable if self.rank > 1.
 
@@ -1263,16 +1269,17 @@ class Vector (Tuple):
         return R(1, n)
 
     @staticmethod
-    def __perm_average(cls, dims, ranks, func, cache=[]):
+    def __permuters(index, cache=[]):
+        if not cache:
+            from study.maths.permute import Permutation
+            cache[:] = [Permutation.fixed, Permutation.all]
+        return cache[index]
+
+    @classmethod
+    def __perm_average(cls, dims, ranks, func):
         """Average over permutations, needed by (anti-)symmetrise()
         """
-        if cache:
-            gen = cache[0]
-        else:
-            from study.maths.permute import Permutation
-            gen = Permutation.fixed
-            cache.append(gen)
-
+        gen = cls.__permuters(0)
         if ranks is None: ranks = tuple(range(len(dims)))
         else: ranks = tuple(ranks)
         if len(set(dims[i] for i in ranks)) != 1:
@@ -1289,6 +1296,18 @@ class Vector (Tuple):
         ans, n = func(es.next()), 1
         for e in es: ans, n = ans + func(e), n + 1
         return ans * cls.__rat_over(n)
+
+    @iterable
+    def __permProducts(self, dim, cache=[]):
+        """Iterates the products that determinant must sum."""
+        if cache: wrap = cache[0]
+        else:
+            from study.snake.sequence import WrapIterable as wrap
+            cache.append(wrap)
+
+        every = self.__permuters(1)
+        for p in every(dim):
+            yield wrap(self[i][p[i]] for i in range(self.dimension[0])).product()
 
     def tail_twist(index, key, old, flip): # tool-function; del'd later
         """Performs key-munging needed by __antisymmetric().
