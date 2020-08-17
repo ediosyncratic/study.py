@@ -9,7 +9,7 @@ See also: study.maths.continued, compared to which this is crude and ugly.
 See study.LICENSE for copyright and license information.
 """
 
-def intsplitfrac(val):
+def intsplitfrac(val): # tool function, not exported
     try:
         if val.imag == 0:
             val = val.real
@@ -65,11 +65,11 @@ class Rational (Cached):
         """Approximates a real number.
 
         Required argument, val, is the real number to be approximated. Optional
-        arguments tol and depth are as for rationalize(), q.v., but with
-        defaults changed to 1e-9 and 12, respectively.  Raises ValueError
+        arguments tol and depth are as for continued.rationalize(), q.v., but
+        with defaults changed to 1e-9 and 12, respectively.  Raises ValueError
         precisely if rationalize() does, due to being unable to find an adequate
-        approximation; otherwise, returns a Rational object approximating
-        val.\n"""
+        approximation; otherwise, returns a Rational object approximating val.
+        See also: approach().\n"""
 
         n, d = cls.__continue[0](val, tol, depth)
         return cls(n, d)
@@ -91,9 +91,69 @@ class Rational (Cached):
                 i -= 1
                 # replace n/d with seq[i] + d / n = (n*seq[i] + d) / n
                 n, d = n * seq[i] + d, n
-            ans = cls(n, d)
-            ans.error = float(ans) - val
-            yield ans
+            yield cls.__approximator(n, d, val)
+
+    @classmethod
+    def Farey(cls, val):
+        """Use Farey's algorithm to approximate a value.
+
+        Given d, e > 0, let ~ denote the ordering relation between n/d
+        and m/e, as in: n/d ~ m/e.  This implies e.n ~ d.m which, in
+        turn, implies (adding d.n to both sides in one case, e.m in
+        the other):
+
+          * (d +e).n ~ d.(n +m) and e.(n +m) ~ (d +e).m
+
+        which together imply n/d ~ (n +m)/(d +e) ~ m/e.
+        Thus (n +m) / (d +e) lies between n/d and m/e.
+
+        So we start with val bounded between two whole numbers and repeatedly
+        replace one of the bounds with Farey's mid-point between our bounds,
+        stopping if we ever hit val exactly.  At each step, this yields the
+        bound closest to val, with a .error attribute set to the difference
+        between it and val.  In the event of a tie (val is exactly half way
+        between the bounds), we take a short-cut and use their mid-point.\n"""
+
+        v = int(val)
+        lo = cls.__approximator(v, 1, val)
+        hi = cls.__approximator(v + 1, 1, val)
+        while True:
+            assert lo <= val <= hi and hi.error >= 0 and lo.error <= 0
+            y, mid = cls.__stepFarey(val, lo, hi)
+            if y is not None: # The short-cut.
+                yield y
+
+            if mid.error > 0: hi = mid
+            elif mid.error < 0: lo = mid
+            else: # error is either NaN (give up) or 0 (done)
+                yield mid
+                break
+
+            if y is None:
+                # We took the short-cut and it wasn't exact after all:
+                yield mid
+
+    @classmethod
+    def __stepFarey(cls, val, lo, hi):
+        # See Farey()
+        if hi.error > -lo.error:
+            y = lo
+        elif hi.error < -lo.error:
+            y = hi
+        else:
+            mid = (lo + hi) / 2
+            mid.error = float(mid) - val
+            return None, mid
+
+        n, d = lo.__ratio
+        m, e = hi.__ratio
+        return y, cls.__approximator(n + m, d + e, val)
+
+    @classmethod
+    def __approximator(cls, num, den, val):
+        ans = cls(num, den)
+        ans.error = float(ans) - val
+        return ans
 
     @property
     def denominator(self): return self.__ratio[1]
