@@ -5,7 +5,7 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, \
-     micro, milli, kilo, mega, giga, tera, peta, arc, turn, radian, pi, \
+     micro, milli, kilo, mega, giga, tera, peta, exa, arc, turn, radian, pi, \
      year, day, hour, minute, second, kg, metre, km, \
      litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin, au
 from study.value.archaea import mile
@@ -286,7 +286,41 @@ surface, 4.5 km below sea level in the Arctic and 5.89 km above sea level at the
 top of Mount Kilimanjaro, in Africa.  See also: altitude.\n"""),
             # radius should also be nauticalMile * 60 * 180 / math.pi
 
-            kg.force / kg, # by definition, from special property of masses
+            Quantity.flat(9.78 * metre / second**2, # equatorial
+                          9.83 * metre / second**2, # polar
+                          # Definition, from special property of masses:
+                          kg.force / kg, {},
+                          """Earth's surface gravity
+
+This is the rate at which an unsupported compact body accelerates
+downward while near sea level.  It is equally the ratio of the force
+one must use to support a massive body, so that it stays still rather
+than falling, to the mass of that body.
+
+It varies with location around the world, due to the centrifugal
+effect of the Earth's spin (pulling upwards) and the consequent
+variation in distance of sea level from Earth's centre of mass
+(reducing the field strength according to the inverse square law).
+This results in low values near the equator and high values near the
+poles.  There is also some local variation due to the non-uniformity
+of Earth's mass distribution.
+
+The measured downward acceleration of an unsupported body, or weight
+to mass ratio of a body, above the solid surface of the Earth will
+also depend on how far above sea level it is, diminishing as altitude
+increases.
+
+The usual standard gravity value of 9.81 m/s/s is representative of
+values measured around 45 degrees either side of the equator,
+reflecting the fact that Europeans set the standard; most of the
+Earth's surface (and population) experiences a lower value.  The
+median (by surface area) is probably closer to 9.80 m/s/s (the value
+at roughly 30 degrees either side of the equator, e.g. the northern
+and southern extremities of Africa).
+
+Source:
+https://www.mezzacotta.net/100proofs/archives/358
+"""),
 
             Spin(Quantity(day * (1 - day / year.sidereal),
                           doc="""Rotational period of Earth wrt the fixed stars""",
