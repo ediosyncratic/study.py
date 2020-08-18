@@ -1,21 +1,67 @@
 """Exact Analysis of discrete random processes.
 
-== WARNING: memory hog. ==
+Exported class (relatively safe):
+  Summed -- distribution of sums of discrete distributions
 
-For example, Spread.die(8).vector(12) locked up the whole system, with
-load > 13 (on four cores) and quarter of an hour to reover from the
-memory hoggoing; I had to exit Vivaldi.
-
-Exported classes:
+Exported classes that hog memory:
   Spread -- description of discrete distributions
   Gather -- count many repeats of a Spread it takes to sum past a threshold.
 This uses study.maths.vector.Vector as a key-type, in places.
 
+Note that Spread.die(8).vector(12) locked up the whole system, with
+load > 13 (on four cores) and quarter of an hour to reover from the
+memory hoggoing; I had to exit Vivaldi.  Use
+
 See study.LICENSE for copyright and license information.
 """
 from study.snake.decorate import postcompose
-from study.snake.sequence import Dict
+from study.snake.sequence import Dict, WrapIterable
 from study.cache.property import lazyprop, Cached
+
+class Summed (object):
+    """Calculator for numbers of outcomes of die-rolls with given sums.
+
+    Computation is (for now) done for zero-based dice, so model a die
+    with faces from 1 to n as having a bound of n (which will actually
+    be modelled as having vales from 0 through n-1) and do your own
+    correction to the sums, adding the number of such dice to each
+    sum.  Using zero-based dice means that .counts[s] can be the the
+    number of outcomes for which the sum is s, with counts[0] always
+    being 1 (because that requires all dice to have come up 0),
+    instead of having .counts start with a run of zeros whose length
+    is equal to the number of dice.  Feel free to use (0,)*n + counts
+    in place of counts to implement that.\n"""
+    def __init__(self, *bounds):
+        """We'll be counting lists with 0 <= entry[i] < bounds[i] for each i"""
+        self.__bounds = bounds
+
+    @lazyprop
+    def counts(self):
+        seq = (1,)
+        # When we've processed bound[:i], seq[p] is the number of
+        # lists, with each entry[j] in bound[j] for j < i, whose
+        # entries[:i] sum to p.  Initially, i is 0 and the only list
+        # is empty, with sum 0; so seq[0] = 1.  At each bound b, we
+        # take b copies of seq, padded with zeros at start and/or end,
+        # starting with all zeros at end, shifting one zero from end
+        # to start until all have shifted; and we sum the
+        # corresponding entries across these lists.
+        for b in self.__bounds:
+            seq = tuple(sum(seq[max(0, j + 1 - b) : j + 1])
+                        for j in range(len(seq) - 1 + b))
+        assert seq[0] == 1 == seq[-1]
+        assert sum(seq) == WrapIterable(self.__bounds).product()
+        return seq
+
+    # def p(low=None, as Rationals, high=None)
+    # proportion of total (a) between low, high (if both given) (b)
+    # below high (if low is None) (c) above low (if high is None) or
+    # (d) 1/1.
+
+    # Arithmetic, performed on bounds as sequences (+ is append, etc.)
+    # Standard uniform dice
+    # Support for non-zero lower bounds, by wrapping a plain Summed ?
+
 
 class Spread (Dict, Cached):
     """Describe a discrete distribution.
