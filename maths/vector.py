@@ -721,6 +721,7 @@ class Vector (Tuple):
                 assert scalar > zero # so we *can* divide by it
                 total *= (scale * 1. / scalar) ** n
                 total += 1.0
+                scale = scalar
             elif scalar > zero:
                 assert scale > zero # so we *can* divide by it
                 total += (scalar * 1. / scale) ** n
