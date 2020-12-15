@@ -935,7 +935,7 @@ Clausius = Quantity.unit(1, Calorie / Kelvin, # the heat capacity of a kg of wat
 frigorie = calorie.short / hour # Rate of transfer of heat (in refrigeration).
 
 # Anglophone units of energy:
-CHU = calorie.short * pound / gram # don't know what CHU stands for ! (KDWB)
+CHU = calorie.short * pound / gram # (KDWB) Caloric Heat Unit ?
 BTU = Quantity(1, CHU * Rankine / Kelvin,
                """British Thermal Unit
 
@@ -1048,6 +1048,9 @@ ale = Object(beer,
              doc = """Archaic measures for ale, 1688 to 1803.""",
              gallon = gallon.ale, barrel = barrel.ale, hogshead = hogshead.ale)
 # and so on *ad nauseam* !
+
+# https://www.theguardian.com/uk-news/2020/oct/16/met-office-confirms-uk-had-its-wettest-day-on-record-after-storm-alex?CMP=Share_iOSApp_Other
+LochNess = Object(volume = Quantity(7.4, (kilo * metre)**3))
 
 # A few other nations' contributions:
 
