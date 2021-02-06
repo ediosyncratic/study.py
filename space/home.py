@@ -122,19 +122,29 @@ four data are here given, as attributes l, b, alpha and delta.
         alpha = Quantity.within(11.2, .01), # unit is hours ...
         delta = Quantity.within(-7.22, 0.8, arc.degree)),
 
-    bright = Quantity.within(1.4, .3,
-                             kilo * Watt / metre / metre,
+    bright = Quantity.within(1360.8, 1.5,
+                             Watt / metre / metre,
                              """How brightly shines the sun ?
 
-Maximum solar total radiant power outside atmosphere at a distance of 1
-Astronomical Unit from the Sun.  Natural variability is roughly 30 Watt /
-metre**2, or about 2%.  This radiant power corresponds to an astronomical
-apparent magnitude of -26.73 (it should be possible to work out the zero-point
-of the astronomical magnitude scale from this ...).  For the photon pressure due
-to this radiant power, see Sun.bright.pressure.  For the corresponding neutrino
-flux, see Sun.bright.neutrino.  Both .bright and .bright.neutrino deserve to be
-multiplied by 4*pi*AU**2/steradian to get the more natural solar output per
-solid angle - regarless of distance - of each kind.
+Maximum solar total radiant power outside atmosphere at a distance of
+1 Astronomical Unit from the Sun.  Natural variability is roughly 1.5
+Watt / metre**2, or about 0.1%.  It varies cyclically with periods of
+about 11, 88, 208 and about 1000 years (the last are called, to my
+delight, Eddy cycles).  The Earth's orbit has variable distance from
+the Sun, leading to a 6.9% variation in how much solar radiation
+reaches Earth, independent of any variation in Sun.bright (whose
+distance from the Sun is fixed).  Earth's atmosphere and clouds
+further interfere so that only about 550 to 1025 W/m^2 actually
+reaches the surface.
+
+This radiant power corresponds to an astronomical apparent magnitude
+of -26.73 (it should be possible to work out the zero-point of the
+astronomical magnitude scale from this ...).  For the photon pressure
+due to this radiant power, see Sun.bright.pressure.  For the
+corresponding neutrino flux, see Sun.bright.neutrino.  Both .bright
+and .bright.neutrino deserve to be multiplied by AU**2/steradian to
+get the more natural solar output per solid angle - regarless of
+distance - of each kind.
 
 The Earth's cross-section, the area relevant to this power supply, is a quarter
 of its surface area; multiplying that by the solar constant, Earth is receiving
