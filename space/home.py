@@ -5,9 +5,9 @@ See study.LICENSE for copyright and license information.
 """
 
 from study.value.units import Sample, qSample, Quantity, Object, \
-     micro, milli, kilo, mega, giga, tera, peta, exa, arc, turn, radian, pi, \
-     year, day, hour, minute, second, kg, metre, km, \
-     litre, bar, Watt, Tesla, Ampere, Gauss, Kelvin, au
+     micro, milli, kilo, mega, giga, tera, peta, exa, zetta, \
+     arc, turn, radian, pi, au, year, day, hour, minute, second, \
+     kg, metre, km, litre, bar, Watt, Tesla, Gauss, Ampere, Kelvin
 from study.value.archaea import mile
 import body
 from common import Orbit, Spin, Discovery, Surface, \
@@ -325,6 +325,8 @@ https://www.mezzacotta.net/100proofs/archives/358
             Spin(Quantity(day * (1 - day / year.sidereal),
                           doc="""Rotational period of Earth wrt the fixed stars""",
                           sample = (24 * hour - 4 * minute + 4 * second,),
+                          # 4.5 Gyr ago, period was 5 hours; and
+                          # Moon.orbit.radius has since *= 10.
                           fullname="Sidereal Day"),
                  # Tilt varies between 22.1 and 24.5 degrees in 41 k yr cycle,
                  # due to reach a minimum in c. 1000 AD; (eh ? ten thousand ?)
@@ -392,10 +394,25 @@ Around 71% of this probably falls on the oceans, of course.
             # This may be about which frequencies solar panels can use.
             nature = { 'Land': .292, 'Ocean': .708 }, # TODO: merge into SurfacePart data !
             material = "basalt, granite, water",
-            magnetism = Object(
-    sampled = 'London, 1960',
-    horizontal = 1.87e-5 * Tesla,
-    vertical = 4.36e-5 * Tesla),
+            magnetic = Object(
+            field = Quantity(31.2 * micro, Tesla,
+                             doc = """Earth's magnetic field.
+
+See body.Body.magnetic; Earth's B_0 is given here, implying a magnetic
+dipole of about 81e21 A.m^2, equal to the field of a 634 MA current
+circling the equator.  The actual magnetic field of the Earth is much
+more complex than a dipole, though, with strength varying all over the
+range from 20 to 80 micro Tesla.
+
+The strength of Earth's magnetic field appears to be decreasing at
+about 5% per century at present, though its average over the last 2500
+years is more like 1.6% per century:
+http://www.spectrum.ieee.org/nov06/4708
+"""),
+                London = Object( # Latitude 51 degree, 30 minute, 26 second
+                    sampled = '1960',
+                    horizontal = 1.87e-5 * Tesla,
+                    vertical = 4.36e-5 * Tesla)),
             EoT = equationoftime,
 
             altitude = Quantity(qSample({-4000: 3, 2000: 1},
@@ -449,21 +466,6 @@ other planets (notably Jupiter)."""),
 From ancient Indo-European 'er', whence sprang lots of words for soil, land,
 ground ... earth.
 """),
-
-    magnetic = Object(dipole = Quantity(8.1e22, Ampere * metre**2,
-                                        doc="""Earth's magnetic dipole.
-
-The magnetic field of the Earth is dominated by its dipole term.  This yields a
-magnetic field strength of order one Gauss (1e-4 Tesla) at the Earth's surface.
-For contrast, magnetars have magnetic fields of order peta-Gauss - see:
-http://antwrp.gsfc.nasa.gov/apod/ap010901.html
-
-The strength of Earth's magnetic field appears to be decreasing at about 5% per
-century at present, though its average over the last 2500 years is more like
-1.6% per century: http://www.spectrum.ieee.org/nov06/4708
-"""),
-                      # https://en.wikipedia.org/wiki/Magnetopause#cite_note-13
-                      moment = Quantity(7.90627, Tesla / metre**3)),
     mass = 5.976e24 * kg,
     density = 5.518 * kg / litre,
     age = 1e17 * second, # Nuffield, approx
@@ -489,6 +491,12 @@ Earth.mass.observe(5.9742e24 * kg)
 Earth.orbit.radius.observe(Quantity.flat(147.1e9, # perihelion
                                          152.1e9, # aphelion
                                          1000001017.8 * 149.597871) * metre)
+Earth.magnetic.dipole.also(
+    # N pole on Ellesmere Island, c. 11 degrees off spin axis
+    latitude = 79 * arc.degree,
+    longitude = -78 * arc.degree) # West is -ve
+# https://en.wikipedia.org/wiki/Magnetopause#cite_note-13
+Earth.magnetic.also(moment = Quantity(7.90627, Tesla / metre**3))
 
 del IAcontinent, IAisland, IAocean, equationoftime
 
@@ -504,6 +512,19 @@ Sun.also(
                         Spin(25 * day + 9 * hour, 7.2),
                         flattening = 0.0,
                         radiation = 63.3 * mega * Watt / metre**2,
+                        magnetic = Object(
+            field = Quantity(Quantity.flat(1, 2) / 1e4, Tesla,
+                             doc = """Solar magnetic field strengh.
+
+The solar magnetic field varies significantly on various time-scales,
+longer than its spin period (25 days), including the 11-year cycle of
+sunspot activity.  The field is of order 1 to 2 Gauss (= Tesla/1e4) at
+the surface generally, but rises to significant fractions of a Tesla
+in sunspots.
+
+For contrast, magnetars have magnetic surface field strengths of order
+peta-Gauss (100 GT) - http://antwrp.gsfc.nasa.gov/apod/ap010901.html
+""")),
                         temperature = 5800 * Kelvin))
 Sun.orbit.altitude = Quantity.flat(5, 30, None, parsec,
                                    "Distance from galactic disk-plane")
@@ -574,11 +595,12 @@ supposed) Andromeda.\n"""),
                           gas=Quantity(
             12, kilo * year.light, "Thickness of gas disk enclosing the Milky Way's disk")),
     luminosity=Quantity.fromDecimal(1, 0, 36, Watt),
-    magnetic=Quantity.within(4, 1, micro * Gauss,
-                             """Background magnetic field strength of our Galaxy.
+    magnetic = Object(field = Quantity.within(
+            4, 1, micro * Gauss,
+            """Background magnetic field strength of our Galaxy.
 
 The central bulge has much stronger magnetic fields.
-"""))
+""")))
 
 def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **what):
     """As Planet, but with mass scaled by that of the earth and density in g/cc"""
