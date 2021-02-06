@@ -206,7 +206,7 @@ class Object (object.Object):
 
     del Cosmos
 
-del object, Satellites
+del Satellites
 
 from study.value.units import second, metre, turn, pi, day, year
 from common import Spin, Orbit
@@ -614,6 +614,37 @@ on the surface of %s as it rotates. """ % (name, self.name))
         return klz()
 
     del rowbok
+
+    from study.chemy.physics import Vacuum
+    def _lazy_get_magnetic_(self, ignored, mu0 = Vacuum.mu0, Obj = object.Object):
+        """Magnetic dipole, inferred from surface magnetic field.
+
+        The magnetic field of a typical celestial bodies is dominated
+        by its dipole term (although other terms are commonly
+        significant, so the dipole model is somewhat approximate).
+
+        The simple dipole model gives a field at fractional radius r
+        (i.e. radius divided by surface.radius) and latitude (angle
+        away from the 'magnetic equator') lat, for some
+        magnet-specific B_0,
+
+          B_r = -2.B_0.sin(lat) / r^3
+          B_lat = B_0.cos(lat) / r^3
+
+        (The longitude component is of course zero.)  This is
+        alternatively expressed by vector fields
+
+          A = mu0.(m^r)/abs(p)^3
+          B = curl(A) = (3.p.(m*p)/abs(p)^2 -m).mu0/4/pi/abs(p)^3
+
+        at position vector p, with m the magnetic dipole moment
+        vector.  Comparing these formulae, I find that m.mu0 =
+        4.pi.B_0.R^3 with R = surface.radius, so abs(p) = r.R and
+        4.pi.R^3 is the product of radius and surface area.\n"""
+        s = self.surface
+        return Obj(dipole = s.magnetic.field * s.area * s.radius / mu0)
+    del Vacuum
+del object
 
 from common import Round, Spheroid
 class Star (Body, Round):
