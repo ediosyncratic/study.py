@@ -98,9 +98,37 @@ Vacuum.also(
 
 The electrostatic force between two point charges q and Q a distance R apart
 is q*Q / (4 * pi * R**2) divided by the permittivity of the medium between the
-charges."""),
-    alpha = Quantity(Quantum.Millikan**2 / 2, Vacuum.Z0 / Quantum.Planck / turn,
-                     """The fine structure constant.
+charges.
+"""),
+    fineStructureAngle = Quantity(Quantum.Millikan**2, Vacuum.Z0 / Quantum.Planck,
+                                  """The fine structure angle.
+
+This is an angle that naturally emerges from considering the fine structure
+constant, alpha; see Vacuum.alpha for details.  When we include units of angle
+in Planck's constant (see Quantum.Planck) we get an angle divided by the square
+of a charge; multiplying that by the square of the charge on the electron, we
+get an angle.  This doesn't have any obvious physical meaning, but arises as a
+natural simple combination of other physical constants, equal to two turns times
+the fine structure constant.
+
+An alternative approach to this would be to infer that Z0/turn is what we should
+really be using in place of Z0, making it an impedance / angle.  That, in turn,
+tells us to use mu0 / turn (1/5 micro Henry / metre / radian) in place of mu0
+and epsilon0 * turn (about 55.632503 pico Farad Radian / metre) in place of
+epsilon0.  The definition of mu0 in terms of force = j*J*mu0/R/2/pi, does
+encourage mu0/turn as a unit, making this force = j*J*mu0*radian/R, although
+dividing radian by a radius feels somewhat unnatural.  The case of e0, which
+commonly teams up with factors of 4*pi, rather than 2*pi, could be construed as
+a hint that it'd sooner implicate the steradian, suggesting e0*radian**2 would
+be a more natural quantity, rather than e0*turn.
+
+All of which hints that a systematic investigation of the proper description of
+physics without ignoring units of angle (i.e. treating radian as a dimensionless
+unit) has much to reveal.
+"""))
+
+Vacuum.alpha = Quantity(0.5, Vacuum.fineStructureAngle / turn,
+                        """The fine structure constant.
 
 The fine structure constant arises naturally in the perturbation expansions of
 various physical quantities.  It is a dimensionless quantity which expresses
@@ -120,17 +148,14 @@ the spectrum of Hydrogen (and, I am thus inclined to guess, other quantum
 electrodynamic systems) is expressed as a power-series in 2*alpha, which the
 latter formula gives as the ratio of e**2 and h/Z0.
 
-It is perhaps worth noting that, when Planck's constant is undestood to
-include units of angle, alpha actually emerges as an angle (2.6269 degrees),
-rather than being strictly dimensionless.  Then again, this isn't the quantity
-that actually shows up in relevant power series expansions.
-"""))
-
+See Vacuum.fineStructureAngle for the associated angle that arises when that
+factor of two and the factor of turn hiding in h are not divided out.
+""")
 Vacuum.alpha.observe(1 / Quantity.within(137.03604, .00011))
 
 # a couple more aliases ...
 Vacuum.epsilon0 = Vacuum.permittivity
-Quantum.fineStructure = Vacuum.alpha # w/ factor of turn or radian ?
+Quantum.fineStructure = Vacuum.alpha
 
 # TODO: move G, kappa, qperm, Schwarzschild from Cosmos to Vacuum;
 # unify Comsmos with space.home.Universe
