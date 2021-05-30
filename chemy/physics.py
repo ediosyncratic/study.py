@@ -280,6 +280,9 @@ distance from a source that emitted it a time t ago grows as (exp(H.t)
 distance without the expansion of the space it's passed through.
 """))
 
+# Smollin's quantum dual of cosmological time is (give or take factors of c)
+# kappa * hbar times the cosmological constant.  The kappa * hbar in that is
+# an area; the Planck area times some factors of two and pi.
 Cosmos.also(kappa = Quantity(8 * pi, Cosmos.G / Vacuum.c**3,
                              """Einstein's constant of gravitation.
 
