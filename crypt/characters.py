@@ -18,7 +18,7 @@ class Counter (dict):
       .digest(filename [, entities]) -- read input from file.
       .scan(dir [, regex [, entities]]) -- scan directory tree for input.
 
-    For example, .scan('~/public_html', False, re.compile('\.(x?html|txt)$'))
+    For example, .scan('~/public_html', False, re.compile('\.(x?html|txt)$').search)
     can be used to discover the frequencies with which a web-site's text content
     uses characters.  The Counter object can subsequently be used to construct
     an optimal Huffman code for this text content.\n"""
