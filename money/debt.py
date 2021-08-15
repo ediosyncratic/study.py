@@ -12,7 +12,7 @@ class Debt (Lazy):
         """Construct a Debt object.
 
         Required arguments:
-            amount -- size of debt
+            amount -- initial size of debt
             currency -- name of unit in which amount is measured
 
         Optional arguments:
@@ -25,14 +25,9 @@ class Debt (Lazy):
         If monthly is supplied, it takes precedence over yearly; otherwise,
         (1+yearly)**(1./12) -1 is used for monthly.\n"""
 
-        if monthly is not None:
-            factor = 1 + monthly
-        else:
-            factor = (1 +yearly) ** (.5/6)
-
+        self.factor = (1 +yearly) ** (.5/6) if monthly is None else 1 + monthly
         self.amount, self.currency = amount, currency
-        self.start, self.factor = start, factor
-        self.__diem = daily
+        self.start, self.__diem = start, daily
 
     def _lazy_get_current_(self, ignored):
         return int(self.__asat(self.start.today()))
@@ -62,12 +57,20 @@ class Debt (Lazy):
         return ln(value) / ln(self.factor)
     del log
 
-    dayspermonth = (365 + .97/4)/12 # Gregorian calendar's average month
+    dayspermonth = (365 + .97/4) / 12 # Gregorian calendar's average month
 
     def when(self, amount, dpm = dayspermonth, day = date, delta = timedelta):
-        if amount < self.amount: return min(self.start, self.start.today())
+        """End-date at which repayment should be finished.
+
+        Required argument, amount, is the amount paid off each month;
+        no further arguments should be passed.\n"""
+        if amount > self.amount: return min(self.start, self.start.today())
         elif amount == self.amount: return self.start
-        moons = self.__log(amount / self.amount)
+        interest = self.amount * (self.factor - 1)
+        if amount <= interest:
+            raise ValueError("You're never going to pay it off at that rate",
+                             amount, interest)
+        moons = -self.__log(1 - interest / amount)
         if self.__diem:
             off = delta(moons * dpm)
             base = self.start
@@ -175,7 +178,8 @@ class Mortgage (Lazy):
         """Compute (approximate) required monthly payment."""
         moons, debt = int(self.duration * 12 + .5), self.debt
         if -1e-4 < self.rate - debt.factor < 1e-4: return debt.amount * self.rate / moons
-        return debt.amount * (debt.factor -self.rate) / (1 -(self.rate/debt.factor) ** moons)
+        return self.admin + \
+            debt.amount * (debt.factor -self.rate) / (1 -(self.rate/debt.factor) ** moons)
 
     def paid(self, when, what):
         """Revise to reflect actual payments made
