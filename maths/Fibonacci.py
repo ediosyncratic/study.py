@@ -87,6 +87,11 @@ def fibpow(n, c=0, d=1):
     """Returns (c, d) * (1, 0)**n"""
     if n < 0: a, b, n = 1, -1, -n
     else: a, b = 1, 0
+    # Note: a general-purpose power() implementation might also want
+    # to check against the thing being squared in its loop being a
+    # multiplicative identity, (0, 1) in our case, here. When the
+    # multiplication is modulo some value, that can happen even if the
+    # value initially being raised to a power wasn't an identity.
     while n > 0:
         n, i = divmod(n, 2)
         if i: c, d = fibtimes((a,b),(c,d))
@@ -115,6 +120,7 @@ class Fibpair (tuple):
     # automagically @classmethod:
     def __new__(cls, a, b): return tuple.__new__(cls, (a, b))
     # def __init__(self, a, b): pass # over-ride tuple.__init__'s different signature.
+    def __bool__(self): return any(x for x in self)
 
     # Support for arithmetic:
     @staticmethod
@@ -159,6 +165,8 @@ class Fibpair (tuple):
         The equation for b re-arranges to:
            y = (b - c * x) / d
         Then that for a becomes:
+           a = c * (d * x + b - c * x) / d + d * x
+        which rearranges to
            a * d - c * b = (c * d - c * c + d * d) * x
         whence
            x = (a * d - c * b) / (c * d - c * c + d * d)
@@ -169,9 +177,10 @@ class Fibpair (tuple):
 
         den = (c + d) * d - c * c
         x, y = a * d - c * b, b * (c + d) - a * c
-        if den * (x / den) == x: x /= den
+        # Keep to whole number arithmetic as far as possible:
+        if den * (x // den) == x: x //= den
         else: x *= 1. / den
-        if den * (y / den) == y: y /= den
+        if den * (y // den) == y: y //= den
         else: y *= 1. / den
         return cls(x, y)
 
@@ -190,7 +199,7 @@ class Fibpair (tuple):
         if i: ans = x
         else: ans = self.__unit()
 
-        while n > 0:
+        while n > 0: # and x != (0, 1); see note on fibpow()
             x *= x
             n, i = divmod(n, 2)
             if i: ans *= x
