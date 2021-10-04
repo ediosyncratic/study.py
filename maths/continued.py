@@ -6,6 +6,18 @@ Exports:
   Token, Cycle, Series -- integer iterators for use with Continued
   Continued -- class implementing continued fractions
 
+For real_continued() and rationalise(), there are at least some
+advantages to calling study.maths.ratio.Rational's from_float() and
+approach() instead. These package their results in ratios
+approximating a value, among which to select a half-way decent
+rational approximation, while leaving the caller to traverse as many
+half-way decent approximations as it takes them to select one that
+works for their needs; particularly useful for client code trying to
+balance "not using big numbers" (i.e. more compact memory
+representations, or not wasting memory over precision beyond what
+their context needs) against as much precision as can be achieved
+without using big numbers.
+
 See also:
 http://www.inwap.com/pdp10/hbaker/hakmem/cf.html
 expounding the virtues of continued fractions.
