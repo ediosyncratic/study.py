@@ -888,7 +888,7 @@ Some values used here are taken from python's
 Scientific.Physics.PhysicalQuantities module.
 """,
                  mean = Quantity(4.19, Joule,
-                                        """The mean calorie.
+                                 """The mean calorie.
 
 This is one percent of the energy needed to warm one gram of air-free pure
 water at atmospheric pressure from its freezing point to its boiling point.
@@ -903,7 +903,7 @@ Properties of Steam (London, 1956), formalising a decimal truncation of an
 earlier (1929) figure of 180/43.
 """),
                  thermochemical = Quantity(4.184, Joule,
-                                         """The thermochemical calorie.
+                                           """The thermochemical calorie.
 
 This is ISO's standard calorie.
 """),
@@ -933,6 +933,7 @@ Clausius = Quantity.unit(1, Calorie / Kelvin, # the heat capacity of a kg of wat
                          "Cl", "Clausius",
                          "Clausius's original unit of entropy.")
 frigorie = calorie.short / hour # Rate of transfer of heat (in refrigeration).
+Langley = calorie.short / cm**2
 
 # Anglophone units of energy:
 CHU = calorie.short * pound / gram # (KDWB) Caloric Heat Unit ?
@@ -1010,6 +1011,7 @@ minim = drop = Quantity(1, dram / 60, US = dram.US / 60)
 drachm = Object(Troy = Troy.drachm, fluid = dram.fluid)
 fluid = Object(ounce = ounce.fluid, dram = dram.fluid)
 
+# Cask sizes:
 # The volumes following are from a publican's handbook Nick (landlord of the
 # Cambridge Blue) showed me.  These names are particularly subject to
 # differences of meaning, both geographic and temporal.
@@ -1031,8 +1033,14 @@ hogshead = Quantity(3, kilderkin,
 # hogshead' of 56 gallons; see also the US variants.
 pipe = Quantity(2, hogshead, wine = 2 * hogshead.wine)
 # = butt for wine, but a beer.butt might be 3 * beer.hogshead ...
-tun = Quantity(2, pipe, # 216 gallons, but I've had 72 suggested.
-               wine = 2 * pipe.wine)
+
+# According to Lindybeige, one adult human eats and drinks about one
+# tun or ton of victuals per year.  This presumably doesn't count bulk
+# water - I'm fairly sure my consumption of water alone makes a full
+# tun / year on its own.
+tun = Quantity(2, pipe, wine = 2 * pipe.wine)
+# 216 gallons; I've seen 72 suggested, but 216 is close to the volume
+# of a ton of water.
 wine = Object(doc = """Winchester measures, for wine.
 
 (Due to Queen Anne's regime, 1707)
