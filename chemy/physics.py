@@ -8,6 +8,17 @@ See study.LICENSE for copyright and license information.
 from study.value.units import *
 
 Quantum = Object(
+    __doc__ = """Material parameters of the Quantum Universe.
+
+See also study.chemy.particle.electron.magneton for the 'Bohr magneton', along
+with assorted other properties of specific particles from the same
+sub-module. Some of those are treated as parameters of the universe, when
+they're actually specific to particular particles.  Of course, those particles'
+properties may well _be_ parameters of the universe, but they're better
+characterised as properties of those particles.  I focus, here, on the
+properties that are independent of the entities they implicate, although there
+are legitimate grounds for debate about which belong here or elsewhere.
+""",
     Planck = Quantity.within(662.606876, .000052,
                              1e-36 * Joule * second / turn,
                              """Angular Planck's constant
