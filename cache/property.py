@@ -24,6 +24,17 @@ class Cached (object):
 
     def clear_propstore_cache(self): pass
 
+# Stray idea: property for which set or del triggers
+# clear_propstore_cache(), i.e. changing this attribute on an object
+# invalidates all its lazy properties.  Ideally as a mix-in for
+# anything based on docprop, since the invalidator property needn't be
+# a lazy one (indeed, typically isn't).  When the invalidator is also
+# lazy, it's important to ensure invalidation of the cache happens
+# before setting the invalidator, as what's setting it may be the lazy
+# evaluation.  Could possibly do by having a special sub-class of
+# Cached whose __{set,del}attr__() know which properties invalidate
+# the cache.
+
 class propstore (docprop):
     """Base-class for cached properties.
 
