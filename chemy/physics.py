@@ -48,15 +48,16 @@ actually the smallest irreducible unit of charge - but it is the smallest
 charge possessed by any partlcle we've ever seen in isolation (quarks have
 only, thus far, been seen in combinations with whole multiples of the electron
 charge; it is suspected that they can't be isolated, at least in
-four-dimensional space-time as we know it).
+four-dimensional space-time as we know it).  It is also exactly three times
+the largest difference in charge between particles known to exist.
 """))
 
 Quantum.also(h = Quantity(turn, Quantum.Planck, """Planck's constant
 
-See Quantum.Planck's __doc__ for details. """),
+See Quantum.Planck's __doc__ for details."""),
              hbar = Quantity(radian, Quantum.Planck, """Dirac's constant
 
-See Quantum.Planck's __doc__ for details. """))
+See Quantum.Planck's __doc__ for details."""))
 
 Vacuum = Object(
     c = Quantity(1, second.light / second,
