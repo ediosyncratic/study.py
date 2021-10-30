@@ -1096,7 +1096,7 @@ class Polynomial (Lazy):
 
         # Initialize r arbitrarily but reasonably diversely:
         k = (2j -.1) ** (2./self.rank)
-        r = [ k**(2 * i + 1) for k in range(self.rank) ]
+        r = [ k**(2 * i + 1) for i in range(self.rank) ]
         lead = 1. / self.__coefs[self.rank] # Scales self so leading coefficient is 1
 
         # Ensure ensible tol, initialize k so first iteration goes ahead
