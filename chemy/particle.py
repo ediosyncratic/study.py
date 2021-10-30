@@ -760,6 +760,10 @@ class Baryon (Fermion, Hadron):
         what.update(name=name, mass=mass, doc=doc)
         self.__upinit(**what)
 
+# Meson +Meson -> tetraquark
+# Meson +Baryon -> pentaquark
+# Baryon +Baryon -> hexaquark
+
 class Nucleon (Baryon):
     __upinit = Baryon.__init__
     def __init__(self, u, d, name, mass, doc, **what):
@@ -789,6 +793,8 @@ per item, we get density = N*m/V = m*P/k/T.  Since m is the relative molecular
 obtain density = M*amuk*P/T with M a pure number (and, typically, very close to
 an integer).  Thus, at standard temperature (zero Celsius) and pressure (one
 Atmosphere), density is just M times 44.618 grams per cubic metre.\n""")
+
+# Nucleons condense out at 3 minutes, atoms at 380k years after big bang
 
 AMU = AtomicMassUnit = Nucleon.mass
 Lepton.item.electron.mass.observe(Quantity.within(548.58026, .0002, micro * AMU))
@@ -838,6 +844,14 @@ Phys. Rev.  D 66 (2002) 010001).\n"""),
 
 # what of:
 # pion, mass = 273.2 * electron.mass, charges 0, +1, -1.
+
+# deuteron: Mass 1875.6 MeV (2 MeV less than p +n)
+# hexaquark: d*(2380) mass 2380 MeV, spin 3, "isoscalar"
+# quark constituents (3u, 3d) like deuteron
+# decays principally into one of:
+# (d +2.pi^0), (p +n +2.pi^0),
+# (2.p +pi^- +pi^0), (2.n +pi^+ +pi^0),
+# (d +pi^+ +pi^-), (p +n +pi^+ +pi^-)
 
 # Some atom-scale constants:
 Bohr = Quantity(Vacuum.epsilon0 / pi / electron.mass, (Quantum.h / Quantum.Millikan)**2,
