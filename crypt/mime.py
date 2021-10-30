@@ -9,6 +9,6 @@ def quotedPrintableDecode(text):
     for part in parts:
         if part.startswith('\n'):
             text += part[1:]
-        else:
-            text += chr(int(part[:2], 16)) + part([2:])
+        elif part:
+            text += chr(int(part[:2], 16)) + part[2:]
     return text
