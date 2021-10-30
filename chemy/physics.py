@@ -71,6 +71,9 @@ between these (they can be added, for example, yielding either), there is a
 strong case for doing theoretical work in units which make c take the value 1
 so that we can treat it as dimensionless.
 """),
+    # TODO: units of angle ! 0.2 micro Henry / metre / radian ?
+    # I have two names for each affected unit, so can make one orthodox and
+    # the other sensible ...
     permeability = Quantity(.4 * pi, micro * Henry / metre, # definition
                             """Magnetic permeability of free space.
 
@@ -81,6 +84,7 @@ the permeability of free space.
 """))
 
 Vacuum.also(
+    # TODO: units of angle ?
     Z0 = Quantity(Vacuum.c, Vacuum.permeability,
                   """Impedance of free space, Z0.
 
@@ -104,6 +108,7 @@ the values of Z0 and epsilon0 are also exact.
 
 Vacuum.also(
     impedance = Vacuum.Z0,
+    # TODO: units of angle ?
     permittivity = Quantity(1 / Vacuum.c, 1 / Vacuum.Z0,
                             """Electrical permittivity of free space.
 
