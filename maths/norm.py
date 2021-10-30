@@ -44,7 +44,7 @@ On a system where float is implemented as [0] IEEE 754's binary64
 representation of real numbers (the 'double precision floating point'
 numbers supported by most modern processors), max is just under
 1.8e+308 while min is just over 2.225e-308.  While values down to
-almost as small as 4.9-324 can be represented, values between there
+almost as small as 4.9e-324 can be represented, values between there
 and sys.float_info.min are represented with reduced precision (IEEE
 754's denormal form).
 
@@ -86,15 +86,15 @@ positive n [1] is handled specially, to give max(abs(x) for x in s).
 
 The special case n = 0 is handled, as well, even though taking
 sum(...)**(1./n) makes no sense for it; in this case, the L_0 'norm'
-of a sequence of numbers counts how many of those numbers have no-zero
-abs().  This may also be called the cardinality of the support; it is
-[2] a conventional exception to the general definition; and is
-technically not a norm since scaling every entry in the sequence by
-some positive real doesn't scale its L_0 'norm' by the same factor.
-Note that NaN and infinite entries in the sequence are treated just
-the same as all other non-zero entries.  As a side-effect, the L_0
-norm of (0*x for x in seq) is the number of infinite and NaN entries
-in seq.
+of a sequence of numbers counts how many of those numbers have
+non-zero abs().  This may also be called the cardinality of the
+support; it is [2] a conventional exception to the general definition;
+and is technically not a norm since scaling every entry in the
+sequence by some positive real doesn't scale its L_0 'norm' by the
+same factor.  Note that NaN and infinite entries in the sequence are
+treated just the same as all other non-zero entries.  As a
+side-effect, the L_0 norm of (0*x for x in seq) is the number of
+infinite and NaN entries in seq.
 
 * [2] https://en.wikipedia.org/wiki/Lp_space#When_p_=_0
 
