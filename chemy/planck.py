@@ -38,6 +38,8 @@ class Planckoid (Object):
     __upinit = Object.__init__
     def __init__(self, geoid=Cosmos.G * 8 * pi, action=Quantum.h,
                  impedance=Vacuum.impedance, *args, **what):
+        # FIXME: if arguments are given for length, time, &c., we need
+        # to skip some of geoid, action, impedance here:
         what.update(impedance=impedance, # electromagnetic field
                     action=action, # quantum of action
                     geoid=geoid) # Newton's constant, suitably scaled #'
