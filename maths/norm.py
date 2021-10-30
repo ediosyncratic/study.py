@@ -102,23 +102,28 @@ See study.LICENSE for copyright and license information.
 """
 
 import cmath
+
 # Both isinf and isnan are true for complex(inf, nan) and complex(nan,
 # inf).  These two values both have inf as abs() and abs(complex(nan,
 # nan)) is nan, so these functions do just what we want here.
+# Warning: 1j * nan is nan +nanj, so inf +1j * nan is (entirely
+# logically) complex(nan, nan) not complex(inf, nan) !
 from sys import float_info
 
 def _iter_norm(seq, n, scale, count):
     """The arithmetic details of norm computation."""
+    invn, vast = 1. / n, None
     if scale and (not count or count < float_info.max):
         # Avoid revising scale unless failure to do so would risk overflow:
-        big = float_info.max / (count or 100)
-        if n > 1: big = big ** (1./n)
+        big = float_info.max / max(count or 0, 100)
+        if n > 1:
+            big, vast = big ** invn, big
     else:
         # Use adaptive scale based on largest entry seen
         big = 1
 
     seq, total = iter(seq), 0
-    # Use first non-zero entry in seq (if any) to set scale
+    # Use first non-zero entry in seq (if any) to ensure scale
     try:
         while not scale:
             scale = abs(seq.next())
@@ -137,13 +142,24 @@ def _iter_norm(seq, n, scale, count):
 
         r = abs(arg / scale)
         if r > big:
-            scale, total = abs(arg) * 1., total / r**n +1
+            scale = abs(arg) * 1.
+            # total = total / r**n + 1
+            # but we can't safely compute r**n to divide by it, so:
+            if vast:
+                # n > 1 and we were passed scale, so big is indeed big.
+                # assert vast == big**n, modulo floating-point imprecision
+                while r > big:
+                    total /= vast
+                    r /= big
+                # (Albeit, if we go round that loop more than once, we'll
+                # be left with total = 0.)
+            total = total / r**n + 1
         else:
             total += r**n
 
     if cmath.isnan(scale): return scale
     assert not cmath.isnan(total)
-    if scale and total != 1: scale *= total ** (1./n)
+    if scale and total != 1: scale *= total ** invn
     return int(scale) if scale.is_integer() else scale
 
 def hypot(*args):
@@ -155,12 +171,15 @@ def hypot(*args):
     for ECMAScript's hypot(), if any value is infinite, you should get
     +Infinity, otherwise if any is a NaN you'll get NaN; you should
     only get 0 if all inputs are 0; otherwise, the result is a
-    positive real.\n"""
-    scale = 0
-    if len(args) == 2: scale = cmath.hypot(*args)
-    elif len(args) == 1: scale = abs(args[0])
-    elif args: return _iter_norm(args, 2)
-    return int(scale) if int(scale) == scale else scale
+    positive real.
+
+    Note that python's built-in module cmath has no hypot(), while the
+    one provided by the math module can't cope with complex
+    parameters, and can only cope with two real parameters.\n"""
+    scale = 0.
+    if len(args) == 1: scale = abs(args[0]) * 1.
+    elif args: return _iter_norm(args, 2, scale, len(args))
+    return int(scale) if scale.is_integer() else scale
 
 def hypotiter(seq, scale=0, count=None):
     """Compute the L_2 norm of a sequence of numbers.
@@ -223,8 +242,6 @@ def normiter(seq, n, scale=0, count=None):
 
     if cmath.isinf(n):
         return max(abs(x) for x in seq)
-    if n == 1:
-        return sum(abs(x) for x in seq)
     if n == 0:
         return sum(1 for x in seq if abs(x))
 
