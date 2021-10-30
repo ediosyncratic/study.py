@@ -197,9 +197,12 @@ def angle():
     def sinc(val, sin=sin):
         """sin(x)/x &larr;x
 
-        Used here to implement ({reals}: Sin(x).radian/x <- x :{angles}),
-        which may or may not be The Right Thing to do.  Requires further
-        research !\n"""
+        Used here to implement ({reals}: Sin(x).radian/x <- x
+        :{angles}), which may or may not be The Right Thing to do.
+        (Omitting the radian factor might make sense; the return would
+        then be an inverse angle.) Requires further research !\n"""
+        # Fourier transform of (lambda x: 1 if -.5 < x < .5 else 0) is
+        # allegedly lambda x: sinc(pi*x)/(pi*x); does that help ?
         if val + 1 == 1: return 1 # sinc(0) = 1
         return sin(val) / val
     # ... and there's a reason why I'm not trying to offer arcsinc !
