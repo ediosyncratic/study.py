@@ -91,9 +91,15 @@ class Temperatures (Object):
 class Isotope (Substance):
     """Single actual isotope.
 
-    Well, OK, if constructor's N is a distribution, you get a distribution.
-    But my intent is that we don't do that; though we might do the equivalent for
-    a Nucleus, for the sake of an Element's atom.\n"""
+    Well, OK, if constructor's N is a distribution (and you remove an
+    assert or move it to the function below), you'll get a
+    distribution.  But my intent is that we don't do that; though we
+    might do the equivalent for a Nucleus, for the sake of an
+    Element's atom.
+
+    This class is not directly exposed, but accessed via a function of
+    the same name that caches results and thus ensures that equal
+    instances are the same object.\n"""
 
     __upinit = Substance.__init__
     def __init__(self, Q, N):
@@ -121,6 +127,11 @@ class Isotope (Substance):
 
         return self # convenience for the places this is used ...
 
+    def _lazy_get_quarks_(self, ignored):
+        """Twople of counts of (up, down) quarks the isotope is 'really' made of."""
+        p, n = self.protons, self.neutrons
+        return 2 * p + n, p + 2 * n
+
     def _lazy_get_name_(self, ignored):
         if self.__names: return '%s (a.k.a. %s)' % (self.__name, ', '.join(self.__names))
         return '%s[%s]' % (self.element.name, self.massnumber)
@@ -147,13 +158,28 @@ class Isotope (Substance):
             # may cause problems if that element is subsequently constructed nicely !
         return el
 
+    def __cmp__(self, other):
+        return self.protons - other.protons or self.neutrons - other.neutrons
     def __repr__(self): return self.name
     def __str__(self): return self.symbol
 
 full = {}
 def Isotope(Q, N, cls=Isotope, rack=full):
-    try: ans = rack[(Q,N)]
-    except KeyError: ans = rack[(Q,N)] = cls(Q, N)
+    """Unique instance of (hidden) Isotope class.
+
+    Takes two positional parameters (do not pass more, or keywords):
+      * the number of protons (atomic number)
+      * the number of neutrons (nominal atomic mass minus atomic number).
+
+    As long as no-one ever passes more than two, calls with the same
+    two parameters shall get the same object back.
+
+    The currently known instances can be accessed by calling
+    Isotopes(), or the ones that arise in nature (i.e. have a non-zero
+    abundance) by calling naturalIsotopes().
+    """
+    try: ans = rack[(Q, N)]
+    except KeyError: ans = rack[(Q, N)] = cls(Q, N)
     return ans
 
 Isotopes = full.values
