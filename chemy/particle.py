@@ -198,6 +198,19 @@ class Particle (Object):
         return ans
 
     def _lazy_get_magneton_(self, ignored):
+        """An estimator of magnetic moment.
+
+        The magnetic moment of a charge moving in a circular orbit is
+        just the charge times the ratio of angular momentum to mass;
+        this extrapolates the same for a particle's intrinsic angular
+        momentum, when it isn't orbiting anything.  That this is any
+        good at all for anything is probably telling us something, but
+        we have yet to figure out what.
+
+        See also .magneticmoment; it is tolerably good approximation
+        for the electron, not so good for the proton (the ratio is
+        amusingly close to exp(1), oddly enough), useless for the
+        neutron."""
         return self.charge * self.spin / self.mass
 
     log2 = Quantity(2).log
