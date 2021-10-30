@@ -58,6 +58,7 @@ See Quantum.Planck's __doc__ for details."""),
              hbar = Quantity(radian, Quantum.Planck, """Dirac's constant
 
 See Quantum.Planck's __doc__ for details."""))
+Quantum.also(Dirac = Quantum.hbar)
 
 Vacuum = Object(
     c = Quantity(1, second.light / second,
