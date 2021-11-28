@@ -86,7 +86,7 @@ the permeability of free space.
 """))
 
 Vacuum.also(
-    # TODO: units of angle ?
+    # TODO: units of angle ?  See discussion on fine structure angle.
     Z0 = Quantity(Vacuum.c, Vacuum.permeability,
                   """Impedance of free space, Z0.
 
@@ -184,13 +184,15 @@ See also space.home.Universe
 """,
 
                 G = Quantity.within(
-        66.720, .04, # .86 cc/g /hour**2
+        66.7430, .0015, # .86 cc/g /hour**2
         (milli * metre)**3 / gram / (kilo * second)**2,
         """Newton's constant of gravitation.
 
 The gravitational force between two small massive bodies is the product of
 their masses divided by the square of the distance between them, multiplied by
-Newton's constant, which is normally called G.
+Newton's constant, which is normally called G.  At 22 parts per million, the
+error bar on this is remarkably wide, particularly when compared to Planck's
+and Millikan's quanta.
 """),
 
                 Hubble = Quantity.within(
