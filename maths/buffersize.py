@@ -14,7 +14,7 @@ def bigenough(n): return 53 * n // 22
 
 def bufsizs(bytes): return len(str(-(1 << (bytes * 8 - (bytes > 0))))) + 1
 def bufsizu(bytes): return len(str((1 << (bytes * 8)) - 1)) + 1
-HUGE = 4096 # an integral type with this many bytes has 16k bits
+HUGE = 4096 # an integral type with this many bytes has 32k bits
 SANE = 128 # one this big has 1k bits
 counts = [2 + bigenough(n) - bufsizu(n) for n in range(HUGE)]
 signed = [3 + bigenough(n) - bufsizs(n) for n in range(HUGE)]
