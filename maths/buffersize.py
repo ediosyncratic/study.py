@@ -10,7 +10,7 @@ lengths) and signed needs another +1 for the minus sign.
 """
 def bigenough(n): return 53 * n // 22
 
-def bufsizs(bytes): return len(str(-(1 << (bytes * 8)))) + 1
+def bufsizs(bytes): return len(str(-(1 << (bytes * 8 - (bytes > 0))))) + 1
 def bufsizu(bytes): return len(str((1 << (bytes * 8)) - 1)) + 1
 HUGE = 4096 # an integral type with this many bytes has 16k bits
 SANE = 64 # even one this big has 256 bits
