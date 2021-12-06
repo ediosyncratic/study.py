@@ -6,6 +6,8 @@ key-value pairs; the reduce then combines values from all instances of each key,
 associating the combined value with that key.  This implementation is not meant
 to be especially performant: it exists for the pedagogic purpose of illustrating
 what MapReduce does.
+
+See study.LICENSE for copyright and license information.
 """
 
 def MapReduceDict(src, each=lambda x: (x,), join=lambda v, p=(): p + (v,)):

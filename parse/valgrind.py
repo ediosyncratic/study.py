@@ -1,4 +1,6 @@
 """Parsing valgrind memcheck logs.
+
+See study.LICENSE for copyright and license information.
 """
 import re
 

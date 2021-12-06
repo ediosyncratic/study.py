@@ -18,6 +18,8 @@ all the imports done lazily.
 To reload one of these lazily-loaded attributes, e.g. following an update to its
 source file, just del the relevant attribute.  Next time it's accessed, it'll be
 lazily reloaded.
+
+See study.LICENSE for copyright and license information.
 """
 from __builtin__ import __class__ as modbase
 # module is actually in __builtins__, but we can't reference it as such !

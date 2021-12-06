@@ -8,4 +8,6 @@ Distributions and probabilities:
   sample -- manipulating a data-set drawn from a population
   stirling -- combinatorial functions and approximations to them
   variate -- generating chaotic samples from assorted distributions
+
+See study.LICENSE for copyright and license information.
 """

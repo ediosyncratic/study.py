@@ -7,6 +7,8 @@ of safety at large size).  The offset includes one for the '\0' that a C string
 needs; skip that if you're in a better language that doesn't need it.  Aside
 from that, unsigned needs +1 (for random bumpiness of base 256 vs base 10
 lengths) and signed needs another +1 for the minus sign.
+
+See study.LICENSE for copyright and license information.
 """
 def bigenough(n): return 53 * n // 22
 

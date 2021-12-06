@@ -3,6 +3,8 @@
 Unfortunately, convergence is slow.
 TODO: convert to use NumPy.
 Using a dict as lattice is probably expensive.
+
+See study.LICENSE for copyright and license information.
 """
 
 class Grid (object):
