@@ -427,7 +427,9 @@ Thermal = Object(
 This is the constant of proportionality in the ideal gas law in its molecular
 form: if a gas of N particles fills a volume V at pressure P and temperature
 T, then P.V/N/T is equal to this constant, k.  It is effectively a conversion
-factor between temperature and typical energy per particle.
+factor between temperature and typical energy per particle: human body
+temperature corresponds to a bit over eV/40, the boiling point of water to
+almost eV/30.
 """),
         Stefan = Quantity.within(56.7032, .0125,
                                  nano * Watt / (metre * Kelvin**2)**2,
