@@ -115,7 +115,7 @@ class Huffman (Lazy):
         try: P.items() # mapping
         except AttributeError:
             try: P[:] # sequence
-            except:
+            except TypeError:
                 raise ValueError(P, 'Probability distribution must be mapping or sequence')
             # Convert P to a mapping (and raise an exception if not iterable):
             self.__distribution = dict(enumerate(P))
@@ -130,7 +130,7 @@ class Huffman (Lazy):
 
         # Input padding:
         if blank is not None:
-            if not self.__distribution.has_key(blank):
+            if blank not in self.__distribution:
                 raise ValueError(blank,
                                  'Invalid blank character specified: not in symbol set')
             self.__blank = blank
@@ -173,13 +173,13 @@ class Huffman (Lazy):
         try:
             while txt:
                 i = 1
-                while not code.has_key(txt[:i]) and i < len(txt): i = 1 + i
-                if not code.has_key(txt[:i]) and i >= len(txt):
+                while txt[:i] not in code and i < len(txt): i = 1 + i
+                if txt[:i] not in code and i >= len(txt):
                     try: pad = self.__tail
                     except AttributeError: pass
                     else:
                         cut = max(len(k) for k in code.keys())
-                        while i < cut and not code.has_key(txt):
+                        while i < cut and txt not in code:
                             txt, i = txt + pad, i + 1
 
                 txt, message = txt[i:], message + code[txt[:i]] # KeyError if bad txt
@@ -276,7 +276,7 @@ class Huffman (Lazy):
             self.key, self.weight = key, weight
 
         def mark(self, stem, bok, sym):
-            assert not bok.has_key(self.key), (self, bok)
+            assert self.key not in bok, (self, bok)
             bok[self.key] = stem
 
     class Tree:
@@ -288,7 +288,7 @@ class Huffman (Lazy):
             i = len(self.kids)
             assert i <= len(sym)
             while i > 0:
-                i = i - 1
+                i -= 1
                 self.kids[i].mark(stem + sym[i], bok, sym)
 
     from study.snake.sequence import Ordered
