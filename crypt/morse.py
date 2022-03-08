@@ -43,12 +43,26 @@ encoding = {
 decoding = {}
 for key, val in encoding.items(): decoding[val] = key
 
-def encode(text):
-    # should really pre-process {'.': 'stop', ',': 'comma', '-': 'dash', ...}
-    return ' '.join(encoding.get(x, ' ') for x in text.upper())
+def encode(text, sep=' ', fallback=' '):
+    """Performs Morse encoding.
 
-def decode(message):
-    ans = ''.join(decoding.get(x, ' ') for x in message.split(' '))
+    Required first parameter is the text to encode. This should
+    consist of letters and spaces.
+
+    Optional second parameter (default: a single space) is the
+    separator to place between Morse tokens. Using an empty separator
+    results in highly ambiguous results.
+
+    Optional third parameter, fallback (default: a single space), is
+    the character to use in place of any character not in the Morse
+    repertoire. A valud of None will simply propagate the unencoded
+    character.
+    """
+    # should really pre-process {'.': 'stop', ',': 'comma', '-': 'dash', ...}
+    return sep.join(encoding.get(x, x if fallback is None else fallback) for x in text.upper())
+
+def decode(message, sep=' ', fallback=' '):
+    ans = ''.join(decoding.get(x, x if fallback is None else fallback) for x in message.split(sep))
     return ' '.join(ans.split()) # tidy up spacing
 
 def decipher(message, prefix='',
@@ -57,7 +71,11 @@ def decipher(message, prefix='',
     """Find candidate decodings of a text.
 
     If there aren't spaces between the morse tokens, the encoding is
-    ambiguous.  This gives you an interable over the candidates.
+    ambiguous.  This gives you an iterable over the candidates.  Note
+    that there may be shockingly many candidates, even for quite a
+    short text, even when space separators are included: the Morse
+    codes for most letters can be reinterpreted as sequences of Morse
+    codes for several others.
 
     Should normally be passed just one argument, the morse-encoded
     text (after demangling, if appropriate).  Can be passed an
