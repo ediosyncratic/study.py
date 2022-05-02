@@ -9,13 +9,13 @@ from study.value.units import hour, day, week, year
 class Job (Lazy):
     # Should probably inherit dailyhours, public, weeklydays from
     # per-jurisdiction base object.
-    def __init__(self, pay, period, leave, dailyhours=7.5, public=11, weeklydays=5):
+    def __init__(self, pay, period, leave=25, dailyhours=7.5, public=11, weeklydays=5):
         """Sets up job-related data.
 
         Required arguments:
           pay -- amount of money you get paid
           period -- time period between payments
-          leave -- with how many days you get to chose to take off per year
+          leave -- how many days you get to chose to take off per year
 
         Optional arguments:
           dailyhours=7.5 -- hours worked per day (must be < 24)
