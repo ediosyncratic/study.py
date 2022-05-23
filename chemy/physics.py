@@ -6,6 +6,7 @@ See also:
 See study.LICENSE for copyright and license information.
 """
 from study.value.units import *
+from study.space.home import parsec
 
 Quantum = Object(
     __doc__ = """Material parameters of the Quantum Universe.
@@ -196,11 +197,10 @@ and Millikan's quanta.
 """),
 
                 Hubble = Quantity.within(
-        69.8, 2.2, 32.4 * zepto * Hertz, # 2.27 aHz
+        # https://arxiv.org/pdf/2112.04510.pdf (2022/Jan):
+        74.04, 1.04, km / s / mega / parsec # 2.26 aHz, c/(14 G yr)
         # km/s/mega/parsec = mm/s/parsec = 32.40 zepto / second
-        # NASA (Wikipedia): 70.8 +/- 4, (km/s)/Mpc
-        # Britannica: 22.45 +/- .95, mm / second / year.light,
-        """Hubble's constant.
+        """The Hubble-Lemaitre constant.
 
 This describes the rate of expansion of the universe: it is the velocity
 difference between widely-separated parts of the universe divided by the
@@ -224,22 +224,22 @@ Notice that, as things move away from us due to this, the rate at
 which they move away from us increases; dr/dt = H.r implies ddr/dt/dt
 = H.dr/dt = H.H.r, so the distant universe is also accellerating away
 from us at a rate proportional to distance from us, the constant of
-proportionality being the (vanishingly small) square of Hubble's
-(tiny) constant.
+proportionality being the (vanishingly small) square of the
+(tiny) Hubble-Lemaitre constant.
 
 One big concern for cosmologists (now that we _do_ have tolerably good
-measurements of it) has been that the two ways of measuring Hubble's
-constant - inferred from the cosmic microwave background (67.4[+-].05
-mm/s/parsec) and comparison of red-shifts with distance determinations
-(73.5[+-]1.4 mm/s/parsec) - contradict one another (their error bars
-don't overlap).  The distance determinations involve some tricky games
-with so-called 'standard candles', so there is scope for revision to
-the latter on recalibration of the Type IA supernova brightness; one
-2021 paper did this and came to 69.8 (with a 0.6 error-bar from
-statistical matters, 1.6 more of error bar from systematic errors,
-IIUC) mm/s/parsec.  That's the value I'm currently using, if only
-because its error bar is wide enough to bridge the gap between the two
-previously competing values.
+measurements of it) has been that the two ways of measuring the
+Hubble-Lemaitre constant - inferred from the cosmic microwave
+background (67.4[+-].05 mm/s/parsec) and comparison of red-shifts with
+distance determinations (74.04[+-]1.04 mm/s/parsec) - contradict one
+another (their error bars don't overlap).  The distance determinations
+involve some tricky games with so-called 'standard candles', so there
+is scope for revision to the latter on recalibration of the Type IA
+supernova brightness; one 2021 paper did this and came to 69.8 (with a
+0.6 error-bar from statistical matters, 1.6 more of error bar from
+systematic errors, IIUC) mm/s/parsec.  That's the value I'm currently
+using, if only because its error bar is wide enough to bridge the gap
+between the two previously competing values.
 
 See also: Cosmos.Hubble's attributes length and time.
 """),
