@@ -2,7 +2,7 @@
 
 Where a resource is distributed among a population, we can rank the
 members of that population by how much of the resource they have and
-we can, for reach proportion f of the population, 0 <= f <= 1, compute
+we can, for each proportion f of the population, 0 <= f <= 1, compute
 the proportion r(f) of the resouce held by the proportion f of the
 population with the most of the resource.  Of necessity, r(0) = 0 and
 r(1) = 1; and r is a monotonically non-decreasing function of f.
