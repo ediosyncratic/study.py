@@ -9,17 +9,17 @@ from study.value.units import hour, day, week, year
 class Job (Lazy):
     # Should probably inherit dailyhours, public, weeklydays from
     # per-jurisdiction base object.
-    def __init__(self, pay, period, leave, dailyhours=8, public=8, weeklydays=5):
+    def __init__(self, pay, period, leave, dailyhours=7.5, public=11, weeklydays=5):
         """Sets up job-related data.
 
         Required arguments:
           pay -- amount of money you get paid
           period -- time period between payments
           leave -- with how many days you get to chose to take off per year
-          
+
         Optional arguments:
           dailyhours=7.5 -- hours worked per day (must be < 24)
-          public=8 -- number of public holidays per year
+          public=11 -- number of public holidays per year
           weeklydays=5 -- number of working days per week
 
         Only pay and period should have units; the rest are numbers.  The job
