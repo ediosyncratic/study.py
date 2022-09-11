@@ -946,6 +946,10 @@ with temperature, hence variants on the unit arise by chosing a different
 reference temperature at which to measure; see documentation of calorie for
 details.)  It is not an SI unit; if a prefix M is prepended to it, it's from
 the latin numeral M and so means a thousand - not (mega) a million !
+
+But it's complicated; there's an ISO BTU, the US uses a '59
+Fahrenheit' BTU and then there's the actual UK BTU; see links from
+https://en.wikipedia.org/wiki/Therm for the gory details.
 """)
 # = Clausius * Rankine * pound / kg
 therm = Quantity(.1 * mega, BTU, US = 1.054804e8 * Joule)
