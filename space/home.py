@@ -191,6 +191,99 @@ among these neutrinos.  They are roughly one third each of the three types of
 antineutrino.  See Sun.bright for related observations.
 """)),
 
+    reactions = """The chain of fusion reactions in The Sun.
+
+We start with protons (p); reactions produce neutrons (n), light
+(&gamma;), neutrinos (&nu;), elecrtons (e-) and positrons (e+).  I
+don't distinguish neutrinos from their antiparticles, here.  I'll use
+^{number} to indicate a superscript, place on the left of an element's
+symbol to indicate an isotope's atomic weight.  The three principal
+reactions are:
+
+ * p +p -> D +e+ +&nu; (D is the deuteron, p+n)
+ * p +D -> ^{3}He +&gamma;
+ * ^{3}He +^{3}He -> ^{4}He +p +p
+
+That process turns six protons into an alpha particle (^{4}He) and two
+protons.  By these three reactions, our Sun turns 6e11 kg/s of protons
+to alpha particles; 0.4% of the mass of that is converted to energy in
+the process, due to ^{4}He's mass being less than that of four
+protons.
+
+These processes, at O(10 MK), convert some Hydrogen to Helium; towards
+the end of The Sun's life, it's core shall get hot enough, O(100 MK),
+to fuse some Helium to make Carbon; and then some Helium and Carbon to
+make Oxygen.  I guess, during that process, some Hydrogen and
+Deuterium shall get involved in the hotter reactions to make some
+Beryllium, Boron and Nitrogen.  All of which shall remain locked up in
+its white dwarf corpse, even though the radiation it produces as a
+by-product of those reactions shall drive off an outer layer of
+Hydrogen and Helium.
+
+Another source [*] gives the early universe's reactions as:
+
+ * p +n -> D
+ * p +D -> ^{3}He
+ * D +D -> ^{3}He +n
+ * D +D -> ^{3}H +p
+ * D +^{3}He -> ^{4}He +p
+ * D +^{3}H -> ^{4}He +n
+
+(and a little Li) based on the early quark-gluon plasma having
+significantly more protons than neutrons (and this is the first
+quarter hour after the big bang, so only about half the neutrons had
+time to decay).
+[*] https://www.youtube.com/watch?v=9sn9eBL6cFk
+""",
+
+    progenitors = """The origin of our solar system.
+
+The fact that the solar system contains notable amounts of elements
+other than Hydrogen and Helium implies the system condensed out of a
+galactic cloud that contained the heavier elements, notably including
+the Oxygen, Carbon, Nitrogen, Phosphorous and Sulphur crucial to life,
+as well as the Silicon, Iron and other (relatively) heavy elements
+that make up rocks.
+
+Small stars don't release much of the light elements, beyond Helium,
+that they do create; those light elements, up to Oxygen, remain in the
+white dwarf remnant that is the star's corpose.  Heavier elements are
+formed in larger stars.  These, once their cores run low on Hydrogen,
+fuse Helium with, initially, itself to make Carbon, then with that to
+make Oxygen and with that to make Neon; they can then fuse Carbon with
+Carbon to make Magnesium and Oxygen with Oxygen, with alpha particle
+byproduct, to make Silicon.  All of this is built from Helium, so
+even-numbered elements tend to be more abundant than the odd-numbered
+ones of similar mass, typically by a factor of ten (albeit with
+odd-numbered Hydrogen is the obvious outlier).  This continues, Helium
+fusing with Silicon to make Sulphur, with that to make Argon and then,
+successively, Calcium, Titanium, Chromium, ^{52}Iron and ^{56}Nickel,
+which finally beta-decays to ^{56}Iron.  There's also a channel for
+two ^{28}Si to combine directly into one ^{56}Ni, before that last
+decay.
+
+Along the way, some stray H-fusion can produce the intervening
+odd-numbered elements.  Each stage of that fusion chain takes a
+significantly higher temperature and pressure, so a given star spends
+less of its life (by a large factor, at each step) pushing up each
+successive step.
+
+When a large enough star reaches the end of its life, the core of Iron
+(and Nickel, about to decay back into Iron), crushed by gravity,
+collapses in on itself; this is the only situation in which any
+element heavier than Nickel is synthesised, in the space of a couple
+of seconds at the end of a big star's life.  The collapse heats the
+core so hot that the outer layers, including even much of the core, in
+which Iron and all heavier elements are made, get blown off in a
+superhova, that outshines a galaxy for a few days.  The majority of
+the mass of such a star is lost in the explosion.
+
+As smaller stars only blow off their mostly-Hydrogen outer layers, all
+heavier elements, even Carbon and upwards, found anywhere but the core
+of a star, were supernova ejecta at some point.  (We are star-dust.)
+Everything heavier than Iron is rare (yet Iron is abundant).
+""",
+
     wind=Object(speed=Quantity.flat(.3, .8, .4, mega * metre / second),
                 # I suppose that's speed at the Sun or Earth and it slows on its
                 # way out (c.f. study.space.Kuiper.Heliosphere).
@@ -638,7 +731,27 @@ Moon = KLplanet('Moon',
                 body.Planetoid, # over-ride Planet !
                 discovery = Discovery("early life", -1e9,
                                       etymology = "English: Moon <- Germanic: Mond/Mand"),
-                aliases = ('Luna', 'Selene'))
+                aliases = ('Luna', 'Selene'),
+                doc = """Earth's principal satellite
+
+The moon formed from the coallescing of the debris knocked loose when
+the two planet-scale bodies sharing an orbit collided and coalesced to
+form The Earth.  By the time they collided, they had settled down
+enough to separate out by density so that the matter that comprises
+the crusts of such planets was mostly near the surface.  Consequently
+such matter, of the kinds that make up the Earth's crust today, made
+up most of what was shed in the collision.  The resulting Earth thus
+has a relatively thin crust compared to the scale of its core and
+mantle, compared to comparable-sized planets formed only by gradual
+accretion, without any cataclysmic collision of large equals.  The
+Moon, as a result, consists mostly of crustal material, so its density
+is considerably lower than that of most rocky bodies of comparable
+mass.
+
+The Moon's orbit wobbles on an 18.61 year cycle known as the 'lunar
+nodal cycle'.  This affects the lunar tides enough to influence the
+lives of coastal ecosystems.
+""")
 # Moon.orbit.radius' derivative and sample are taken from
 # http://news.bbc.co.uk/hi/english/sci/tech/newsid_399000/399468.stm
 Moon.mass.observe(7.3483e22 * kg)
