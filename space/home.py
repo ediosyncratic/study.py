@@ -357,23 +357,28 @@ def IAocean(name, area=None, depth=None, *parts, **what):
     return Ocean(*parts, **what)
 
 # Equation of Time, for use as Earth.EoT:
-def equationoftime(date, isleap=year.Gregorian.leap,
-                   offset=1.9675 * turn / 9, unit=minute):
-    """Apparent time minus mean solar time.
+def equationoftime(when = None, within = Quantity.within, rad = radian, unit = minute,
+                   # Maps angle-multiplier to (scale, offset) pair:
+                   terms = {1: (7.353, 6.209), 2: (9.927, 0.37),
+                            3: (0.337, 0.304), 4: (0.232, 0.715)}):
+    """Actual solar time time minus mean solar time.
 
-    This varies with date during the year.  First argument can be
-    either a datetime object or a simple day number within the year
-    (although the latter won't know whether the year is leap or not).
-    Returns the time by which the sun is ahead of your clock (once its
-    time-zone adjustments have been undone).\n"""
-    try: n = (date - date.__class__(date.year, 1, 1)).days
-    except AttributeError: # assume date is a day number within the year
-        n = date
-        cycle = 365 +.97 / 4
+    Single argument, when, is optional (defaults to now); if given
+    (and not None), it should be a datetime.datetime instance
+    representing, as a local time, the moment at which the discrepancy
+    is desired.  Pass no further arguments.  The result is a quantity
+    of kind time.
+    """
+    if when is None:
+        from datetime import datetime
+        gap = datetime.now() - datetime(2000, 1, 1, 12)
     else:
-        cycle = 365 if isleap(date.year) else 366
-    day = (n - 81) * turn / cycle
-    return (9.873 * (2 * day).Sin -7.67 * (day + offset).Sin) * unit
+        gap = when - when.__class__(2000, 1, 1, 12)
+    # See Fourier Method on https://equation-of-time.info/calculating-the-equation-of-time
+    cycle = within((gap.total_seconds() / 3600 / 6) % 1461, 1e-5 / 216)
+    theta = cycle * 0.004301 * rad
+    mins = 0.019 + sum(p[0] * (k * theta + p[1] * rad).Sin for k, p in terms.items())
+    return - mins * unit
 
 # My home planet:
 Earth = body.Planet(
