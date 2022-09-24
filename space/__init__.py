@@ -57,6 +57,12 @@ Note: brightness of stars is given as 'magnitude' on a logarithmic scale where
 five units is a factor of 100; i.e. the unit of magnitude is 100**.2, just
 over 2.5.
 
+NASA's Horizon System provides (via various modes of access, including
+HTTP GET and POST, or public telnet) online ephemiris data; this could
+potentially be integrated to this sub-module to provide details of
+planetary motions:
+* https://ssd.jpl.nasa.gov/horizons/manual.html
+
 TODO: replace all the source-specific constructors.  Instead, have minimal
 constructors for objects whose classes support 'fill in my details' methods
 specific to the relevant sources.  Causes all manner of grief: sub-bands of
