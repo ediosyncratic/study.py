@@ -5,7 +5,7 @@ Exported class (relatively safe):
 
 Exported classes that hog memory:
   Spread -- description of discrete distributions
-  Gather -- count many repeats of a Spread it takes to sum past a threshold.
+  Gather -- count how many repeats of a Spread it takes to sum past a threshold.
 This uses study.maths.vector.Vector as a key-type, in places.
 
 Note that Spread.die(8).vector(12) locked up the whole system, with
@@ -39,7 +39,7 @@ class Summed (object):
     def counts(self):
         seq = (1,)
         # When we've processed bound[:i], seq[p] is the number of
-        # lists, with each entry[j] in bound[j] for j < i, whose
+        # lists, with each entry[j] < bound[j] for j < i, whose
         # entries[:i] sum to p.  Initially, i is 0 and the only list
         # is empty, with sum 0; so seq[0] = 1.  At each bound b, we
         # take b copies of seq, padded with zeros at start and/or end,
