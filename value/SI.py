@@ -22,6 +22,13 @@ equivalents for temperatures.  See quantity.py for details.
 See study.LICENSE for copyright and license information.
 """
 from quantity import *
+TODO = """Revise to reflect
+
+https://en.wikipedia.org/wiki/2019_redefinition_of_the_SI_base_units
+
+and at least sketch the meaning of:
+https://en.wikipedia.org/wiki/Kibble_balance
+"""
 
 # The base units
 second = sec = s = Quantity.base_unit(
@@ -43,9 +50,14 @@ The length of the path travelled by light in vacuum during a time interval of
 kilogramme = kilogram = kg = Quantity.base_unit(
     'kg', 'kilogramme', """The SI base unit of mass.
 
-The mass of the *International Prototype* kilogramme (a platinum-iridium
-cylinder) kept in the Bureau International des Poids et Mesures (BIPM),
-S&egrave;vres, Paris.
+This is now (since 2019) defined in terms of a specified value for
+Planck's constant (see chemy.physics), given the metre and second.
+
+It had previously been defined to be the mass of the *International
+Prototype* kilogramme (a platinum-iridium cylinder) kept in the Bureau
+International des Poids et Mesures (BIPM), S&egrave;vres, Paris.  It
+was thus the last unit to be specified in terms of a particular
+physical object.
 """)
 
 A = Ampere = Quantity.base_unit(

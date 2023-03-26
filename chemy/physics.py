@@ -19,9 +19,10 @@ characterised as properties of those particles.  I focus, here, on the
 properties that are independent of the entities they implicate, although there
 are legitimate grounds for debate about which belong here or elsewhere.
 """,
-    Planck = Quantity.within(662.606876, .000052,
-                             1e-36 * Joule * second / turn,
-                             """Angular Planck's constant
+    Planck = Quantity(662.607015, 1e-36 * Joule * second / turn,
+                      """Angular Planck's constant
+
+The kilogramme is (since 2019) defined to make the value of this exact.
 
 Planck's constant is definitively given by the equation E = h.f relating the
 frequency, f, of electromagnetic radiation to the amount of energy in parcels
