@@ -1,5 +1,24 @@
 """Parsing valgrind memcheck logs.
 
+When run on a multi-threaded program, output from different threads
+gets interleaved, which can make the logs hard to read. In any case,
+the logs are not optimised for the human reader.  The MemCheck class
+here provides a way to de-interleave the multi-threaded output and
+digest the logs (for each thread), identifying duplicates tying the
+different kinds of report together. Start by running
+
+  valgrind --trace-children=yes --log-file=vgr.%p.%n.log yourProg
+
+in a directory where the resulting vgr.{pid}.{seq}.log files are easy
+to see.  Once that's finished,
+
+>>> from study.parse.valgrind import MemCheck
+>>> from glob import glob
+>>> vgr = MemCheck()
+>>> reps = vgr.ingest(*glob("vgr.*.*.log"))
+
+will give you a tuple of Report objects that you can explore.
+
 See study.LICENSE for copyright and license information.
 """
 import re
@@ -41,19 +60,24 @@ class Source (object):
 class Frame (object):
     @staticmethod
     def __parse(text,
-                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+(\S+)\s*'),
-                inlib=re.compile(r'\s*\(in ([^)]*)\)'),
-                sause=re.compile(r'\s*\(([^)]*):(\d+)\)')):
-        place = locat.search(text)
-        if not place: raise ParseError('No (at|by) stack-frame data', text)
-        leaf = place.group(1) == 'at'
-        addr, func = place.group(2, 3)
-        if func == '???': func = None
-        tail = text[place.end():].strip()
+                borked=re.compile(r'\bat 0x([0-9a-fA-F]+): \?\?\?').search,
+                locat=re.compile(r'\b(by|at)\s+0x([0-9a-fA-F]+):\s+((?:in )?\S+)\s*').search,
+                inlib=re.compile(r'\s*\(in ([^)]*)\)').match,
+                sause=re.compile(r'\s*\(([^)]*):(\d+)\)').match):
+        place = locat(text)
+        if place:
+            leaf = place.group(1) == 'at'
+            addr, func = place.group(2, 3)
+            if func == '???': func = None
+            tail = text[place.end():].strip()
+        else:
+            place = borked(text)
+            if not place: raise ParseError('No (at|by) stack-frame data', text)
+            return True, place.group(1), None, None
 
-        src = inlib.match(tail)
+        src = inlib(tail)
         if src is None:
-            src = sause.match(tail)
+            src = sause(tail)
             if src is not None:
                 src = Source.get(src.group(1), int(src.group(2)))
         else:
@@ -97,7 +121,7 @@ class Frame (object):
 
 class Stack (object):
     def __init__(self, *frames):
-        assert frames[0].leaf and all(not x.leaf for x in frames[1:])
+        assert frames and frames[0].leaf and all(not x.leaf for x in frames[1:]), frames
         self.__frames = frames
         for f in frames: f.stacks.add(self)
         self.issues = set()
@@ -120,7 +144,8 @@ class Stack (object):
 class Issue (object):
     def __init__(self, stack, grumble):
         self.stack, self.problem = stack, grumble
-        stack.issues.add(self)
+        if stack is not None:
+            stack.issues.add(self)
         self.fixed = False
 
     def __repr__(self): return self.problem
@@ -130,7 +155,10 @@ class Issue (object):
 
     __subs = []
     @classmethod
-    def register(cls, sub, key): cls.__subs.insert(0, (sub, key))
+    def register(cls, sub):
+        assert issubclass(sub, cls)
+        for key in sub.matchers():
+            cls.__subs.insert(0, (sub, key))
     # prepend, so that later (i.e. more specific) classes can easily take precedence
 
     __known = {}
@@ -142,7 +170,7 @@ class Issue (object):
                 if isinstance(ans, tuple): return ans
                 return ans, 0
 
-        assert address is None, (text, stack, address)
+        #assert address is None, (text, stack, address)
         return cls._cache_(cls.__known, stack, text), 0
 
     @classmethod
@@ -153,6 +181,17 @@ class Issue (object):
 
 class UMR (Issue):
     """Uninitialised memory read."""
+    @classmethod
+    def matchers(cls):
+        yield lambda x: x.startswith('Invalid read of size')
+        yield lambda x: 0 <= x.find('uninitialized value')
+        yield re.compile(r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match
+
+    __upclear = Issue.clear
+    def clear(self):
+        self.__upclear()
+        MemoryChunk.disuse(self)
+
     __known = {}
     @classmethod
     def get(cls, text, stack, address):
@@ -160,21 +199,31 @@ class UMR (Issue):
         if address is not None: address.usedby(ans)
         return ans
 
-    __upclear = Issue.clear
-    def clear(self):
-        self.__upclear()
-        MemoryChunk.disuse(self)
+Issue.register(UMR)
 
-Issue.register(UMR, lambda x: x.startswith('Invalid read of size'))
-Issue.register(UMR, lambda x: 0 <= x.find('uninitialized value'))
-Issue.register(UMR, re.compile(r'Syscall param\b.*\bpoints to uninitialised byte\(s\)').match)
+class FDM (Issue):
+    "Mismatched free / delete / delete[]"
+    @classmethod
+    def matchers(cls):
+        yield lambda x, d=cls.__doc__: x.strip() == d
+
+    __known = {}
+    @classmethod
+    def get(cls, text, stack, address):
+        pass
+
+Issue.register(FDM)
 
 class MemoryChunk (Issue):
+    @classmethod
+    def matchers(cls):
+        yield lambda x: 0 <= x.find('bytes inside a block of size')
+
     @staticmethod
-    def __parse(text, asint=readint,
-                line=re.compile(
-            r"Address 0x([0-9a-fA-F]+) is ([0-9,]+) bytes inside a block of size ([0-9,]+) (\w+)'d")):
-        it = line.match(text)
+    def __parse(text, asint=readint, match = re.compile(
+            r"Address 0x([0-9a-fA-F]+) is ([0-9,]+) "
+            r"bytes inside a block of size ([0-9,]+) (\w+)'d").match):
+        it = match(text)
         if not it: raise ParseError('Malformed block description line', text)
         addr, func = it.group(1, 4)
         offset, size = [asint(x) for x in it.group(2, 3)]
@@ -227,7 +276,7 @@ class MemoryChunk (Issue):
         ans.example(addr, off, size)
         return ans
 
-Issue.register(MemoryChunk, lambda x: 0 <= x.find('bytes inside a block of size'))
+Issue.register(MemoryChunk)
 
 class FMA (MemoryChunk):
     "Free memory access"
@@ -256,15 +305,20 @@ class UHR (MemoryChunk, UMR):
 MemoryChunk.register(UHR, 'alloc')
 
 class Leak (Issue):
+    @classmethod
+    def matchers(cls):
+        yield lambda x: 0 <= x.find('lost in loss record')
+
     @staticmethod
     def __parse(text, asint=readint,
-                direct=re.compile(r'([0-9,]+) bytes\s*'),
-                burden=re.compile(r'([0-9,]+) \(([0-9,]*) direct, ([0-9,]+) indirect\) bytes\s*'),
-                blocks=re.compile(r'in ([0-9,]+) blocks are\s*'),
-                record=re.compile(r'lost in loss record ([0-9,]+) of ([0-9,]+)')):
-        it = direct.match(text)
+                direct=re.compile(r'([0-9,]+) bytes\s*').match,
+                burden=re.compile(
+            r'([0-9,]+) \(([0-9,]*) direct, ([0-9,]+) indirect\) bytes\s*').match,
+                blocks=re.compile(r'in ([0-9,]+) blocks are\s*').match,
+                record=re.compile(r'lost in loss record ([0-9,]+) of ([0-9,]+)').search):
+        it = direct(text)
         if not it:
-            it = burden.match(text)
+            it = burden(text)
             if not it: raise ParseError('No byte-total on leak-line', text)
             routes = [asint(x) for x in it.groups()]
             total, routes = routes[0], tuple(routes[1:])
@@ -272,7 +326,7 @@ class Leak (Issue):
         else: routes = (asint(it.group(1)), 0)
         text = text[it.end():].strip()
 
-        it = blocks.match(text)
+        it = blocks(text)
         if not it: raise ParseError('No block-count on leak-line', text)
         count = asint(it.group(1))
         text = text[it.end():].strip()
@@ -281,7 +335,7 @@ class Leak (Issue):
         if not (sure or text.startswith('possibly')):
             raise ParseError('Neither "possibly" nor "definitely" on leak-line', text)
 
-        it = record.search(text)
+        it = record(text)
         if not it: raise ParseError('No loss record details in leak-line', text)
         index, total = [asint(x) for x in it.groups()]
 
@@ -322,7 +376,7 @@ class Leak (Issue):
         sure, routes, count, index, total = cls.__parse(text)
         return cls._cache_(cls.__known, stack, text, sure, routes, count, index), total
 
-Issue.register(Leak, lambda x: 0 <= x.find('lost in loss record'))
+Issue.register(Leak)
 
 # Placeholders: no actual use for them yet
 class Traffic (object):
@@ -418,13 +472,27 @@ class MemCheck (object):
 
     @staticmethod
     def __parseblocks(src, stopper, mode, command,
-                      cruft=re.compile(r'More than (100|1000 different) errors detected\.')):
+                      cruft=(
+            re.compile(r'More than (100|1000 different) errors detected\.').match,
+            re.compile(r'Warning: set address range perms: large range '
+                       r'\[0x[0-9a-fA-F]+, 0x[0-9a-fA-F]+\) \(noaccess\)').match,
+            # TODO: parse these, too
+            lambda x: 'Process terminating with default action of signal' in x,
+            lambda x: x == 'Jump to the invalid address stated on the next line')):
         items, stanza, addr, count = [], None, None, None
         for n, line in src:
-            if line == stopper: break
+            if line in (stopper, 'All heap blocks were freed -- no leaks are possible'):
+                break
 
             if not line: # end of stanza
-                if addr or stanza: stack = Stack.get(stack)
+                if addr or stanza:
+                    if stack:
+                        try: stack = Stack.get(stack)
+                        except AssertionError as what:
+                            what.args += (n, line, stack)
+                            raise
+                    else:
+                        stack = None
 
                 if addr:
                     addr = MemoryChunk.get(addr, stack)
@@ -441,11 +509,11 @@ class MemCheck (object):
                     addr = stanza = None
                     del stack
                 # else: more than one blank line
-            elif cruft.match(line):
-                # Skip notice about reduced reporting:
+            elif any(c(line) for c in cruft):
+                # Skip cruft (TODO: and following block):
                 while line: n, line = src.next()
-                # bug: this skips the first report after the 100 errors report.
-                # tolerating this rather than uglify code.
+                # bug: this skips the first report after the cruft line.
+                # tolerating this (it's often a duplicate) rather than uglify code.
             elif line.startswith('Address'):
                 assert addr is None
                 prior = Stack.get(stack), mode # stash while parsing allocation block
@@ -454,9 +522,10 @@ class MemCheck (object):
                 try: frame = Frame.get(line, command)
                 except ParseError, what:
                     # TODO: is there nothing else we can do here ?
-                    what = what.args
-                    while what[-1] is None: what = what[:-1]
-                    raise ParseError('Failed to parse line', mode, n, what)
+                    args = what.args
+                    while args and args[-1] is None: args = args[:-1]
+                    what.args = ('Failed to parse line', mode, n) + args
+                    raise
                 stack.append(frame)
 
             else: stack, stanza = [], line # first line of new block
@@ -470,15 +539,17 @@ class MemCheck (object):
 
     @staticmethod
     def __parsetraffic(src, asint=readint,
-                       inuse=re.compile(r'in use at exit: ([0-9,]+) bytes in ([0-9,]+) blocks'),
-                       total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) frees, ([0-9,]+) bytes allocated')):
+                       inuse=re.compile(r'in use at exit: ([0-9,]+) '
+                                        r'bytes in ([0-9,]+) blocks').match,
+                       total=re.compile(r'total heap usage: ([0-9,]+) allocs, ([0-9,]+) '
+                                        r'frees, ([0-9,]+) bytes allocated').match):
         n, line = src.next()
-        it = inuse.match(line)
+        it = inuse(line)
         if it: lost, block = [asint(x) for x in it.groups()]
         else: raise ParseError('Failed to parse heap-in-use summary', line, n)
 
         n, line = src.next()
-        it = total.match(line)
+        it = total(line)
         if it: grab, free, churn = [asint(x) for x in it.groups()]
         else: raise ParseError('Failed to parse heap traffic totals', line, n)
 
@@ -492,31 +563,41 @@ class MemCheck (object):
             return tuple(asint(x) for x in it.groups())
         return None
 
+    junk = ('Reachable blocks (those to which a pointer was found) are not shown.',
+            'To see them, rerun with: --leak-check=full --show-reachable=yes',
+            'Rerun with --leak-check=full to see details of leaked memory')
+
     @staticmethod
     def __parseleaksummary(src, getsum=leaksum,
                            prefixes=('definitely lost', 'indirectly lost',
                                      'possibly lost', 'still reachable', 'suppressed'),
-                           cruft=('Reachable blocks (those to which a pointer was found) are not shown.',
-                                  'To see them, rerun with: --leak-check=full --show-reachable=yes')):
+                           cruft=junk):
         n, line = src.next()
         data = []
         for it in prefixes:
             data.append(getsum(line, n, it))
-            if data[-1]: n, line = src.next()
+            if data[-1]:
+                n, line = src.next()
+                if 'reachable' in it and line.endswith('of which reachable via heuristic:'):
+                    n, line = src.next()
+                    heurist = getsum(line, n, 'newarray           ')
+                    if heurist:
+                        n, line = src.next()
 
         while line in cruft: n, line = src.next()
-        assert not line
+        assert not line, line
 
         return LeakSummary(*data), n
 
     del leaksum
+    junk = ('For counts of detected and suppressed errors, rerun with: -v',
+            'Use --track-origins=yes to see where uninitialised values come from')
 
     @staticmethod
     def __parsetail(src,
                     errs=re.compile(r'ERROR SUMMARY: (\d+) errors from (\d+) contexts\s*'),
                     skip=re.compile(r'\(suppressed: (\d+) from (\d+)\)'),
-                    cruft=('For counts of detected and suppressed errors, rerun with: -v',
-                           'Use --track-origins=yes to see where uninitialised values come from')):
+                    cruft=junk):
         n, line = src.next()
         while not line or line in cruft: n, line = src.next()
         it = errs.match(line)
@@ -527,6 +608,8 @@ class MemCheck (object):
         if line and not it: raise ParseError('Unrecognised tail for final summary', line, n)
         data = [int(x) for x in data + it.groups()]
         return FinalSummary(*data)
+
+    del junk
 
     def byline(fd, stem): # tool function for __ingest
         n, off = 1, len(stem) # we got stem off the first line.
@@ -577,9 +660,13 @@ class MemCheck (object):
         issues (including leaks) found in all such reports.\n"""
         ans = []
         for log in logs:
-            fd = open(logfile)
-            try: command, ppid, issues, traffic, leaks, leaksum, overall = self.__ingest(fd)
-            finally: fd.close()
+            with open(log) as fd:
+                try:
+                    (command, ppid, issues, traffic, leaks, leaksum, overall
+                     ) = self.__ingest(fd)
+                except ParseError as what:
+                    what.args += (log,)
+                    raise
             for it in issues: self.issues.add(it)
             for it in leaks: self.leaks.add(it)
             ans.append(Report(command, ppid, issues, traffic, leaks, leaksum, overall))
