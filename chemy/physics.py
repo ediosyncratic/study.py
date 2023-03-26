@@ -6,7 +6,6 @@ See also:
 See study.LICENSE for copyright and license information.
 """
 from study.value.units import *
-from study.space.home import parsec
 
 Quantum = Object(
     __doc__ = """Material parameters of the Quantum Universe.
@@ -197,8 +196,11 @@ and Millikan's quanta.
 """),
 
                 Hubble = Quantity.within(
+        # Orthodoxly measured in km/s/mega/parsec but
+        # from study.space.home import parsec
+        # in this file leads to an import dependency loop.
         # https://arxiv.org/pdf/2112.04510.pdf (2022/Jan):
-        74.04, 1.04, km / s / mega / parsec # 2.26 aHz, c/(14 G yr)
+        74.04, 1.04, 32.40 * zepto / second, # 2.26 aHz, c/(14 G yr)
         # km/s/mega/parsec = mm/s/parsec = 32.40 zepto / second
         """The Hubble-Lemaitre constant.
 
