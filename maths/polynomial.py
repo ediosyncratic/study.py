@@ -375,7 +375,7 @@ class Polynomial (Lazy):
         number, it's returned as an int; otherwise, as whatever it is (float,
         complex, whatever).\n"""
         val = self.__coefs.get(key, self._zero)
-        if om is not None: val *= 1. / om
+        if om is not None: val /= 1. * om
         try:
             i = int(val)
             if val == i: return i
@@ -666,7 +666,7 @@ class Polynomial (Lazy):
             q, r = divmod(self, self.fromSeq((-n, d)))
             if r.rank < 0:
                 if d == 1: ans.append(n)
-                else: ans.append(n * 1. / d)
+                else: ans.append(n / (1. * d))
                 self = q
 
         # TODO: see if we have any conjugate pairs we can resolve ?
@@ -907,7 +907,7 @@ class Polynomial (Lazy):
         for key, val in self.__coefs.items():
             r = val / om
             if r * om == val: val = r
-            else: val *= 1. / om
+            else: val /= 1. * om
             result = result ^ hash(key) ^ hash(val)
         return result
 
@@ -939,7 +939,7 @@ class Polynomial (Lazy):
         if om is not None:
             r = result / om
             if r * om == result: return r
-            result *= 1. / om
+            result /= 1. * om
 
         return result
 
@@ -987,7 +987,7 @@ class Polynomial (Lazy):
         if om is not None:
             r = ans / om
             if r * om == ans: return r
-            ans *= 1. / om
+            ans /= 1. * om
 
         return ans
 
@@ -1097,7 +1097,7 @@ class Polynomial (Lazy):
         # Initialize r arbitrarily but reasonably diversely:
         k = (2j -.1) ** (2./self.rank)
         r = [ k**(2 * i + 1) for i in range(self.rank) ]
-        lead = 1. / self.__coefs[self.rank] # Scales self so leading coefficient is 1
+        lead = 1. * self.__coefs[self.rank] # Scale self so leading coefficient is 1.
 
         # Ensure ensible tol, initialize k so first iteration goes ahead
         tol = abs(tol)
@@ -1106,7 +1106,7 @@ class Polynomial (Lazy):
             p, d, m, i = [], 0, 0, 0
 
             while i < self.rank:
-                x, e, n, j = r[i], self(r[i]) * lead, 0, 0
+                x, e, n, j = r[i], self(r[i]) / lead, 0, 0
                 while j < self.rank:
                     if j == i or r[j] == x: n += 1
                     else: e /= x - r[j]
@@ -1125,13 +1125,13 @@ class Polynomial (Lazy):
                 i += 1
 
             if m == 0: m = 1
-            r, k = p, d * 1. / m
+            r, k = p, d / (m * 1.)
 
         return tuple(r)
 
     def _lazy_get__bigcoef_(self, ignored):
         scale, big = self.__denom, max(abs(i) for i in self.__coefs.values())
-        if scale is not None: big *= 1. / scale
+        if scale is not None: big /= 1. * scale
         return big
 
     def __close_enough(self, other, tol=1e-6):
@@ -1156,7 +1156,7 @@ class Polynomial (Lazy):
         lead, den = self.__coefs[self.rank], self.__denom
         if den is None:
             if lead != 1: ans.append(lead)
-        elif lead != den: ans.append(lead * 1. / den)
+        elif lead != den: ans.append(lead / (1. * den))
         return tuple(ans)
 
     def resultant(self, other):
