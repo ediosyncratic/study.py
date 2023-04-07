@@ -1167,7 +1167,7 @@ coomb = bag = 2 * strike
 seam = 2 * bag
 wey = load = 5 * seam 	# a `last' is 1 or 2 of these ...
 sack = 3 * bushel
-firlot = sack / 2
+firlot = sack / 2 # Wikipedia says 4 * peck in Scotland.
 boll = 2 * sack
 chaldron = 12 * sack # but OED (etym) gives 32 * bushel (vs. 36 bushel here)
 cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
@@ -1176,8 +1176,8 @@ cran = 75 * gallon / 2	# measures herring - c. 750 fish (i.e. 1 fish = 8 floz)
 barrel.US = hogshead.US / 2
 barrel.US.oil = 42 * gallon.US
 barrel.US.dry = 7056 * inch**3 # (7 * 3 * 4)**2 = 7056
-bushel.US = Quantity(2150.42, inch**3,
-                    doc="""The US bushel.
+bushel.US = Quantity(37**2, 0.5 * pi * inch**3,
+                    doc="""The US bushel, or Winchester bushel.
 
 This is the volume of an 8 inch cylinder with 18.5 inch diameter.
 However, the US bushel is also a unit of mass for various types of grain.
