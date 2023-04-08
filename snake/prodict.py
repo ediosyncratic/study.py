@@ -3,7 +3,7 @@
 See study.LICENSE for copyright and license information.
 """
 
-# TODO: replace with an additive idiom.
+# TODO: replace with an additive idiom; see addict.AddDict
 class Prodict (dict):
     """A dictionary modelling a product of powers.
 
