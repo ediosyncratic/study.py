@@ -3,7 +3,7 @@
 See study.LICENSE for copyright and license information.
 """
 from study.cache.property import lazyprop
-
+from study.snake.sequence import Tuple
 
 def Bezier(t, first, *rest):
     """The general Bezier interpolator.
@@ -24,20 +24,23 @@ def Bezier(t, first, *rest):
     passed, the result is degenerate, t is ignored and the result is
     the single control point.
 
-    The return value shall be a sum of scaled versions of the control
+    The return value shall be a weighted average of the control
     points.  Specifically, if ps = (first,) + rest = (p[0], ...,
     p[n]), the return is
 
-	sum(chose(n, i) * t**i * (1 -t)**(n -i) * p for i, p in enumerate(ps))
+	sum(chose(n, i) * t**i * (1 -t)**(n -i) * p
+            for i, p in enumerate(ps))
 
-    However, it isn't computed that way.
+    However, it isn't computed that way.  Instead a recursive descent
+    (to O(log(len(rest) +1)) depth) employs simple linear
+    interplations at its leaves.
     """
     if t == 0 or not rest:
         return first
     if t == 1:
         return rest[-1]
     if len(rest) == 1:
-        return (1 - t) * first + t * rest[0]
+        return first * (1 - t) + rest[0] * t
     ps = (first,) + rest
     m = len(ps) // 2 + 1
     assert m < len(ps) # i.e. len(ps) > 2
@@ -52,12 +55,16 @@ class Curve (object):
     last.  Any in between control the shape of the path from one to
     the other.
 
-    Supports addition and subtraction, either with another Curve or
-    with a displacement to control points, negation, scaling
+    Supports arithmetic, shifting and representation.  The
+    representation is as code to reproduce the object.  Left and right
+    shifting - as for study.maths.polynomial.Polynomial - are
+    integration (with zero constant) and differentiation,
+    respectively.
+
+    Arithmetic includes addition and subtraction - either with another
+    Curve or with a displacement to control points - negation, scaling
     (i.e. mutiplication by scalars; for division, multiply by an
-    inverse) and representation.  Supports left and right shifting as
-    integration (with zero constant) and differentiation, respectively
-    (as for study.maths.polynomial.Polynomial).
+    inverse)
 
     Properties:
       order -- rank of the equivalent polynomial
@@ -77,20 +84,45 @@ class Curve (object):
         Parameters are control points: there must be at least one.
         All must support scaling and the results of such scaling must
         support being added together.
+
+        Note that, when their control points are arithmetically
+        compatible, Curves are arithmetically compatible, hence can be
+        used as control points to higher-level Curves that implement
+        surfaces.  A Curve whose control points are vectors in some
+        space represents a line, with one-parameter, while a Curve
+        whose control points are of that form represents a surface,
+        with two parameters; using these, in turn, as control points
+        gives a parameterised three-dimensional surface (or a
+        parameterisation of a three-dimensional space).  See
+        __call__() for how you can supply the several parameters to
+        such a higher-dimensional surface.
         """
-        self.__ps = (first,) + rest
+        self.__ps = Tuple((first,) + rest)
 
     def __call__(self, t, *rest):
         """Auto-curried evaluation.
 
         If only one parameter is passed, it is used to compute a
         weighted average of self's control points.  If more parameters
-        are past, they are forwarded to each control point and the
-        weighted average of the results is returned instead.
+        are passed, they (excluding the first) are forwarded to each
+        control point and the weighted average of the results is
+        returned instead.
         """
         if rest:
             return Bezier(t, *(p(*rest) for p in self.__ps))
         return Bezier(t, *self.__ps)
+
+    @classmethod
+    def _curve_(cls, *ps):
+        """Contstructor-wrapper for derived classes to override.
+
+        When methods of Curve create instances they do so via this
+        wrapper.  If a derived class's constructor's signature differs
+        from that of Curve, it needs to override this to accept the
+        same arguments as Curve's constructor.  Note that it is called
+        from class methods, so must be callable on the class itself.
+        """
+        return cls(*ps)
 
     @property
     def order(self):
@@ -98,11 +130,11 @@ class Curve (object):
 
         This is the rank of the equivalent polynomial, one less than
         the number of control points passed to the constructor.  The
-        degenerate case, with only one control point is constant and
-        (even if its constant value zero) has order zero.  Every term
-        in the Bezier representation of the polynomial has this as the
-        sum of the powers of its factors of t and 1 -t.  This is also
-        the len() of self.
+        degenerate case, with only one control point, is constant and
+        (even if its constant value is zero) has order zero.  Every
+        term in the Bezier representation of the polynomial has the
+        Curve's order as the sum of the powers to which its factors of
+        t and 1 -t are raised.  This is also the len() of self.
 
         Contrast with the polynomial representation of self, which
         only counts powers with non-zero coefficient towards its len()
@@ -131,16 +163,17 @@ class Curve (object):
         The first term in that is 0 for i = 0, the second for i = n;
         otherwise, scaling them by the constant chose(n, i) * p[i]
         gives contributions n*p[i] to the derivative's [i-1] control
-        point and -n*p[i] to the derivative's [i] control point,
-        skipping the former for i = 0 and latter for i = n.  The
-        result's control points are just n times the differences
-        between self's.
+        point (with its chose(n-1, i-1) scaling) and -n*p[i] to the
+        derivative's [i] control point (with its chose(n-1, i)
+        scaling), skipping the former for i = 0 and latter for i = n.
+        The result's control points are thus just n times the
+        differences between self's.
         """
         ps = self.__ps
         n = len(ps) - 1
         if n == 0: # Constant.
             return self._curve_(self.__zero)
-        return self._curve_(*(n * (v - u) for u, v in zip(ps[:-1], ps[1:])))
+        return self._curve_(*ps.pairs(lambda u, v: (v - u) * n))
 
     def integral(self, base=None):
         """Integral of a Bezier curve, as a Bezier curve.
@@ -168,15 +201,20 @@ class Curve (object):
         The result's .rank shall normally be equal to self.order, but
         may be -1 when self.order is 0, i.e. self is degenerate, if
         its constant value is zero.
+
+        Calling fromPolynomial() on the result should get back a Curve
+        that differs neglibly from self.
         """
         t, s = self.__ts
         ps = self.__ps
-        if len(ps) == 1: # Degenerate case.
-            # Need to make it a Polynomial, so scale by t' = 1.
-            return ps[0] * t.derivative
-        while len(ps) > 1:
-            ps = tuple(s * u + t * v for u, v in zip(ps[:-1], ps[1:]))
-        return ps[0]
+        n = len(ps)
+        if n == 1: # Degenerate case.
+            # Need to make it a Polynomial, so scale by s +t = 1.
+            return (s +t) * ps[0]
+        while n > 1:
+            ps = ps.pairs(lambda u, v: s * u + t * v)
+            n -= 1 # n = len(tuple(ps))
+        return ps.next()
 
     @staticmethod
     def __fromPoly(poly, t, s): # s = 1 -t
@@ -205,10 +243,10 @@ class Curve (object):
         For the special case where poly is constant, the degenerate
         Bezier 'curve' with just one point, that ignores its t
         parameter when called, we simply want poly's constant value
-        (which is poly.coefficient(0) or poly(x) for any x, including
-        0).  Otherwise, we could run the iteration down to rank zero
-        and handle it the same, but we can finesse away the hard work
-        in the last iteration, when poly is linear, as follows.
+        (which is poly(x) for any x, including 0).  Otherwise, we
+        could run the iteration down to rank zero and handle it the
+        same, but we can finesse away some work in the last iteration,
+        when poly is linear, as follows.
 
         When poly is linear, we can rewrite poly(t) = a +b*t = a*(1-t)
         +(a+b)*t = poly(0)*s +poly(1)*t to get the (last) two entries
@@ -227,7 +265,7 @@ class Curve (object):
             if tail: # remove the ps[j] * s**n term:
                 poly -= tail * s**n
             poly, r = divmod(poly, t)
-            assert r.rank < 1 # assert: the constant is negligible
+            assert r.rank < 1 # and the constant is negligible
             assert poly.rank < n
             scale *= 1. / n
             n -= 1
@@ -241,8 +279,8 @@ class Curve (object):
         # would otherwise reduce it to a constant.
 
         yield poly.coefficient(0) * scale # ps[j], in either case.
-        if n > 0: # ps[j+1], when orignal poly wasn't constant.
-            assert n == 1
+        if n > 0: # ps[j+1], when original poly wasn't constant.
+            assert n == 1 # so j+1 is the original poly's rank.
             yield poly(1) * scale
 
     @classmethod
@@ -251,37 +289,51 @@ class Curve (object):
 
         Pseudo-contstructor, taking a polynomial whose coefficients
         are vectors; the control points of the result shal be of the
-        same vector type.  The result's asPolynomial() will equal to
-        the given polynomial, give or take any rounding errors.
+        same vector type.  The result's asPolynomial will equal the
+        given polynomial, give or take any rounding errors.
         """
         return cls._curve_(*cls.__fromPoly(poly, *cls.__ts))
+
+    def translate(self, vector):
+        """Translates self through the given vector.
+
+        This adds vector to each control-point of self.  While
+        addition could be overloaded to do this, it would get
+        problematic to do that for Bezier surfaces, described as Curve
+        objects with Curve control-points.
+        """
+        return self._curve_(*(p + other for p in self.__ps))
 
     # Python's magic methods:
     def __add__(self, other):
         """Addition.
 
-        Supported with: other operand a Curve, with the same order, in
-        which case the result's points are just the sum of
-        corresponding points of self and other; otherwise, only
-        supported for other values that can be added to each control
-        point, i.e. a displacement to translate the curve through.
-        """
-        if isinstance(other, Curve):
-            if other.order == self.order:
-                return self._curve_(*(p + q
-                                      for p, q in zip(self.__ps, other.__ps)))
-            # Otherwise, the best we can do is addition as
-            # polynomials, then convert back to a Bezier curve:
-            return self.fromPolynomial(self.asPolynomial() +
-                                       other.asPolynomial())
+        Curve instances can be added to one another, to produce
+        another.  When they have the same order, this just amounts to
+        adding the corresponding control-points.  Otherwise, each can
+        be expressed as a polynomial and the sum of these can be
+        converted to a Curve.
 
-        return self._curve_(*(p + other for p in self.__ps))
+        To add a fixed displacement to all control-points of a Curve,
+        see translate().
+        """
+        if not isinstance(other, Curve):
+            raise TypeError("Incompatible addition", other, self)
+
+        if other.order == self.order:
+            return self._curve_(*(p + q
+                                  for p, q in zip(self.__ps, other.__ps)))
+        # Otherwise, the best we can do is addition as polynomials,
+        # converting the result back to a Bezier curve:
+        return self.fromPolynomial(self.asPolynomial +
+                                   other.asPolynomial)
 
     __radd__ = __add__
     def __sub__(self, other): return self + (-other)
     def __rsub__(self, other): return (-self) + other
     def __neg__(self): return self._curve_(*(-p for p in self.__ps))
     def __eq__(self, other): return self.__ps == other.__ps
+    def __hash__(self): return hash(self.__ps) ^ hash(type(self))
     def __len__(self): return self.order
 
     def __repr__(self):
@@ -314,8 +366,6 @@ class Curve (object):
             base += p * scale
             yield base
 
-    @classmethod
-    def _curve_(cls, *ps): return cls(*ps)
     @lazyprop
     def __zero(self):
         val = self.__ps[0]
@@ -325,6 +375,3 @@ class Curve (object):
     from study.maths.polynomial import Polynomial as poly
     __ts = poly((0, 1)), poly((1, -1)) # t, s = 1 -t
     del poly
-    from study.maths.Pascal import chose
-    __pick = staticmethod(chose)
-    del chose
