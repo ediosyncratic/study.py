@@ -216,6 +216,58 @@ class Iterable (object):
             yield i, it
             i += 1
 
+    @iterable
+    def contiguous(self, n=0, func=None):
+        """Iterates the contiguous sub-sequences of self.
+
+        If a first parameter is passed, it should support comparison
+        with 0; if it is greater than 0 (its default), it should be
+        the number of entries in each contiguous sub-sequence to be
+        iterated.  Otherwise, all all contiguous sub-sequences of all
+        lengths are iterated, ending with one empty sequence (in
+        principle there's one (or, indeed, as many of them as you
+        like) of these between each pair of entries in the list, but
+        there is little value to repeating it; and putting it last
+        gives the iterating code advance warning that the end is
+        nigh).
+
+        If no second parameter is passed (or if its default, None, is
+        passed), each sub-sequence iterated is yielded as a tuple.
+        Otherwise, the passed parameter must be a function, func: in
+        this case, for each seq that would otherwise have been
+        yielded, func(*seq) is yielded instead.
+
+        For the special case n = 2, see pairs().
+        """
+        if n > 0:
+            it = iter(self)
+            seq = tuple(it.next() for i in range(n - 1))
+            for entry in it: # drop first, append entry:
+                seq += (entry,)
+                if func is None: yield seq
+                else: yield func(*seq)
+                seq = seq[1:]
+        else:
+            seq = tuple(self)
+            count = len(seq)
+            for i in range(count):
+                for j in range(i, count):
+                    if func is None: yield seq[i, j+1]
+                    else: yield func(*seq[i, j+1])
+            yield seq[count: count]
+
+    def pairs(self, func=None):
+        """Iterates pairs of adjacent entries in self.
+
+        When no parameter is passed, this is equivalent to
+        zip(self[:-1], self[1:]), but avoids making two copies of
+        almost the whole sequence.  If a parameter is passed, it must
+        be a function taking two parameters; pairs(func) will then
+        iterate the values of func(*pair) for each pair it would
+        otherwise have yielded.
+        """
+        return self.contiguous(2, func)
+
     @iterinstance
     def __reversed__(self):
         seq = tuple(self)
