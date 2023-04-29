@@ -80,9 +80,9 @@ class Integrator:
 
     def integrand(self, val):
         lo, hi = self.__span(val, val)
-        if lo is not val or hi is not val: scale = 0 # clipped
-        else: scale = 1
-        return self.__integrand(val) * scale
+        if lo is not val or hi is not val:
+            return self.__integrand(lo if hi is val else hi) * 0 # clipped
+        return self.__integrand(val)
 
     @staticmethod
     def _integrator_(func, lower=None, upper=None, width=None):
