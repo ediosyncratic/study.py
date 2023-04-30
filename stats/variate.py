@@ -40,7 +40,7 @@ class Variate (Integrator, Cached):
     def __total(self): return self.total(self.__cut)
     @lazyattr
     def __cut(self): return self.sample()
-    @lazyprop
+    @lazyattr
     def mean(self): return self.moments(1)[0]
 
     @lazyprop
