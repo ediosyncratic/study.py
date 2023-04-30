@@ -53,7 +53,7 @@ def asreal(val):
     return val
 del postcompose
 
-from Pascal import factorial
+from study.maths.Pascal import factorial
 
 def lnfactorial(n, log=math.log):
     result = 0.
