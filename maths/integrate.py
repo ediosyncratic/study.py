@@ -186,7 +186,7 @@ class Integrator:
 
         lo, hi, wide = self.__clip(start, None)
         assert lo is not None
-        if hi is None: return self.__outwards(start, wide, test, offset)
+        if hi is None: return self.__outwards(lo, wide, test, offset)
         return self.__interval(lo, hi, wide, test, offset)
 
     # hairy implementation follows: no further exports.
