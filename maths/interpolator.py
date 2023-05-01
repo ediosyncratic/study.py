@@ -519,16 +519,22 @@ class Interpolator (Cached):
         sum(result) == total.
 
         Returns a tuple of weights, result, one entry longer than the
-        sequence, with each being the integral over the distribution between
-        two bounds:
-            result[0] -- from minus infinity to seq[0]
-            result[1+i] -- from seq[i] to seq[1+i]
-            result[-1] -- from seq[-1] to infinity
+        sequence, with each being the integral over a range,
+        comprising those t that satisfy the condition given:
+            result[0] -- t <= seq[0]
+            result[1+i] -- seq[i] <= t <= seq[1+i]
+            result[-1] -- t >= seq[-1]
 
         If one of the seq[i] is in self.spikes, the weight of the spike is
         shared evenly between the intervals on either side, unless the spike
         value is repeated in seq, in which case all of the weight of the spike
-        goes into the implied zero-width result interval.\n"""
+        goes into the implied zero-width result interval.  (If several entries
+        in seq are equal to the spike, the spike's weight is shared (in an
+        unspecified manner) between the implied coincident zero-width result
+        intervals.)  If two adjacent entries in seq are equal but not at a spike
+        of self, self has zero weight between them.  If a later entry in seq is
+        less than an earlier entry, the behaviour is unspecified; don't do
+        that.\n"""
         raise NotImplementedError(self.__class__.__name__)
 
     def __add__(self, other):
