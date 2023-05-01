@@ -145,7 +145,7 @@ class Integrator:
                 elif hi is None:
                     hi = lo + wide
 
-        if lo == hi: lo, hi = .5 * hi, 1.5 * hi
+        if lo == hi: lo, hi = self.__span(.5 * hi, 1.5 * hi)
         if lo > hi: hi, lo = lo, hi
         mid = self.between(lo, hi, test, offset)
         if offset is None: offset = mid
