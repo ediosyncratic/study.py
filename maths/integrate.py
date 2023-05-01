@@ -229,6 +229,13 @@ class Integrator:
                               (self.integrand(lo) + self.integrand(hi)) * .5,
                               test, offset)
 
+    @staticmethod
+    def __width(last, scale):
+        last = abs(last)
+        try: return max(scale.width, last)
+        except AttributeError:
+            return last
+
     def __between(self, start, gap, edge, test, offset,
                   blur=__blur, gettest=__gettest):
 
@@ -250,7 +257,8 @@ class Integrator:
                    edge) * h
 
             dif = now - was
-            if test(dif, now + offset): return blur(now, dif)
+            if test(dif, now + offset):
+                return blur(now, self.__width(dif, now + offset))
 
     def __outwards(self, bound, step, test, offset,
                    blur=__blur, gettest=__gettest):
@@ -262,7 +270,7 @@ class Integrator:
         bind = bound + step
         total, bound = self.__interval(bound, bind, step, test, offset), bind
         if offset is None:
-            try: offset = total - total.best
+            try: offset = self.__width(total - total.best, total)
             except AttributeError: offset = 0 * total
 
         while True:
@@ -270,7 +278,8 @@ class Integrator:
             bind = bound + step
             more = self.__interval(bound, bind, step, test, total + offset)
             total, bound = total + more, bind
-            if test(more, total + offset): return blur(total, more)
+            if test(more, total + offset):
+                return blur(total, self.__width(more, total + offset))
 
     del __blur, __gettest
 
