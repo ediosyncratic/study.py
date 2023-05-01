@@ -259,17 +259,17 @@ class Integrator:
         while self.__probe(bound, step) > small: step = step * 7
         if test is None: test = gettest(small * step)
 
-        next = bound + step
-        total, bound = self.__interval(bound, next, step, test, offset), next
+        bind = bound + step
+        total, bound = self.__interval(bound, bind, step, test, offset), bind
         if offset is None:
             try: offset = total - total.best
             except AttributeError: offset = 0 * total
 
         while True:
             step = step * 3
-            next = bound + step
-            more = self.__interval(bound, next, step, test, total + offset)
-            total, bound = total + more, next
+            bind = bound + step
+            more = self.__interval(bound, bind, step, test, total + offset)
+            total, bound = total + more, bind
             if test(more, total + offset): return blur(total, more)
 
     del __blur, __gettest
