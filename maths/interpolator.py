@@ -712,11 +712,12 @@ class PiecewiseConstant (Interpolator):
             result[t] += w
         else: # spike at seq[s]
             while t + 1 < len(seq) and seq[t + 1] <= seq[s]: t += 1
-            if t == s + 1: w = weight
-            else: w = weight * 1. / (t - s)
-            while s < t:
+            while s + 1 < t:
+                w = weight * 1. / (t - s)
                 s += 1
                 result[s] += w
+                weight -= w
+            result[t] += weight
         return t
 
     def weigh(self, seq, total=None):
