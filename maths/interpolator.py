@@ -700,11 +700,11 @@ class PiecewiseConstant (Interpolator):
         which is <= seq[s]; these delimit t-s degenerate intervals (usually just
         one) among which weight is shared evenly.\n"""
         t = s + 1
-        if t >= len(seq) or seq[t] > seq[s]:
+        if t >= len(seq) or seq[t] > seq[s]: # The usual case.
             w = weight * .5
             result[s] += w
             result[t] += w
-        else:
+        else: # spike at seq[s]
             while t + 1 < len(seq) and seq[t + 1] <= seq[s]: t += 1
             if t == s + 1: w = weight
             else: w = weight * 1. / (t - s)
@@ -716,70 +716,60 @@ class PiecewiseConstant (Interpolator):
     def weigh(self, seq, total=None):
         result, load, cut = [ 0. ] * (1 + len(seq)), self.mass, self.cuts
         if not self.total: return tuple(result) # trivial short-cut
-        if len(load) < 2:
-            # special case: only one weight, delta function.
-            s = len([x for x in seq if x < cut[0]])
-            assert s == len(seq) or seq[s] >= cut[0], \
-                ('mis-sorted positions', seq)
-            if s < len(seq) and cut[0] == seq[s]: # even split
-                self.__share(load[0], result, seq, s)
-            else: result[s] = load[0]
-        else:
-            # sensible case where we have at least two weights.
-            i = s = 0 # we're processing load[i] for result[s]
-            last = None # last seq point if in present cut-gap, else None
 
-            try: # step over any entries in seq that precede all cuts
-                while seq[s] < cut[0]: s += 1
-            except IndexError: pass
+        i = s = 0 # we're adding a share of load[i] to result[s]
+        last = None # last seq point if in present cut-gap, else None
 
-            try: # loop until end of row ... can happen from inner loop.
-                while True:
-                    # usually, cut[i] <= stop <= cut[i+1]
-                    try: stop = seq[s]
-                    except IndexError:
-                        stop = cut[-1] # gather everything after seq[-1]
+        try: # step over any entries in seq that precede all cuts
+            while seq[s] < cut[0]: s += 1
+        except IndexError: pass # All entries in seq < cut[0]
 
-                    if stop < cut[i]:
-                        # out-of-order entries in seq - or mis-incremented i.
-                        assert seq[s-1] >= stop, \
-                            'Apparently, I incremented i in error'
-                        s += 1 # and leave last alone ...
+        try: # loop until end of row ... can happen from inner loop.
+            while True:
+                # usually, cut[i] <= stop <= cut[i+1]
+                try: stop = seq[s]
+                except IndexError:
+                    stop = cut[-1] # gather everything after seq[-1]
 
-                    elif stop < cut[1+i]: # result[s] ends part-way through load[i]
-                        if last is None: last = cut[i]
-                        if stop > last:
-                            result[s] += load[i] * (stop - last) / (cut[1+i] - cut[i])
-                        last, s = stop, 1 + s
+                if stop < cut[i]:
+                    # out-of-order entries in seq - or mis-incremented i.
+                    assert seq[s-1] >= stop, \
+                        'Apparently, I incremented i in error'
+                    s += 1 # and leave last alone ...
 
-                    elif cut[i] == stop == cut[i+1]: # results[s] ends *at* load[i] spike
-                        assert last is None
-                        if s < 1 and seq[1] == stop: s += 1
-                        else:
-                            weight, i = load[i], i + 1
-                            # Any more spikes also at stop:
-                            while i < len(load) and cut[i+1] == stop:
-                                weight += load[i]
-                                i += 1
+                elif stop < cut[1+i]: # result[s] ends part-way through load[i]
+                    if last is None: last = cut[i]
+                    if stop > last:
+                        result[s] += load[i] * (stop - last) / (cut[1+i] - cut[i])
+                    last, s = stop, 1 + s
 
-                            s = self.__share(weight, result, seq, s)
-
-                    else: # result[s] gets the rest of load[i]:
-                        if last is not None:
-                            assert cut[i] <= last < cut[1+i]
-                            result[s] += load[i] * (cut[1+i] - last) / (cut[1+i] - cut[i])
-                            last, i = None, 1 + i
-
-                        while stop >= cut[1+i]:
-                            # Do we need to __share(load[i],...) ?
-                            if stop <= cut[i] and 1 < s + 1 < len(seq): break
-                            result[s] += load[i]
+                elif cut[i] == stop == cut[i+1]: # results[s] ends *at* load[i] spike
+                    assert last is None
+                    if s < 1 and seq[1] == stop: s += 1
+                    else:
+                        weight, i = load[i], i + 1
+                        # Any more spikes also at stop:
+                        while i < len(load) and cut[i+1] == stop:
+                            weight += load[i]
                             i += 1
 
-            except IndexError:
-                assert i == len(load), \
-                    'algorithm exited loop surprisingly at %d/%d, %d/%d' \
-                    % (i, len(load), s, len(seq))
+                        s = self.__share(weight, result, seq, s)
+
+                else: # result[s] gets the rest of load[i]:
+                    if last is not None:
+                        assert cut[i] <= last < cut[1+i]
+                        result[s] += load[i] * (cut[1+i] - last) / (cut[1+i] - cut[i])
+                        last, i = None, 1 + i
+
+                    # Will IndexError to terminate i-loop.
+                    while cut[i] < stop >= cut[1+i]:
+                        result[s] += load[i]
+                        i += 1
+
+        except IndexError:
+            assert i == len(load), \
+                'algorithm exited loop surprisingly at %d/%d, %d/%d' \
+                % (i, len(load), s, len(seq))
 
         if total is not None:
             assert 0 != sum(result) # == self.total, known non-zero
