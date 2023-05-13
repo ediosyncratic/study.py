@@ -179,20 +179,26 @@ def gradient(fn, arg):
 
     except (AttributeError, TypeError): return median(grads)
 
-def Raphson(f, v):
+def Raphson(f, v, fdash=None):
     """Implements Newton-Raphson refinement.
 
-    Arguments:
+    Required arguments:
 
       f -- a function taking one argument
 
       v -- a valid input to this function
 
+    Optional argument:
+
+      fdash - the derivative of f; if None, the default, it is approximated.
+
     Returns a value at which f seems likely to be close to 0, computed according
     to the Newton-Raphson method - compute error and gradient, divide error by
     gradient, perturb from v by this ratio. """
+    if fdash is None:
+        fdash = lambda v, fn=f, g=gradient: g(fn, v)
 
-    try: return v - f(v) / gradient(f, v)
+    try: return v - f(v) / fdash(v)
     except ZeroDivisionError:
         raise ValueError('stationary point', v)
 
@@ -216,6 +222,9 @@ class Search:
 
       stride -- default: 1.  A displacement in the complex plane, neither large
       nor very small by comparison to the anticipated error in start.
+
+      deriv -- derivative of func, or None, the default.  In the latter case,
+      it is approximated numerically using func.
 
     Public data:
 
@@ -257,8 +266,11 @@ class Search:
 
     # it might be nice to add some optional verbosity !
 
-    def __init__(self, func, start, goal=abs, stride=1.):
+    def __init__(self, func, start, goal=abs, stride=1., deriv=None):
         self.goal, self.__func = goal, func
+        if deriv is None:
+            deriv = (lambda v, fn=func, g=gradient: g(fn, v))
+        self.__deriv = deriv
         self.stride, self.next = stride, start + stride
         self.__initscore(start)
 
@@ -297,7 +309,7 @@ class Search:
 
     def Newton(self):
         before, best = self.next, self.__score
-        self.next = Raphson(self.func, self.next)
+        self.next = Raphson(self.func, self.next, self.__deriv)
         if self.__score < best: return self.__best[0] - self.next
         return self.next - before
 
