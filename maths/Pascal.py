@@ -181,3 +181,29 @@ def c2nno4n(n):
             i += 1
             ans *= each(i) # < 1
     return ans
+
+def coin_tail(m, n):
+    """sum(chose(n+m, i) for i in range(1 +m)) * 0.5**(n+m-1)
+
+    but computed somewhat tidily (at least for m < n), to increase the
+    range of inputs for which that factor of 0.5**(n+m) doesn't go
+    denormal and the sum isn't bigger than a float can represent.
+
+    When m < n, this is the probability that a fair coin, tossed n +m
+    times, will produce at most m of one result."""
+    count = n +m
+    s, r = divmod(count -1, m +1)
+    # We'll divide by .5**(s+1) for the last r terms and .5**s for the
+    # first m+1-r of them, for a total of (m +1)*s +r factors of 0.5
+    scale = 0.5**s
+    tot, i = 0, 0
+    term = 1 # chose(count, i) scaled by as many factors of half as tot has seen.
+    while i <= m:
+        tot += term
+        tot *= scale
+        term *= scale * (count -i)
+        if i +r == m: # Extra factor of half in the last r iterations:
+            scale *= 0.5
+        i += 1
+        term /= i
+    return tot
