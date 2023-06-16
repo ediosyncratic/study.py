@@ -34,17 +34,19 @@ https://en.wikipedia.org/wiki/Kibble_balance
 second = sec = s = Quantity.base_unit(
     's', 'second', """The SI base unit of time.
 
-9192631770 periods of the radiation corresponding to the transition between
-the two hyperfine levels of the ground state of the caesium-133 atom.  The
-unit's name comes from it being the 'second minute subdivision' of the hour;
-see study.value.units.minute for further details.
+9192631770 periods of the radiation corresponding to the transition between the
+two hyperfine levels of the ground state of the caesium-133 atom.  The big
+number's prime factorisation is 2 * 3 * 3 * 5 * 7 * 7 * 47 * 44351.  The unit's
+name comes from it being the 'second minute subdivision' of the hour; see
+study.value.units.minute for further details.
 """)
 
 m = metre = Quantity.base_unit(
     'm', 'metre', """The SI base unit of length.
 
 The length of the path travelled by light in vacuum during a time interval of
-1/299792458 of a second.
+1/299792458 of a second.  That big number's prime factorisation is 2 * 7 * 73 *
+293339.
 """)
 
 kilogramme = kilogram = kg = Quantity.base_unit(
@@ -73,7 +75,7 @@ K = Kelvin = Quantity.base_unit(
     'K', 'Kelvin', """The SI base unit of temperature.
 
 The fraction 1/273.16 (exactly) of the thermodynamic temperature at the triple
-point of water.
+point of water.  The fraction is equivalently 5 * 5 / 6829, in terms of primes.
 """)
 
 mol = Quantity.base_unit(
