@@ -520,6 +520,65 @@ class Body (Object):
 
         return S, R
 
+    def separation(self, other, about=Quantity.encircle):
+        """Distance between two bodies.
+
+        Pass only one parameter, another body.  Seeks a common centre
+        of orbit, raising ValueError if it fails to find one.  Works
+        back outward from that centre, taking into account the orbits
+        of centres as it goes, to find the distance between self and
+        other, with an error-bar representing its variability due to
+        the two bodies' orbits.
+        """
+        if not isinstance(other, Body):
+            raise TypeError("Only defined between bodies", other)
+
+        mine, your, zero = [self], [other], None
+        while True:
+            bod = None
+            try: ring = mine[-1].orbit
+            except AttributeError: pass
+            else:
+                if zero is None:
+                    zero = 0 * ring.radius
+                bod = ring.centre
+                mine.append(bod)
+                for i, b in enumerate(your, 1):
+                    if b is bod:
+                        your = your[:i]
+                        break
+                if bod is your[-1]:
+                    break
+
+            try: ring = your[-1].orbit
+            except AttributeError: pass
+            else:
+                if zero is None:
+                    zero = 0 * ring.radius
+                bod = ring.centre
+                your.append(bod)
+                for i, b in enumerate(mine, 1):
+                    if b is bod:
+                        mine = mine[:i]
+                        break
+                if bod is mine[-1]:
+                    break
+
+            if bod is None:
+                raise ValueError("Bodies trace to no common centre of orbit",
+                                 self, other)
+
+        if zero is None:
+            assert self is other
+            from study.value.SI import metre
+            zero = 0 * metre
+
+        assert your.pop() is mine.pop()
+        me, you = mine.pop().orbit.radius, your.pop().orbit.radius
+        return sum((about(y.orbit.radius) for y in your),
+                   sum((about(m.orbit.radius) for m in mine),
+                       me +about(you) if you < me else you +about(me)))
+
     def orbital(self, radius, ecce=0, tp=2*pi, S=Spin):
         """The spin of the relevant orbit.
 
