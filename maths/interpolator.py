@@ -29,8 +29,17 @@ class Interpolator (Cached):
         they may be iterables) be a sequence; and cuts must be sorted in
         increasing order.  The distribution described has weight mass[i]
         between cuts[i] and cuts[i+1].\n"""
-        self.cuts, self.mass = tuple(cuts), tuple(mass)
-        assert len(self.mass) + 1 == len(self.cuts)
+        cuts, mass = tuple(cuts), tuple(mass)
+        # Drop leading and trailing zero-mass intervals.
+        # Sometimes the easiest way to navigate around Sample's old
+        # weight-scheme's eccentric tails is to use zero-weight
+        # bounds, that we don't need here.
+        while mass and not mass[0]:
+            mass, cuts = mass[1:], cuts[1:]
+        while mass and not mass[-1]:
+            mass, cuts = mass[:-1], cuts[:-1]
+        assert len(mass) + 1 == len(cuts)
+        self.cuts, self.mass = cuts, mass
         assert all(x >= 0 for x in self.mass)
         assert all(x <= y for x, y in zip(self.cuts[:-1], self.cuts[1:])), \
             ("Cuts should be sorted", self.cuts)
