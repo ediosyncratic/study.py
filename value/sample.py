@@ -1365,7 +1365,8 @@ deviation 1.  It is intended for use with data which have been given as mean and
 standard deviation; multiply by the latter and add the former.
 """)
 
-Sample.encircle = Sample({ -.75: 2, -.25: 1, .25: 1, .75: 2 }, best=0,
+Sample.encircle = Sample({ -1.25: 0, -.75: 2, -.25: 1,
+                            .25: 1, .75: 2, 1.25: 0 }, best=0,
                          __doc__="""An error bar made of a circle.
 
 When a satellite orbits a planet that orbits a star, the radius of the
