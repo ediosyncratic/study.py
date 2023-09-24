@@ -124,11 +124,14 @@ charges.
 
 This is an angle that naturally emerges from considering the fine structure
 constant, alpha; see Vacuum.alpha for details.  When we include units of angle
-in Planck's constant (see Quantum.Planck) we get an angle divided by the square
-of a charge; multiplying that by the square of the charge on the electron, we
-get an angle.  This doesn't have any obvious physical meaning, but arises as a
-natural simple combination of other physical constants, equal to two turns times
-the fine structure constant.
+in Planck's constant (see Quantum.Planck), dividing it by the impedance of free
+space (see Vacuum.Z0) gives us an angle divided by the square of a charge;
+multiplying that by the square of the charge on the electron, we get an angle.
+This doesn't have any obvious physical meaning, but arises as a natural simple
+combination of other physical constants, equal to two turns times the orthodox
+fine structure constant; it a smidgin more than: radian/11; or five and a
+quarter degrees of arc.  This is about the angle, about the Sun, through which
+Earth moves in five and a third days (5d 7h 55m 37.8s).
 
 An alternative approach to this would be to infer that Z0/turn is what we should
 really be using in place of Z0, making it an impedance / angle.  That, in turn,
@@ -165,7 +168,8 @@ or, equivalently (as 2*pi*hbar is h and epsilon0*c*Z0 is 1):
 as expressed here.  I am given to believe that the fine-structure splitting of
 the spectrum of Hydrogen (and, I am thus inclined to guess, other quantum
 electrodynamic systems) is expressed as a power-series in 2*alpha, which the
-latter formula gives as the ratio of e**2 and h/Z0.
+latter formula gives as the ratio of e**2 and h/Z0; so we could rewrite the
+power series in terms of e/&radic;(h/Z0).
 
 See Vacuum.fineStructureAngle for the associated angle that arises when that
 factor of two and the factor of turn hiding in h are not divided out.
