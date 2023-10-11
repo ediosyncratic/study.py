@@ -70,7 +70,7 @@ As a result, the implementations in this module (aside from L_0, see
 below) all return infinity if any value in the sequence is infinite;
 only when there are no infinite values in the sequence will a NaN in
 the sequence lead to NaN as the result.  This is consistent with the
-behaviour of max() and math.hypot().
+behaviour of built-in max() and math.hypot().
 
 == Special cases for n ==
 
@@ -146,13 +146,15 @@ def _iter_norm(seq, n, scale, count):
             # total = total / r**n + 1
             # but we can't safely compute r**n to divide by it, so:
             if vast:
-                # n > 1 and we were passed scale, so big is indeed big.
+                assert n > 1
+                # ... and we were passed scale, so big is indeed big.
                 # assert vast == big**n, modulo floating-point imprecision
                 while r > big:
                     total /= vast
                     r /= big
                 # (Albeit, if we go round that loop more than once, we'll
                 # be left with total = 0.)
+                # Now r <= big, so we can safely compute r**n.
             total = total / r**n + 1
         else:
             total += r**n
@@ -165,17 +167,15 @@ def _iter_norm(seq, n, scale, count):
 def hypot(*args):
     """Return the Pythagorean norm of the given arguments.
 
-    Receives arbitrarily many numbers, real or complex (or, indeed,
-    anything else that abs() will map to a positive number), and
-    returns the square root of their sum of squared abs() values.  As
-    for ECMAScript's hypot(), if any value is infinite, you should get
-    +Infinity, otherwise if any is a NaN you'll get NaN; you should
-    only get 0 if all inputs are 0; otherwise, the result is a
-    positive real.
+    Receives arbitrarily many numbers, real or complex, and returns the square
+    root of their sum of squared abs() values.  As for ECMAScript's hypot(), if
+    any value is infinite, you should get +Infinity, otherwise if any is a NaN
+    you'll get NaN; you should only get 0 if all inputs are 0; otherwise, the
+    result is a positive real.
 
-    Note that python's built-in module cmath has no hypot(), while the
-    one provided by the math module can't cope with complex
-    parameters, and can only cope with two real parameters.\n"""
+    Note that python's built-in module cmath has no hypot(), while the one
+    provided by the math module can't cope with complex parameters, and can
+    only cope with two real parameters.\n"""
     scale = 0.
     if len(args) == 1: scale = abs(args[0]) * 1.
     elif args: return _iter_norm(args, 2, scale, len(args))
@@ -184,9 +184,9 @@ def hypot(*args):
 def hypotiter(seq, scale=0, count=None):
     """Compute the L_2 norm of a sequence of numbers.
 
-    Required first argument, seq, must be an iterable whose entries
-    are numeric.  Optional second and third arguments scale and count
-    are as for normiter.\n"""
+    Required first argument, seq, must be an iterable whose entries are
+    numeric.  Optional second and third arguments scale and count are as for
+    normiter.\n"""
     return _iter_norm(seq, 2, scale, count)
 
 def norm(n, *args):
