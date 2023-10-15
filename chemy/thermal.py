@@ -9,7 +9,21 @@ import math # will del later
 
 # Experiment - due to move once a better home for it materialises
 class Radiator (Object):
-    """Descriptor for a black-body radiator. """
+    """Descriptor for a black-body radiator.
+
+    Properties:
+      total -- total power output per unit surface area
+      frequency -- frequency of maximal radiance
+      wavelength -- wavelength of maximal radiance
+
+    Method:
+      spectral() -- spectral radiance at a given wavelength or frequency
+
+    Note that, because the latter is a density with respect to the
+    parameter given (wavelength or (possibly angular) frequency), the
+    wavelength and frequency at which it is maximal correspond to
+    different points in the spectrum; their product is about c/1.76
+    instead of c.\n"""
     __upinit = Object.__init__
     def __init__(self, temperature, *args, **what):
         self.__upinit(*args, **what)
@@ -56,6 +70,64 @@ class Radiator (Object):
         base = 2 * h / (exp(self._hoverkT * f) - 1)
         if frequency: return base * f**3 / c**2
         else: return base * c**2 / wavelength**5
+
+    def splitexp(scale, exp = math.exp, tol = 1e-9): # Temporary tool
+        """Solve exp(-x) +x/scale = 1 to within 1e-9.
+
+        This has a fatuous solution at x = 0.  We're looking for
+        another zero of f(x) = x/scale +exp(-x) -1 with f'(x) =
+        1/scale -exp(-x) and f''(x) = exp(-x) always positive.
+
+        For scale > 1, f is decreasing at its fatuous zero, has a
+        minimum at x = -log(1/scale) and is necessarily positive for x
+        >= scale, so must have a second zero somewhere between
+        -log(1/scale) and scale.
+
+        Solved using Newton-Raphson, with initial value obtained by
+        hard-coding what a step from x = scale would produce; it
+        converges in two or three iterations, for the scales we care
+        about (each of which has splitexp(scale) slightly less than
+        scale)."""
+        assert scale > 1
+        x, r = scale * (1 -1 / (exp(scale) - scale)), 1. / scale
+        emx = exp(-x)
+        error = x * r +emx -1
+        while abs(error) > tol:
+            x -= error / (r -emx)
+            emx = exp(-x)
+            error = x * r +emx -1
+        return x
+
+    def _lazy_get_frequency_(self, ignored, scale = splitexp(3)):
+        """The frequency at which self.spectral() peaks.
+
+        This is proportional to temperature.
+
+        As spectral(frequency=f) is proportional to f**3 / (exp(s*f)
+        -1), where s = h/k/T is a time, its derivative varies as
+
+            3*f**2/(exp(s*f) -1) -s*exp(s*f)*f**3/(exp(s*f) -1)**2
+
+        at whose roots exp(-s*f) +s*f/3 = 1.
+        """
+        return scale / self._hoverkT
+
+    def _lazy_get_wavelength_(self, ignored, scale = Vacuum.c / splitexp(5)):
+        """The wavelength at which self.spectral() peaks.
+
+        This is inversely proportional to temperature.
+
+        As spectral(wavelength=w) is inversely proportional to w**5 *
+        (exp(s/w) -1) where s = h*c/k/T is a length, its derivative
+        varies as
+
+        s * exp(s/w) / w**7 / (exp(s/w) -1)**2 -5 / w**6 / (exp(s/w) -1)
+
+        at whose roots exp(-s/w) +s/w/5 = 1.
+        """
+        return self._hoverkT * scale
+
+    del splitexp
 
 del math, Object, Quantum, Vacuum
 from study.value.units import Kelvin, Centigrade
