@@ -15,7 +15,19 @@ class BlackHole (Object): # should be based on chemy.thermal.Radiator
     all simply related to one another.  Any one of these four quantities
     suffices for our initializer.  See the documentation of Thermal.Hawking
     and Cosmos.Schwarzschild for details; and
-    http://casa.colorado.edu/~ajsh/hawk.html\n"""
+    http://casa.colorado.edu/~ajsh/hawk.html
+
+    For a spinning black hole, with angular momentum, we can get a
+    length scale L by dividing that by its mass and the speed of
+    light; the black hole then has two critical radii; if we let R be
+    G/c/c times the mass of the black hole (half the Schwarzschild
+    radius), the inner and outer critical radii are the roots r of (r
+    -R)**2 = R**2 -L**2; and L is duly constrained bo be at most R,
+    i.e. the angular momentum is at most G/c times the square of the
+    black hole's mass.  A black hole with this angular momentum has
+    half the radius of a non-spinning black hole.  A
+    maximally-spinning Planck mass black hole's radius is the Planck
+    length, which is also its Compton wavelength.\n"""
 
     __upinit = Object.__init__
     def __init__(self, *args, **what):
