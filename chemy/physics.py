@@ -3,6 +3,11 @@
 See also:
   http://physics.nist.gov/cuu/Constants/
   http://www.alcyone.com/max/physics/laws/
+
+Lineweaver and Patel's 'All objects and some questions' paper is also
+a gold-mine of relevant details.
+  https://pubs.aip.org/aapt/ajp/article/91/10/819/2911822/All-objects-and-some-questions
+
 See study.LICENSE for copyright and license information.
 """
 from study.value.units import *
@@ -444,13 +449,23 @@ almost eV/30.
 
 The total radiant power output per unit area from a black body at temperature
 T is given by sigma T**4 where sigma is the Stefan-Boltzmann constant,
-        sigma = pi**2 k**4 / 60 / c**2 / hbar**3
+        sigma = pi**2 * k**4 / 60 / c**2 / hbar**3
 
 See also: Radiator.total (in study.chemy.thermal) and BlackHole.luminosity (in
 study.space.hole); notably (in the latter) the observation that the above law
 must clearly be modified when k.T exceeds the rest mass of any type of
 particle (unless this modification is, for some reason, specific to black
 holes).
+
+Lineweaver & Patel mention 4*sigma/c as 'the radiation density
+constant', scaled by the fourth power of temperature and divided by
+the cube root of half the number (g_{*}) of relativistic degrees of
+freedom in thermal equilibrium with photons, to get the energy density
+of radiation.  About a hundred seconds after the big bang, the
+temperature of the universe had dropped to the point where g_{*} = 2,
+one for each of the polarisation states of the photon; prior to that,
+however, the universe was hot enough that particles other than photons
+make significant contributions to the thermal radiation density.
 """))
 Thermal.also(Boltzmann = Thermal.k,
              Hawking = Quantity(radian,
