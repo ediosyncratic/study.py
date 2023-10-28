@@ -72,6 +72,13 @@ def Cardan(cube, square, linear, constant):
 
     assert cube, "Cardan solves cubics, use other tools for quadratics"
     #print 'Cardan(%s, %s, %s, %s)' % (cube, square, linear, constant)
+    Q = lambda x: ((cube * x + square) * x +linear) * x +constant
+    def tidy(x, q = Q):
+        # int() rounds towards zero, we want round to nearby int:
+        i = int(x + .5) if x >= 0 else int(x - .5)
+        if abs(i - x) > 1e-6: return x
+        if i == x or abs(q(i)) <= abs(q(x)): return i
+        return x
 
     # canonicalise:
     # u*x**3 +s*x**2 +i*x +c == 0 iff
@@ -93,31 +100,33 @@ def Cardan(cube, square, linear, constant):
 
     # deal with two more easy cases:
     if not F: # 0 = y**3 -3*E*y = y*(y**2 -3*E)
-        if E < 0: return -offset, # only one
+        if E < 0: return tidy(-offset), # only one
         E = (3*E)**.5
-        return -offset, -E-offset, E-offset
+        return tidy(-offset), tidy(-E-offset), tidy(E-offset)
     if not E: # y**3 = 2.F
-        return cuberoot(2*F) - offset,
+        return tidy(cuberoot(2*F) - offset),
 
     disc = F**2 -E**3
     if disc > 0: # only one root
         disc = disc**.5
-        return cuberoot(F + disc) + cuberoot(F - disc) - offset,
+        return tidy(cuberoot(F + disc) + cuberoot(F - disc) - offset),
 
     assert E > 0
     E = E**.5
     if disc < 0: # three roots; 
         a = acos(F / E**3) / 3
         #print 'angle:', a * 180 / pi
-        return 2*E*cos(a) - offset, 2*E*cos(a + 2*pi/3) - offset, 2*E*cos(a + 4*pi/3) - offset
+        return (tidy(2*E*cos(a) - offset),
+                tidy(2*E*cos(a + 2*pi/3) - offset),
+                tidy(2*E*cos(a + 4*pi/3) - offset))
 
     # disc == 0, two roots, one repeated
     if F < 0:
-        F = E - offset
-        return F, F, -E-offset
+        F = tidy(E - offset)
+        return F, F, tidy(-E-offset)
 
-    F = -E - offset
-    return E-offset, F, F
+    F = tidy(-E - offset)
+    return tidy(E-offset), F, F
 
 def quadratic(square, linear, constant, realonly=None):
     disc = linear **2 -4. * square * constant
