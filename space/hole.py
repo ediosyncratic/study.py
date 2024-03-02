@@ -1,5 +1,13 @@
 """Description of black holes.
 
+I guess the temperature could be got at via reasoning based on the
+virial theorem, via (negative) total energy being minus kinetic energy
+(on average), which in turn is three halves of N*k*T.  That, at least,
+gives us that radiating away energy causes the black hole to shrink
+and get hotter, so smaller black holes are hotter than larger ones.
+This is an example of the 'gravo-thermal catastrophe', as Dr. Collier
+explains here: https://www.youtube.com/watch?v=9CdE5a3xyxE
+
 See study.LICENSE for copyright and license information.
 """
 
@@ -70,12 +78,13 @@ class BlackHole (Object): # should be based on chemy.thermal.Radiator
         return tp * self.radius
 
     def _lazy_get_area_(self, ignored, fp=4*pi):
-        return fp *  self.radius ** 2
+        return fp * self.radius ** 2
 
     def _lazy_get_volume_(self, ignored, ftp=pi/.75):
-        return ftp *  self.radius ** 3
+        return ftp * self.radius ** 3
 
-    def _lazy_get_entropy_(self, ignored, q=.25 * Thermal.k * Vacuum.c**3 / Quantum.hbar / Cosmos.G):
+    def _lazy_get_entropy_(self, ignored,
+                           q=.25 * Thermal.k * Vacuum.c**3 / Quantum.hbar / Cosmos.G):
         return self.area * q
 
     def _lazy_get_luminosity_(self, ig, q=Quantum.h / 30, k=Cosmos.kappa):
