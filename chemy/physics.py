@@ -209,10 +209,10 @@ and Millikan's quanta.
         # Orthodoxly measured in km/s/mega/parsec but
         # from study.space.home import parsec
         # in this file leads to an import dependency loop.
-        # https://arxiv.org/pdf/2112.04510.pdf (2022/Jan):
-        74.04, 1.04, 32.40 * zepto / second, # 2.26 aHz, c/(14 G yr)
+        # https://www.youtube.com/watch?v=3NeKR7bqolY
+        70.9, 4, 32.4077 * zepto / second, # 2.26 aHz, c/(14 G yr)
         # km/s/mega/parsec = mm/s/parsec = 32.40 zepto / second
-        """The Hubble-Lemaitre constant.
+        """The Hubble-Lema&icirc;tre constant.
 
 This describes the rate of expansion of the universe: it is the velocity
 difference between widely-separated parts of the universe divided by the
@@ -229,31 +229,56 @@ accuracy of this datum; previously the best estimate's uncertainty included
 its most significant digit.  (This is, indeed, why I initially chose to have
 Quantity and Sample display the first uncertain digit in a number's
 representation, as well as the confidently known digits; otherwise, there was
-nothing to display here !)  The new figure is 71 km / sec / Mpc, accurate to
-5%.
+nothing to display here !)
 
-Notice that, as things move away from us due to this, the rate at
-which they move away from us increases; dr/dt = H.r implies ddr/dt/dt
-= H.dr/dt = H.H.r, so the distant universe is also accellerating away
-from us at a rate proportional to distance from us, the constant of
-proportionality being the (vanishingly small) square of the
-(tiny) Hubble-Lemaitre constant.
+Notice that, as the distances to distant things increase due to this, the rate
+at which those distances increase also increases; dr/dt = H.r implies ddr/dt/dt
+= H.dr/dt = H.H.r, so the distant universe is also accellerating away from us
+at a rate proportional to distance from us, the constant of proportionality
+being the (vanishingly small) square of the (tiny) Hubble-Lema&icirc;tre
+constant.  Indeed, r = dr/dt/H = ddr/dt/dt/H/H = repeat(n, d/dt/H, r) for all
+natural n so the rate of accelleration also increases with distance, and the
+rate at which that increases also increases, and so on, albeit at pregressively
+tinier rates.
 
-One big concern for cosmologists (now that we _do_ have tolerably good
-measurements of it) has been that the two ways of measuring the
-Hubble-Lemaitre constant - inferred from the cosmic microwave
-background (67.4[+-].05 mm/s/parsec) and comparison of red-shifts with
-distance determinations (74.04[+-]1.04 mm/s/parsec) - contradict one
-another (their error bars don't overlap).  The distance determinations
-involve some tricky games with so-called 'standard candles', so there
-is scope for revision to the latter on recalibration of the Type IA
-supernova brightness; one 2021 paper did this and came to 69.8 (with a
-0.6 error-bar from statistical matters, 1.6 more of error bar from
-systematic errors, IIUC) mm/s/parsec.  That's the value I'm currently
-using, if only because its error bar is wide enough to bridge the gap
-between the two previously competing values.
+However, the 'Hubble tension' or 'crisis in cosomology' is about the fact that
+(now that we _do_ have tolerably good measurements of the constant) the
+microwave background data and 'standard candle' approach (sometimes described
+as 'direct measurement') are seriously incompatible [0].  The microwave
+background data gives a value of 67.4 give-or-take 0.5, while the 'direct
+measurement' gives 73.5 give-or-take 1.5, both in units of km/s/Mpc.  So I'm
+currently giving, here, a value whose bounds embrace both of those brackets
+(which is deeply unsound, but the best I can offer).  In early 2024, the data
+don't offer a better answer.
+
+The 'direct measurement' side's 'cosmic distance ladder' begins with parallax
+measurements of the distance to (relatively) nearby Cepheid variables, whose
+variations in brightness let us infer, from their periods of variation, their
+absolute brightness (how bright they'd look when seen from a standard
+distance).  Comparing that to their apparent brightness (as seen from Earth)
+lets us compute the distance of Cepheid variables further away than we can use
+parallax.  We can see Cepheid variables in other nearby galaxies, which tells
+us how far away those are (indeed, this is how Hubble's and Lema&icirc;tre's
+contemporaries worked out the data that led to the recognition of an expanding
+universe).  When a "type 1A supernova" in a nearby galaxy is observed, we can
+thus work out how far away from us it is; combining that with their apparent
+brightness has allowed astronomers to conclude that their absolute brightness
+is always the same.  That, in turn, lets us determine the distances to galaxies
+further away, from the apparent brightness of their type 1A supernovae.
+
+The use of Cepheid variables has been backed up by some 'tip of the red giant
+branch" and 'J-branch asymptotic giant branch' measurements, but there is
+potentially scope for a revision to the cosmic ladder determination of distance
+on a recalibration of Cepheid variables.  One 2021 paper did this and came to
+69.8 (with a 0.6 error-bar from statistical matters, 1.6 more of error bar from
+systematic errors, IIUC) mm/s/parsec.
+
+On the other hand, the microwave story's result depends on a model of the
+universe (called &Lambda;CDM; &Lambda; for the cosmological constant, CDM for
+'Cold Dark Matter'), which may be wrong.
 
 See also: Cosmos.Hubble's attributes length and time.
+[0] https://www.youtube.com/watch?v=3NeKR7bqolY
 """),
 
                 temperature = Quantity.within(
@@ -295,11 +320,10 @@ observe as the cosmic microwave background is 68.52e18 times Earth's surface
 gravity; and the distance at which the universe is accellerating away from us
 (and we accellerate away from it) at this rate is 13.8e39 light years,
 significantly further than the size of the observable universe and so far away
-(see Cosmos.Hubble.length, which is about 14 giga light-year) as to be
-causally decoupled from us; so this is cannot account for the observed
-background (quite apart from Unruh's effect depending on actual accelleration,
-rather than distances merely growing, regardless of the local motions of
-things).
+(see Cosmos.Hubble.length, which is about 14 giga light-year) as to be causally
+decoupled from us; so this cannot account for the observed background (quite
+apart from Unruh's effect depending on actual accelleration, rather than
+distances merely growing, regardless of the local motions of things).
 
 Black holes also produce black-body radiation (see study.space.hole's
 BlackHole); a black hole with the temperature of the cosmic microwave
