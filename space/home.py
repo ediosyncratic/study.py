@@ -430,12 +430,9 @@ Source:
 https://www.mezzacotta.net/100proofs/archives/358
 """),
 
-            Spin(Quantity(day * (1 - day / year.sidereal),
-                          doc="""Rotational period of Earth wrt the fixed stars""",
-                          sample = (24 * hour - 4 * minute + 4 * second,),
-                          # 4.5 Gyr ago, period was 5 hours; and
-                          # Moon.orbit.radius has since *= 10.
-                          fullname="Sidereal Day"),
+            Spin(day.sidereal, # day -4 min +4 seconds
+                 # 4.5 Gyr ago, period was 5 hours; and
+                 # Moon.orbit.radius has since *= 10.
                  # Tilt varies between 22.1 and 24.5 degrees in 41 k yr cycle,
                  # due to reach a minimum in c. 1000 AD; (eh ? ten thousand ?)
                  23.44, # currently decreasing at 47 * arc.second / century
@@ -725,6 +722,7 @@ def KLplanet(name, surface, orbit, mass, density, P=body.Planet, d=kg/litre, **w
 Moon = KLplanet('Moon',
                 KLsurface(.272, .17, Spin(29.4 * day, 5.2), material="silicates"),
                 Orbit(Earth,
+                      # Apogee: 405.5 Mm, Perigee: 363.3 Mm
                       Quantity(.238855, mega * mile,
                                doc = """Distance from Moon to Earth""",
                                sample = (385 * mega * metre,
@@ -769,6 +767,14 @@ Moon.orbit.spin.period.observe(27.32 * day) # NASA
 
 Month = 1/(1/Moon.orbit.spin.period - 1/Earth.orbit.spin.period)
 Moon.surface.spin.period.observe(Month) # tidally locked
+Month.document("""The mean period of lunar phases, as seen from Earth.
+
+Hipparchus (confirmed and) recorded what earlier sources had shown,
+that 4267 times this period is a pretty good approximation to various
+whole number multiples of several other astronomical periods.  See his
+Wikipedia page for details, but two such approximately equal periods
+are are 345 years and 12,607 days.
+""")
 
 del body, Orbit, Spin, Discovery, Surface, SurfacePart, Ocean, Island, Continent, LandMass, \
     Sample, qSample, Quantity, Object, micro, milli, kilo, mega, giga, tera, peta, \
