@@ -211,6 +211,8 @@ and Millikan's quanta.
         # in this file leads to an import dependency loop.
         # https://www.youtube.com/watch?v=3NeKR7bqolY
         70.9, 4, 32.4077 * zepto / second, # 2.26 aHz, c/(14 G yr)
+        # Freedman &c.: (69.1, 1.3) km/s/ mega / parsec
+        # DESI Baryonic oscillations: (68.52, 0.62)
         # km/s/mega/parsec = mm/s/parsec = 32.40 zepto / second
         """The Hubble-Lema&icirc;tre constant.
 
@@ -287,7 +289,7 @@ See also: Cosmos.Hubble's attributes length and time.
 
 The after-glow of the Big Bang shows itself as an almost uniform background
 glow in the sky with the spectrum of an ideal black body (one which absorbs
-light perfectly, regardless of the light's colour) at a temperature of 2.725
+light perfectly, regardless of the light's colour) at a temperature of 2.7248
 Kelvin.
 
 Such a close match to the ideal black body spectrum says a lot in its own
