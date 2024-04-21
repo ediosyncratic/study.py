@@ -314,6 +314,52 @@ past when they were close together.
 
 See http://www.astro.ubc.ca/people/scott/faq_email.html for further details.
 
+== Speed limiting effects ==
+
+The CMB's rest-frame gives a privileged frame of reference in the universe, to
+the extent that anything interacts with it.  For example, particles moving
+through the universe at high energy (cosmic rays) 'see' the CMB red-shifted
+'behind' themselves and blue-shifted 'ahead' of them.  This increases the
+energy (in the particle's rest-frame) of the CMB photons, enabling
+interactions between the particle and the CMB photons, which effects that can
+be similar to those of high-energy particle collisions in CERN and other
+'atom-smashers', such as producing particle-antiparticle pairs, whether as
+separate particles (like the electron and positron) or as composites (such as
+the neutral pion, a superposition of up-antiup with down-antidown combinations
+of quarks).  Since such collisions are between a particle going one way and a
+photon going the other way, the results have less momentum than the original
+particle and the original particle (if it survives at all) will lose some of
+it to the other product(s), thus be moving slower than it was before the
+collision.  Even though CMB photon density is only about 411 per cubic
+centimetre, the eventual inevitability of such collisions implies a 'speed
+limit', below that of light, that high energy particles can only ever go
+faster than for an early part of their journey after being emitted from
+whatever process produced them.
+
+An example of this is the 'GZK limit' on the speed of cosmic ray protons,
+caused by their scattering with photons to produce pions.  The cross-section
+for such scattering is 1e-32 square metres so the mean path-length for a
+proton before its first such CMB photon encounter is 1/(1e-32*411e6) =
+1e26/411 metres or about 25.7 million light years.  (The length-scale of our
+local group of galaxies is shorter than this, but not by much; the distance to
+the nearest galactic cluster is way bigger.)  The typical energy of CMB
+photons in their rest frame is 1.1e-3 eV while the rest-mass of a pion is 135
+MeV, so such collisions are only possible if the photon's energy is
+blue-shifted by a factor 135e6/1.1e-3, about 122.7e9.  That requires the
+proton to be going at, or faster than, (122.7e9**2 -1)/(122.7e9**2 +1) times
+the speed of light; that ratio is 1 -2/122.7e9**2 or 1 -1.3278e-22.  The speed
+of light exceeds this by only 39e-15 m/s, so the speed limit this process
+imposes on protons (relative to the CMB) is barely less than the speed of
+light.  (The time it takes to travel through (in the CMB's rest-frame) 25.7
+million light years is, in the rest-frame of a proton with such a high speed,
+only a matter of hours or days.)
+
+See https://www.youtube.com/watch?v=GsiBo-hArTY for more details, plus its
+passing mention of the so-called 'OMG particle', a cosmic ray once observed
+with an energy of 28e21 eV or about 50 Joules.
+
+== Kindred Radiation ==
+
 Note (see Thermal.Unruh) that an accellerating observer sees black body
 radiation due to the acceleration; and we *are* accellerating away from all of
 the universe (in all directions ! - see Cosmos.Hubble); however, the
