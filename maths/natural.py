@@ -407,6 +407,32 @@ def depower(val, p):
 
     return v, val
 
+def aliquot(n):
+    """Sum of proper factors of n.
+
+    For further details, see
+    https://en.wikipedia.org/wiki/Aliquot_sequence
+    """
+    if n < 0:
+        n = -n
+    return sum(i for i in xrange(1, n) if n % i == 0)
+
+@iterable
+def Aliquot(n):
+    """Iterates aliquot().
+
+    Terminates if it hits zero, which arises just after it hits 1,
+    which arises just after it hits any prime.  Perfect numbers are
+    fixed points so this sequence, once it hits one, will continue
+    repeating it indefinitely.  There are other loops it can land in.
+    No start value has been proven to lead to endless iteration, but
+    some are known to, at least, keep going for a long time without
+    cycling or terminating. For example, 276 produces some pretty big
+    numbers within a few dozen steps."""
+    while n:
+        yield n
+        n = aliquot(n)
+
 @iterable
 def Collatz(n):
     """Iterator for the Collatz conjecture's sequence for n.
