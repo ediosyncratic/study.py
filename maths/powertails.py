@@ -152,7 +152,7 @@ class PowerTails (object):
         low = self.__tiny ** e
         top = 1. / low
         # Mode (only used if between low and top):
-        peak = ((z -1.) / (t +1.)) ** e
+        peak = low if z < 1 else ((z -1.) / (t +1.)) ** e
         # Corners of a triangle to roughly estimate total.
         high = self.__density(peak)
         left, right = low, top # ends of base-line, at height 0
