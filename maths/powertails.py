@@ -36,6 +36,11 @@ class PowerTails (object):
         return self.__moment(n) / self.total
 
     @lazyprop
+    def variance(self):
+        mean = self.moment(1)
+        return self.moment(2) -mean**2
+
+    @lazyprop
     def total(self):
         """Normalization of a one-sided power distribution.
 
