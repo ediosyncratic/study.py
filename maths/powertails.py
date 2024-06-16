@@ -74,7 +74,7 @@ class PowerTails (object):
         self.__tiny = tiny
         self.__cache[(z, t, tiny)] = self
 
-    def __density(self, x):
+    def __density(self, x): # Unnormalised.
         z, t = self.__zt
         return 1/(x**(1 -z) +x**(1 +t))
 
@@ -224,19 +224,15 @@ class PowerTails (object):
         the sub-intervals, yielding from each."""
         # low has already been seen.
         ld, td = self.__deriv(low), self.__deriv(top)
-        # What's the scale of this integral ?
-        if ld > 0:
-            if td >= 0:
-                high = self.__density(top)
-            else:
-                # Evaluate at weighted average of top and low:
-                high = self.__density((ld * top -td * low) / (ld -td))
-        elif td < -ld:
-            # If both decreasing, prefer low; near a minimum, pick the steeper end.
-            high = self.__density(low)
+        # What's the scale of this band of the integral ?
+        if ld > 0 and td < 0: # There's a maximum within the interval.
+            # Evaluate at weighted average of top and low:
+            high = self.__density((ld * top -td * low) / (ld -td))
         else:
-            high = self.__density(top)
-        # This strip as proportion of total:
+            # If both decreasing, prefer low; near a minimum, pick the
+            # steeper end; if both increasing, prefer top.
+            high = self.__density(low if td < -ld else top)
+        # This band as proportion of total:
         scale = high * (top - low) / self.__scale
         # Relative variation in slope, scaled by that:
         r = scale * abs(td - ld) * 2. / (abs(ld) + abs(td))
