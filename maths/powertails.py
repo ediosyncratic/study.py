@@ -9,13 +9,13 @@ the interval is infinite, we need q < -1.  So a density power(-1)/(power(-z)
 written:
 
 * power(z -1)/(1 +power(z +t))
-* power(-1 -t)/(1 +power(-(z +t))
+* power(-1 -t)/(1 +power(-z -t))
 
 The former shows that our distribution is well-approximated by power(z -1) for
 inputs small enough to make power(z +t) ignorable compared to 1, and the latter
 that it is well-approximated by power(-1 -t) when the input is large enough to
-make power(-(z +t)) negligible compared to 1.  These approximations enable us
-to get good estimates of the tails of the distributions.
+make power(-z -t) negligible compared to 1.  These approximations enable us to
+get good estimates of the tails of the distributions.
 
 See study.LICENSE for copyright and license information.
 """
@@ -54,7 +54,7 @@ class PowerTails (object):
         arithmetic integration.  We can take a low-interval (from zero) well
         approximated by power(z -1), with integral power(z)/z evaluated at the
         high end of the interval and a high-interval (to infinity) well
-        approximated by power(-(1 +t)), with integral power(-t)/t evaluated at
+        approximated by power(-1 -t), with integral power(-t)/t evaluated at
         the low end of the interval.  In between we must use brute force on
         intervals, but we can at least chose the widths of the intervals so as
         to use narrower intervals where the density is large enough to matter
@@ -148,7 +148,7 @@ class PowerTails (object):
         in the integrand is at its greatest at the upper end of this tail, so
         we can make the tail integral's fractional error less than tiny by
         picking an upper bound whose power(z +t) is tiny.  Similarly, the
-        upper tail uses power(-(t +1)) as approximation, with fractional error
+        upper tail uses power(-t -1) as approximation, with fractional error
         power(-(z +t)); and the fractional error of the integrand is worst
         at the lower bound, so picking a lower bound at which this power is
         tiny, i.e. power(z +t) is 1/tiny, ensures the integral's fractional
@@ -165,12 +165,12 @@ class PowerTails (object):
         e = 1. / (z +t)
         low = self.__tiny ** e
         top = 1. / low
-        # Mode (only used if between low and top):
+        # Mode (only used as a cut if between low and top):
         peak = low if z < 1 else ((z -1.) / (t +1.)) ** e
         # Corners of a triangle to roughly estimate total.
         high = self.__density(peak)
         left, right = low, top # ends of base-line, at height 0
-        # Points of inflection:
+        # Points of inflection (used as cuts only if in end-intervals):
         inflect = tuple(x ** e for x in self.__inflect() if x > 0)
         # (Raising to power e could be a problem unless +ve; and we only care
         # about +ve anyway.  See also __inflect()'s note on false zero roots.)
@@ -199,7 +199,7 @@ class PowerTails (object):
                 right = peak + (inflect[-1] - peak) * high / (
                     high - self.__density(inflect[-1]))
 
-        # Set __scale before first yield, so __split() can use it:
+        # Set __scale, so __split() can use it:
         self.__scale = (right - left) * .5 * high
         return tuple(seq)
 
@@ -236,8 +236,8 @@ class PowerTails (object):
         if r > self.__tiny:
             n, last = min(16, int(r / self.__tiny)), low
             for i in range(n):
-                x = (top * (1 +i) +(n -i) * low) * 1. / (1 +n)
-                # Rounding might repeat a value or deliver top:
+                x = (top * (1 +i) +(n -i) * low) / (1. +n)
+                # Rounding might repeat a value or foreshadow top:
                 if top > x > last:
                     for c in self.__split(last, x):
                         yield c
