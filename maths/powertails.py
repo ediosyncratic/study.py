@@ -23,7 +23,7 @@ class PowerTails (object):
             return cls(z, t, tiny)
 
     def moment(self, n):
-        return self.__moment(n)
+        return self.__moment(n) / self.total
 
     @lazyprop
     def total(self):
