@@ -158,10 +158,9 @@ class PowerTails (object):
         +t)*power(t) equals (z -1)/power(z), so (z -1)/(t +1) is power(z
         +t).  The same power likewise arises in the points of inflection.
 
-        In the course of constructing a sequence of cuts from these values, and
-        before yielding any of them, also compute an order-of-magnitude
-        estimate of total and store it as self.__scale, for later use by
-        __split()."""
+        In the course of constructing a sequence of cuts from these values,
+        also compute an order-of-magnitude estimate of total and store it as
+        self.__scale, for later use by __split()."""
         z, t = self.__zt
         e = 1. / (z +t)
         low = self.__tiny ** e
@@ -202,12 +201,10 @@ class PowerTails (object):
 
         # Set __scale before first yield, so __split() can use it:
         self.__scale = (right - left) * .5 * high
-
-        for cut in seq:
-            yield cut
+        return tuple(seq)
 
     def __finecuts(self):
-        seq = self.__cuts()
+        seq = iter(self.__cuts())
         last = next(seq)
         yield last
 
