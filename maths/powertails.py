@@ -5,7 +5,17 @@ over that same interval, provided q is not -1 (where we get log, instead; and
 this goes to infinities at zero and infinity).  For this to be finite with one
 end of the interval zero, we need 1+q > 0; for it to be finite when one end of
 the interval is infinite, we need q < -1.  So a density power(-1)/(power(-z)
-+power(t)) is normalisable for z and t positive.
++power(t)) is normalisable for z and t positive.  This can alternatively be
+written:
+
+* power(z -1)/(1 +power(z +t))
+* power(-1 -t)/(1 +power(-(z +t))
+
+The former shows that our distribution is well-approximated by power(z -1) for
+inputs small enough to make power(z +t) ignorable compared to 1, and the latter
+that it is well-approximated by power(-1 -t) when the input is large enough to
+make power(-(z +t)) negligible compared to 1.  These approximations enable us
+to get good estimates of the tails of the distributions.
 
 See study.LICENSE for copyright and license information.
 """
