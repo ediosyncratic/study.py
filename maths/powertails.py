@@ -183,61 +183,67 @@ class PowerTails (object):
         return tuple(seq)
 
     def __finecuts(self):
-        seq = iter(self.__cuts())
-        last = next(seq)
-        yield last
+        """Supplies the discretised integral's data.
 
-        for cut in seq:
-            for c in self.__split(last, cut):
-                yield c
-            last = cut
+        Yields a succession of (variate, density) pairs describing a piecewise
+        linear approximation to the density, with only tiny proportionate
+        errors in areas."""
+        seq = ((cut, self.__density(cut)) for cut in self.__cuts())
+        last, initial = next(seq)
+        yield last, initial
 
-    def __split(self, low, top):
+        for top, final in seq:
+            for last, initial in self.__split(last, initial, top, final):
+                yield last, initial
+
+    def __split(self, low, initial, top, final):
         """Subdivide an interval, if necessary.
 
-        Parameters are the lower and upper ends of an interval, low and top: it
-        is assumed that low has already been yielded.  If the interval is
-        narrow enough to contribute negligible fractional error to the
-        integral, this generator simply yields top.  Otherwise, it sub-divides
-        the interval and calls itself recursively on the sub-intervals,
-        yielding from each."""
-        # low has already been seen.
+        Parameters are the bounds of the interval:
+
+          low -- the variate value at the lower end
+          initial -- the density at the lower end
+          top -- the variate value at the upper end
+          final -- the density at the final end
+
+        If the interval is narrow enough to contribute negligible fractional
+        error to the integral, this generator simply yields (top, final).
+        Otherwise, it sub-divides the interval and calls itself recursively on
+        the sub-intervals, yielding (variate, density) pairs from each."""
+        # low has already been seen, with the given initial value.
         ld, td = self.__deriv(low), self.__deriv(top)
         # What's the scale of this band of the integral ?
         if ld > 0 and td < 0: # There's a maximum within the interval.
             # Evaluate at weighted average of top and low:
             high = self.__density((ld * top -td * low) / (ld -td))
         else:
-            # If both decreasing, prefer low; near a minimum, pick the
-            # steeper end; if both increasing, prefer top.
-            high = self.__density(low if td < -ld else top)
+            high = max(initial, final)
         # Fractional error estimate:
         r = abs(td - ld) * (top - low) / high
 
         if r > self.__tiny:
             n, last = min(8, int(r / self.__tiny)), low
+            # Split into n+1 bands, with n new cut-points:
             for i in range(n):
                 x = (top * (1 +i) +(n -i) * low) / (1. +n)
                 # Rounding might repeat a value or foreshadow top:
                 if top > x > last:
-                    for c in self.__split(last, x):
-                        yield c
-                    last = x
+                    for last, initial in self.__split(last, initial,
+                                                      x, self.__density(x)):
+                        yield last, initial
             assert top > last
-            for c in self.__split(last, top):
-                yield c
+            for last, initial in self.__split(last, initial, top, final):
+                yield last, initial
         else:
-            yield top
+            yield top, final
 
     def __bands(self):
         z, t = self.__zt
         seq = self.__finecuts()
-        last = next(seq)
+        last, left = next(seq)
         yield last ** z / z
 
-        left = self.__density(last)
-        for cut in seq:
-            here = self.__density(cut)
+        for cut, here in seq:
             yield (cut - last) * .5 * (here + left)
             last, left = cut, here
 
