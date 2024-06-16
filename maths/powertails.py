@@ -25,7 +25,7 @@ from study.snake.infinite import Infinite
 class PowerTails (object):
     __cache = {}
     @classmethod
-    def instance(cls, z, t, tiny = .01):
+    def instance(cls, z, t, tiny = 1e-6):
         key = z, t, tiny
         try:
             return cls.__cache[key]
@@ -156,51 +156,30 @@ class PowerTails (object):
 
         The peak has derivative zero; the condition for this is that (1
         +t)*power(t) equals (z -1)/power(z), so (z -1)/(t +1) is power(z
-        +t).  The same power likewise arises in the points of inflection.
-
-        In the course of constructing a sequence of cuts from these values,
-        also compute an order-of-magnitude estimate of total and store it as
-        self.__scale, for later use by __split()."""
+        +t).  The same power likewise arises in the points of inflection."""
         z, t = self.__zt
         e = 1. / (z +t)
         low = self.__tiny ** e
         top = 1. / low
+        seq = [low, top]
+
         # Mode (only used as a cut if between low and top):
-        peak = low if z < 1 else ((z -1.) / (t +1.)) ** e
-        # Corners of a triangle to roughly estimate total.
-        high = self.__density(peak)
-        left, right = low, top # ends of base-line, at height 0
+        if z < 1:
+            peak = ((z -1.) / (t +1.)) ** e
+            if low < peak < top:
+                seq.insert(1, peak)
+
         # Points of inflection (used as cuts only if in end-intervals):
         inflect = tuple(x ** e for x in self.__inflect() if x > 0)
         # (Raising to power e could be a problem unless +ve; and we only care
         # about +ve anyway.  See also __inflect()'s note on false zero roots.)
-
-        seq = [low, top]
-        if low < peak < top:
-            seq.insert(1, peak)
-        elif peak < top:
-            left = peak
-        else:
-            assert peak > low
-            right = peak
-
         if inflect:
             if low < inflect[0] < seq[1]:
                 seq.insert(1, inflect[0])
 
-            if left < inflect[0] < peak:
-                left = peak - (peak - inflect[0]) * high / (
-                    high - self.__density(inflect[0]))
-
             if seq[-2] < inflect[-1] < top:
                 seq.insert(-1, inflect[-1])
 
-            if peak < inflect[-1] < right:
-                right = peak + (inflect[-1] - peak) * high / (
-                    high - self.__density(inflect[-1]))
-
-        # Set __scale, so __split() can use it:
-        self.__scale = (right - left) * .5 * high
         return tuple(seq)
 
     def __finecuts(self):
@@ -216,12 +195,12 @@ class PowerTails (object):
     def __split(self, low, top):
         """Subdivide an interval, if necessary.
 
-        Parameters are the lower and upper ends of an interval, low
-        and top: it is assumed that low has already been yielded.  If
-        the interval is narrow enough to contribute negligible error
-        to the integral, this generator simply yields top.  Otherwise,
-        it sub-divides the interval and calls itself recursively on
-        the sub-intervals, yielding from each."""
+        Parameters are the lower and upper ends of an interval, low and top: it
+        is assumed that low has already been yielded.  If the interval is
+        narrow enough to contribute negligible fractional error to the
+        integral, this generator simply yields top.  Otherwise, it sub-divides
+        the interval and calls itself recursively on the sub-intervals,
+        yielding from each."""
         # low has already been seen.
         ld, td = self.__deriv(low), self.__deriv(top)
         # What's the scale of this band of the integral ?
@@ -232,10 +211,8 @@ class PowerTails (object):
             # If both decreasing, prefer low; near a minimum, pick the
             # steeper end; if both increasing, prefer top.
             high = self.__density(low if td < -ld else top)
-        # This band as proportion of total:
-        scale = high * (top - low) / self.__scale
-        # Relative variation in slope, scaled by that:
-        r = scale * abs(td - ld) * 2. / (abs(ld) + abs(td))
+        # Fractional error estimate:
+        r = abs(td - ld) * (top - low) / high
 
         if r > self.__tiny:
             n, last = min(8, int(r / self.__tiny)), low
