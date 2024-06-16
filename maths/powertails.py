@@ -214,6 +214,14 @@ class PowerTails (object):
             last = cut
 
     def __split(self, low, top):
+        """Subdivide an interval, if necessary.
+
+        Parameters are the lower and upper ends of an interval, low
+        and top: it is assumed that low has already been yielded.  If
+        the interval is narrow enough to contribute negligible error
+        to the integral, this generator simply yields top.  Otherwise,
+        it sub-divides the interval and calls itself recursively on
+        the sub-intervals, yielding from each."""
         # low has already been seen.
         ld, td = self.__deriv(low), self.__deriv(top)
         # What's the scale of this integral ?
@@ -242,7 +250,11 @@ class PowerTails (object):
                     for c in self.__split(last, x):
                         yield c
                     last = x
-        yield top
+            assert top > last
+            for c in self.__split(last, top):
+                yield c
+        else:
+            yield top
 
     def __bands(self):
         z, t = self.__zt
