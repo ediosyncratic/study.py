@@ -238,7 +238,7 @@ class PowerTails (object):
         r = scale * abs(td - ld) * 2. / (abs(ld) + abs(td))
 
         if r > self.__tiny:
-            n, last = min(16, int(r / self.__tiny)), low
+            n, last = min(8, int(r / self.__tiny)), low
             for i in range(n):
                 x = (top * (1 +i) +(n -i) * low) / (1. +n)
                 # Rounding might repeat a value or foreshadow top:
