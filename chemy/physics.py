@@ -85,32 +85,32 @@ so that we can treat it as dimensionless.
     permeability = Quantity(.4 * pi, micro * Henry / metre, # definition
                             """Magnetic permeability of free space.
 
-The magnetic force per unit length between two long parallel wires a distance
-R apart carrying currents j and J is j*J/R/2/pi times the magnetic permeability of
-the medium between them.  The definition of the Ampere fixes the value for
+The magnetic force per unit length between two long parallel wires a distance R
+apart carrying currents j and J is j*J/R/2/&pi; times the magnetic permeability
+of the medium between them.  The definition of the Ampere fixes the value for
 the permeability of free space.
 """))
 
 Vacuum.also(
     # TODO: units of angle ?  See discussion on fine structure angle.
     Z0 = Quantity(Vacuum.c, Vacuum.permeability,
-                  """Impedance of free space, Z0.
+                  """Impedance of free space, Z_0.
 
 This is the square root of the ratio of the vacuum's magnetic permeability and
 electric permittivity, whose product is 1/c/c.  Thus:
 
-    c*c*epsilon0*mu0 = 1
-    Z0*Z0 = mu0/epsilon0
+    c*c*&epsilon;_0*&mu;_0 = 1
+    Z_0*Z_0 = &mu;_0/&epsilon;_0
 
 whence we may infer:
 
-    Z0 = c*mu0
-    c*Z0*epsilon0 = 1
+    Z_0 = c*&mu;_0
+    c*Z_0*&epsilon;_0 = 1
 
-so that c and Z0 suffice to determine the permeability and permittivity of
+so that c and Z_0 suffice to determine the permeability and permittivity of
 free space.  Note that, since c has (by the definition of the metre) an exact
-integer value and mu0 is (by the definition of the Ampere) exactly pi*4e-7,
-the values of Z0 and epsilon0 are also exact.
+integer value and &mu;_0 is (by the definition of the Ampere) exactly
+&pi;*4e-7, the values of Z_0 and &epsilon;_0 are also exact.
 """),
     mu0 = Vacuum.permeability)
 
@@ -120,8 +120,8 @@ Vacuum.also(
     permittivity = Quantity(1 / Vacuum.c, 1 / Vacuum.Z0,
                             """Electrical permittivity of free space.
 
-The electrostatic force between two point charges q and Q a distance R apart
-is q*Q / (4 * pi * R**2) divided by the permittivity of the medium between the
+The electrostatic force between two point charges q and Q a distance R apart is
+q*Q / (4 * &pi; * R**2) divided by the permittivity of the medium between the
 charges.
 """),
     fineStructureAngle = Quantity(Quantum.Millikan**2, Vacuum.Z0 / Quantum.Planck,
@@ -138,16 +138,17 @@ fine structure constant; it a smidgin more than: radian/11; or five and a
 quarter degrees of arc.  This is about the angle, about the Sun, through which
 Earth moves in five and a third days (5d 7h 55m 37.8s).
 
-An alternative approach to this would be to infer that Z0/turn is what we should
-really be using in place of Z0, making it an impedance / angle.  That, in turn,
-tells us to use mu0 / turn (1/5 micro Henry / metre / radian) in place of mu0
-and epsilon0 * turn (about 55.632503 pico Farad Radian / metre) in place of
-epsilon0.  The definition of mu0 in terms of force = j*J*mu0/R/2/pi, does
-encourage mu0/turn as a unit, making this force = j*J*mu0*radian/R, although
-dividing radian by a radius feels somewhat unnatural.  The case of e0, which
-commonly teams up with factors of 4*pi, rather than 2*pi, could be construed as
-a hint that it'd sooner implicate the steradian, suggesting e0*radian**2 would
-be a more natural quantity, rather than e0*turn.
+An alternative approach to this would be to infer that Z_0/turn is what we
+should really be using in place of Z_0, making it an impedance / angle.  That,
+in turn, tells us to use &mu;_0 / turn (1/5 micro Henry / metre / radian) in
+place of &mu;_0 and &epsilon;_0 * turn (about 55.632503 pico Farad Radian /
+metre) in place of &epsilon;_0.  The definition of &mu;_0 in terms of force =
+j*J*&mu;_0/R/2/&pi;, does encourage &mu;_0/turn as a unit, making this force =
+j*J*&mu;_0*radian/R, although dividing radian by a radius feels somewhat
+unnatural.  The case of e0, which commonly teams up with factors of 4*&pi;,
+rather than 2*&pi;, could be construed as a hint that it'd sooner implicate the
+steradian, suggesting e0*radian**2 would be a more natural quantity, rather
+than e0*turn.
 
 All of which hints that a systematic investigation of the proper description of
 physics without ignoring units of angle (i.e. treating radian as a dimensionless
@@ -159,22 +160,22 @@ Vacuum.alpha = Quantity(0.5, Vacuum.fineStructureAngle / turn,
 
 The fine structure constant arises naturally in the perturbation expansions of
 various physical quantities.  It is a dimensionless quantity which expresses
-the charge on the electron (Millikan's quantum) in terms of the natural unit
-of charge, sqrt(h/Z0), one can obtain (after the style of Planck's units, see
+the charge on the electron (Millikan's quantum) in terms of the natural unit of
+charge, sqrt(h/Z_0), one can obtain (after the style of Planck's units, see
 chemy.planck.Planck) from Planck's constant, h, and the impedance of free
-space, Z0.  The definitive formula for the fine structure constant is:
+space, Z_0.  The definitive formula for the fine structure constant is:
 
-    e**2 / (4 * pi * epsilon0 * hbar * c)
+    e**2 / (4 * &pi; * &epsilon;_0 * &hbar; * c)
 
-or, equivalently (as 2*pi*hbar is h and epsilon0*c*Z0 is 1):
+or, equivalently (as 2*&pi;*&hbar; is h and &epsilon;_0*c*Z_0 is 1):
 
-    e**2 * (Z0 / h) / 2
+    e**2 * (Z_0 / h) / 2
 
 as expressed here.  I am given to believe that the fine-structure splitting of
 the spectrum of Hydrogen (and, I am thus inclined to guess, other quantum
 electrodynamic systems) is expressed as a power-series in 2*alpha, which the
-latter formula gives as the ratio of e**2 and h/Z0; so we could rewrite the
-power series in terms of e/&radic;(h/Z0).
+latter formula gives as the ratio of e**2 and h/Z_0; so we could rewrite the
+power series in terms of e/&radic;(h/Z_0).
 
 See Vacuum.fineStructureAngle for the associated angle that arises when that
 factor of two and the factor of turn hiding in h are not divided out.
@@ -408,7 +409,7 @@ rate of expansion varies, as is believed to be the case; instead, you
 get log(r.H/c +1) as the integral of H over the period of time the
 light has been travelling.
 """),
-                   # volume = length **3, optionally times 4*pi/3
+                   # volume = length **3, optionally times 4*&pi;/3
                    time = Quantity(1, 1 / Cosmos.Hubble,
                                    """The Hubble time.
 
@@ -424,21 +425,21 @@ distance without the expansion of the space it's passed through.
 """))
 
 # Smollin's quantum dual of cosmological time is (give or take factors of c)
-# kappa * hbar times the cosmological constant.  The kappa * hbar in that is
-# an area; the Planck area times some factors of two and pi.
+# kappa * &hbar; times the cosmological constant.  The kappa * &hbar; in that
+# is an area; the Planck area times some factors of two and &pi;.
 Cosmos.also(kappa = Quantity(8 * pi, Cosmos.G / Vacuum.c**3,
                              """Einstein's constant of gravitation.
 
-One side of Einstein's field equation for general relativity is constructed
-out of the the metric of space-time (describing distances), the Ricci tensor
-(which describes space-time's curvature) and the cosmological constant.  The
-other side is just the energy-momentum-stress tensor (which describes matter
-and related phenomena, such as the electromagnetic field) scaled by Einstein's
-gravitational constant, usually called &kappa;, which is 8 * pi times Newton's
-gravitational constant divided by a suitable power of the speed of
-light.  Thus &kappa; has the dimensions of a length per mass, give or take
-some factors of velocity (which is nominally dimensionless - like angles, only
-more convincingly so).
+One side of Einstein's field equation for general relativity is constructed out
+of the the metric of space-time (describing distances), the Ricci tensor (which
+describes space-time's curvature) and the cosmological constant.  The other
+side is just the energy-momentum-stress tensor (which describes matter and
+related phenomena, such as the electromagnetic field) scaled by Einstein's
+gravitational constant, usually called &kappa;, which is 8 * &pi; times
+Newton's gravitational constant divided by a suitable power of the speed of
+light.  Thus &kappa; has the dimensions of a length per mass, give or take some
+factors of velocity (which is nominally dimensionless - like angles, only more
+convincingly so).
 """),
             qperm = Quantity(1, (4 * pi * Cosmos.G * Vacuum.permittivity)**.5,
                              """The Einstein/Maxwell Charge-to-Mass ratio.
@@ -450,11 +451,10 @@ gravitational constants:
    d^f = 0, d^((sqrt(-det(g)))(g\\f/g)) = 0
    f/g\\f -g.trace(f/g\\f/g)/4 = R -g.(trace(R/g)/2 -L)
 
-where R is the Ricci tensor, L is the cosmological constant and f is the
-result of multiplying the relativistic electromagnetic tensor (usually called
-F, which encodes E and B.c), by the charge-to-mass ratio,
-sqrt(4.pi.G/epsilon0), given here, then dividing by the square of the speed of
-light.
+where R is the Ricci tensor, L is the cosmological constant and f is the result
+of multiplying the relativistic electromagnetic tensor (usually called F, which
+encodes E and B.c), by the charge-to-mass ratio, sqrt(4.&pi;.G/&epsilon;_0),
+given here, then dividing by the square of the speed of light.
 
   The use, here, of /g\\ means the same as contracting via g's inverse; while
   the use of /g means the same as contracting with g's inverse (on the
@@ -521,7 +521,7 @@ almost eV/30.
 
 The total radiant power output per unit area from a black body at temperature
 T is given by sigma T**4 where sigma is the Stefan-Boltzmann constant,
-        sigma = pi**2 * k**4 / 60 / c**2 / hbar**3
+        sigma = &pi;**2 * k**4 / 60 / c**2 / &hbar;**3
 
 See also: Radiator.total (in study.chemy.thermal) and BlackHole.luminosity (in
 study.space.hole); notably (in the latter) the observation that the above law
@@ -547,8 +547,8 @@ Thermal.also(Boltzmann = Thermal.k,
 A black hole radiates away energy after the manner of a black body of
 temperature T given by
 
-      k * T = hbar * g / 2 / pi / c = hbar * c / 4 / pi / r
-            = hbar / kappa / M
+      k * T = &hbar; * g / 2 / &pi; / c = &hbar; * c / 4 / &pi; / r
+            = &hbar; / kappa / M
 
 where g is its 'surface' gravity G.M/r/r = c.c/2/r and r is its Schwarzschild
 radius.  The product M.T is thus the constant given here as the Hawking
@@ -562,12 +562,12 @@ constant of proportionality between T and g in the above.
 An accellerating observer, with accelleration a, observes black-body radiation
 corresponding to a temperature T, related by the equation
 
-      k * T = hbar * a / 2 / pi / c
+      k * T = &hbar; * a / 2 / &pi; / c
 
 This is exactly analogous to the radiation from a black body whose surface
 gravity is a - see Thermal.Hawking.  The constant given here is
 
-      a / T = 2 * pi * c * k / hbar.
+      a / T = 2 * &pi; * c * k / &hbar;.
 """))
 
 Volt.electron = Quantity(Quantum.Millikan, Volt, """The Electron Volt.
