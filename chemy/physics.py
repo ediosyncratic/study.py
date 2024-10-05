@@ -82,13 +82,14 @@ so that we can treat it as dimensionless.
     # TODO: units of angle ! 0.2 micro Henry / metre / radian ?
     # I have two names for each affected unit, so can make one orthodox and
     # the other sensible ...
-    permeability = Quantity(.4 * pi, micro * Henry / metre, # definition
+    permeability = Quantity(.4 * pi, micro * Henry / metre, # pre-2019 definition
                             """Magnetic permeability of free space.
 
 The magnetic force per unit length between two long parallel wires a distance R
 apart carrying currents j and J is j*J/R/2/&pi; times the magnetic permeability
-of the medium between them.  The definition of the Ampere fixes the value for
-the permeability of free space.
+of the medium between them.  The definition of the Ampere used to fix the value
+for the permeability of free space to &pi;*4e-7, but the 2019 redefinition
+rendered this merely a very accurate approximation.
 """))
 
 Vacuum.also(
@@ -109,8 +110,12 @@ whence we may infer:
 
 so that c and Z_0 suffice to determine the permeability and permittivity of
 free space.  Note that, since c has (by the definition of the metre) an exact
-integer value and &mu;_0 is (by the definition of the Ampere) exactly
-&pi;*4e-7, the values of Z_0 and &epsilon;_0 are also exact.
+integer value and &mu;_0 was (by the pre-2019 definition of the Ampere) exactly
+&pi;*4e-7, the values of Z_0 and &epsilon;_0 also used to be exact.  However,
+the 2019 revision of the definition of the Coulomb, to give a specified value
+for Millikan's quantum, makes the value of &mu;_0 only very well approximated
+by &pi;*4e-7 and, thus, the values of Z_0 and &epsilon;_0 or likewise only
+(very well) approximated by their former values.
 """),
     mu0 = Vacuum.permeability)
 
