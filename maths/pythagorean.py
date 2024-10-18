@@ -23,7 +23,6 @@ class Triangle (Triangle):
     smallest circle that encloses the triangle, passing through its
     vertices, is simply half the hypotenuse; unless an even scale was
     passed to the constructor, they hypotenuse is odd.)
-
     """
     def __init__(self, i, j, scale = 1):
         """Set up the data that determines all properties.
@@ -38,6 +37,19 @@ class Triangle (Triangle):
         self.__scale = scale
         # Deliberately not calling base's __init__(), as we provide
         # edges as a property.
+
+    def __hash__(self):
+        return hash(tuple(sorted(self.edges)))
+    def __cmp__(self, other):
+        return cmp(sorted(self.edges), sorted(other.edges))
+
+    @property
+    def indices(self):
+        return self.__ij
+
+    @property
+    def scale(self):
+        return self.__scale
 
     @lazyprop
     def edges(self):
@@ -62,8 +74,8 @@ class Triangle (Triangle):
         shall be odd.
 
         Of course, any scaling of one of these is also a pythagorean
-        triangle.  See Triangles.coprime() for the same triangle
-        rescaled to make its sides mutually coprime.  Every
+        triangle.  See Triangles.coprime() for the same triangle's
+        edges rescaled to make its sides mutually coprime.  Every
         pythagorean triangle has this form, for some i, j and
         scaling.\n"""
 
@@ -109,6 +121,45 @@ class Triangle (Triangle):
         i, j = self.__ij
         return (2 * j +1) * (i -j)
 
+    def scaled(self, scale):
+        """Returns a scaled version of self.
+
+        This has the same .coprime and .indices as self, but each
+        entry in .edges is scaled by the given factor.\n"""
+        i, j = self.__ij
+        return Triangle(i, j, scale * self.__scale)
+
+    def join(self, other, flip=False):
+        """Returns a result of combining two triples.
+
+        Required argument, other, is a Triangle object; optional
+        second argument, flip, controls which way round it is combined
+        with self.  Returns a Triangle, in coprime form, one of whose
+        non-right angles is the sum of self's smallest angle and one
+        of other's non-right angles, or throws ValueError if this
+        angle would be a whole-number multiple of a right angle (as
+        will happen for t.join(t, True), see below).
+
+        By default, when flip is false, the smalest angle of other's
+        triangle is added to self's smallest; passing a true value for
+        flip will instead select other's larger non-right angle.  Note
+        that, since each triangle's non-right angles add up to a right
+        angle, other.join(self, True) == self.join(other, True) and
+        the triangle that would result from adding the larger
+        non-right angle of each is equivalent to self.join(other) and
+        other.join(self); angles that add up to a half turn have the
+        same Sin and the Cos of each is simply minus the other, so
+        they describe the same right-angle triangle (for our
+        purposes).\n"""
+
+        n, m, k = sorted(self.coprime)
+        f, e, h = sorted(other.coprime)
+        if flip: f, e = e, f
+        # Cos(a) = m/k, Sin(a) = n/k
+        # Cos(b) = e/h, Sin(a) = f/h
+        # Cos(a+b) = (e*m -n*f)/k/h, Sin(a+b) = (e*n +m*f)/k/h
+        return self.fromEdges(k * h, e * m -n * f, e * n + m * f)
+
     @classmethod
     def fromEdges(cls, h, e, n = None):
         """Construct a Triangle from the lengths of its sides.
@@ -127,8 +178,12 @@ class Triangle (Triangle):
         imply a valid pythagorean triple; or if the triangle it
         represents is degenerate (has a zero edge).
 
-        Infers the i, j and scale needed to construct this triple as a
-        Triangle and returns that Triangle.\n"""
+        Infers the i, j and scale needed to construct the coprime form
+        of this triple as a Triangle and returns that Triangle,
+        suitably scaled if needed so that its .edges include each of
+        the parameters passed to this pseudo-constructor.
+
+        See also: study.maths.polygon.Triangle's fromEdges().\n"""
         if n is None:
             n, r = cls.__sqrt(h * h - e * e)
             if r:
@@ -244,6 +299,10 @@ from study.snake.sequence import Ordered, Iterable
 class Triangles (Iterable):
     """Iterator over known coprime pythagorean triples."""
     def __iter__(self):
+        return self.__iter()
+
+    @classmethod
+    def __iter(cls):
         for hen in cls.__cache: yield hen
         extra = [] # TODO - FIXME: proper safety under async access by many instances
         cls.__fresh.append(extra)
@@ -288,5 +347,48 @@ class Triangles (Iterable):
                     # BUG: anything appended between pop and append got missed :-(
             except IndexError: i = 0
             else: i += 1
-
+
 del Ordered, Iterable
+
+def circles(bound):
+    """Iterates whole-radius circles on which whole-co-ordinate points lie.
+
+    Takes one argument, bound.  Each yield is a pair of a radius r,
+    less than or equal to bound, and a sequence of (e, n) pairs for
+    which hypot(e, n) == r, with r and each e and n being positive
+    whole numbers.\n"""
+    bok = {}
+    for edj in Triangles():
+        hyp = edj[0]
+        if hyp > bound:
+            # Shall all future hypotenuses exceed bound ?
+            if (hyp + edj[1] - 1) / 2 + 1 > bound:
+                break
+            continue
+        # Is this a new hypotenuse (i.e. radius) ?
+        prior = hyp in bok
+        if prior: seq = bok[hyp]
+        else: seq = bok[hyp] = set()
+
+        tri = Triangle.fromEdges(*edj)
+        for h, s in bok.items():
+            if h == hyp: continue
+            if hyp % h == 0 and not prior:
+                seq.update(t.scaled(hyp // h) for t in s)
+            elif h % hyp == 0:
+                s.add(tri.scaled(h // hyp))
+        seq.add(tri)
+
+    for h in sorted(bok):
+        assert all(t.edges[0] == h for t in bok[h])
+        yield h, tuple(t.edges[1:] for t in bok[h])
+
+def svgCircles(maxRadius=1024, minCount=2):
+    seq = tuple(s for s in circles(maxRadius) if len(s[1]) >= minCount)
+    big = max(len(s) for r, s in seq)
+    for r, s in seq:
+        yield ('<path d="M0,{0} A{0},{0} 0,0,0 {0},0" stroke="#{1}{1}{1}" />'
+               .format(r, hex(int(200 - len(s) * 160 / big))[2:]),
+               ('<!-- radius {} -->'.format(r),) +
+               tuple('<circle r="2" cx="{0}" cy="{1}" />'
+                     '<circle r="2" cx="{1}" cy="{0}" />'.format(*p) for p in s))
