@@ -1,7 +1,15 @@
 """Atomic energy levels.
 
-A good reference for these is Leonard I. Schiff's 'quantum mechanics'; page
-numbers quoted here are for the third edition.
+A good reference for these is Leonard I. Schiff's 'quantum mechanics';
+page numbers quoted here are for the third edition.
+
+Classes, each describing the spatial variation of a quantum system's
+wave-function:
+
+  Hermite -- simple harmonic oscillator
+  Laguerre -- underlies Radial
+  Radial -- radial variation for the Coulomb potential
+  Orbit -- spatial variation for the Coulomb potential
 
 See study.LICENSE for copyright and license information.
 """
@@ -9,45 +17,96 @@ from study.maths.polynomial import Polynomial
 from study.maths.natural import hcf
 
 class Hermite (Polynomial):
+    """The (physicists') Hermite polynomials.
+
+    Property scale (is lazily computed and) is the result of integrating the
+    polynomial's square, times twice exp&on;negate&on;square / &radic;pi.
+    Pseudo-constructor normalised(n) returns the instance of order n normalised
+    to make scale 1.\n"""
     __upinit = Polynomial.__init__
-    def __init__(self, n):
+    def __init__(self, n, denom = None):
         """Polynomial for quantum simple harmonic oscillators.
 
-        Single argument is the order of the polynomial.  The constructed
-        polynomial has positive leading order term with integers for all
-        coefficients, sharing no common factor among them.
+        Required argument is the order of the polynomial.  By default, the
+        constructed polynomial has positive leading order term with integers
+        for all coefficients.  Optional second argument, denom, is a number by
+        which to divide the canonical form of the polynomial, or None (its
+        default) to use the highest common factor of its coefficients, which is
+        always a multiple of 2**((n +1)//2); pass 1 to get the canonical form
+        of the function.  See .normalised() for the unit-scaled version.
 
         See: http://www.chaos.org.uk/~eddy/physics/harmonic.xhtml
         or Schiff p. 69.\n"""
+        self.__upinit(enumerate(self.__coefs(n)),
+                      self.__coefs(n, True) if denom is None else denom)
+        assert self.rank == n
 
-        self.__upinit(self.__coefs(n))
+    @classmethod
+    def __coefs(cls, n, justGcd = False, cache=[(1,)], gcd = hcf):
+        """If H(n) is the one of these of degree n, then
 
-    @staticmethod
-    def __coefs(n, gcd=hcf):
-        bok, e = {n: 1}, n
-        while n > 1:
-            n -= 2
-            v = -(n + 1) * (n + 2) * bok[n + 2] // 2
-            a = gcd(v, e - n)
-            # Nominally, we add bok[n] = v/(e-n) but then rescale all
-            # co-efficients to make that whole; really, scale all others
-            # by (e-n)/a and set bok[n] = v/a.
-            assert a > 0 and (e - n) % a == 0 == v % a, 'Euclid failed !'
-            b = (e - n) // a
-            for k in bok.iterkeys(): bok[k] *= b
-            bok[n] = v // a
+          H(n)*G = repeat(n, lambda f: -f', G)
 
-        return bok.iteritems()
+        in which G(x) = exp(-x*x), -G' = 2*power(1)*G, so
+
+          H(n+1)*G = -(H(n)*G)' = 2*power(1)*H(n)*G -H(n)'*G
+
+        which enables us to iteratively determine these polynomials as
+
+          H(n+1) = 2*power(1)*H(n) -H(n)'
+
+        which we can cache as we compute higher order cases.\n"""
+        if n < 0 or not isinstance(n, int):
+            raise ValueError("Hermite polynomials have natural order", n)
+
+        while n >= len(cache):
+            h = cache[-1]
+            # Derivative, with zero coefficients for two more powers:
+            hd = tuple(i * c for i, c in enumerate(h[1:], 1)) + (0, 0)
+            # 2.power(1).h:
+            zh = (0,) + tuple(2 * x for x in h)
+            cache.append(tuple(z -d for z, d in zip(zh, hd)))
+
+        assert not divmod(gcd(*cache[n]), 2 ** divmod(n +1, 2)[0])[1], cache[n]
+        return gcd(*cache[n]) if justGcd else cache[n]
 
     def _lazy_get_scale_(self, ig, square=Polynomial.power(2)):
+        """Scaling needed to normalise.
+
+        Since self is a sum either of odd powers or of even powers, its square
+        is a sum of even powers; when that square is written as a polynomial P
+        in the square of self's parameter, P(x*x) = self(x)*self(x), P has the
+        same rank as self.  Each g(i).power(i) term in P contributes
+        g(i).(2.i)!/i!/power(i, 4) = g(i).(i -1/2).(i -3/2)...(3/2).(1/2) to
+        the sum computed here.
+
+        With n = self.rank, this makes the sum
+
+          ((...(g(n)*(2*n -1)/2 +g(n-1))*(2*n -3)/2 +... +g(2))*3/2 +g(1))*1/2 +g(0)
+
+        which is computed iteratively here.\n"""
+        # Either all terms in self have odd order or all have even order, so
+        # self's square's terms are all of even order:
         grand = (self * self).unafter(square)
-        n, ans = grand.rank, 0
-        while n > -1:
-            ans *= n + .5
-            ans += grand.coefficient(n)
+        n = grand.rank
+        assert n == self.rank, grand
+        ans = grand.coefficient(n)
+        while n > 0:
             n -= 1
-        assert ans * 2**(self.rank % 2) == reduce(lambda x, y: x * (y+1), range(self.rank), 1)
-        return ans # * (h/k/m/2)**.5
+            if isinstance(ans, int):
+                ans *= 2 * n + 1
+                ans, r = divmod(ans, 2)
+                if r: ans += .5
+            else:
+                ans *= n + .5
+            ans += grand.coefficient(n)
+
+        return ans
+
+    @classmethod
+    def normalised(cls, n):
+        h = cls(n, 1)
+        return cls(n, h.scale**.5)
 
 class Laguerre (Polynomial):
     """The Laguerre polynomials.
