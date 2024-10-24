@@ -1,5 +1,7 @@
 """Computing the digits of e
 
+Compare digex.py which does similar for general exp(x).
+
 See study.LICENSE for copyright and license information.
 """
 import math
@@ -77,6 +79,7 @@ class EDigitGenerator (object):
         truncation of e's representation to this base.
         """
         assert count >= 0, "Don't be silly"
+        assert len(digits) > 1, "Don't be silly"
         self.__digits = digits
         self.__base = len(digits)
         self.count = count
