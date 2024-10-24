@@ -43,7 +43,7 @@ See study.LICENSE for copyright and license information.
 """
 
 import math, cmath
-roottwopi = math.sqrt(2 * math.pi) # I del this later
+root2pi = math.sqrt(2 * math.pi) # I del this later
 from study.snake.decorate import postcompose
 @postcompose
 def asreal(val):
@@ -62,10 +62,10 @@ def lnfactorial(n, log=math.log):
     return result
 
 # Stirling's approximation:
-def lnStirling(n, base=math.log(roottwopi), log=math.log):
+def lnStirling(n, base=math.log(root2pi), log=math.log):
     return (n + .5) * log(n) -n +base -1./12/n
 
-def Stirling(n, __s=roottwopi, exp=math.exp):
+def Stirling(n, __s=root2pi, exp=math.exp):
     # approximates factorial
     if n: __s = __s / exp(n+ 1./12/n) # change lost between calls
     return pow(n, .5 + n) * __s
@@ -92,8 +92,8 @@ def lngamma(x,
             coefficients=[76.18009172947146, -86.50532032941677,
                           24.01409824083091, -1.231739572450155,
                           0.1208650973866179e-2, -0.5395239384953e-5],
-            sum=1.000000000190015,
-            scale=roottwopi,
+            tot=1.000000000190015,
+            scale=root2pi,
             log=cmath.log):
     """Lanczos's approximation to log(Gamma).
 
@@ -118,8 +118,8 @@ def lngamma(x,
     base = x +4.5
     base = (x -.5) * log(base) - base
 
-    for c in coefficients: sum, x = sum + c/x, 1+x
-    return base + log(scale * sum)
+    for c in coefficients: tot, x = tot + c/x, 1+x
+    return base + log(scale * tot)
 
 @asreal
 def gamma(x, exp=cmath.exp, special=math.sqrt(math.pi/4)):
@@ -202,7 +202,7 @@ def expterm(x, n, scale=1, exp=cmath.exp): # returns pow(x,n)/n!
 def sphere(dim, radius=1, pi=math.pi):
     return expterm(pi * radius**2, .5 * dim)
 
-del roottwopi, math, cmath, asreal
+del root2pi, math, cmath, asreal
 
 # test code
 def error(x):
