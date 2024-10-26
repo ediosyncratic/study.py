@@ -160,6 +160,76 @@ class Rational (Cached):
     @property
     def numerator(self): return self.__ratio[0]
 
+    def hypot(self, *args):
+        """Returns sqare-rooted sum of squares.
+
+        Takes arbitrarily many arguments, assumed Rational.  Adds
+        self's square to the sum of their squares and returns the
+        sum's square root.  Unlike math.hypot(), this does sum the
+        actual squares, since doing that with Rational instances
+        suffers no loss of precision; so passing any values, such as
+        float, where loss of precision may be an issue, is apt to
+        produce poor results.  The return is a Rational if possible,
+        otherwise a float.\n"""
+        total = self * self
+        for arg in args:
+            total += arg * arg
+        assert total >= 0
+        try:
+            if isinstance(total, Rational):
+                return total.__sqrt(10**17)
+        except ValueError as what:
+            pass # Make do with float's approximation
+        return float(total) ** .5
+
+    @property
+    def sqrt(self):
+        return self.__sqrt()
+
+    from study.maths.natural import desquare
+    from study.maths.primes import factorise
+    def __sqrt(self, invTol=None, root = desquare, factor = factorise):
+        """The square root of self.
+
+        Optional parameter invTol defaults to None; otherwise, it should be a
+        (typically large) positive number.  When invTol is None, this raises
+        ValueError if self is not the square of a rational.  Otherwise, it
+        returns a rational whose square differs from self by at most
+        self/invTol; it will be exact if this is possible.\n"""
+        if self < 0:
+            raise ValueError("mathematical domain error", self)
+        num, den = self.__ratio
+        d = 1
+        for k, v in factor(den).items():
+            q, r = divmod(v, 2)
+            if r: num *= k
+            d *= k**(q +r)
+        assert self * d**2 == num, (self, num, d)
+        n, m = root(num, True)
+        # so self * d**2 = n**2 +m, n >= 0, -n < m < n.
+        if not m: return Rational(n, d)
+        if invTol:
+            raise ValueError("Is sadly not the square of a rational", self, n, m, d)
+
+        assert -n < m <= n
+        assert 0 < self * d**2 == n**2 +m
+        # = (n +m/n/2)**2 -(m/n/2)**2
+        # = (n +m/n/2 -m*m/n/4/(2*n*n +m))**2
+        #   -(m*m/n/4/(2*n*n +m))**2
+        # with m no bigger than n so the last term is < (1/n/8)**2; hopefully
+        # good enough.  This is equivalent to two steps of Newton-Raphson,
+        # which we can continue until we attain the requested precision.
+        rough = (Rational(n, d) +Rational(m, 2 * n * d)
+                 -Rational(m * m, 4 * n * d * (2 * n * n +m)))
+        while True:
+            gap = rough**2 -self
+            assert gap >= 0, (gap, self, rough)
+            # Make the adjustment even if we're already within tolerance:
+            rough -= gap / rough / 2
+            if gap * invTol < self: break
+        return rough
+    del desquare, factorise
+
     @lazyprop
     def floor(self): # round down (towards -infinity)
         num, den = self.__ratio
