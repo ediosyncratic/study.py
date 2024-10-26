@@ -258,12 +258,17 @@ def perfect():
 
         i += 1
 
-def desquare(val):
+def desquare(val, nearest = False):
     """Whole square root with remainder.
 
-    Input, val, is a non-negative real, typically a natural.  Raises ValueError
-    if negative.  Otherwise, returns a twople n, v with n natural, n*n + v ==
-    val and 0 <= v < 2*n+1.\n"""
+    Required argument, val, is a non-negative real, typically a
+    natural.  Optional second argument, nearest, defaults to False.
+
+    Raises ValueError if val is negative.  Otherwise, returns a twople
+    n, v with n natural, n*n + v == val and:
+
+      * when nearestis false, 0 <= v < 2*n+1;
+      * when nearest is true, -n < v <= n\n"""
     if val < 0: # Every natural's square exceeds val.
         raise ValueError('Negative value has no square root', val)
 
@@ -289,7 +294,10 @@ def desquare(val):
             v |= bit
             val -= up
 
-    assert 0 <= val < 1 + (v << 1) # v**2 <= input < (1+v)**2
+    gap = 1 + (v << 1)
+    assert 0 <= val < gap # v**2 <= input < (1+v)**2
+    if nearest and val > v: # v**2 +v = (1+v)**2 -(1+v) < input < (1+v)**2
+        return v + 1, val - gap
     return v, val
 
 def unsquare(val):
