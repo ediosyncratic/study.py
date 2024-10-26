@@ -4,7 +4,10 @@ Provides:
   Triangle -- an object describing a pythagorean triangle
   triangles() -- an iterator over pythagorean triangles
   tightening() -- decorator to help filter triangles
-  Triangles -- A cacheing iterator over coprime pythagorean triangles.
+  Triangles -- A cacheing iterator over coprime pythagorean triples.
+  Octant -- An iterator over points on a circle
+  circles() -- An iterator over circles with pythagorean points
+  svgCircles() -- A representation of circles() in SVG
 
 See study.LICENSE for copyright and license information.
 """
@@ -59,9 +62,10 @@ class Triangle (Triangle):
             2 * (i * (i + 1) - (j + 1) * j)
             (2 * i + 1) * (2 * j + 1)
 
-        Here, i and j are the two required parameters passed to the
-        constructor; and scale is 1 unless over-ridden by the
-        like-named parameter to the constructor.
+        in that order: the first is the hypotenuse, the second is a
+        multiple of four.  Here, i and j are the two required
+        parameters passed to the constructor; and scale is 1 unless
+        over-ridden by the like-named parameter to the constructor.
 
         These are the sides of a right-angle triangle, as may be
         verified by summing the squares of the later two and comparing
@@ -128,6 +132,14 @@ class Triangle (Triangle):
         entry in .edges is scaled by the given factor.\n"""
         i, j = self.__ij
         return Triangle(i, j, scale * self.__scale)
+
+    def normalised(self, scale=1.):
+        """Return self scaled to a given hypotenuse length.
+
+        Optional argument, scale, defaults to 1.  The triangle
+        returned has this as its hypotenuse, with other edges scaled
+        to match.\n"""
+        return self.scaled(scale / self.edges[0])
 
     def join(self, other, flip=False):
         """Returns a result of combining two triples.
@@ -225,7 +237,6 @@ class Triangle (Triangle):
     __hcf = staticmethod(__hcf)
     __sqrt = staticmethod(__sqrt)
 
-del lazyprop
 
 def triangles(test = lambda tri: tri.iscoprime):
     """Construct an iterator.
@@ -347,8 +358,70 @@ class Triangles (Iterable):
                     # BUG: anything appended between pop and append got missed :-(
             except IndexError: i = 0
             else: i += 1
+
+class Octant (Ordered):
+    """Order triangles by size of sharpest angle.
 
-del Ordered, Iterable
+    Is based on study.snake.sequence.Ordered, using the ratio of
+    shortest edge to the one perpendicular to it as sort key.
+
+    Methods:
+
+      points(radius) -- iterator over points on a circle
+      length(radius) -- one eighth of the circumference of that circle
+
+    The latter can be used to compute the value of pi.\n"""
+    __upinit = Ordered.__init__
+    def __init__(self, count):
+        self.__upinit(key = self.__order)
+        seq = iter(triangles())
+        while count > 0:
+            count -= 1
+            self.append(next(seq))
+
+    from ratio import Rational
+    @staticmethod
+    def __order(tri, Rat=Rational):
+        assert isinstance(tri, Triangle)
+        a, c = tri.edges[1:]
+        return Rat(a, c) if a < c else Rat(c, a)
+
+    from math import hypot
+    @staticmethod
+    def __hypot(x, y, mh = hypot, Rat=Rational):
+        if isinstance(x, Rat):
+            return x.hypot(y)
+        if isinstance(y, Rat):
+            return y.hypot(x)
+        return mh(x, y)
+    del Rational, hypot
+
+    def points(self, radius = 1.):
+        """Iterate the points on a circle of the given radius.
+
+        Optional argument, radius, defaults to 1.  This generates
+        points (x, y) for which hypot(x, y) == radius in order of
+        increasing x (and thus decreasing y), with 0 < x < y < radius
+        and x**2 < radius**2/2 < y**2.  You may well want to start
+        with the missing point (0, radius) and end with the mid-point
+        between the last and its (y, x) mirror image in the
+        diagonal.\n"""
+        for tri in self:
+            a, c = tri.normalised(radius).edges[1:]
+            yield (a, c) if a < c else (c, a)
+
+    def length(self, radius = 1.):
+        last, tot, hypot = (0, radius), radius * 0, self.__hypot
+        for here in self.points(radius):
+            tot += hypot(*(n -p for n, p in zip(here, last)))
+            last = here
+        # Finally, the distance from the last point to the diagonal,
+        # which is half way to its mirror image in that:
+        gap = last[1] -last[0]
+        tot += hypot(gap, gap) / 2
+        return tot
+
+del Ordered, Iterable, lazyprop
 
 def circles(bound):
     """Iterates whole-radius circles on which whole-co-ordinate points lie.
@@ -384,6 +457,7 @@ def circles(bound):
         yield h, tuple(t.edges[1:] for t in bok[h])
 
 def svgCircles(maxRadius=1024, minCount=2):
+    # Generator for http://www.chaos.org.uk/~eddy/img/geom/pythcircles.svg
     seq = tuple(s for s in circles(maxRadius) if len(s[1]) >= minCount)
     big = max(len(s) for r, s in seq)
     for r, s in seq:
