@@ -35,7 +35,7 @@ class Triangle (Triangle):
         scale (default: 1), by which to multiply the lengths of the
         edges; this should be a whole number.
         """
-        assert i > j
+        assert i > j, (i, j)
         self.__ij = i, j
         self.__scale = scale
         # Deliberately not calling base's __init__(), as we provide
@@ -237,6 +237,28 @@ class Triangle (Triangle):
     __hcf = staticmethod(__hcf)
     __sqrt = staticmethod(__sqrt)
 
+    from study.snake.sequence import Ordered as __Growing
+    from study.maths.natural import desquare as __root
+    __root = staticmethod(__root)
+    @classmethod
+    def isosceles(cls):
+        """Iterate approximately isosceles pythagorean triangles.
+
+        See [0] for details.  We start with Triangle(1, 0) and use
+        each short side to generate new pairs of indices that will
+        produce further approximations.
+
+        [0] http://www.chaos.org.uk/~eddy/math/pythagorean.html#Isosceles
+        """
+        queue = cls.__Growing(((1, 0),))
+        while queue:
+            tri = cls(*queue.pop(0))
+            yield tri
+            m = min(tri.edges)
+            b, r = cls.__root(m**2 +(m+1)**2)
+            assert not r
+            queue.append((m, b -m -1))
+            queue.append((b +m, m))
 
 def triangles(test = lambda tri: tri.iscoprime):
     """Construct an iterator.
