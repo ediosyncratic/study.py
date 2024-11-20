@@ -406,12 +406,13 @@ one must use to support a massive body, so that it stays still rather
 than falling, to the mass of that body.
 
 It varies with location around the world, due to the centrifugal
-effect of the Earth's spin (pulling upwards) and the consequent
-variation in distance of sea level from Earth's centre of mass
-(reducing the field strength according to the inverse square law).
-This results in low values near the equator and high values near the
-poles.  There is also some local variation due to the non-uniformity
-of Earth's mass distribution.
+effect of the Earth's spin (pulling away from the spin axis, so only
+parallel to gravity at the equator) and the consequent variation in
+distance of sea level from Earth's centre of mass (reducing the field
+strength according to the inverse square law).  This results in low
+values near the equator and high values near the poles.  There is also
+some local variation due to the non-uniformity of Earth's mass
+distribution.
 
 The measured downward acceleration of an unsupported body, or weight
 to mass ratio of a body, above the solid surface of the Earth will
@@ -447,7 +448,10 @@ https://www.mezzacotta.net/100proofs/archives/358
                         name = 'Ocean',
                         fresh = Object(ice = 23.67e18 * kg,
                                        water = .5e18 * kg,
-                                       steam = 14.17e15 * kg)),
+                                       steam = 14.17e15 * kg),
+                        area = 362 * tera * metre**2, # 0.708 of Earth.surface.area
+                        rainfall = 399 * peta * kg / year,
+                        material = "water"),
 
             # Land
             SurfacePart(IAcontinent('Africa', 11.5),
@@ -483,25 +487,36 @@ https://www.mezzacotta.net/100proofs/archives/358
                                  IAisland('Iceland', .039768),
                                  IAisland('Formosa', .013855)),
                         name = 'Land',
-                        height = Quantity.below(8840, metre, mean=840)),
+                        height = Quantity.below(8840, metre, mean=840),
+                        area = 149.3 * tera * metre**2, # 0.292 of Earth.surface.area
+                        rainfall = 106.7 * peta * kg / year,
+                        material = "basalt, granite"),
 
             # misc other data:
-            rainfall = Quantity(exa / 8, kg / year, """Earth's total rainfall.
+            rainfall = Quantity(506 * peta, kg / year, """Earth's total rainfall.
 
-Around 71% of this probably falls on the oceans, of course.
-"""),
-            # but c. half a million km**3/year according to
-            # http://www.globalchange.umich.edu/globalchange2/current/lectures/freshwater_supply/freshwater.html
+Wikipedia's page [0] on rain gives 0.99 metres / year averaged over
+the surface.  The average over land, from the same source, is only
+0.715 metres / year; this implies the average over seas and oceans is
+about 1.095 metres / year.  Thus about 78% of Earth's precipitation
+lands on salt water.
+
+The Wikipedia data implies c. half a million km**3/year, consistent
+also with data I've seen on [1] (at a page now long gone).  The
+earliest version of this module gave about an eighth of that, but I've
+no idea where I got that figure.
+
+[0] https://en.wikipedia.org/wiki/Rain
+[1] http://www.globalchange.umich.edu/
+"""), # Ocean and Land shares of that given above.
             flattening = 1 / 298.25,
             albedo = .39, # so 61% of incident radiation is absorbed
             # but total solar power available at surface is 1/8 of that in space:
             # http://www.physorg.com/news117649731.html
             # This may be about which frequencies solar panels can use.
-            nature = { 'Land': .292, 'Ocean': .708 }, # TODO: merge into SurfacePart data !
-            material = "basalt, granite, water",
             magnetic = Object(
-            field = Quantity(31.2 * micro, Tesla,
-                             doc = """Earth's magnetic field.
+                field = Quantity(31.2 * micro, Tesla,
+                                 doc = """Earth's magnetic field.
 
 See body.Body.magnetic; Earth's B_0 is given here, implying a magnetic
 dipole of about 81e21 A.m^2, equal to the field of a 634 MA current
@@ -534,8 +549,7 @@ Earth's radius due to the equatorial bulge, 21.4 km.\n""")),
                    sample = [ 8.3 * minute.light,
                               #' Somewhere, I've also seen .155 * tera * metre
                               .149600 * tera * metre ]), # K&L, NASA and some other source ...
-          # Perihelion (currently) happens at the beginning of January;
-          # varies with Milankovitch cycle, on periods O(10 k yr).
+          # See below for more {peri,ap}helion data.
           Spin(year.sidereal, 0,
                __doc__ = """The angular velocity of the Earth's orbit.
 
@@ -593,9 +607,13 @@ ground ... earth.
 
 Earth.surface.radius.observe(6.37814 * mega * metre) # NASA
 Earth.mass.observe(5.9742e24 * kg)
-Earth.orbit.radius.observe(Quantity.flat(147.1e9, # perihelion
-                                         152.1e9, # aphelion
+# DR Becky (2024) supplied {peri,ap}helion values and dates.
+# These vary with Milankovitch cycle, on periods O(10 k yr).
+# No idea where I got the rather eccentric best estimate.
+Earth.orbit.radius.observe(Quantity.flat(146.915696e9, # perihelion, Jan 2nd
+                                         152.458496e9, # aphelion, Jul 5th
                                          1000001017.8 * 149.597871) * metre)
+
 Earth.magnetic.dipole.also(
     # N pole on Ellesmere Island, c. 11 degrees off spin axis
     latitude = 79 * arc.degree,
