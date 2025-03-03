@@ -46,19 +46,69 @@ Mercury.orbit.precession = Float(.420, 3, None, arc.second / year)
 Venus = KLplanet('Venus',
                  # tilt of 177, i.e. nearly 180, means retrograde rotation ...
                  KLsurface(.949, .9,
-                            Spin(Float(243.015, 2, None, day), 177.3),
-                            # But note that the *atmosphere* goes round every 96 hours !
-                            flattening = 0, material="basalt, granite?"),
+                           # Spin is retrograde; so axial tilt almost a half turn:
+                           Spin(Float(243.015, 2, None, day), 177.3),
+                           # But note that the *atmosphere* goes round every 96 hours !
+                           flattening = 0, material="basalt, granite?"),
                  Orbit(Sun, Float(108.21, 2, 9, metre),
                        Spin(.615 * year, 3.394), .0068),
                  .815, 5.24,
-                 Atmosphere = Object(pressure = 90 * bar, composition = { "CO2": .97 }),
+                 Atmosphere = Object(pressure = 93 * bar, composition = { "CO2": .97, "N2": .03 }),
                  discovery=Discovery("prehistoric", -1e4,
                                      etymology="""Latin: Venus.
 
-From Latin, named for the goddess of love.  Other civilizations have variously
-named it for love or war deities.
-"""))
+From Latin, named for the goddess of love.  Other civilizations have
+variously named it for love or war deities.  Some civilizations have
+understood it as two planets, the morning star and the evening star,
+but even the ancient Sumerians recognized it as a single planet.
+
+Its role as morning star also gives it the name Lucifer, 'light
+bringer' or 'light bearer'.
+"""),
+                 __doc__="""Venus: Earth's morning star and evening star.
+
+The closest planet to Earth and the most similar, yet still very
+different.
+
+Although it has many volcanoes, many of them active, it has little
+tectonic activity.  Its tectonic history appears to consist of
+sporadic upheavals when the whole crust gets turned over all at once,
+rather than a gradual on-going process.  Its core produces no
+noticeable magnetic field (although interactions of its upper
+atmosphere with the solar wind produces a little), with the result
+that the solar wind is slowly stripping its atmosphere,
+preferrentially robbing it of the lighter elements.  In particular,
+this has lead to its abundance of Deuterium, relative to that of
+Hydrogen, being about 100 times higher than other sources we might
+consider.  It also has higher abundances of noble gasses, at least
+relative to Earth.
+
+It spins, relative to the stars, (slightly) slower than it orbits the
+sun and in the opposite sense; the result is that its year is about
+1.92 (of its) days long.  The axial tilt is, however, close enough to
+a half turn that it has no discernible seasons.  Its atmosphere is hot
+enough and under enough pressure to make both of its principal
+ingredients, carbon dioxide and nitrogen, 'supercritical': that is,
+outside the region where the phase diagram has any sharp boundaries of
+transitions between phases.  This gives it a density of about 0.065
+kg/litre; although its winds are not fast, they can exert significant
+force.  They also manage to distribute heat around, under the
+permanent high-albedo cloud cover, sufficiently evenly that there is
+little difference in temperature between poles and equator, so surface
+temperature varies mainly with altitude rather than latitude.  The
+atmosphere is massive enough that changes in its currents can cause
+the length of the day to vary by as much as 20 minutes (albeit this is
+less than one part in 16 thousand).
+
+Despite the hellish character of its surface atmosphere, at high
+altitude (around 50 km above the surface) there is a region where
+physical conditions are similar to those at the Earth's surface,
+albeit with weaker gravity and the highly corrosive outdoor chemistry
+remains less than hospitable.  This has given rise to the idea of
+floating outposts.  If these were sufficiently reflective, they could
+even reduce the inbound solar radiation and allow the planet to slowly
+cool, potentially preparing the way for later terraforming.
+""")
 Venus.mass.observe(4.8690e24 * kg)
 Venus.surface.radius.observe(6.3 * mega * metre)
 Venus.surface.radius.observe(Float(6.0518, 4, 6, metre)) # NASA
