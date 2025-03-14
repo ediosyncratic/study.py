@@ -4,10 +4,11 @@ Provides:
   Triangle -- an object describing a pythagorean triangle
   triangles() -- an iterator over pythagorean triangles
   tightening() -- decorator to help filter triangles
-  Triangles -- A cacheing iterator over coprime pythagorean triples.
+  Triangles -- A cacheing iterator over coprime pythagorean triples
   Octant -- An iterator over points on a circle
   circles() -- An iterator over circles with pythagorean points
   svgCircles() -- A representation of circles() in SVG
+  equiHypot() -- Group int-lattice points with equal sums of squares
 
 See study.LICENSE for copyright and license information.
 """
@@ -488,3 +489,47 @@ def svgCircles(maxRadius=1024, minCount=2):
                ('<!-- radius {} -->'.format(r),) +
                tuple('<circle r="2" cx="{0}" cy="{1}" />'
                      '<circle r="2" cx="{1}" cy="{0}" />'.format(*p) for p in s))
+
+from study.snake.sequence import Dict
+
+def equiHypots(top, sides = 2, matches = 2, low = 1, test = lambda k: True,
+               Holder = Dict.UsingDefault(False, set)):
+    """Integral points on equal-radius spheres.
+
+    This isn't limited to spheres of integer radius, like circles(),
+    unless test requires its parameter to be a perfect square.
+    Returns a mapping from non-negative integer keys to (frozen) sets
+    of tuples.  For each k, vs in the return's .items(): test(k) is
+    true, all(len(v) == sides and sum(n*n for n in v) == k for v in
+    vs) and len(vs) >= matches.  The entries in each v in vs are in
+    non-increasing order; each entry is an int (or long) neither less
+    than floor(low) nor greater than ciel(top).  Because tuples in vs
+    are in non-increasing order, no two are permutations of one
+    another; so the set of tuples, for each key, is only exhaustive
+    modulo permutation.
+
+    The default test accepts every value for k, the default for low is
+    1 and those for sides and matches are two.  This gives
+    non-increasing twoples with entries ranging from 1 through top,
+    inclusive, grouped by equality of sum of squares and only
+    including groups that exhibit at least two distinct ways to get
+    the same same sum of squares.\n"""
+    # Advertised coercing of top to ciel, low to floor:
+    n = int(low // 1) # Guaranteed to round *down* (not towards zero)
+    if n != low: low = n
+    n = int(top // 1)
+    if n != top: top = n + 1 # (but we want to round top *up*)
+
+    # Iterate candidate tuples:
+    bok, v = Holder(), (top,) * sides
+    while v[-1] >= low:
+        key = sum(n * n for n in v)
+        if test(key):
+            bok[key].add(v)
+        n = 0
+        while n +1 < sides and v[n] <= low: n += 1
+        v = (v[n] - 1,) * (n +1) + v[n + 1:]
+
+    return {k: frozenset(vs) for k, vs in bok.items() if len(vs) >= matches}
+
+del Dict
