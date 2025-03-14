@@ -696,6 +696,59 @@ class Dict (dict):
     def values(self, Wrap=Tuple): return Wrap(self.__sqva())
 
     @classmethod
+    def UsingDefault(cls, passkey, gen, *args, **kw):
+        """A derived class with lazily-created entries for all keys.
+
+        An instance of the returned class will remember any value set for a
+        given key but, when asked for a key that hasn't been set, will lazily
+        construct a value for it just in time to be used.  This effectively
+        makes every bok[key] behave as bok.setdefault(key, ...), but saves the
+        need to actually construct the default value (in order to pass it) when
+        the key is already present in bok.  The parameters passed to this class
+        method are a recipe for how to construct the default value (see below).
+
+        For example, bok = Dict.UsingDefault(False, set)() will let you simply
+        do bok[k].add(member) where you would otherwise need bok.setdefault(k,
+        set()).add(member), wastefully creating a set() that'll be unused on
+        all but the first call to it.  Thus the common pattern of grouping
+        entries in some iterable by equality of some function applied can be
+        written as:
+
+        def group_by(seq, func, Holder = Dict.UsingDefault(False, set)):
+            bok = Holder()
+            for member in iterable:
+                bok[func(member)].add(member)
+            return Dict((k, frozenset(v)) for k, v in bok.items())
+
+        If passkey is false, the default value for an unknown key is gen(*args,
+        **kw), independent of the key.  If passkey is true, the key for which
+        the value is to be used will be prepended to args (or passed as sole
+        positional parameter if args is empty).
+
+        For consistency, this makes deleting a non-existent key a no-op, as if
+        the key's value were lazily created just in time to be deleted, instead
+        of raising a KeyError.  This remains true even if lazily creating the
+        entry for the key would have raised some exception.\n"""
+        class Dict(cls): pass
+        Dict.__asdefault = gen, args, kw, passkey
+        return Dict
+    __asdefault = ()
+
+    __upget, __updel = dict.__getitem__, dict.__delitem__
+    def __getitem__(self, key):
+        try: return self.__upget(key)
+        except KeyError:
+            if not self.__asdefault: raise
+            gen, args, kw, passkey = self.__asdefault
+            ans = gen(*((key,) + args), **kw) if passkey else gen(*args, **kw)
+            self[key] = ans
+            return ans
+    def __delitem__(self, key):
+        try: return self.__updel(key)
+        except KeyError:
+            if not self.__asdefault: raise
+
+    @classmethod
     def _iterdict_(cls, what=()):
         """Pseudo-constructor for derived classes to over-ride.
 

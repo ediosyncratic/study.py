@@ -9,6 +9,7 @@ See study.LICENSE for copyright and license information.
 from study.snake.sequence import Dict, List
 
 class LazyDict (Dict):
+    # Compare Dict.UsingDefault(), which is more general.
     def __init__(self, each=None, fill=None):
         """Initialize a lazilly-filled dictionary.
 
