@@ -199,11 +199,12 @@ def norm(n, *args):
 def normiter(seq, n, scale=0, count=None):
     """The L_n norm of a sequence of numeric values.
 
-    First argument, seq, is an iterable whose entries are numeric.
-    Second argument, n, is the order of the norm desired, which must
-    behave as a non-negative real number for purposes of taking powers
-    (a non-negative integer will do).  As an exception, n = +Infinity
-    is an allowed value, returning max(abs(x) for x in seq).
+    First argument, seq, is an iterable whose entries are numeric.  It
+    shall be iterated once (possibly incompletely).  Second argument,
+    n, is the order of the norm desired, which must behave as a
+    non-negative real number for purposes of taking powers (a
+    non-negative integer will do).  As an exception, n = +Infinity is
+    an allowed value, returning max(abs(x) for x in seq).
 
     Optional third argument, scale (default 0.), gives a magnitude at
     which the caller cares about imprecision, but is willing to ignore
