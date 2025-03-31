@@ -50,19 +50,21 @@ class EDigitGenerator (object):
     Alternatively, we can write this sum as the derivative, at 1, of
     the function sum(x**n/(n+1)! for n in naturals) = (exp(x) -1)/x,
     whose derivative is exp(x)/x -exp(x)/x/x +1/x/x = (exp(x)*(x -1)
-    +1)/x/x, which is indeed 1 at x = 1.
-    """
+    +1)/x/x, which is indeed 1 at x = 1.  Or we can write each
+    n/(n+1)!  as (n +1 -1)/(n +1)! = 1/n! -1/(n+1)! to see that
+    sum(n/(n +1)! for n in range(k, h)) = 1/k! -1/h! and observe that
+    1/h! rapidly becomes negligible as h increases."""
     def __init__(self, count, digits="0123456789", decsep='.'):
         """Construct the generator.
 
         Required first argument, count, is the number of digits we're
         to produce.  Optional second argument is a string, digits, for
         which digits[i] shall be used to represent the digit i to base
-        len(digits).  The calculations shall be done to this number
+        len(digits).  The calculations shall be done for this number
         base.  The default is the usual decimal digits, 0 through 9,
         to get the usual decimal representaiton.  Optional third
-        argument is the separator to supply between the whole-number
-        part and the fractional part of the number.
+        argument, decsep, is the separator to supply between the
+        whole-number part and the fractional part of the number.
 
         The first yield will be the whole number part, plus this
         separator, after which each yield shall be a single digit of
@@ -76,8 +78,7 @@ class EDigitGenerator (object):
         asked for approaches the base from below than when asking for
         just more than the base.)  The final digit is not rounded, so
         if the next digit is half the base or more it is not a valid
-        truncation of e's representation to this base.
-        """
+        truncation of e's representation to this base.\n"""
         assert count >= 0, "Don't be silly"
         assert len(digits) > 1, "Don't be silly"
         self.__digits = digits
@@ -116,8 +117,7 @@ class EDigitGenerator (object):
           (n + 1.5) * ln(n) -n -1./12/n > ln(b)*d +ln(2/pi)/2
 
         Returns an n satisfying this condition; tries to be tolerably
-        close to minimal.
-        """
+        close to minimal.\n"""
         goal = ln(self.__base) * self.count +offset
         func = lambda n: (n +1.5) * ln(n) -n -1/12./n
         fdash = lambda n: ln(n) +(1.5 +1/12./n)/n
@@ -172,8 +172,7 @@ class EDigitGenerator (object):
 
         Parameters are as for the constructor.  They are used to
         construct an instance which is promptly iterated to
-        completion, returning the string it produces.
-        """
+        completion, returning the string it produces.\n"""
         return ''.join(cls(count, digits, decsep))
 
     @classmethod
