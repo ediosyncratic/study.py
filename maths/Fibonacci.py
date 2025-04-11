@@ -66,6 +66,14 @@ def fibonacci(what, was=0, result=1):
         result, was, what = was - result, result, what + 1
 
     return result
+
+def fibrecurse(what, was=0, result=1):
+    """Recursive equivalent of fibonacci (q.v.)"""
+    if what > 1:
+        return fibrecurse(what -1, result, result +was)
+    if what < -1:
+        return fibrecurse(what +1, result, was -result)
+    return was if -1 < what < 1 else result
 
 def fibtimes((a,b), (c,d)):
     """A multiplication with which to speed Fibonacci computation.
