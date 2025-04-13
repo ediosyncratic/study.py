@@ -258,6 +258,9 @@ class Element (Substance):
 
         # Handle storage in Element.by* lookups:
         while len(Element.byNumber) <= Z: Element.byNumber.append(None)
+        assert Element.byNumber[Z] is None
+        assert self.symbol not in Element.bySymbol
+        assert self.name not in Element.byName
         Element.bySymbol[self.symbol] = Element.byName[self.name] = Element.byNumber[Z] = self
 
         try: alias = what['alias']
@@ -267,10 +270,10 @@ class Element (Substance):
                 if len(sym) < 3 or (len == 3 and # it looks like a pig latin name:
                                     sym == sym.capitalise() and sym[0] in 'UBTQPHSOE' and
                                     all(x in 'nubtqphsoe' for x in sym[1:])):
-                    assert not Element.bySymbol.has_key(sym)
+                    assert sym not in Element.bySymbol
                     Element.bySymbol[sym] = self
                 else:
-                    assert not Element.byName.has_key(sym)
+                    assert sym not in Element.byName
                     Element.byName[sym] = self
 
         try: alias = what['arcanum']
