@@ -199,7 +199,7 @@ def Noble(n):
     of the noble gasses.
 
     At least for natural n,
-     * Noble(n) = 2*sum(((j+3)/2)**2 for j in range(n+1));
+     * Noble(n) = 2*sum(((j+3)//2)**2 for j in range(n+1));
      * Noble(2*i) = 2 +4*sum(j**2 for j in range(2, i+2))
      * Noble(2*i+1) = Noble(2*i) +2*(i+2)**2
 
@@ -224,17 +224,17 @@ def Noble(n):
      * for even m = n+3, m**3 +2*m is even+even = even; and
      * mod 3, m**3 == m and either m-m or m+2*m is a multiple of 3.
 
-    We can restate L's rule as L[n] = 2*((n+3)/2)**2, not to be
-    confused with (n+3)**2 / 2, due to rounding rules.  Applied to
+    We can restate L's rule as L[n] = 2*((n+3)//2)**2, not to be
+    confused with (n+3)**2 // 2, due to rounding rules.  Applied to
     negative n, this gives L[-1] == 2, L[-2] == 0 == L[-3], L[-4] ==
     L[-1] == 2 == L[0] == L[-5], L[-6] == L[1] == 8 == L[2] == L[-7];
     in general L[-5-n] == L[n] for whole n.  (Note that, due to
-    rounding oddities, (1-i)/2 = -(i/2) for natural i.  So, for n >=
-    -3, -((n+3)/2) = (-2-n)/2 = ((-5-n)+3)/2.  As lambda n: 5-n is
+    rounding oddities, (1-i)//2 = -(i//2) for natural i.  So, for n >=
+    -3, -((n+3)//2) = (-2-n)//2 = ((-5-n)+3)//2.  As lambda n: 5-n is
     self-inverse, the same holds for -5-n >= -3, i.e. n <= -2; hence
     for all whole n.)  With L[0] == 2 == Noble(0), using Noble(i-1) =
-    Noble(i) -L[i], we can interpolate [Noble(-i) for i in naturals] =
-    [2, 0, -2, -2, -2, -4, -6, -14, -22, ...], in agreement with the
+    Noble(i) -L[i], we can interpolate [Noble(-i) for i in {naturals}]
+    = [2, 0, -2, -2, -2, -4, -6, -14, -22, ...], in agreement with the
     polynomials.\n"""
 
     m = n + 3
