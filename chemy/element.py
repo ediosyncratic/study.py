@@ -521,7 +521,7 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
 
     Both the element's terrestrial abundance and the relative abundance of its
     isotopes will be given an error bar, if they don't already have one, to
-    accord with the limited precision indicated in the NAS table. """
+    accord with the limited precision indicated in the NAS table.\n"""
 
     if abundance is None: what['abundance'] = None # artificial elements
     else:
@@ -529,8 +529,10 @@ def NASelement(name, symbol, Z, A, isos=None, abundance=None, melt=None, boil=No
         except AttributeError: # need an error bar (guess: two decimal places of precision)
             abundance = Quantity.fromSigFigs(abundance, 2)
         # NAS data book gives abundances relative to Silicon = 100, but notes
-        # that Silicon's true abundance is believed to be 27.72 %
-        what['abundance'] = abundance * .2772
+        # that Silicon's true abundance is believed to be 27.72%; however,
+        # summing all the abundances it gives, I find they add up to 429.119 so
+        # scale to make that 100 (this puts Si at 23.3%):
+        what['abundance'] = abundance / 4.29119
 
     try: A.width
     except AttributeError: # give it an error bar
@@ -625,7 +627,7 @@ Carbon = NASelement('Carbon', 'C', 6, About(12.0111, 2.5e-5), {12: 98.89, 13: 1.
 Nitrogen = NASelement('Nitrogen', 'N', 7, 14.0067, {14: 99.63, 15: .37}, 9e-2, 63, 77, (.81, 77))
 Oxygen = NASelement('Oxygen', 'O', 8, Float(15.994, 4),
                     # Third most abundant atom in the universe
-                    {16: 99.759, 17: .037, 18: .204}, 2.1e-2, 54, 90, (1.14, 90))
+                    {16: 99.759, 17: .037, 18: .204}, 210, 54, 90, (1.14, 90))
 Fluorine = NASelement('Fluorine', 'F', 9, 18.9984, {19: 1}, .4, 53, 85, (1.11, 73))
 Neon = NASelement('Neon', 'Ne', 10, About(20.183, 1.5e-3), {20: 90.92, 21: .26, 22: 8.82}, 3.1e-8, 25, 27, (1.21, 27))
 Sodium = NASelement('Sodium', 'Na', 11, 22.9898, {23: 1}, 12.5, 371, 1163, .97, arcanum='Natrium')
@@ -759,7 +761,7 @@ Thorium = NASelement('Thorium', 'Th', 90, 232.038, {230: 0, 232: 1}, 5.1e-3, 196
 Protactinium = NASelement('Protactinium', 'Pa', 91, 231, {231: 1}, 3.5e-10, 1500, 4300, 15.37)
 Uranium = NASelement('Uranium', 'U', 92, 238.03, {234: .0057, 235: .7196, 238: 99.276}, 1.8e-3, 1406, 4200, 18.95)
 Neptunium = NASelement('Neptunium', 'Np', 93, 237, [237, 239], None, 913, 3500)
-Plutonium = NASelement('Plutonium', 'Pu', 94, 242, [238, 239, 242], 19.84)
+Plutonium = NASelement('Plutonium', 'Pu', 94, 239.1, [238, 239, 242], None, 913, 3500, 19.84)
 Americium = NASelement('Americium', 'Am', 95, 243, [243])
 Curium = NASelement('Curium', 'Cm', 96, 247, [247])
 Berkelium = NASelement('Berkelium', 'Bk', 97, 249, [249])
