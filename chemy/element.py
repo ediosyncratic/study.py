@@ -953,65 +953,88 @@ deuteron = Deuterium.atom.nucleus
 triton = Tritium.atom.nucleus
 alpha = Helium[4].atom.nucleus
 
-# Nuclear reactions in stars (nucleosynthesis):
-# http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node8.html
-# (With some adjustments, suggested to author as possibly corrections.)
-# Main sequence, temperature > 12 MK:
-#  p-p chain a:
-#   H[1] + H[1] -> positron + neutrino + H[2]
-#   H[2] + H[1] -> gamma + He[3]
-#   He[3] + He[3] -> H[1] + H[1] + He[4]
-#  p-p chain b:
-#   He[3] + He[4] -> gamma + Be[7]
-#   Be[7] + electron -> Li[7] + neutrino
-#   Li[7] + H[1] -> He[4] + He[4]
-#  p-p chain c:
-#   Be[7] + "&mu;" -> gamma + B[8]
-#   B[8] -> positron + neutrino + Be[8]
-#   Be[8] -> He[4] + He[4]
-#  C-N cycle (dominates for stellar mass > about 1.2 * Sun.mass):
-#   N[15] + H[1] -> He[4] + C[12]
-#   C[12] + H[1] -> gamma + N[13]
-#   N[13] -> positron + neutrino + C[13] # sole source of C[13]
-#   C[13] + H[1] -> gamma + N[14]
-#   N[14] + H[1] -> gamma + O[15]
-#   O[15] -> positron + neutrino + N[15]
-#  Extending that to the C-N-O cycle:
-#   N[15] + H[1] -> gamma + O[16]
-#   O[16] + H[1] -> gamma + F[17]
-#   F[17] -> positron + neutrino + O[17]
-#   O[17] + H[1] -> He[4] + N[14]
-#  O-F extras:
-#   O[17] + H[1] -> gamma + F[18]
-#   F[18] -> positron + neutrino + O[18]
-#   O[18] + H[1] -> He[4] + N[15]
-#   O[18] + H[1] -> gamma + F[19]
-#   F[19] + H[1] -> He[4] + O[16]
-# http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node12.html
-# The core Helium burning (CHeB) phase, which ends the red giant phase:
-#  Triple-alpha process, temperature > c. 100 MK)
-#   He[4] + He[4] -> Be[8]
-#     NB: Be[8] has a half-life of c. 7e-16s, limiting the next step !
-#   Be[8] + He[4] -> C[12](excited)
-#   C[12](excited) -> gamma + gamma + C[12]
-#  This can continue as:
-#   C[12] + He[4] -> gamma + O[16]
-#   O[16] + He[4] -> gamma + Ne[20]
-#   Ne[20] + He[4] -> gamma + Mg[24]
-#  The C-N cycle leaves N[14] from which to seed:
-#   N[14] + He[4] -> gamma + F[18] # thence to O[18] as above
-#   O[18] + He[4] -> gamma + Ne[22]
-# Asymptotic Giant Branch phase; He exhausted, second red-giant phase:
-#  H-burning shell (outside He-shell):
-#   p-p chains and C-N cycle, as earlier
-#  He-burning shell (s-process actions on p-p and C-N products):
-#   C[13] + He[4] -> neutron + O[16]
-#   Ne[22] + He[4] -> neutron + Mg[25]
-#   neutron-addition then pushes elements above Fe[56]
-#     (s(low)-process and r(apid)-process).
-#  Extra C[13] production (see sole source, above) when H[1] gets into the
-#  C-rich core; and "hot bottom burning" (stars with mass > Sun.mass * 4, T >
-#  50 MK in H-shell) does more.
+nucleosynthesis = """
+https://www.youtube.com/watch?v=evUfG3lrk5U
+ Nuclear reactions in stars (nucleosynthesis):
+
+http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node8.html
+(With some adjustments, suggested to author as possibly corrections.)
+Main sequence, temperature > 12 MK:
+  p-p chain a:
+   H[1] + H[1] -> positron + neutrino + H[2]
+   H[2] + H[1] -> gamma + He[3]
+   He[3] + He[3] -> H[1] + H[1] + He[4]
+  p-p chain b:
+   He[3] + He[4] -> gamma + Be[7]
+   Be[7] + electron -> Li[7] + neutrino
+   Li[7] + H[1] -> He[4] + He[4]
+  p-p chain c:
+   Be[7] + "&mu;" -> gamma + B[8]
+     That "&mu;" surely has to be a proton ?
+   B[8] -> positron + neutrino + Be[8]
+   Be[8] -> He[4] + He[4]
+  C-N cycle (dominates for stellar mass > about 1.2 * Sun.mass):
+   N[15] + H[1] -> He[4] + C[12]
+   C[12] + H[1] -> gamma + N[13]
+   N[13] -> positron + neutrino + C[13] # sole source of C[13]
+   C[13] + H[1] -> gamma + N[14]
+   N[14] + H[1] -> gamma + O[15]
+   O[15] -> positron + neutrino + N[15]
+  Extending that to the C-N-O cycle:
+   N[15] + H[1] -> gamma + O[16]
+   O[16] + H[1] -> gamma + F[17]
+   F[17] -> positron + neutrino + O[17]
+   O[17] + H[1] -> He[4] + N[14]
+  O-F extras:
+   O[17] + H[1] -> gamma + F[18]
+   F[18] -> positron + neutrino + O[18]
+   O[18] + H[1] -> He[4] + N[15]
+   O[18] + H[1] -> gamma + F[19]
+   F[19] + H[1] -> He[4] + O[16]
+
+ http://web.missouri.edu/~speckan/witch-stuff/Research/chapter2/node12.html
+ The core Helium burning (CHeB) phase, which ends the red giant phase:
+  Triple-alpha process, temperature > c. 100 MK)
+   He[4] + He[4] -> Be[8]
+     NB: Be[8] has a half-life of c. .7 fs, limiting the next step !
+   Be[8] + He[4] -> C[12](excited)
+   C[12](excited) -> gamma + gamma + C[12]
+  This can continue as:
+   C[12] + He[4] -> gamma + O[16]
+   O[16] + He[4] -> gamma + Ne[20]
+   Ne[20] + He[4] -> gamma + Mg[24]
+  The C-N cycle leaves N[14] from which to seed:
+   N[14] + He[4] -> gamma + F[18] # thence to O[18] as above
+   O[18] + He[4] -> gamma + Ne[22]
+ Asymptotic Giant Branch phase; He exhausted, second red-giant phase:
+  H-burning shell (outside He-shell):
+   p-p chains and C-N cycle, as earlier
+  He-burning shell (s-process actions on p-p and C-N products):
+   C[13] + He[4] -> neutron + O[16]
+   Ne[22] + He[4] -> neutron + Mg[25]
+   neutron-addition then pushes elements above Fe[56]
+     (s(low)-process and r(apid)-process).
+  Extra C[13] production (see sole source, above) when H[1] gets into the
+  C-rich core; and "hot bottom burning" (stars with mass > Sun.mass * 4, T >
+  50 MK in H-shell) does more.
+
+At least for Var 83:
+90% of star's lifetime: fusing H to He.
+Core temperature rises to 2 MK
+He fuses to C for O(mega year)
+  (Veritasium had O and Ne swapped below, but see above)
+Successive He-additions then give us
+C -> O for c.1k yr
+O -> Ne for a few more yr
+Ne -> Mg -> Si for a few months
+until 2.5 GK: then Si+Si -> Ni, which beta-decays down to Fe;
+that's probably Fe[56] and the end of the story.
+
+When the supernova goes off, *most* of the energy is neutrinos !
+(Assuming it's the right kind of supernova.
+If it goes direct to a black hole, all bets are off.
+If it's a binary gobbling its partner, shit is weird.)
+"""
 
 del Object, Sample, Float, About, kilo, nano, harpo, \
     Joule, Tesla, Ohm, Kelvin, Centigrade, gram, kg, tonne, metre, mol, torr, \
