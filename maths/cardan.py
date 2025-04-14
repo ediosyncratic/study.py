@@ -66,7 +66,7 @@ def Cardan(cube, square, linear, constant):
     only happen if the first argument is zero.
 
     To be specific: for each x in Cardan(a, b, c, d)
-        ((a*x +b)*x +c)*x +d 
+        ((a*x +b)*x +c)*x +d
     will be tiny.  See cardan(), which wraps Cardan and asserts this.
 """
 
@@ -113,12 +113,12 @@ def Cardan(cube, square, linear, constant):
 
     assert E > 0
     E = E**.5
-    if disc < 0: # three roots; 
+    if disc < 0: # three roots;
         a = acos(F / E**3) / 3
         #print 'angle:', a * 180 / pi
         return (tidy(2*E*cos(a) - offset),
                 tidy(2*E*cos(a + 2*pi/3) - offset),
-                tidy(2*E*cos(a + 4*pi/3) - offset))
+                tidy(2*E*cos(a - 2*pi/3) - offset))
 
     # disc == 0, two roots, one repeated
     if F < 0:
