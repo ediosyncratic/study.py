@@ -149,8 +149,21 @@ T = Tesla = Weber / m**2        # Magnetic flux density
 
 # More properties of the mole:
 mol.also(
-    Avogadro = Quantity.within(602.2045, .003, zetta / mol,
-                               "Avogadro's number"), # 24! * 0.970596 / Mole
+    Avogadro = Quantity(602214076, peta / mol,
+                        """Avogadro's number
+
+This is the number of units of some kind of thing that make up a mole
+of that kind of thing.  Since 2019 its value is defined exactly, to a
+specific nine-digit number times 1e15; it now constitutes the
+definition of the mole.
+
+It can be approximated in various ways:
+ * 2**79 * .9962796165474711 or 256**10 * .49813980827373555
+ * 24! * .9706110521321333 or 23! * 23 * 1.0128115326596172
+
+Thus a set of size 24 has more than a mole of permutations and you
+need at least ten bytes to faithfully represent it in binary.
+"""),
     charge = Quantity.within(96.48456, .00027,
                              kilo * Coulomb / mol,
                              doc="""Faraday's Constant
